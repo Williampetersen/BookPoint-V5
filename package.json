@@ -1,0 +1,11 @@
+{
+  "name": "bookpoint-v5",
+  "private": true,
+  "devDependencies": {
+    "@wordpress/scripts": "^30.0.0"
+  },
+  "scripts": {
+    "build:book-form": "wp-scripts build blocks/src/book-form/index.js --output-path=blocks/build/book-form",
+    "start:book-form": "wp-scripts start blocks/src/book-form/index.js --output-path=blocks/build/book-form"
+  }
+}

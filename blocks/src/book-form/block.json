@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 2,
+  "name": "bookpoint/booking-form",
+  "title": "BookPoint – Booking Form",
+  "category": "widgets",
+  "icon": "calendar-alt",
+  "description": "Insert the BookPoint booking form.",
+  "textdomain": "bookpoint",
+  "attributes": {
+    "serviceId": {
+      "type": "number",
+      "default": 0
+    },
+    "defaultDate": {
+      "type": "string",
+      "default": ""
+    },
+    "hideNotes": {
+      "type": "boolean",
+      "default": false
+    },
+    "requirePhone": {
+      "type": "boolean",
+      "default": false
+    },
+    "compact": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "supports": {
+    "html": false
+  },
+  "editorScript": "file:./index.js"
+}
