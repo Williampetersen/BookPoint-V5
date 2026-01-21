@@ -87,26 +87,9 @@ final class BP_MigrationsHelper {
       ) {$charset};
     ");
 
-    dbDelta("
-      CREATE TABLE {$prefix}form_fields (
-        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-        scope VARCHAR(20) NOT NULL,
-        label VARCHAR(190) NOT NULL,
-        name_key VARCHAR(120) NOT NULL,
-        type VARCHAR(30) NOT NULL,
-        options_json LONGTEXT NULL,
-        required TINYINT(1) NOT NULL DEFAULT 0,
-        sort_order INT NOT NULL DEFAULT 0,
-        is_active TINYINT(1) NOT NULL DEFAULT 1,
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME NULL,
-        PRIMARY KEY (id),
-        UNIQUE KEY scope_name_key (scope, name_key),
-        KEY scope (scope),
-        KEY is_active (is_active),
-        KEY sort_order (sort_order)
-      ) {$charset};
-    ");
+    if (function_exists('bp_install_form_fields_table')) {
+      bp_install_form_fields_table();
+    }
 
     dbDelta("
       CREATE TABLE {$prefix}promo_codes (
@@ -139,6 +122,7 @@ final class BP_MigrationsHelper {
     self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'total_price', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00');
     self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'customer_fields_json', 'LONGTEXT NULL');
     self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'booking_fields_json', 'LONGTEXT NULL');
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'custom_fields_json', 'LONGTEXT NULL');
 
     self::maybe_add_column($wpdb->prefix . 'bp_customers', 'custom_fields_json', 'LONGTEXT NULL');
 
@@ -202,6 +186,7 @@ final class BP_MigrationsHelper {
       $wpdb->prefix . 'bp_bundles',
       $wpdb->prefix . 'bp_bundle_items',
       $wpdb->prefix . 'bp_form_fields',
+      $wpdb->prefix . 'bp_field_values',
       $wpdb->prefix . 'bp_promo_codes',
       $wpdb->prefix . 'bp_agent_services',
       $wpdb->prefix . 'bp_service_categories',
@@ -229,7 +214,8 @@ final class BP_MigrationsHelper {
       if (!self::column_exists($booking_table, $col)) return true;
     }
 
-    if (!self::column_exists($wpdb->prefix . 'bp_customers', 'custom_fields_json')) return true;
+      if (!self::column_exists($wpdb->prefix . 'bp_customers', 'custom_fields_json')) return true;
+      if (!self::column_exists($booking_table, 'custom_fields_json')) return true;
 
     if (!self::column_exists($agent_table, 'image_id')) return true;
 
@@ -338,6 +324,16 @@ final class BP_MigrationsHelper {
 
     // Step 18: Service-Agent pivot
     self::migrate_create_service_agents_table();
+
+    if (function_exists('bp_install_form_fields_table')) {
+      bp_install_form_fields_table();
+    }
+    if (function_exists('bp_seed_default_form_fields')) {
+      bp_seed_default_form_fields();
+    }
+    if (function_exists('bp_install_field_values_table')) {
+      bp_install_field_values_table();
+    }
   }
 
   // Step 19: Ensure bookings have status + notes columns

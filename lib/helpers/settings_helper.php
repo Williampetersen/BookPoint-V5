@@ -3,12 +3,14 @@ defined('ABSPATH') || exit;
 
 final class BP_SettingsHelper {
 
-  public static function table() : string {
-    global $wpdb;
-    return $wpdb->prefix . 'bp_settings';
+  const OPTION_KEY = 'bp_settings';
+
+  private static function get_option_all(): array {
+    $s = get_option(self::OPTION_KEY, []);
+    return is_array($s) ? $s : [];
   }
 
-  public static function get(string $key, $default = null) {
+  private static function get_legacy(string $key, $default = null) {
     global $wpdb;
     $table = self::table();
 
@@ -18,8 +20,71 @@ final class BP_SettingsHelper {
     $val = $wpdb->get_var($wpdb->prepare("SELECT setting_value FROM {$table} WHERE setting_key = %s LIMIT 1", $key));
     if ($val === null) return $default;
 
-    // store as plain string; allow json for arrays later
     return maybe_unserialize($val);
+  }
+
+  public static function table() : string {
+    global $wpdb;
+    return $wpdb->prefix . 'bp_settings';
+  }
+
+  public static function get(string $key, $default = null) {
+    $key = sanitize_key($key);
+    if ($key === '') return $default;
+
+    $s = self::get_option_all();
+    if (array_key_exists($key, $s)) return $s[$key];
+
+    $legacy_map = [
+      'slot_interval_minutes' => 'bp_slot_interval_minutes',
+      'currency' => 'bp_default_currency',
+      'currency_position' => 'bp_currency_position',
+    ];
+
+    if (isset($legacy_map[$key])) {
+      return self::get_legacy($legacy_map[$key], $default);
+    }
+
+    return self::get_legacy($key, $default);
+  }
+
+  public static function get_all(): array {
+    $s = self::get_option_all();
+
+    if (!array_key_exists('slot_interval_minutes', $s)) {
+      $s['slot_interval_minutes'] = (int)self::get_legacy('bp_slot_interval_minutes', 15);
+    }
+    if (!array_key_exists('currency', $s)) {
+      $s['currency'] = (string)self::get_legacy('bp_default_currency', 'USD');
+    }
+    if (!array_key_exists('currency_position', $s)) {
+      $s['currency_position'] = (string)self::get_legacy('bp_currency_position', 'before');
+    }
+
+    return $s;
+  }
+
+  public static function set_all($settings): void {
+    if (!is_array($settings)) $settings = [];
+    update_option(self::OPTION_KEY, $settings, false);
+  }
+
+  public static function merge($updates): array {
+    $s = self::get_option_all();
+    $merged = array_merge($s, is_array($updates) ? $updates : []);
+    update_option(self::OPTION_KEY, $merged, false);
+
+    if (isset($merged['slot_interval_minutes'])) {
+      self::set('bp_slot_interval_minutes', (int)$merged['slot_interval_minutes']);
+    }
+    if (isset($merged['currency'])) {
+      self::set('bp_default_currency', $merged['currency']);
+    }
+    if (isset($merged['currency_position'])) {
+      self::set('bp_currency_position', $merged['currency_position']);
+    }
+
+    return $merged;
   }
 
   public static function set(string $key, $value) : bool {
@@ -59,6 +124,7 @@ final class BP_SettingsHelper {
       'bp_close_time' => '17:00',
       'bp_slot_interval_minutes' => 15,
       'bp_default_currency' => 'USD',
+      'bp_currency_position' => 'before',
       'bp_email_enabled' => 1,
       'bp_admin_email' => get_option('admin_email'),
       'bp_email_from_name' => get_bloginfo('name'),

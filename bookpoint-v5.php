@@ -48,6 +48,8 @@ final class BP_Plugin {
     // Helpers (Step 2)
     require_once BP_LIB_PATH . 'helpers/roles_helper.php';
     require_once BP_LIB_PATH . 'helpers/migrations_helper.php';
+    require_once BP_LIB_PATH . 'helpers/form_fields_helper.php';
+    require_once BP_LIB_PATH . 'helpers/field_values_helper.php';
     require_once BP_LIB_PATH . 'helpers/database_helper.php';
 
     // Helpers (Step 5)
@@ -141,8 +143,12 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'rest/admin-schedule-editor-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-holidays-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-catalog-manager-routes.php';
+    require_once BP_LIB_PATH . 'rest/admin-field-values-routes.php';
+    require_once BP_LIB_PATH . 'rest/settings-routes.php';
     require_once BP_LIB_PATH . 'rest/public-catalog-routes.php';
     require_once BP_LIB_PATH . 'rest/public-availability-routes.php';
+    require_once BP_LIB_PATH . 'rest/public-booking-routes.php';
+    require_once BP_LIB_PATH . 'rest/form-fields-routes.php';
   }
 
   private static function register_hooks() : void {
@@ -275,6 +281,9 @@ final class BP_Plugin {
     BP_DatabaseHelper::install_or_update(self::DB_VERSION);
     self::install_or_upgrade_schedule_tables();
     self::seed_default_agent_hours();
+    bp_install_form_fields_table();
+    bp_seed_default_form_fields();
+    bp_install_field_values_table();
 
     // Store plugin version too (optional but helpful)
     update_option('BP_version', self::VERSION, false);
@@ -742,13 +751,8 @@ final class BP_Plugin {
       __('Form Fields', 'bookpoint'),
       __('Form Fields', 'bookpoint'),
       'bp_manage_settings',
-      'bp_form_fields',
-      function () {
-        $ctrl = new BP_AdminFormFieldsController();
-        $action = sanitize_text_field($_GET['action'] ?? 'index');
-        if (!method_exists($ctrl, $action)) $action = 'index';
-        $ctrl->$action();
-      }
+      'bp-form-fields',
+      [__CLASS__, 'render_form_fields']
     );
 
     add_submenu_page(
@@ -882,8 +886,8 @@ final class BP_Plugin {
       '1.0.0'
     );
 
-    // React admin bundle (Calendar + Schedule + Holidays)
-    if (in_array($page, ['bp_dashboard', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog'], true)) {
+    // React admin bundle (Calendar + Schedule + Holidays + Form Fields)
+    if (in_array($page, ['bp_dashboard', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog', 'bp-form-fields'], true)) {
       $asset_path = BP_PLUGIN_PATH . 'build/admin.asset.php';
       $asset = [
         'dependencies' => ['react', 'react-dom', 'react-jsx-runtime'],
@@ -913,16 +917,35 @@ final class BP_Plugin {
         );
       }
 
+      add_filter('script_loader_src', function ($src, $handle) {
+        if ($handle === 'bp-admin') {
+          return add_query_arg('v', time(), $src);
+        }
+        return $src;
+      }, 10, 2);
+      add_filter('style_loader_src', function ($src, $handle) {
+        if ($handle === 'bp-admin') {
+          return add_query_arg('v', time(), $src);
+        }
+        return $src;
+      }, 10, 2);
+
       $route = $page === 'bp_dashboard'
         ? 'dashboard'
         : ($page === 'bp_schedule'
           ? 'schedule'
-          : ($page === 'bp_holidays' ? 'holidays' : ($page === 'bp_catalog' ? 'catalog' : 'calendar')));
+          : ($page === 'bp_holidays'
+            ? 'holidays'
+            : ($page === 'bp_catalog'
+              ? 'catalog'
+              : ($page === 'bp-form-fields' ? 'form-fields' : 'calendar'))));
 
       wp_localize_script('bp-admin', 'BP_ADMIN', [
         'restUrl' => esc_url_raw(rest_url('bp/v1')),
         'nonce'   => wp_create_nonce('wp_rest'),
         'route'   => $route,
+        'page'    => $page,
+        'build'   => (file_exists(BP_PLUGIN_PATH . 'build/admin.js') ? (string)@filemtime(BP_PLUGIN_PATH . 'build/admin.js') : ''),
         'timezone'=> wp_timezone_string(),
       ]);
 
@@ -1014,6 +1037,10 @@ final class BP_Plugin {
     echo '<div id="bp-admin-app" data-route="holidays"></div>';
   }
 
+  public static function render_form_fields() : void {
+    echo '<div id="bp-admin-app" data-route="form-fields"></div>';
+  }
+
   public static function render_booking_confirm() : void {
     (new BP_AdminBookingsController())->confirm();
   }
@@ -1035,6 +1062,7 @@ final class BP_Plugin {
   }
 
   public static function enqueue_public_assets(bool $force = false): void {
+    static $cache_bust_added = false;
     if (!$force) {
       if (!is_singular()) return;
 
@@ -1048,23 +1076,42 @@ final class BP_Plugin {
       $front_asset = require $front_asset_path;
     }
 
+    if (!$cache_bust_added) {
+      $cache_bust_added = true;
+      add_filter('script_loader_src', function ($src, $handle) {
+        if ($handle === 'bp-front') {
+          return add_query_arg('v', time(), $src);
+        }
+        return $src;
+      }, 10, 2);
+      add_filter('style_loader_src', function ($src, $handle) {
+        if ($handle === 'bp-front') {
+          return add_query_arg('v', time(), $src);
+        }
+        return $src;
+      }, 10, 2);
+    }
+
     $front_css = BP_PLUGIN_PATH . 'public/front.css';
     if (file_exists($front_css)) {
+      $css_ver = @filemtime($front_css) ?: ($front_asset['version'] ?? self::VERSION);
       wp_enqueue_style(
         'bp-front',
         BP_PLUGIN_URL . 'public/front.css',
         [],
-        $front_asset['version'] ?? self::VERSION
+        $css_ver
       );
     }
 
     self::ensure_react_scripts();
 
+    $front_js = BP_PLUGIN_PATH . 'public/front.js';
+    $js_ver = file_exists($front_js) ? (@filemtime($front_js) ?: ($front_asset['version'] ?? self::VERSION)) : ($front_asset['version'] ?? self::VERSION);
     wp_enqueue_script(
       'bp-front',
       BP_PLUGIN_URL . 'public/front.js',
       $front_asset['dependencies'] ?? [],
-      $front_asset['version'] ?? self::VERSION,
+      $js_ver,
       false
     );
 
@@ -1072,6 +1119,7 @@ final class BP_Plugin {
       'restUrl' => esc_url_raw(rest_url('bp/v1')),
       'ajaxUrl' => admin_url('admin-ajax.php'),
       'siteUrl' => site_url('/'),
+      'nonce' => wp_create_nonce('bp_public'),
     ]);
   }
 
@@ -1196,11 +1244,21 @@ final class BP_Plugin {
     $service_id = absint($atts['service_id']);
 
     // enqueue assets only when shortcode is used
-    wp_enqueue_script('bp-front', BP_PLUGIN_URL . 'public/javascripts/front.js', ['jquery'], self::VERSION, true);
-    wp_enqueue_style('bp-front', BP_PLUGIN_URL . 'public/stylesheets/front.css', [], self::VERSION);
-    wp_localize_script('bp-front', 'bp', [
-      'ajax_url' => admin_url('admin-ajax.php'),
-    ]);
+    $front_js = BP_PLUGIN_PATH . 'public/front.js';
+    if (file_exists($front_js)) {
+      wp_enqueue_script('bp-front', BP_PLUGIN_URL . 'public/front.js', [], @filemtime($front_js) ?: self::VERSION, true);
+      wp_localize_script('bp-front', 'BP_FRONT', [
+        'restUrl' => esc_url_raw(rest_url('bp/v1')),
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+        'siteUrl' => site_url('/'),
+        'nonce' => wp_create_nonce('bp_public'),
+      ]);
+    }
+
+    $front_css = BP_PLUGIN_PATH . 'public/front.css';
+    if (file_exists($front_css)) {
+      wp_enqueue_style('bp-front', BP_PLUGIN_URL . 'public/front.css', [], @filemtime($front_css) ?: self::VERSION);
+    }
 
     $nonce = wp_create_nonce('bp_public');
 

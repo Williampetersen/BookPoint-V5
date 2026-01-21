@@ -102,6 +102,13 @@ final class BP_ScheduleHelper {
     global $wpdb;
     $t = $wpdb->prefix . 'bp_agent_working_hours';
 
+    $table_exists = (string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t)) === $t;
+    if (!$table_exists) {
+      return [
+        ['start_time' => '08:00', 'end_time' => '20:00'],
+      ];
+    }
+
     $rows = $wpdb->get_results($wpdb->prepare(
       "SELECT start_time, end_time
        FROM {$t}
@@ -110,12 +117,46 @@ final class BP_ScheduleHelper {
       $agent_id, $weekday
     ), ARRAY_A);
 
-    return $rows ?: [];
+    if (!empty($rows)) return $rows;
+
+    return [
+      ['start_time' => '08:00', 'end_time' => '20:00'],
+    ];
+  }
+
+  public static function get_agent_weekly_schedule(int $agent_id) : array {
+    $days = [
+      1 => 'mon',
+      2 => 'tue',
+      3 => 'wed',
+      4 => 'thu',
+      5 => 'fri',
+      6 => 'sat',
+      7 => 'sun',
+    ];
+
+    $schedule = [];
+    foreach ($days as $weekday => $key) {
+      $rows = self::get_working_hours($agent_id, $weekday);
+      $windows = [];
+      foreach ($rows as $r) {
+        $windows[] = [
+          'start' => substr($r['start_time'], 0, 5),
+          'end' => substr($r['end_time'], 0, 5),
+        ];
+      }
+      $schedule[$key] = $windows;
+    }
+
+    return $schedule;
   }
 
   public static function get_breaks(int $agent_id, string $date) : array {
     global $wpdb;
     $t = $wpdb->prefix . 'bp_agent_breaks';
+
+    $table_exists = (string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t)) === $t;
+    if (!$table_exists) return [];
 
     $rows = $wpdb->get_results($wpdb->prepare(
       "SELECT start_time, end_time
@@ -133,6 +174,18 @@ final class BP_ScheduleHelper {
     if (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $hms)) return 0;
     [$h, $m, $s] = array_map('intval', explode(':', $hms));
     return $h * 3600 + $m * 60 + $s;
+  }
+
+  public static function to_minutes(string $hhmm) : int {
+    $hhmm = substr((string)$hhmm, 0, 5);
+    [$h, $m] = array_pad(explode(':', $hhmm), 2, 0);
+    return ((int)$h) * 60 + (int)$m;
+  }
+
+  public static function to_hhmm(int $minutes) : string {
+    $h = (int)floor($minutes / 60);
+    $m = $minutes % 60;
+    return str_pad((string)$h, 2, '0', STR_PAD_LEFT) . ':' . str_pad((string)$m, 2, '0', STR_PAD_LEFT);
   }
 
   public static function is_date_closed(string $date) : bool {

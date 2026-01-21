@@ -32,10 +32,11 @@ final class BP_CustomerModel extends BP_Model {
       'last_name'  => $data['last_name'] ?? null,
       'email'      => $data['email'] ?? null,
       'phone'      => $data['phone'] ?? null,
+      'custom_fields_json' => $data['custom_fields_json'] ?? null,
       'wp_user_id' => $data['wp_user_id'] ?? null,
       'created_at' => $now,
       'updated_at' => $now,
-    ], ['%s','%s','%s','%s','%d','%s','%s']);
+    ], ['%s','%s','%s','%s','%s','%d','%s','%s']);
 
     return (int)$wpdb->insert_id;
   }

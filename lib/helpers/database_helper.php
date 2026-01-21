@@ -25,6 +25,8 @@ final class BP_DatabaseHelper {
       $wpdb->prefix . 'bp_bookings',
       $wpdb->prefix . 'bp_customers',
       $wpdb->prefix . 'bp_settings',
+      $wpdb->prefix . 'bp_form_fields',
+      $wpdb->prefix . 'bp_field_values',
     ];
 
     foreach ($tables as $table) {

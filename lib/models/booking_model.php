@@ -18,7 +18,7 @@ final class BP_BookingModel extends BP_Model {
     // Step 16: Include agent_id if specified
     $agent_id = isset($data['agent_id']) && $data['agent_id'] > 0 ? (int)$data['agent_id'] : null;
 
-    $wpdb->insert($table, [
+    $payload = [
       'service_id'      => (int)$data['service_id'],
       'customer_id'     => (int)$data['customer_id'],
       'agent_id'        => $agent_id,
@@ -26,10 +26,19 @@ final class BP_BookingModel extends BP_Model {
       'end_datetime'    => $data['end_datetime'],
       'status'          => $data['status'] ?? 'pending',
       'notes'           => $data['notes'] ?? null,
+      'customer_fields_json' => $data['customer_fields_json'] ?? null,
+      'booking_fields_json' => $data['booking_fields_json'] ?? null,
+      'custom_fields_json' => $data['custom_fields_json'] ?? null,
       'manage_key'      => $manage_key,
       'created_at'      => $now,
       'updated_at'      => $now,
-    ], ['%d','%d','%d','%s','%s','%s','%s','%s','%s','%s']);
+    ];
+
+    $wpdb->insert(
+      $table,
+      $payload,
+      ['%d','%d','%d','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s']
+    );
 
     return (int)$wpdb->insert_id;
   }
