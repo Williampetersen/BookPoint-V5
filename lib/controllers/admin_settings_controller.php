@@ -10,6 +10,7 @@ final class BP_AdminSettingsController extends BP_Controller {
     $close = BP_SettingsHelper::get_with_default('bp_close_time');
     $interval = (int)BP_SettingsHelper::get_with_default('bp_slot_interval_minutes');
     $currency = BP_SettingsHelper::get_with_default('bp_default_currency');
+    $currency_position = BP_SettingsHelper::get_with_default('bp_currency_position');
     $email_enabled = (int)BP_SettingsHelper::get_with_default('bp_email_enabled');
     $admin_email = BP_SettingsHelper::get_with_default('bp_admin_email');
     $from_name = BP_SettingsHelper::get_with_default('bp_email_from_name');
@@ -39,6 +40,7 @@ final class BP_AdminSettingsController extends BP_Controller {
       'close' => $close,
       'interval' => $interval,
       'currency' => $currency,
+      'currency_position' => $currency_position,
       'email_enabled' => $email_enabled,
       'admin_email' => $admin_email,
       'from_name' => $from_name,
@@ -74,6 +76,7 @@ final class BP_AdminSettingsController extends BP_Controller {
       $close = sanitize_text_field($_POST['close_time'] ?? '17:00');
       $interval = absint($_POST['slot_interval_minutes'] ?? 15);
       $currency = strtoupper(sanitize_key($_POST['default_currency'] ?? 'usd'));
+      $currency_position = sanitize_text_field($_POST['currency_position'] ?? 'before');
       $remove_data_on_uninstall = isset($_POST['bp_remove_data_on_uninstall']) ? 1 : 0;
 
       $future_days_limit = absint($_POST['future_days_limit'] ?? 60);
@@ -94,6 +97,9 @@ final class BP_AdminSettingsController extends BP_Controller {
       }
       if (!preg_match('/^[A-Z]{3}$/', $currency)) {
         $errors['default_currency'] = __('Currency must be a 3-letter code.', 'bookpoint');
+      }
+      if (!in_array($currency_position, ['before','after'], true)) {
+        $errors['currency_position'] = __('Currency position must be before or after.', 'bookpoint');
       }
 
       if ($future_days_limit < 1 || $future_days_limit > 365) {
@@ -126,6 +132,7 @@ final class BP_AdminSettingsController extends BP_Controller {
       BP_SettingsHelper::set('bp_close_time', $close);
       BP_SettingsHelper::set('bp_slot_interval_minutes', $interval);
       BP_SettingsHelper::set('bp_default_currency', $currency);
+      BP_SettingsHelper::set('bp_currency_position', $currency_position);
 
       BP_SettingsHelper::set('bp_future_days_limit', $future_days_limit);
       BP_SettingsHelper::set('bp_breaks', $breaks);

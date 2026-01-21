@@ -182,6 +182,13 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
   $updates = [];
   $formats = [];
 
+  $bCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_book}") ?: [];
+  $sCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_srv}") ?: [];
+  $has_start_datetime = in_array('start_datetime', $bCols, true);
+  $has_end_datetime = in_array('end_datetime', $bCols, true);
+  $has_start_date = in_array('start_date', $bCols, true);
+  $has_start_time = in_array('start_time', $bCols, true);
+
   // status change
   if (isset($body['status'])) {
     $status = sanitize_text_field($body['status']);
@@ -193,7 +200,6 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
   }
 
   // notes / admin_notes
-  $bCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_book}") ?: [];
   $has_admin_notes = in_array('admin_notes', $bCols, true);
   $has_notes = in_array('notes', $bCols, true);
   if (isset($body['admin_notes']) || isset($body['notes'])) {
@@ -208,6 +214,22 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
     }
   }
 
+  $start_date = isset($body['start_date']) ? sanitize_text_field($body['start_date']) : null;
+  $start_time = isset($body['start_time']) ? sanitize_text_field($body['start_time']) : null;
+
+  if ($start_date !== null) {
+    $start_date = substr($start_date, 0, 10);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start_date)) {
+      return new WP_REST_Response(['status'=>'error','message'=>'Invalid start_date'], 400);
+    }
+  }
+  if ($start_time !== null) {
+    $start_time = substr($start_time, 0, 5);
+    if (!preg_match('/^\d{2}:\d{2}$/', $start_time)) {
+      return new WP_REST_Response(['status'=>'error','message'=>'Invalid start_time'], 400);
+    }
+  }
+
   // agent_id
   if (isset($body['agent_id'])) {
     $agent_id = (int)$body['agent_id'];
@@ -216,103 +238,80 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
     $formats[] = '%d';
   }
 
-  // manual reschedule using start_date + start_time
-  // expects: start_date: YYYY-MM-DD, start_time: HH:MM
-  if (isset($body['start_date']) || isset($body['start_time'])) {
-    $start_date = isset($body['start_date']) ? sanitize_text_field($body['start_date']) : ($booking['start_date'] ?? '');
-    $start_time = isset($body['start_time']) ? sanitize_text_field($body['start_time']) : ($booking['start_time'] ?? '');
+  if ($start_date !== null || $start_time !== null) {
+    $currentDate = '';
+    $currentTime = '';
+    if ($has_start_datetime && !empty($booking['start_datetime'])) {
+      $ts = strtotime($booking['start_datetime']);
+      if ($ts) {
+        $currentDate = date('Y-m-d', $ts);
+        $currentTime = date('H:i', $ts);
+      }
+    }
+    if ($currentDate === '' && $has_start_date) $currentDate = substr((string)($booking['start_date'] ?? ''), 0, 10);
+    if ($currentTime === '' && $has_start_time) $currentTime = substr((string)($booking['start_time'] ?? ''), 0, 5);
 
-    $start_date = substr($start_date, 0, 10);
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start_date)) {
-      return new WP_REST_Response(['status'=>'error','message'=>'Invalid start_date'], 400);
+    $new_date = $start_date !== null ? $start_date : $currentDate;
+    $new_time = $start_time !== null ? $start_time : $currentTime;
+
+    if (!$new_date || !$new_time) {
+      return new WP_REST_Response(['status'=>'error','message'=>'Missing date/time'], 400);
     }
 
-    // Normalize time to HH:MM:SS
-    if (preg_match('/^\d{2}:\d{2}$/', $start_time)) $start_time .= ':00';
-    if (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $start_time)) {
-      return new WP_REST_Response(['status'=>'error','message'=>'Invalid start_time'], 400);
-    }
-
-    // Conflict validation same as reschedule endpoint:
     $service_id = (int)($booking['service_id'] ?? 0);
     $agent_id = isset($updates['agent_id']) ? (int)$updates['agent_id'] : (int)($booking['agent_id'] ?? 0);
-
-    $rules = BP_ScheduleHelper::get_service_rules($service_id);
-    $dur = (int)$rules['duration'];
-    $occupied = (int)$rules['occupied_min'];
-    $capacity = (int)$rules['capacity'];
-
-    // Validate within working hours + breaks
-    if (!BP_ScheduleHelper::is_within_schedule($agent_id, $start_date, $start_time, $occupied)) {
-      return new WP_REST_Response(['status'=>'error','message'=>'Outside working hours or in break'], 409);
+    if ($agent_id <= 0 || $service_id <= 0) {
+      return new WP_REST_Response(['status'=>'error','message'=>'Missing agent/service'], 400);
     }
 
-    $start_iso = $start_date . 'T' . substr($start_time,0,8);
-    $start_dt = strtotime($start_iso);
-    if (!$start_dt) return new WP_REST_Response(['status'=>'error','message'=>'Invalid date/time'], 400);
-
-    $end_dt = $start_dt + ($occupied * 60);
-
-    $start_iso_full = gmdate('Y-m-d\TH:i:s', $start_dt);
-    $end_iso_full   = gmdate('Y-m-d\TH:i:s', $end_dt);
-
-    if ($capacity <= 1) {
-      $sql = "
-        SELECT b.id
-        FROM {$t_book} b
-        LEFT JOIN {$t_srv} s ON s.id = b.service_id
-        WHERE b.id <> %d
-          AND b.agent_id = %d
-          AND b.status IN ('pending','confirmed')
-          AND (
-            STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s')
-            < STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-          )
-          AND (
-            DATE_ADD(
-              STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-              INTERVAL (COALESCE(s.duration,30) + COALESCE(s.buffer_before,0) + COALESCE(s.buffer_after,0)) MINUTE
-            )
-            > STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-          )
-        LIMIT 1
-      ";
-
-      $conflict = $wpdb->get_var($wpdb->prepare($sql, $id, $agent_id, $end_iso_full, $start_iso_full));
-      if ($conflict) {
-        return new WP_REST_Response(['status'=>'error','message'=>'Time slot is not available (conflict)'], 409);
-      }
-    } else {
-      $sql = "
-        SELECT COUNT(*)
-        FROM {$t_book} b
-        LEFT JOIN {$t_srv} s ON s.id = b.service_id
-        WHERE b.id <> %d
-          AND b.agent_id = %d
-          AND b.status IN ('pending','confirmed')
-          AND (
-            STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s')
-            < STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-          )
-          AND (
-            DATE_ADD(
-              STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-              INTERVAL (COALESCE(s.duration,30) + COALESCE(s.buffer_before,0) + COALESCE(s.buffer_after,0)) MINUTE
-            )
-            > STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-          )
-      ";
-
-      $count = (int)$wpdb->get_var($wpdb->prepare($sql, $id, $agent_id, $end_iso_full, $start_iso_full));
-      if ($count >= $capacity) {
-        return new WP_REST_Response(['status'=>'error','message'=>'Time slot is not available (capacity)'], 409);
+    if (class_exists('BP_ScheduleHelper') && method_exists('BP_ScheduleHelper','is_date_closed')) {
+      if (BP_ScheduleHelper::is_date_closed($new_date)) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Selected date is closed'], 400);
       }
     }
 
-    $updates['start_date'] = $start_date;
-    $formats[] = '%s';
-    $updates['start_time'] = $start_time;
-    $formats[] = '%s';
+    $durationCol = in_array('duration_minutes', $sCols, true) ? 'duration_minutes' : (in_array('duration', $sCols, true) ? 'duration' : null);
+    $bufferBeforeCol = in_array('buffer_before_minutes', $sCols, true) ? 'buffer_before_minutes' : (in_array('buffer_before', $sCols, true) ? 'buffer_before' : null);
+    $bufferAfterCol = in_array('buffer_after_minutes', $sCols, true) ? 'buffer_after_minutes' : (in_array('buffer_after', $sCols, true) ? 'buffer_after' : null);
+
+    $svc = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t_srv} WHERE id=%d LIMIT 1", $service_id), ARRAY_A);
+    $duration = $durationCol ? (int)($svc[$durationCol] ?? 30) : 30;
+    $bf = $bufferBeforeCol ? (int)($svc[$bufferBeforeCol] ?? 0) : 0;
+    $ba = $bufferAfterCol ? (int)($svc[$bufferAfterCol] ?? 0) : 0;
+    $occupied = max(5, $duration + $bf + $ba);
+
+    $startMin = bp_minutes($new_time);
+    $endMin = $startMin + $occupied;
+    $end_time = bp_hhmm($endMin);
+
+    if (class_exists('BP_ScheduleHelper') && method_exists('BP_ScheduleHelper','is_within_schedule')) {
+      if (!BP_ScheduleHelper::is_within_schedule($agent_id, $new_date, $new_time, $occupied)) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Outside agent schedule'], 400);
+      }
+    }
+
+    if (bp_has_conflict($agent_id, $new_date, $new_time, $end_time, $id)) {
+      return new WP_REST_Response(['status'=>'error','message'=>'Time conflicts with another booking'], 409);
+    }
+
+    if ($has_start_date) {
+      $updates['start_date'] = $new_date;
+      $formats[] = '%s';
+    }
+    if ($has_start_time) {
+      $updates['start_time'] = $new_time . ':00';
+      $formats[] = '%s';
+    }
+    if ($has_start_datetime) {
+      $start_dt = $new_date . ' ' . $new_time . ':00';
+      $updates['start_datetime'] = $start_dt;
+      $formats[] = '%s';
+      if ($has_end_datetime) {
+        $end_dt = date('Y-m-d H:i:s', strtotime($start_dt . ' +' . $occupied . ' minutes'));
+        $updates['end_datetime'] = $end_dt;
+        $formats[] = '%s';
+      }
+    }
   }
 
   if (empty($updates)) {
@@ -325,4 +324,95 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
   }
 
   return bp_rest_admin_booking_get($req);
+}
+
+function bp_minutes($hhmm){
+  if (!$hhmm) return 0;
+  $p = explode(':', $hhmm);
+  $h = intval($p[0] ?? 0);
+  $m = intval($p[1] ?? 0);
+  return $h*60 + $m;
+}
+
+function bp_hhmm($minutes){
+  $h = floor($minutes/60);
+  $m = $minutes % 60;
+  return str_pad((string)$h,2,'0',STR_PAD_LEFT) . ':' . str_pad((string)$m,2,'0',STR_PAD_LEFT);
+}
+
+/**
+ * Check overlap conflicts for agent on date for a time block.
+ * Excludes booking_id if provided.
+ */
+function bp_has_conflict($agent_id, $date, $start_hhmm, $end_hhmm, $exclude_booking_id = 0){
+  global $wpdb;
+
+  $tB = $wpdb->prefix . 'bp_bookings';
+  $tS = $wpdb->prefix . 'bp_services';
+
+  $bCols = $wpdb->get_col("SHOW COLUMNS FROM {$tB}") ?: [];
+  $sCols = $wpdb->get_col("SHOW COLUMNS FROM {$tS}") ?: [];
+
+  $has_start_date = in_array('start_date', $bCols, true);
+  $has_start_time = in_array('start_time', $bCols, true);
+  $has_start_datetime = in_array('start_datetime', $bCols, true);
+
+  $durationCol = in_array('duration_minutes', $sCols, true) ? 'duration_minutes' : (in_array('duration', $sCols, true) ? 'duration' : null);
+  $bufferBeforeCol = in_array('buffer_before_minutes', $sCols, true) ? 'buffer_before_minutes' : (in_array('buffer_before', $sCols, true) ? 'buffer_before' : null);
+  $bufferAfterCol = in_array('buffer_after_minutes', $sCols, true) ? 'buffer_after_minutes' : (in_array('buffer_after', $sCols, true) ? 'buffer_after' : null);
+
+  $startMin = bp_minutes($start_hhmm);
+  $endMin   = bp_minutes($end_hhmm);
+
+  if ($has_start_date && $has_start_time) {
+    $rows = $wpdb->get_results($wpdb->prepare("\
+      SELECT b.id, b.start_time, b.service_id,\
+             COALESCE(s.{$durationCol},30) AS duration,\
+             COALESCE(s.{$bufferBeforeCol},0) AS buffer_before,\
+             COALESCE(s.{$bufferAfterCol},0) AS buffer_after\
+      FROM {$tB} b\
+      LEFT JOIN {$tS} s ON s.id = b.service_id\
+      WHERE b.agent_id=%d AND b.start_date=%s\
+        AND (b.status IS NULL OR b.status <> 'cancelled')\
+        AND b.id <> %d\
+    ", (int)$agent_id, $date, (int)$exclude_booking_id), ARRAY_A) ?: [];
+
+    foreach($rows as $r){
+      $sMin = bp_minutes(substr($r['start_time'],0,5));
+      $occupied = max(5, intval($r['duration']) + intval($r['buffer_before']) + intval($r['buffer_after']));
+      $eMin = $sMin + $occupied;
+
+      $overlap = !($eMin <= $startMin || $sMin >= $endMin);
+      if ($overlap) return true;
+    }
+
+    return false;
+  }
+
+  if ($has_start_datetime) {
+    $rows = $wpdb->get_results($wpdb->prepare("\
+      SELECT b.id, b.start_datetime, b.service_id,\
+             COALESCE(s.{$durationCol},30) AS duration,\
+             COALESCE(s.{$bufferBeforeCol},0) AS buffer_before,\
+             COALESCE(s.{$bufferAfterCol},0) AS buffer_after\
+      FROM {$tB} b\
+      LEFT JOIN {$tS} s ON s.id = b.service_id\
+      WHERE b.agent_id=%d AND DATE(b.start_datetime)=%s\
+        AND (b.status IS NULL OR b.status <> 'cancelled')\
+        AND b.id <> %d\
+    ", (int)$agent_id, $date, (int)$exclude_booking_id), ARRAY_A) ?: [];
+
+    foreach($rows as $r){
+      $ts = strtotime($r['start_datetime']);
+      if (!$ts) continue;
+      $sMin = bp_minutes(date('H:i', $ts));
+      $occupied = max(5, intval($r['duration']) + intval($r['buffer_before']) + intval($r['buffer_after']));
+      $eMin = $sMin + $occupied;
+
+      $overlap = !($eMin <= $startMin || $sMin >= $endMin);
+      if ($overlap) return true;
+    }
+  }
+
+  return false;
 }

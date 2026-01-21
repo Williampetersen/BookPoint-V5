@@ -62,6 +62,17 @@ function bp_err($errors, $k) {
                     <?php bp_err($errors, 'default_currency'); ?>
                   </td>
                 </tr>
+
+                <tr>
+                  <th><label for="bp_currency_position"><?php echo esc_html__('Currency position', 'bookpoint'); ?></label></th>
+                  <td>
+                    <select id="bp_currency_position" name="currency_position">
+                      <option value="before" <?php selected($currency_position ?? 'before', 'before'); ?>><?php echo esc_html__('Before amount', 'bookpoint'); ?></option>
+                      <option value="after" <?php selected($currency_position ?? 'before', 'after'); ?>><?php echo esc_html__('After amount', 'bookpoint'); ?></option>
+                    </select>
+                    <?php bp_err($errors, 'currency_position'); ?>
+                  </td>
+                </tr>
               </table>
 
               <h2><?php esc_html_e('Availability & Scheduling', 'bookpoint'); ?></h2>

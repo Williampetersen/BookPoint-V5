@@ -1,6 +1,8 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { bpFetch } from '../api/client';
 import BookingDrawer from '../components/BookingDrawer';
+import { toMinutes, clamp, layoutDayOverlaps } from '../utils/calendarLayout';
+import { snapMinutes } from '../utils/drag';
 
 export default function CalendarScreen(){
   const [view, setView] = useState('month'); // month | week | day
@@ -16,6 +18,8 @@ export default function CalendarScreen(){
   const [drawerId, setDrawerId] = useState(null);
   const [agents, setAgents] = useState([]);
   const [services, setServices] = useState([]);
+
+  const refreshEvents = () => setFocusDate(d => new Date(d));
 
   const headerLabel = useMemo(()=>formatHeader(focusDate, view), [focusDate, view]);
 
@@ -127,7 +131,7 @@ export default function CalendarScreen(){
 
           <div style={{padding:14}}>
             {view === 'month' ? <MonthView focusDate={focusDate} events={events} onPickEvent={(ev)=>{ setSelectedEvent(ev); setDrawerId(ev.id); }} /> : null}
-            {view === 'week' ? <WeekView focusDate={focusDate} events={events} onPickEvent={(ev)=>{ setSelectedEvent(ev); setDrawerId(ev.id); }} /> : null}
+            {view === 'week' ? <WeekView focusDate={focusDate} events={events} onPickEvent={(ev)=>{ setSelectedEvent(ev); setDrawerId(ev.id); }} onReschedule={refreshEvents} /> : null}
             {view === 'day' ? <DayView focusDate={focusDate} events={events} onPickEvent={(ev)=>{ setSelectedEvent(ev); setDrawerId(ev.id); }} /> : null}
           </div>
         </div>
@@ -291,15 +295,21 @@ function MonthView({ focusDate, events, onPickEvent }){
 }
 
 /* -------- Week View (UI shell) -------- */
-function WeekView({ focusDate, events, onPickEvent }){
-  const hours = Array.from({length: 12}).map((_,i)=> i+8); // 08..19
+function WeekView({ focusDate, events, onPickEvent, onReschedule }){
+  const [drag, setDrag] = useState(null);
+  const gridRef = React.useRef(null);
   const weekDates = useMemo(()=>{
     const d = new Date(focusDate);
     const dow = (d.getDay()+6)%7;
     const monday = new Date(d); monday.setDate(d.getDate()-dow);
     return Array.from({length:7}).map((_,i)=>{
       const x = new Date(monday); x.setDate(monday.getDate()+i);
-      return { dateObj:x, key: toISODate(x), label: x.toLocaleDateString(undefined,{weekday:'short'}), md: x.toLocaleDateString(undefined,{month:'short',day:'numeric'}) };
+      return {
+        dateObj:x,
+        key: toISODate(x),
+        label: x.toLocaleDateString(undefined,{weekday:'short'}),
+        md: x.toLocaleDateString(undefined,{month:'short',day:'numeric'})
+      };
     });
   }, [focusDate]);
 
@@ -311,9 +321,77 @@ function WeekView({ focusDate, events, onPickEvent }){
     });
     return map;
   }, [events]);
+
+  // UI config
+  const dayStart = 8;   // 08:00
+  const dayEnd   = 20;  // 20:00
+  const pxPerMin = 1.1; // adjust: higher = taller grid
+  const totalMinutes = (dayEnd - dayStart) * 60;
+
+  const hours = Array.from({length: (dayEnd-dayStart)+1}).map((_,i)=> dayStart+i);
+
+  useEffect(()=>{
+    if(!drag) return;
+
+    const step = 15;
+    const dayStartMin = dayStart * 60;
+    const dayEndMin = dayEnd * 60;
+
+    function onMove(e){
+      const el = gridRef.current;
+      if(!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const colWidth = rect.width / 7;
+      const dayIdx = Math.max(0, Math.min(6, Math.floor(x / colWidth)));
+
+      const total = (dayEndMin - dayStartMin);
+      const px = (rect.height / total);
+      let mins = dayStartMin + (y / px);
+      mins = snapMinutes(mins, step);
+      mins = Math.max(dayStartMin, Math.min(dayEndMin - drag.durationMin, mins));
+
+      const dateKey = weekDates[dayIdx].key;
+
+      setDrag(prev => prev ? ({...prev, ghost:{dateKey, minutes: mins}}) : prev);
+    }
+
+    async function onUp(){
+      const final = drag?.ghost;
+      if(!final){ setDrag(null); return; }
+
+      try{
+        const start_date = final.dateKey;
+        const start_time = minutesToHHMM(final.minutes);
+
+        await bpFetch(`/admin/bookings/${drag.id}`, {
+          method:'PATCH',
+          body:{ start_date, start_time }
+        });
+
+        if (onReschedule) onReschedule();
+      }catch(err){
+        alert(err.message || 'Reschedule failed');
+      }finally{
+        setDrag(null);
+      }
+    }
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp, { once:true });
+
+    return ()=>{
+      window.removeEventListener('mousemove', onMove);
+    };
+  }, [drag, weekDates, dayStart, dayEnd, onReschedule]);
+
   return (
     <div style={{overflow:'auto'}}>
-      <div style={{display:'grid', gridTemplateColumns:`80px repeat(7, minmax(160px, 1fr))`, gap:8}}>
+      {/* Header */}
+      <div ref={gridRef} style={{display:'grid', gridTemplateColumns:`80px repeat(7, minmax(220px, 1fr))`, gap:10}}>
         <div />
         {weekDates.map((d, idx)=>(
           <div key={idx} style={{fontWeight:950}}>
@@ -323,62 +401,184 @@ function WeekView({ focusDate, events, onPickEvent }){
         ))}
       </div>
 
-      <div style={{height:8}} />
+      <div style={{height:10}} />
 
-      <div style={{display:'grid', gridTemplateColumns:`80px repeat(7, minmax(160px, 1fr))`, gap:8}}>
-        {hours.map(h => (
-          <React.Fragment key={h}>
-            <div style={{color:'var(--bp-muted)', fontWeight:950, fontSize:12, paddingTop:8}}>
-              {String(h).padStart(2,'0')}:00
-            </div>
-            {weekDates.map((d, idx)=>{
-              const list = (byDate[d.key] || []).filter(ev => parseInt(ev.start_time.slice(0,2),10) === h);
+      {/* Grid */}
+      <div style={{display:'grid', gridTemplateColumns:`80px repeat(7, minmax(220px, 1fr))`, gap:10}}>
+        {/* Time rail */}
+        <div style={{position:'relative', height: totalMinutes*pxPerMin}}>
+          {hours.map(h=>{
+            const top = ((h - dayStart) * 60) * pxPerMin;
+            return (
+              <div key={h} style={{
+                position:'absolute', left:0, right:0, top,
+                transform:'translateY(-7px)',
+                color:'var(--bp-muted)', fontWeight:950, fontSize:12
+              }}>
+                {String(h).padStart(2,'0')}:00
+              </div>
+            );
+          })}
+        </div>
 
-              return (
-                <div key={idx} style={{
-                  border:'1px solid var(--bp-border)',
+        {/* Day columns */}
+        {weekDates.map((d, idx)=>{
+          const raw = byDate[d.key] || [];
+          // keep only events intersecting the visible range
+          const dayEvents = raw.map(e=>({...e})).map(e=>{
+            const s = toMinutes(e.start_time);
+            const en = toMinutes(e.end_time || e.start_time);
+            return {
+              ...e,
+              start_time: e.start_time,
+              end_time: e.end_time,
+              _s: s,
+              _e: Math.max(s+10, en)
+            };
+          }).filter(e=>{
+            const minStart = dayStart*60;
+            const minEnd = dayEnd*60;
+            return !(e._e <= minStart || e._s >= minEnd);
+          }).map(e=>{
+            // clamp inside view window
+            const minStart = dayStart*60;
+            const minEnd = dayEnd*60;
+            const s = clamp(e._s, minStart, minEnd);
+            const en = clamp(e._e, minStart, minEnd);
+            return {...e, start_time: minutesToHHMM(e._s), end_time: minutesToHHMM(e._e), _s:s, _e:en};
+          });
+
+          const laid = layoutDayOverlaps(dayEvents);
+
+          return (
+            <div key={idx} style={{
+              position:'relative',
+              height: totalMinutes*pxPerMin,
+              background:'#fff',
+              border:'1px solid var(--bp-border)',
+              borderRadius:16,
+              overflow:'hidden'
+            }}>
+              {/* hour lines */}
+              {hours.map(h=>{
+                const top = ((h - dayStart) * 60) * pxPerMin;
+                return (
+                  <div key={h} style={{
+                    position:'absolute', left:0, right:0, top,
+                    height:1, background:'#f1f5f9'
+                  }} />
+                );
+              })}
+
+              {/* events */}
+              {laid.map(ev=>{
+                const top = ((ev._s - dayStart*60) * pxPerMin) + 6;
+                const height = Math.max(34, ((ev._e - ev._s) * pxPerMin) - 10);
+
+                const gap = 6;
+                const colW = (100 / (ev.colCount || 1));
+                const left = (ev.col || 0) * colW;
+
+                return (
+                  <button
+                    key={ev.id}
+                    type="button"
+                    onMouseDown={(e)=>{
+                      e.preventDefault();
+                      e.stopPropagation();
+
+                      const durationMin = Math.max(10, (toMinutes(ev.end_time) - toMinutes(ev.start_time)) || 30);
+
+                      setDrag({
+                        id: ev.id,
+                        durationMin,
+                        ghost: { dateKey: d.key, minutes: ev._s }
+                      });
+                    }}
+                    onClick={()=>onPickEvent(ev)}
+                    title={ev.title}
+                    style={{
+                      position:'absolute',
+                      top,
+                      left: `calc(${left}% + ${gap}px)`,
+                      width: `calc(${colW}% - ${gap*2}px)` ,
+                      height,
+                      borderRadius:14,
+                      border:'1px solid rgba(0,0,0,.06)',
+                      background: statusBg(ev.status),
+                      color: statusColor(ev.status),
+                      fontWeight:950,
+                      cursor:'pointer',
+                      padding:'10px 10px',
+                      textAlign:'left',
+                      overflow:'hidden'
+                    }}
+                  >
+                    <div style={{fontSize:12, opacity:.95}}>
+                      {ev.start_time}–{ev.end_time}
+                    </div>
+                    <div style={{marginTop:6, fontSize:12}}>
+                      {ev.service_name}
+                    </div>
+                    <div style={{marginTop:6, fontSize:12, color:'rgba(15,23,42,.75)'}}>
+                      {ev.customer_name}
+                    </div>
+                  </button>
+                );
+              })}
+
+              {drag && drag.ghost?.dateKey === d.key ? (
+                <div style={{
+                  position:'absolute',
+                  left: 8, right: 8,
+                  top: ((drag.ghost.minutes - dayStart*60) * pxPerMin) + 6,
+                  height: Math.max(34, drag.durationMin * pxPerMin - 10),
                   borderRadius:14,
-                  minHeight:54,
-                  background:'#fff',
-                  padding:6,
-                  display:'grid',
-                  gap:6
-                }}>
-                  {list.slice(0,2).map(ev=>(
-                    <button key={ev.id} type="button"
-                      onClick={()=>onPickEvent(ev)}
-                      style={{
-                        padding:'6px 8px',
-                        borderRadius:12,
-                        border:'1px solid rgba(0,0,0,.06)',
-                        background: statusBg(ev.status),
-                        color: statusColor(ev.status),
-                        fontWeight:950,
-                        fontSize:12,
-                        textAlign:'left',
-                        cursor:'pointer'
-                      }}>
-                      {ev.start_time} {ev.service_name}
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-          </React.Fragment>
-        ))}
+                  border:'2px dashed rgba(67,24,255,.55)',
+                  background:'rgba(67,24,255,.08)',
+                  pointerEvents:'none'
+                }} />
+              ) : null}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
+function minutesToHHMM(m){
+  const h = Math.floor(m/60);
+  const mm = m%60;
+  return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+}
+
 /* -------- Day View (UI shell) -------- */
 function DayView({ focusDate, events, onPickEvent }){
   const key = toISODate(focusDate);
-  const list = useMemo(()=>{
-    return (events||[]).filter(ev => ev.date === key)
-      .slice()
-      .sort((a,b)=>a.start_time.localeCompare(b.start_time));
+  const listRaw = useMemo(()=>{
+    return (events||[]).filter(ev => ev.date === key).map(e=>({...e}));
   }, [events, key]);
+
+  const dayStart = 8;
+  const dayEnd = 20;
+  const pxPerMin = 1.2;
+  const totalMinutes = (dayEnd-dayStart)*60;
+  const hours = Array.from({length:(dayEnd-dayStart)+1}).map((_,i)=> dayStart+i);
+
+  const list = useMemo(()=>{
+    const minStart = dayStart*60;
+    const minEnd = dayEnd*60;
+    const dayEvents = listRaw.map(e=>{
+      const s = toMinutes(e.start_time);
+      const en = Math.max(s+10, toMinutes(e.end_time || e.start_time));
+      const _s = clamp(s, minStart, minEnd);
+      const _e = clamp(en, minStart, minEnd);
+      return {...e, _s, _e};
+    }).filter(e=>!(e._e<=minStart || e._s>=minEnd));
+
+    return layoutDayOverlaps(dayEvents);
+  }, [listRaw]);
 
   const label = focusDate.toLocaleDateString(undefined, { weekday:'long', year:'numeric', month:'short', day:'numeric' });
 
@@ -386,48 +586,86 @@ function DayView({ focusDate, events, onPickEvent }){
     <div>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, flexWrap:'wrap'}}>
         <div style={{fontWeight:950}}>{label}</div>
-        <span className="bp-chip">{list.length} bookings</span>
+        <span className="bp-chip">{listRaw.length} bookings</span>
       </div>
 
       <div style={{height:10}} />
 
-      {list.length ? (
-        <div style={{display:'grid', gap:10}}>
-          {list.map(ev=>(
-            <button key={ev.id} type="button"
-              onClick={()=>onPickEvent(ev)}
-              style={{
-                border:'1px solid var(--bp-border)',
-                borderRadius:16,
-                padding:'12px 12px',
-                background:'#fff',
-                cursor:'pointer',
-                display:'flex',
-                justifyContent:'space-between',
-                alignItems:'center',
-                gap:10
+      <div style={{display:'grid', gridTemplateColumns:'80px 1fr', gap:10}}>
+        {/* Time rail */}
+        <div style={{position:'relative', height: totalMinutes*pxPerMin}}>
+          {hours.map(h=>{
+            const top = ((h-dayStart)*60)*pxPerMin;
+            return (
+              <div key={h} style={{
+                position:'absolute', top, left:0, right:0,
+                transform:'translateY(-7px)',
+                color:'var(--bp-muted)', fontWeight:950, fontSize:12
               }}>
-              <div style={{textAlign:'left'}}>
-                <div style={{fontWeight:950}}>{ev.start_time}–{ev.end_time} • {ev.service_name}</div>
-                <div style={{color:'var(--bp-muted)', fontWeight:850, marginTop:6}}>
-                  {ev.customer_name} • {ev.agent_name}
-                </div>
+                {String(h).padStart(2,'0')}:00
               </div>
-              <span style={{
-                padding:'6px 10px',
-                borderRadius:999,
-                background: statusBg(ev.status),
-                color: statusColor(ev.status),
-                fontWeight:950
-              }}>
-                {ev.status}
-              </span>
-            </button>
-          ))}
+            );
+          })}
         </div>
-      ) : (
-        <div style={{color:'var(--bp-muted)', fontWeight:850}}>No bookings on this day.</div>
-      )}
+
+        {/* Day column */}
+        <div style={{
+          position:'relative',
+          height: totalMinutes*pxPerMin,
+          background:'#fff',
+          border:'1px solid var(--bp-border)',
+          borderRadius:16,
+          overflow:'hidden'
+        }}>
+          {hours.map(h=>{
+            const top = ((h-dayStart)*60)*pxPerMin;
+            return <div key={h} style={{position:'absolute', left:0, right:0, top, height:1, background:'#f1f5f9'}} />;
+          })}
+
+          {list.map(ev=>{
+            const top = ((ev._s - dayStart*60) * pxPerMin) + 6;
+            const height = Math.max(34, ((ev._e - ev._s) * pxPerMin) - 10);
+
+            const gap = 6;
+            const colW = (100 / (ev.colCount || 1));
+            const left = (ev.col || 0) * colW;
+
+            return (
+              <button
+                key={ev.id}
+                type="button"
+                onClick={()=>onPickEvent(ev)}
+                style={{
+                  position:'absolute',
+                  top,
+                  left: `calc(${left}% + ${gap}px)` ,
+                  width: `calc(${colW}% - ${gap*2}px)` ,
+                  height,
+                  borderRadius:14,
+                  border:'1px solid rgba(0,0,0,.06)',
+                  background: statusBg(ev.status),
+                  color: statusColor(ev.status),
+                  fontWeight:950,
+                  cursor:'pointer',
+                  padding:'10px 10px',
+                  textAlign:'left',
+                  overflow:'hidden'
+                }}
+              >
+                <div style={{fontSize:12}}>
+                  {ev.start_time}–{ev.end_time}
+                </div>
+                <div style={{marginTop:6, fontSize:12}}>
+                  {ev.service_name}
+                </div>
+                <div style={{marginTop:6, fontSize:12, color:'rgba(15,23,42,.75)'}}>
+                  {ev.customer_name}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
