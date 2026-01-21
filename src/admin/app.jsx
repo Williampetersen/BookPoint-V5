@@ -1,10 +1,12 @@
 import React from 'react';
 import CalendarScreen from './screens/CalendarScreen';
+import DashboardScreen from './screens/DashboardScreen';
 import ScheduleScreen from './screens/ScheduleScreen';
 import HolidaysScreen from './screens/HolidaysScreen';
 import CatalogScreen from './screens/CatalogScreen';
 
 export default function AdminApp({ route }) {
+  if (route === 'dashboard') return <DashboardScreen />;
   if (route === 'calendar') return <CalendarScreen />;
   if (route === 'schedule') return <ScheduleScreen />;
   if (route === 'holidays') return <HolidaysScreen />;

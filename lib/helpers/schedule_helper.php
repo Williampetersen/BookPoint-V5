@@ -163,21 +163,38 @@ final class BP_ScheduleHelper {
     global $wpdb;
     $t = $wpdb->prefix . 'bp_services';
 
-    $row = $wpdb->get_row($wpdb->prepare("
-      SELECT COALESCE(duration,30) as duration,
-             COALESCE(buffer_before,0) as buffer_before,
-             COALESCE(buffer_after,0) as buffer_after,
-             COALESCE(capacity,1) as capacity
-      FROM {$t}
-      WHERE id=%d
-    ", $service_id), ARRAY_A);
+    $cols = $wpdb->get_col("SHOW COLUMNS FROM {$t}") ?: [];
+    $has_duration_minutes = in_array('duration_minutes', $cols, true);
+    $has_duration = in_array('duration', $cols, true);
+    $has_buffer_before_minutes = in_array('buffer_before_minutes', $cols, true);
+    $has_buffer_after_minutes = in_array('buffer_after_minutes', $cols, true);
+    $has_buffer_before = in_array('buffer_before', $cols, true);
+    $has_buffer_after = in_array('buffer_after', $cols, true);
 
-    if (!$row) $row = ['duration'=>30,'buffer_before'=>0,'buffer_after'=>0,'capacity'=>1];
+    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id=%d", $service_id), ARRAY_A);
 
-    $row['duration'] = max(5, (int)$row['duration']);
-    $row['buffer_before'] = max(0, (int)$row['buffer_before']);
-    $row['buffer_after']  = max(0, (int)$row['buffer_after']);
-    $row['capacity'] = max(1, (int)$row['capacity']);
+    if (!$row) $row = [];
+
+    $duration = $has_duration_minutes
+      ? (int)($row['duration_minutes'] ?? 30)
+      : ($has_duration ? (int)($row['duration'] ?? 30) : 30);
+
+    $buffer_before = $has_buffer_before_minutes
+      ? (int)($row['buffer_before_minutes'] ?? 0)
+      : ($has_buffer_before ? (int)($row['buffer_before'] ?? 0) : 0);
+
+    $buffer_after = $has_buffer_after_minutes
+      ? (int)($row['buffer_after_minutes'] ?? 0)
+      : ($has_buffer_after ? (int)($row['buffer_after'] ?? 0) : 0);
+
+    $capacity = (int)($row['capacity'] ?? 1);
+
+    $row = [
+      'duration' => max(5, $duration),
+      'buffer_before' => max(0, $buffer_before),
+      'buffer_after' => max(0, $buffer_after),
+      'capacity' => max(1, $capacity),
+    ];
 
     $row['occupied_min'] = $row['duration'] + $row['buffer_before'] + $row['buffer_after'];
 

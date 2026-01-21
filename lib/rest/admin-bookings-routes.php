@@ -8,7 +8,7 @@ add_action('rest_api_init', function () {
     'methods'  => 'GET',
     'callback' => 'bp_rest_admin_booking_get',
     'permission_callback' => function () {
-      return current_user_can('bp_manage_bookings');
+      return current_user_can('bp_manage_bookings') || current_user_can('bp_manage_settings');
     },
   ]);
 
@@ -17,7 +17,7 @@ add_action('rest_api_init', function () {
     'methods'  => 'PATCH',
     'callback' => 'bp_rest_admin_booking_patch',
     'permission_callback' => function () {
-      return current_user_can('bp_manage_bookings');
+      return current_user_can('bp_manage_bookings') || current_user_can('bp_manage_settings');
     },
   ]);
 
@@ -41,26 +41,112 @@ function bp_rest_admin_booking_get(WP_REST_Request $req) {
   $t_book = $wpdb->prefix . 'bp_bookings';
   $t_srv  = $wpdb->prefix . 'bp_services';
   $t_ag   = $wpdb->prefix . 'bp_agents';
+  $t_cus  = $wpdb->prefix . 'bp_customers';
 
-  // Adjust column names if yours differ:
-  // bookings: id, customer_name, customer_email, customer_phone, status, service_id, agent_id,
-  // start_date, start_time, total_price, notes, created_at
+  $bCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_book}") ?: [];
+  $sCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_srv}") ?: [];
+  $aCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_ag}") ?: [];
+  $cCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_cus}") ?: [];
+
+  $has_start_datetime = in_array('start_datetime', $bCols, true);
+  $has_start_date = in_array('start_date', $bCols, true);
+  $has_start_time = in_array('start_time', $bCols, true);
+  $has_admin_notes = in_array('admin_notes', $bCols, true);
+  $has_notes = in_array('notes', $bCols, true);
+
+  $durationExpr = in_array('duration_minutes', $sCols, true)
+    ? 's.duration_minutes'
+    : (in_array('duration', $sCols, true) ? 's.duration' : '30');
+  $bufferBeforeExpr = in_array('buffer_before_minutes', $sCols, true)
+    ? 's.buffer_before_minutes'
+    : (in_array('buffer_before', $sCols, true) ? 's.buffer_before' : '0');
+  $bufferAfterExpr = in_array('buffer_after_minutes', $sCols, true)
+    ? 's.buffer_after_minutes'
+    : (in_array('buffer_after', $sCols, true) ? 's.buffer_after' : '0');
+
+  $select = [
+    'b.*',
+    "COALESCE(s.name,'') AS service_name",
+    "COALESCE({$durationExpr},30) AS duration",
+    "COALESCE({$bufferBeforeExpr},0) AS buffer_before",
+    "COALESCE({$bufferAfterExpr},0) AS buffer_after",
+  ];
+
+  if (in_array('name', $aCols, true)) {
+    $select[] = "COALESCE(a.name,'') AS agent_name";
+  } else {
+    if (in_array('first_name', $aCols, true)) $select[] = "COALESCE(a.first_name,'') AS agent_first_name";
+    if (in_array('last_name', $aCols, true)) $select[] = "COALESCE(a.last_name,'') AS agent_last_name";
+  }
+
+  if (in_array('first_name', $cCols, true)) $select[] = "COALESCE(c.first_name,'') AS customer_first_name";
+  if (in_array('last_name', $cCols, true)) $select[] = "COALESCE(c.last_name,'') AS customer_last_name";
+  if (in_array('email', $cCols, true)) $select[] = "COALESCE(c.email,'') AS customer_email";
+  if (in_array('phone', $cCols, true)) $select[] = "COALESCE(c.phone,'') AS customer_phone";
+
   $row = $wpdb->get_row($wpdb->prepare("
-    SELECT
-      b.*,
-      COALESCE(s.name,'(deleted)') as service_name,
-      COALESCE(s.duration,30) as service_duration,
-      COALESCE(a.name,'(deleted)') as agent_name
+    SELECT " . implode(',', $select) . "
     FROM {$t_book} b
     LEFT JOIN {$t_srv} s ON s.id = b.service_id
     LEFT JOIN {$t_ag} a ON a.id = b.agent_id
+    LEFT JOIN {$t_cus} c ON c.id = b.customer_id
     WHERE b.id = %d
     LIMIT 1
   ", $id), ARRAY_A);
 
   if (!$row) return new WP_REST_Response(['status'=>'error','message'=>'Not found'], 404);
 
-  return new WP_REST_Response(['status'=>'success','data'=>$row], 200);
+  $customer_name = trim((string)($row['customer_first_name'] ?? '') . ' ' . (string)($row['customer_last_name'] ?? ''));
+
+  $duration = (int)($row['duration'] ?? 30);
+  $bf = (int)($row['buffer_before'] ?? 0);
+  $ba = (int)($row['buffer_after'] ?? 0);
+  $occupied = max(5, $duration + $bf + $ba);
+
+  $start_dt = '';
+  if ($has_start_datetime && !empty($row['start_datetime'])) {
+    $start_dt = $row['start_datetime'];
+  } elseif ($has_start_date && $has_start_time) {
+    $start_dt = ($row['start_date'] ?? '') . ' ' . ($row['start_time'] ?? '');
+  }
+
+  $start_ts = $start_dt ? strtotime($start_dt) : null;
+  $end_time = $start_ts ? date('H:i', $start_ts + $occupied * 60) : '';
+  $date = $start_ts ? date('Y-m-d', $start_ts) : ($row['start_date'] ?? '');
+  $start_time = $start_ts ? date('H:i', $start_ts) : substr((string)($row['start_time'] ?? ''), 0, 5);
+
+  $agent_name = '';
+  if (!empty($row['agent_name'])) {
+    $agent_name = (string)$row['agent_name'];
+  } else {
+    $agent_name = trim((string)($row['agent_first_name'] ?? '') . ' ' . (string)($row['agent_last_name'] ?? ''));
+  }
+
+  $admin_notes = '';
+  if ($has_admin_notes) {
+    $admin_notes = (string)($row['admin_notes'] ?? '');
+  } elseif ($has_notes) {
+    $admin_notes = (string)($row['notes'] ?? '');
+  }
+
+  $data = [
+    'id' => (int)$row['id'],
+    'status' => $row['status'] ?? '',
+    'service_id' => (int)($row['service_id'] ?? 0),
+    'agent_id' => (int)($row['agent_id'] ?? 0),
+    'customer_id' => (int)($row['customer_id'] ?? 0),
+    'date' => $date,
+    'start_time' => $start_time,
+    'end_time' => $end_time,
+    'service_name' => $row['service_name'] ?? '',
+    'agent_name' => $agent_name,
+    'customer_name' => $customer_name,
+    'customer_email' => $row['customer_email'] ?? '',
+    'customer_phone' => $row['customer_phone'] ?? '',
+    'admin_notes' => $admin_notes,
+  ];
+
+  return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
 }
 
 
@@ -87,7 +173,11 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
   if (!$booking) return new WP_REST_Response(['status'=>'error','message'=>'Not found'], 404);
 
   $body = $req->get_json_params();
-  if (!is_array($body)) $body = [];
+  if (!is_array($body) || empty($body)) {
+    $raw = $req->get_body();
+    $decoded = json_decode($raw ?: '', true);
+    if (is_array($decoded)) $body = $decoded;
+  }
 
   $updates = [];
   $formats = [];
@@ -102,11 +192,20 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
     $formats[] = '%s';
   }
 
-  // notes
-  if (isset($body['notes'])) {
-    $notes = wp_kses_post((string)$body['notes']);
-    $updates['notes'] = $notes;
-    $formats[] = '%s';
+  // notes / admin_notes
+  $bCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_book}") ?: [];
+  $has_admin_notes = in_array('admin_notes', $bCols, true);
+  $has_notes = in_array('notes', $bCols, true);
+  if (isset($body['admin_notes']) || isset($body['notes'])) {
+    $notes_val = isset($body['admin_notes']) ? (string)$body['admin_notes'] : (string)$body['notes'];
+    $notes_val = wp_kses_post($notes_val);
+    if ($has_admin_notes) {
+      $updates['admin_notes'] = $notes_val;
+      $formats[] = '%s';
+    } elseif ($has_notes) {
+      $updates['notes'] = $notes_val;
+      $formats[] = '%s';
+    }
   }
 
   // agent_id
@@ -225,5 +324,5 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
     return new WP_REST_Response(['status'=>'error','message'=>'Update failed'], 500);
   }
 
-  return new WP_REST_Response(['status'=>'success','data'=>['id'=>$id,'updated'=>true]], 200);
+  return bp_rest_admin_booking_get($req);
 }

@@ -875,8 +875,15 @@ final class BP_Plugin {
 
     $page = sanitize_text_field($_GET['page']);
 
+    wp_enqueue_style(
+      'bp-admin-ui',
+      plugins_url('public/admin-ui.css', BP_PLUGIN_FILE),
+      [],
+      '1.0.0'
+    );
+
     // React admin bundle (Calendar + Schedule + Holidays)
-    if (in_array($page, ['bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog'], true)) {
+    if (in_array($page, ['bp_dashboard', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog'], true)) {
       $asset_path = BP_PLUGIN_PATH . 'build/admin.asset.php';
       $asset = [
         'dependencies' => ['react', 'react-dom', 'react-jsx-runtime'],
@@ -906,9 +913,11 @@ final class BP_Plugin {
         );
       }
 
-      $route = $page === 'bp_schedule'
-        ? 'schedule'
-        : ($page === 'bp_holidays' ? 'holidays' : ($page === 'bp_catalog' ? 'catalog' : 'calendar'));
+      $route = $page === 'bp_dashboard'
+        ? 'dashboard'
+        : ($page === 'bp_schedule'
+          ? 'schedule'
+          : ($page === 'bp_holidays' ? 'holidays' : ($page === 'bp_catalog' ? 'catalog' : 'calendar')));
 
       wp_localize_script('bp-admin', 'BP_ADMIN', [
         'restUrl' => esc_url_raw(rest_url('bp/v1')),
@@ -918,12 +927,6 @@ final class BP_Plugin {
       ]);
 
       wp_enqueue_media();
-      return;
-    }
-
-    if ($page === 'bp_dashboard') {
-      wp_enqueue_style('bp-admin-dashboard', BP_PLUGIN_URL . 'public/admin-dashboard.css', [], self::VERSION);
-      wp_enqueue_script('bp-admin-dashboard', BP_PLUGIN_URL . 'public/admin-dashboard.js', [], self::VERSION, true);
       return;
     }
 
@@ -952,8 +955,7 @@ final class BP_Plugin {
   }
 
   public static function render_dashboard() : void {
-    $controller = new BP_AdminDashboardController();
-    $controller->index();
+    echo '<div id="bp-admin-app" data-route="dashboard"></div>';
   }
 
   public static function render_services_index() : void {

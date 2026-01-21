@@ -114,7 +114,7 @@ export default function ScheduleScreen() {
     setSaving(true);
     try {
       await bpFetch(`/admin/agents/${agentId}/schedule`, {
-        method: 'PUT',
+        method: 'POST',
         body: { hours, breaks }
       });
       pushToast('success', 'Schedule saved ✅');
