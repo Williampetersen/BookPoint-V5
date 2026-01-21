@@ -171,4 +171,19 @@ add_action('rest_api_init', function(){
     }
   ]);
 
+  // ADMIN reseed defaults
+  register_rest_route('bp/v1', '/admin/form-fields/reseed', [
+    'methods'=>'POST',
+    'callback'=>function(){
+      if (!function_exists('bp_seed_default_form_fields')) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Seed function not found'], 500);
+      }
+      bp_seed_default_form_fields();
+      return new WP_REST_Response(['status'=>'success','message'=>'Defaults reseeded'], 200);
+    },
+    'permission_callback' => function() {
+      return current_user_can('bp_manage_settings') || current_user_can('administrator');
+    }
+  ]);
+
 });

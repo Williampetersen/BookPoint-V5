@@ -98,6 +98,20 @@ export default function FormFieldsScreen(){
     setShowCreate(true);
   }
 
+  async function handleReseed(){
+    if(!confirm("Reseed all default fields (first_name, last_name, email, phone, notes)?")) return;
+    setErr("");
+    setSuccess("");
+    try{
+      await bpFetch(`/admin/form-fields/reseed`, { method:'POST', body:{} });
+      setSuccess("Defaults reseeded!");
+      await load();
+      setTimeout(()=>setSuccess(""), 3000);
+    }catch(e){
+      setErr(e.message || "Reseed failed");
+    }
+  }
+
   return (
     <div style={{padding:18}}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, flexWrap:'wrap', marginBottom:20}}>
@@ -108,6 +122,7 @@ export default function FormFieldsScreen(){
         <div style={{display:'flex', gap:8, alignItems:'center', flexWrap:'wrap'}}>
           <button onClick={()=>setScope("customer")} style={scopeBtn(scope==="customer")}>👤 Customer</button>
           <button onClick={()=>setScope("booking")} style={scopeBtn(scope==="booking")}>📅 Booking</button>
+          <button onClick={handleReseed} style={{...secondaryBtn, fontSize:12, padding:'8px 12px'}}>🔄 Reseed Defaults</button>
           <button onClick={()=>{setEditId(null); setForm({ field_key:'', label:'', type:'text', step_key:'details', placeholder:'', is_required:false, is_enabled:true, show_in_wizard:true }); setShowCreate(true);}} style={primaryBtn}>+ Add Field</button>
         </div>
       </div>

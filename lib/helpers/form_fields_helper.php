@@ -43,9 +43,6 @@ function bp_seed_default_form_fields() : void {
   global $wpdb;
   $t = $wpdb->prefix . 'bp_form_fields';
 
-  $count = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$t}");
-  if ($count > 0) return;
-
   $now = current_time('mysql');
 
   $defaults = [
@@ -57,6 +54,15 @@ function bp_seed_default_form_fields() : void {
   ];
 
   foreach ($defaults as $f) {
+    // Check if field already exists
+    $exists = $wpdb->get_var($wpdb->prepare(
+      "SELECT id FROM {$t} WHERE field_key=%s AND scope=%s",
+      $f['field_key'],
+      $f['scope']
+    ));
+
+    if ($exists) continue; // Skip if already exists
+
     $wpdb->insert($t, [
       'field_key'=>$f['field_key'],
       'label'=>$f['label'],
