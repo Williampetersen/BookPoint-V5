@@ -132,6 +132,17 @@ final class BP_Plugin {
     // Controllers (Audit + Tools)
     require_once BP_LIB_PATH . 'controllers/admin_audit_controller.php';
     require_once BP_LIB_PATH . 'controllers/admin_tools_controller.php';
+
+    // REST routes (Admin)
+    require_once BP_LIB_PATH . 'rest/admin-calendar-routes.php';
+    require_once BP_LIB_PATH . 'rest/admin-bookings-routes.php';
+    require_once BP_LIB_PATH . 'rest/admin-catalog-routes.php';
+    require_once BP_LIB_PATH . 'rest/admin-schedule-routes.php';
+    require_once BP_LIB_PATH . 'rest/admin-schedule-editor-routes.php';
+    require_once BP_LIB_PATH . 'rest/admin-holidays-routes.php';
+    require_once BP_LIB_PATH . 'rest/admin-catalog-manager-routes.php';
+    require_once BP_LIB_PATH . 'rest/public-catalog-routes.php';
+    require_once BP_LIB_PATH . 'rest/public-availability-routes.php';
   }
 
   private static function register_hooks() : void {
@@ -225,6 +236,8 @@ final class BP_Plugin {
 
     // Shortcode
     add_shortcode('bookPoint', 'bp_shortcode_booking_form');
+    add_shortcode('bookpoint', 'bp_shortcode_booking_form');
+    add_shortcode('BookPoint', 'bp_shortcode_booking_form');
     add_shortcode('bookPoint_portal', [__CLASS__, 'shortcode_customer_portal']);
 
     // Portal actions
@@ -260,9 +273,154 @@ final class BP_Plugin {
 
     BP_RolesHelper::add_capabilities();
     BP_DatabaseHelper::install_or_update(self::DB_VERSION);
+    self::install_or_upgrade_schedule_tables();
+    self::seed_default_agent_hours();
 
     // Store plugin version too (optional but helpful)
     update_option('BP_version', self::VERSION, false);
+  }
+
+  private static function install_or_upgrade_schedule_tables() : void {
+    global $wpdb;
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $t_hours  = $wpdb->prefix . 'bp_agent_working_hours';
+    $t_breaks = $wpdb->prefix . 'bp_agent_breaks';
+    $t_holidays = $wpdb->prefix . 'bp_holidays';
+    $t_services = $wpdb->prefix . 'bp_services';
+    $t_categories = $wpdb->prefix . 'bp_categories';
+    $t_extras = $wpdb->prefix . 'bp_service_extras';
+    $t_agents = $wpdb->prefix . 'bp_agents';
+    $t_bookings = $wpdb->prefix . 'bp_bookings';
+    $t_service_categories = $wpdb->prefix . 'bp_service_categories';
+    $t_extra_services = $wpdb->prefix . 'bp_extra_services';
+    $t_agent_services = $wpdb->prefix . 'bp_agent_services';
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    dbDelta("CREATE TABLE {$t_hours} (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      agent_id BIGINT UNSIGNED NOT NULL,
+      weekday TINYINT NOT NULL,
+      start_time TIME NOT NULL,
+      end_time TIME NOT NULL,
+      is_enabled TINYINT NOT NULL DEFAULT 1,
+      PRIMARY KEY (id),
+      KEY agent_weekday (agent_id, weekday)
+    ) {$charset_collate};");
+
+    dbDelta("CREATE TABLE {$t_breaks} (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      agent_id BIGINT UNSIGNED NOT NULL,
+      break_date DATE NOT NULL,
+      start_time TIME NOT NULL,
+      end_time TIME NOT NULL,
+      note VARCHAR(255) NULL,
+      PRIMARY KEY (id),
+      KEY agent_date (agent_id, break_date)
+    ) {$charset_collate};");
+
+    dbDelta("CREATE TABLE {$t_holidays} (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      title VARCHAR(190) NOT NULL,
+      start_date DATE NOT NULL,
+      end_date DATE NOT NULL,
+      is_recurring_yearly TINYINT NOT NULL DEFAULT 0,
+      is_enabled TINYINT NOT NULL DEFAULT 1,
+      PRIMARY KEY (id),
+      KEY date_range (start_date, end_date),
+      KEY enabled (is_enabled)
+    ) {$charset_collate};");
+
+    dbDelta("CREATE TABLE {$t_service_categories} (
+      service_id BIGINT UNSIGNED NOT NULL,
+      category_id BIGINT UNSIGNED NOT NULL,
+      PRIMARY KEY (service_id, category_id),
+      KEY category_id (category_id)
+    ) {$charset_collate};");
+
+    dbDelta("CREATE TABLE {$t_extra_services} (
+      extra_id BIGINT UNSIGNED NOT NULL,
+      service_id BIGINT UNSIGNED NOT NULL,
+      PRIMARY KEY (extra_id, service_id),
+      KEY service_id (service_id)
+    ) {$charset_collate};");
+
+    dbDelta("CREATE TABLE {$t_agent_services} (
+      agent_id BIGINT UNSIGNED NOT NULL,
+      service_id BIGINT UNSIGNED NOT NULL,
+      PRIMARY KEY (agent_id, service_id),
+      KEY service_id (service_id)
+    ) {$charset_collate};");
+
+    // Column upgrades
+    self::add_column_if_missing($t_categories, 'image_id', "ALTER TABLE {$t_categories} ADD COLUMN image_id BIGINT UNSIGNED NOT NULL DEFAULT 0");
+    self::add_column_if_missing($t_categories, 'sort_order', "ALTER TABLE {$t_categories} ADD COLUMN sort_order INT NOT NULL DEFAULT 0");
+
+    self::add_column_if_missing($t_services, 'image_id', "ALTER TABLE {$t_services} ADD COLUMN image_id BIGINT UNSIGNED NOT NULL DEFAULT 0");
+    self::add_column_if_missing($t_services, 'sort_order', "ALTER TABLE {$t_services} ADD COLUMN sort_order INT NOT NULL DEFAULT 0");
+
+    self::add_column_if_missing($t_extras, 'image_id', "ALTER TABLE {$t_extras} ADD COLUMN image_id BIGINT UNSIGNED NOT NULL DEFAULT 0");
+    self::add_column_if_missing($t_extras, 'sort_order', "ALTER TABLE {$t_extras} ADD COLUMN sort_order INT NOT NULL DEFAULT 0");
+
+    self::add_column_if_missing($t_agents, 'image_id', "ALTER TABLE {$t_agents} ADD COLUMN image_id BIGINT UNSIGNED NOT NULL DEFAULT 0");
+
+    // Indexes for speed
+    self::add_index_if_missing($t_bookings, 'agent_start_date', "CREATE INDEX agent_start_date ON {$t_bookings} (agent_id, start_date)");
+    self::add_index_if_missing($t_bookings, 'service_start_date', "CREATE INDEX service_start_date ON {$t_bookings} (service_id, start_date)");
+
+    self::add_index_if_missing($t_categories, 'sort_order', "CREATE INDEX sort_order ON {$t_categories} (sort_order)");
+    self::add_index_if_missing($t_services, 'sort_order', "CREATE INDEX sort_order ON {$t_services} (sort_order)");
+    self::add_index_if_missing($t_extras, 'sort_order', "CREATE INDEX sort_order ON {$t_extras} (sort_order)");
+
+    $cols = $wpdb->get_results("SHOW COLUMNS FROM {$t_services}", ARRAY_A);
+    $names = array_column($cols, 'Field');
+
+    if (!in_array('buffer_before', $names, true)) {
+      $wpdb->query("ALTER TABLE {$t_services} ADD COLUMN buffer_before INT NOT NULL DEFAULT 0");
+    }
+    if (!in_array('buffer_after', $names, true)) {
+      $wpdb->query("ALTER TABLE {$t_services} ADD COLUMN buffer_after INT NOT NULL DEFAULT 0");
+    }
+    if (!in_array('capacity', $names, true)) {
+      $wpdb->query("ALTER TABLE {$t_services} ADD COLUMN capacity INT NOT NULL DEFAULT 1");
+    }
+  }
+
+  private static function add_column_if_missing(string $table, string $column, string $sql) : void {
+    global $wpdb;
+    $exists = $wpdb->get_var($wpdb->prepare("SHOW COLUMNS FROM {$table} LIKE %s", $column));
+    if (!$exists) $wpdb->query($sql);
+  }
+
+  private static function add_index_if_missing(string $table, string $index, string $sql) : void {
+    global $wpdb;
+    $exists = $wpdb->get_var($wpdb->prepare("SHOW INDEX FROM {$table} WHERE Key_name = %s", $index));
+    if (!$exists) $wpdb->query($sql);
+  }
+
+  private static function seed_default_agent_hours() : void {
+    global $wpdb;
+    $t_agents = $wpdb->prefix . 'bp_agents';
+    $t_hours  = $wpdb->prefix . 'bp_agent_working_hours';
+
+    $agents = $wpdb->get_results("SELECT id FROM {$t_agents}", ARRAY_A) ?: [];
+    foreach ($agents as $a) {
+      $aid = (int)$a['id'];
+
+      $exists = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$t_hours} WHERE agent_id=%d", $aid));
+      if ($exists > 0) continue;
+
+      for ($d = 1; $d <= 5; $d++) {
+        $wpdb->insert($t_hours, [
+          'agent_id' => $aid,
+          'weekday' => $d,
+          'start_time' => '09:00:00',
+          'end_time' => '17:00:00',
+          'is_enabled' => 1
+        ], ['%d','%d','%s','%s','%d']);
+      }
+    }
   }
 
   public static function on_deactivate() : void {
@@ -494,6 +652,42 @@ final class BP_Plugin {
 
     add_submenu_page(
       'bp',
+      __('Calendar', 'bookpoint'),
+      __('Calendar', 'bookpoint'),
+      'bp_manage_bookings',
+      'bp_calendar',
+      [__CLASS__, 'render_calendar']
+    );
+
+    add_submenu_page(
+      'bp',
+      __('Schedule', 'bookpoint'),
+      __('Schedule', 'bookpoint'),
+      'bp_manage_bookings',
+      'bp_schedule',
+      [__CLASS__, 'render_schedule']
+    );
+
+    add_submenu_page(
+      'bp',
+      __('Holidays', 'bookpoint'),
+      __('Holidays', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_holidays',
+      [__CLASS__, 'render_holidays']
+    );
+
+    add_submenu_page(
+      'bp_dashboard',
+      __('Catalog', 'bookpoint'),
+      __('Catalog', 'bookpoint'),
+      'bp_manage_services',
+      'bp_catalog',
+      'bp_render_admin_app_catalog'
+    );
+
+    add_submenu_page(
+      'bp',
       __('Services', 'bookpoint'),
       __('Services', 'bookpoint'),
       'bp_manage_services',
@@ -679,31 +873,79 @@ final class BP_Plugin {
   public static function enqueue_admin_assets(string $hook): void {
     if (empty($_GET['page'])) return;
 
-    if ($_GET['page'] === 'bp_dashboard') {
+    $page = sanitize_text_field($_GET['page']);
+
+    // React admin bundle (Calendar + Schedule + Holidays)
+    if (in_array($page, ['bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog'], true)) {
+      $asset_path = BP_PLUGIN_PATH . 'build/admin.asset.php';
+      $asset = [
+        'dependencies' => ['react', 'react-dom', 'react-jsx-runtime'],
+        'version' => self::VERSION,
+      ];
+
+      if (file_exists($asset_path)) {
+        $asset = require $asset_path;
+      }
+
+      self::ensure_react_scripts();
+
+      wp_enqueue_script(
+        'bp-admin',
+        BP_PLUGIN_URL . 'build/admin.js',
+        $asset['dependencies'],
+        $asset['version'],
+        true
+      );
+
+      if (file_exists(BP_PLUGIN_PATH . 'build/admin.css')) {
+        wp_enqueue_style(
+          'bp-admin',
+          BP_PLUGIN_URL . 'build/admin.css',
+          [],
+          $asset['version']
+        );
+      }
+
+      $route = $page === 'bp_schedule'
+        ? 'schedule'
+        : ($page === 'bp_holidays' ? 'holidays' : ($page === 'bp_catalog' ? 'catalog' : 'calendar'));
+
+      wp_localize_script('bp-admin', 'BP_ADMIN', [
+        'restUrl' => esc_url_raw(rest_url('bp/v1')),
+        'nonce'   => wp_create_nonce('wp_rest'),
+        'route'   => $route,
+        'timezone'=> wp_timezone_string(),
+      ]);
+
+      wp_enqueue_media();
+      return;
+    }
+
+    if ($page === 'bp_dashboard') {
       wp_enqueue_style('bp-admin-dashboard', BP_PLUGIN_URL . 'public/admin-dashboard.css', [], self::VERSION);
       wp_enqueue_script('bp-admin-dashboard', BP_PLUGIN_URL . 'public/admin-dashboard.js', [], self::VERSION, true);
       return;
     }
 
-    if ($_GET['page'] === 'bp_categories' && isset($_GET['action']) && $_GET['action'] === 'edit') {
+    if ($page === 'bp_categories' && isset($_GET['action']) && $_GET['action'] === 'edit') {
       wp_enqueue_media();
       wp_enqueue_script('bp-admin-media', BP_PLUGIN_URL . 'public/admin-media.js', ['jquery'], self::VERSION, true);
       return;
     }
 
-    if ($_GET['page'] === 'bp_services_edit' || ($_GET['page'] === 'bp_services' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
+    if ($page === 'bp_services_edit' || ($page === 'bp_services' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
       wp_enqueue_media();
       wp_enqueue_script('bp-admin-service-media', BP_PLUGIN_URL . 'public/admin-service-media.js', ['jquery'], self::VERSION, true);
       return;
     }
 
-    if ($_GET['page'] === 'bp_extras' && isset($_GET['action']) && $_GET['action'] === 'edit') {
+    if ($page === 'bp_extras' && isset($_GET['action']) && $_GET['action'] === 'edit') {
       wp_enqueue_media();
       wp_enqueue_script('bp-admin-extra-media', BP_PLUGIN_URL . 'public/admin-extra-media.js', ['jquery'], self::VERSION, true);
       return;
     }
 
-    if ($_GET['page'] === 'bp_agents_edit' || ($_GET['page'] === 'bp_agents' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
+    if ($page === 'bp_agents_edit' || ($page === 'bp_agents' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
       wp_enqueue_media();
       wp_enqueue_script('bp-admin-agent-media', BP_PLUGIN_URL . 'public/admin-agent-media.js', ['jquery'], self::VERSION, true);
     }
@@ -758,6 +1000,18 @@ final class BP_Plugin {
     (new BP_AdminBookingsController())->index();
   }
 
+  public static function render_calendar() : void {
+    echo '<div id="bp-admin-app" data-route="calendar"></div>';
+  }
+
+  public static function render_schedule() : void {
+    echo '<div id="bp-admin-app" data-route="schedule"></div>';
+  }
+
+  public static function render_holidays() : void {
+    echo '<div id="bp-admin-app" data-route="holidays"></div>';
+  }
+
   public static function render_booking_confirm() : void {
     (new BP_AdminBookingsController())->confirm();
   }
@@ -778,13 +1032,98 @@ final class BP_Plugin {
     (new BP_AdminCustomersController())->view();
   }
 
-  public static function enqueue_public_assets(): void {
-    wp_enqueue_script('bp-booking-ui', BP_PLUGIN_URL . 'public/booking-ui.js', [], self::VERSION, true);
-    wp_enqueue_style('bp-booking-ui', BP_PLUGIN_URL . 'public/booking-ui.css', [], self::VERSION);
+  public static function enqueue_public_assets(bool $force = false): void {
+    if (!$force) {
+      if (!is_singular()) return;
+
+      global $post;
+      if (!$post || !has_shortcode($post->post_content, 'bookPoint')) return;
+    }
+
+    $front_asset_path = BP_PLUGIN_PATH . 'public/front.asset.php';
+    $front_asset = null;
+    if (file_exists($front_asset_path)) {
+      $front_asset = require $front_asset_path;
+    }
+
+    $front_css = BP_PLUGIN_PATH . 'public/front.css';
+    if (file_exists($front_css)) {
+      wp_enqueue_style(
+        'bp-front',
+        BP_PLUGIN_URL . 'public/front.css',
+        [],
+        $front_asset['version'] ?? self::VERSION
+      );
+    }
+
+    self::ensure_react_scripts();
+
+    wp_enqueue_script(
+      'bp-front',
+      BP_PLUGIN_URL . 'public/front.js',
+      $front_asset['dependencies'] ?? [],
+      $front_asset['version'] ?? self::VERSION,
+      false
+    );
+
+    wp_localize_script('bp-front', 'BP_FRONT', [
+      'restUrl' => esc_url_raw(rest_url('bp/v1')),
+      'ajaxUrl' => admin_url('admin-ajax.php'),
+      'siteUrl' => site_url('/'),
+    ]);
   }
 
   public static function render_agents() : void {
     (new BP_AdminAgentsController())->index();
+  }
+
+  public static function ensure_react_scripts() : void {
+    if (!wp_script_is('react', 'registered')) {
+      $react_path = BP_PLUGIN_PATH . 'public/vendor/react.production.min.js';
+      if (file_exists($react_path)) {
+        wp_register_script(
+          'react',
+          BP_PLUGIN_URL . 'public/vendor/react.production.min.js',
+          [],
+          self::VERSION,
+          true
+        );
+      }
+    }
+
+    if (wp_script_is('react', 'registered')) {
+      wp_add_inline_script(
+        'react',
+        "if(!window.ReactJSXRuntime&&window.React){window.ReactJSXRuntime={jsx:function(t,p,k){var x=p||{};if(k!==undefined)x.key=k;return window.React.createElement(t,x);},jsxs:function(t,p,k){var x=p||{};if(k!==undefined)x.key=k;return window.React.createElement(t,x);},Fragment:window.React.Fragment};}",
+        'after'
+      );
+    }
+
+    if (!wp_script_is('react-dom', 'registered')) {
+      $react_dom_path = BP_PLUGIN_PATH . 'public/vendor/react-dom.production.min.js';
+      if (file_exists($react_dom_path)) {
+        wp_register_script(
+          'react-dom',
+          BP_PLUGIN_URL . 'public/vendor/react-dom.production.min.js',
+          ['react'],
+          self::VERSION,
+          true
+        );
+      }
+    }
+
+    if (!wp_script_is('react-jsx-runtime', 'registered')) {
+      $jsx_runtime_path = BP_PLUGIN_PATH . 'public/vendor/react-jsx-runtime.min.js';
+      if (file_exists($jsx_runtime_path)) {
+        wp_register_script(
+          'react-jsx-runtime',
+          BP_PLUGIN_URL . 'public/vendor/react-jsx-runtime.min.js',
+          ['react'],
+          self::VERSION,
+          true
+        );
+      }
+    }
   }
 
   public static function render_agents_edit() : void {
@@ -1004,89 +1343,22 @@ final class BP_Plugin {
 BP_Plugin::init();
 
 if (!function_exists('bp_shortcode_booking_form')) {
-  function bp_shortcode_booking_form() {
-    $nonce = wp_create_nonce('bp_booking');
+  function bp_shortcode_booking_form($atts = []) {
+    $atts = shortcode_atts([
+      'label' => __('Book Now', 'bookpoint'),
+    ], $atts);
+
+    if (class_exists('BP_Plugin')) {
+      BP_Plugin::enqueue_public_assets(true);
+      if (did_action('wp_footer')) {
+        wp_print_styles('bp-front');
+        wp_print_scripts('bp-front');
+      }
+    }
+
     ob_start(); ?>
-    <div class="bp-wrap">
-      <div class="bp-booking" data-nonce="<?php echo esc_attr($nonce); ?>">
-        <div class="bp-grid">
-          <div class="bp-panel">
-            <div class="bp-title">Category</div>
-            <div class="bp-subtitle">Select a category</div>
-            <div class="bp-cards bp-categories"></div>
-
-            <div class="bp-title" style="margin-top:16px;">Service</div>
-            <div class="bp-subtitle">Select a service</div>
-            <div class="bp-cards bp-services"></div>
-
-            <div class="bp-title" style="margin-top:16px;">Extras</div>
-            <div class="bp-subtitle">Optional add-ons</div>
-            <div class="bp-cards bp-extras"></div>
-
-            <div class="bp-title" style="margin-top:16px;">Agent</div>
-            <div class="bp-subtitle">Choose a specialist</div>
-            <div class="bp-cards bp-agents"></div>
-          </div>
-
-          <div class="bp-panel">
-            <div class="bp-title">Your Booking <span class="bp-pill">Summary</span></div>
-
-            <div class="bp-summary-line"><span class="bp-muted">Category</span><strong class="bp-sum-category">—</strong></div>
-            <div class="bp-summary-line"><span class="bp-muted">Service</span><strong class="bp-sum-service">—</strong></div>
-            <div class="bp-summary-line"><span class="bp-muted">Extras</span><strong class="bp-sum-extras">—</strong></div>
-            <div class="bp-summary-line"><span class="bp-muted">Agent</span><strong class="bp-sum-agent">—</strong></div>
-
-            <div class="bp-summary-line" style="margin-top:12px;"><span class="bp-muted">Subtotal</span><strong>€ <span class="bp-sum-subtotal">0.00</span></strong></div>
-            <div class="bp-summary-line"><span class="bp-muted">Discount</span><strong>€ <span class="bp-sum-discount">0.00</span></strong></div>
-            <div class="bp-summary-line"><span class="bp-muted">Total</span><strong>€ <span class="bp-sum-total">0.00</span></strong></div>
-
-            <div class="bp-row">
-              <label>Date</label>
-              <input type="date" class="bp-input bp-date">
-            </div>
-
-            <div class="bp-row">
-              <label>Time</label>
-              <input type="time" class="bp-input bp-time">
-            </div>
-
-            <div class="bp-row">
-              <label>Your Name</label>
-              <input type="text" class="bp-input bp-customer-name" placeholder="Jane Doe">
-            </div>
-
-            <div class="bp-row">
-              <label>Email</label>
-              <input type="email" class="bp-input bp-customer-email" placeholder="jane@email.com">
-            </div>
-
-            <div class="bp-row">
-              <div class="bp-title" style="margin:10px 0 0;">Customer Details</div>
-              <div class="bp-dynamic-customer"></div>
-            </div>
-
-            <div class="bp-row">
-              <div class="bp-title" style="margin:10px 0 0;">Booking Details</div>
-              <div class="bp-dynamic-booking"></div>
-            </div>
-
-            <div class="bp-row">
-              <label>Promo Code</label>
-              <div style="display:flex;gap:8px;">
-                <input type="text" class="bp-input bp-promo" placeholder="SAVE10" style="flex:1;">
-                <button type="button" class="bp-btn secondary bp-apply-promo">Apply</button>
-              </div>
-              <div class="bp-muted bp-promo-msg" style="margin-top:6px;"></div>
-            </div>
-
-            <div class="bp-row">
-              <button type="button" class="bp-btn bp-submit">Book Now</button>
-              <div class="bp-alert bp-msg" style="display:none;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <button type="button" class="bp-open-wizard"><?php echo esc_html($atts['label']); ?></button>
+    <div id="bp-front-root" style="display:none;"></div>
     <?php
     return ob_get_clean();
   }
@@ -1389,6 +1661,12 @@ if (!function_exists('bp_rest_validate_promo')) {
 
     $res = bp_apply_promo_to_subtotal($code, $subtotal, false);
     return rest_ensure_response($res);
+  }
+}
+
+if (!function_exists('bp_render_admin_app_catalog')) {
+  function bp_render_admin_app_catalog() {
+    echo '<div id="bp-admin-app" data-route="catalog"></div>';
   }
 }
 

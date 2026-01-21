@@ -91,4 +91,177 @@ final class BP_ScheduleHelper {
     [$open, $close] = explode('-', $raw);
     return ['open' => $open, 'close' => $close];
   }
+
+  // weekday: 1=Mon .. 7=Sun
+  public static function weekday_from_date(string $date) : int {
+    $ts = strtotime($date);
+    return $ts ? (int)date('N', $ts) : 1;
+  }
+
+  public static function get_working_hours(int $agent_id, int $weekday) : array {
+    global $wpdb;
+    $t = $wpdb->prefix . 'bp_agent_working_hours';
+
+    $rows = $wpdb->get_results($wpdb->prepare(
+      "SELECT start_time, end_time
+       FROM {$t}
+       WHERE agent_id=%d AND weekday=%d AND is_enabled=1
+       ORDER BY start_time ASC",
+      $agent_id, $weekday
+    ), ARRAY_A);
+
+    return $rows ?: [];
+  }
+
+  public static function get_breaks(int $agent_id, string $date) : array {
+    global $wpdb;
+    $t = $wpdb->prefix . 'bp_agent_breaks';
+
+    $rows = $wpdb->get_results($wpdb->prepare(
+      "SELECT start_time, end_time
+       FROM {$t}
+       WHERE agent_id=%d AND break_date=%s
+       ORDER BY start_time ASC",
+      $agent_id, $date
+    ), ARRAY_A);
+
+    return $rows ?: [];
+  }
+
+  public static function time_to_seconds(string $hms) : int {
+    if (preg_match('/^\d{2}:\d{2}$/', $hms)) $hms .= ':00';
+    if (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $hms)) return 0;
+    [$h, $m, $s] = array_map('intval', explode(':', $hms));
+    return $h * 3600 + $m * 60 + $s;
+  }
+
+  public static function is_date_closed(string $date) : bool {
+    global $wpdb;
+    $t = $wpdb->prefix . 'bp_holidays';
+
+    $date = substr($date, 0, 10);
+
+    $count = (int)$wpdb->get_var($wpdb->prepare("
+      SELECT COUNT(*)
+      FROM {$t}
+      WHERE is_enabled=1
+        AND (
+          (%s BETWEEN start_date AND end_date)
+          OR (
+            is_recurring_yearly=1
+            AND (
+              DATE_FORMAT(%s, '%%m-%%d') BETWEEN DATE_FORMAT(start_date,'%%m-%%d') AND DATE_FORMAT(end_date,'%%m-%%d')
+            )
+          )
+        )
+    ", $date, $date));
+
+    return $count > 0;
+  }
+
+  public static function get_service_rules(int $service_id) : array {
+    global $wpdb;
+    $t = $wpdb->prefix . 'bp_services';
+
+    $row = $wpdb->get_row($wpdb->prepare("
+      SELECT COALESCE(duration,30) as duration,
+             COALESCE(buffer_before,0) as buffer_before,
+             COALESCE(buffer_after,0) as buffer_after,
+             COALESCE(capacity,1) as capacity
+      FROM {$t}
+      WHERE id=%d
+    ", $service_id), ARRAY_A);
+
+    if (!$row) $row = ['duration'=>30,'buffer_before'=>0,'buffer_after'=>0,'capacity'=>1];
+
+    $row['duration'] = max(5, (int)$row['duration']);
+    $row['buffer_before'] = max(0, (int)$row['buffer_before']);
+    $row['buffer_after']  = max(0, (int)$row['buffer_after']);
+    $row['capacity'] = max(1, (int)$row['capacity']);
+
+    $row['occupied_min'] = $row['duration'] + $row['buffer_before'] + $row['buffer_after'];
+
+    return $row;
+  }
+
+  public static function is_within_schedule(int $agent_id, string $date, string $start_time, int $duration_min) : bool {
+    if (self::is_date_closed($date)) return false;
+    $weekday = self::weekday_from_date($date);
+
+    $work = self::get_working_hours($agent_id, $weekday);
+    if (empty($work)) return false;
+
+    $breaks = self::get_breaks($agent_id, $date);
+
+    $startSec = self::time_to_seconds($start_time);
+    $endSec   = $startSec + ($duration_min * 60);
+
+    $fitsWorking = false;
+    foreach ($work as $w) {
+      $ws = self::time_to_seconds($w['start_time']);
+      $we = self::time_to_seconds($w['end_time']);
+      if ($startSec >= $ws && $endSec <= $we) { $fitsWorking = true; break; }
+    }
+    if (!$fitsWorking) return false;
+
+    foreach ($breaks as $b) {
+      $bs = self::time_to_seconds($b['start_time']);
+      $be = self::time_to_seconds($b['end_time']);
+      if ($startSec < $be && $endSec > $bs) return false;
+    }
+
+    return true;
+  }
+
+  public static function build_unavailable_blocks(int $agent_id, string $from, string $to) : array {
+    $blocks = [];
+    $cur = strtotime($from);
+    $end = strtotime($to);
+
+    while ($cur <= $end) {
+      $date = date('Y-m-d', $cur);
+      $weekday = self::weekday_from_date($date);
+      $work = self::get_working_hours($agent_id, $weekday);
+      $breaks = self::get_breaks($agent_id, $date);
+
+      if (empty($work)) {
+        $blocks[] = ['start' => $date . 'T00:00:00', 'end' => $date . 'T23:59:59'];
+      } else {
+        $intervals = [];
+        foreach ($work as $w) {
+          $intervals[] = [self::time_to_seconds($w['start_time']), self::time_to_seconds($w['end_time'])];
+        }
+        usort($intervals, fn($a, $b) => $a[0] <=> $b[0]);
+
+        if ($intervals[0][0] > 0) {
+          $blocks[] = ['start' => $date . 'T00:00:00', 'end' => $date . 'T' . gmdate('H:i:s', $intervals[0][0])];
+        }
+
+        for ($i = 0; $i < count($intervals) - 1; $i++) {
+          if ($intervals[$i][1] < $intervals[$i + 1][0]) {
+            $blocks[] = [
+              'start' => $date . 'T' . gmdate('H:i:s', $intervals[$i][1]),
+              'end'   => $date . 'T' . gmdate('H:i:s', $intervals[$i + 1][0]),
+            ];
+          }
+        }
+
+        $lastEnd = $intervals[count($intervals) - 1][1];
+        if ($lastEnd < 86400) {
+          $blocks[] = ['start' => $date . 'T' . gmdate('H:i:s', $lastEnd), 'end' => $date . 'T23:59:59'];
+        }
+
+        foreach ($breaks as $b) {
+          $blocks[] = [
+            'start' => $date . 'T' . substr($b['start_time'], 0, 8),
+            'end'   => $date . 'T' . substr($b['end_time'], 0, 8),
+          ];
+        }
+      }
+
+      $cur = strtotime('+1 day', $cur);
+    }
+
+    return $blocks;
+  }
 }
