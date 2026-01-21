@@ -72,6 +72,12 @@ final class BP_SettingsHelper {
       'bp_schedule_5' => '09:00-17:00',
       'bp_schedule_6' => '',
       'bp_breaks' => '12:00-13:00',
+      'webhooks_enabled' => 0,
+      'webhooks_secret' => '',
+      'webhooks_url_booking_created' => '',
+      'webhooks_url_booking_status_changed' => '',
+      'webhooks_url_booking_updated' => '',
+      'webhooks_url_booking_cancelled' => '',
     ];
   }
 

@@ -19,6 +19,7 @@ defined('ABSPATH') || exit;
   <table class="widefat striped">
     <thead>
       <tr>
+        <th style="width:60px;"><?php echo esc_html__('Image', 'bookpoint'); ?></th>
         <th><?php echo esc_html__('ID', 'bookpoint'); ?></th>
         <th><?php echo esc_html__('Name', 'bookpoint'); ?></th>
         <th><?php echo esc_html__('Duration', 'bookpoint'); ?></th>
@@ -29,10 +30,15 @@ defined('ABSPATH') || exit;
     </thead>
     <tbody>
       <?php if (empty($services)) : ?>
-        <tr><td colspan="6"><?php echo esc_html__('No services yet.', 'bookpoint'); ?></td></tr>
+        <tr><td colspan="7"><?php echo esc_html__('No services yet.', 'bookpoint'); ?></td></tr>
       <?php else : ?>
         <?php foreach ($services as $s) : ?>
+          <?php
+            $url = !empty($s['image_id']) ? wp_get_attachment_image_url((int)$s['image_id'], 'thumbnail') : '';
+            $img = $url ? '<img src="' . esc_url($url) . '" style="width:44px;height:44px;border-radius:10px;object-fit:cover;">' : '—';
+          ?>
           <tr>
+            <td><?php echo $img; ?></td>
             <td><?php echo esc_html($s['id']); ?></td>
             <td><?php echo esc_html($s['name']); ?></td>
             <td><?php echo esc_html((int)$s['duration_minutes']); ?> <?php echo esc_html__('min', 'bookpoint'); ?></td>

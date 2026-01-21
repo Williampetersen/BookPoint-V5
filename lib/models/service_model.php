@@ -8,6 +8,31 @@ final class BP_ServiceModel extends BP_Model {
     return $wpdb->prefix . 'bp_services';
   }
 
+  public static function map_table_categories(): string {
+    global $wpdb;
+    return $wpdb->prefix . 'bp_service_categories';
+  }
+
+  public static function get_category_ids(int $service_id): array {
+    global $wpdb;
+    $t = self::map_table_categories();
+    $ids = $wpdb->get_col($wpdb->prepare("SELECT category_id FROM {$t} WHERE service_id=%d", $service_id));
+    return array_map('intval', $ids ?: []);
+  }
+
+  public static function set_categories(int $service_id, array $category_ids): void {
+    global $wpdb;
+    $t = self::map_table_categories();
+
+    $service_id = (int)$service_id;
+    $category_ids = array_values(array_unique(array_filter(array_map('intval', $category_ids))));
+    $wpdb->delete($t, ['service_id' => $service_id], ['%d']);
+
+    foreach ($category_ids as $cid) {
+      $wpdb->insert($t, ['service_id' => $service_id, 'category_id' => $cid], ['%d','%d']);
+    }
+  }
+
   public static function validate(array $data) : array {
     $errors = [];
 
@@ -49,10 +74,26 @@ final class BP_ServiceModel extends BP_Model {
     return $errors;
   }
 
-  public static function all() : array {
+  public static function all(array $args = []) : array {
     global $wpdb;
     $table = self::table();
-    return $wpdb->get_results("SELECT * FROM {$table} ORDER BY id DESC", ARRAY_A) ?: [];
+
+    $is_active = isset($args['is_active']) && $args['is_active'] !== '' ? (int)$args['is_active'] : null;
+    $cache_key = 'bp_services_all_' . ($is_active === null ? 'all' : ('active_' . $is_active));
+    $cached = get_transient($cache_key);
+    if (is_array($cached)) return $cached;
+
+    $where = 'WHERE 1=1';
+    $params = [];
+    if ($is_active !== null) {
+      $where .= ' AND is_active = %d';
+      $params[] = $is_active;
+    }
+
+    $sql = "SELECT * FROM {$table} {$where} ORDER BY id DESC";
+    $list = $params ? $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) : $wpdb->get_results($sql, ARRAY_A);
+    set_transient($cache_key, $list, 5 * MINUTE_IN_SECONDS);
+    return $list;
   }
 
   public static function find(int $id) : ?array {
@@ -70,6 +111,8 @@ final class BP_ServiceModel extends BP_Model {
     $wpdb->insert($table, [
       'name' => $data['name'],
       'description' => $data['description'] ?? null,
+      'category_id' => (int)($data['category_id'] ?? 0),
+      'image_id' => (int)($data['image_id'] ?? 0),
       'duration_minutes' => (int)$data['duration_minutes'],
       'price_cents' => (int)$data['price_cents'],
       'currency' => $data['currency'],
@@ -82,10 +125,14 @@ final class BP_ServiceModel extends BP_Model {
       'created_at' => $now,
       'updated_at' => $now,
     ], [
-      '%s','%s','%d','%d','%s','%d','%d','%s','%d','%d','%d','%s','%s'
+      '%s','%s','%d','%d','%d','%d','%s','%d','%d','%s','%d','%d','%d','%s','%s'
     ]);
 
-    return (int)$wpdb->insert_id;
+    $id = (int)$wpdb->insert_id;
+    delete_transient('bp_services_all_all');
+    delete_transient('bp_services_all_active_1');
+    delete_transient('bp_services_all_active_0');
+    return $id;
   }
 
   public static function update(int $id, array $data) : bool {
@@ -95,6 +142,8 @@ final class BP_ServiceModel extends BP_Model {
     $updated = $wpdb->update($table, [
       'name' => $data['name'],
       'description' => $data['description'] ?? null,
+      'category_id' => (int)($data['category_id'] ?? 0),
+      'image_id' => (int)($data['image_id'] ?? 0),
       'duration_minutes' => (int)$data['duration_minutes'],
       'price_cents' => (int)$data['price_cents'],
       'currency' => $data['currency'],
@@ -108,19 +157,31 @@ final class BP_ServiceModel extends BP_Model {
     ], [
       'id' => $id
     ], [
-      '%s','%s','%d','%d','%s','%d','%d','%s','%d','%d','%d','%s'
+      '%s','%s','%d','%d','%d','%d','%s','%d','%d','%s','%d','%d','%d','%s'
     ], [
       '%d'
     ]);
 
-    return ($updated !== false);
+    $ok = ($updated !== false);
+    if ($ok) {
+      delete_transient('bp_services_all_all');
+      delete_transient('bp_services_all_active_1');
+      delete_transient('bp_services_all_active_0');
+    }
+    return $ok;
   }
 
   public static function delete(int $id) : bool {
     global $wpdb;
     $table = self::table();
     $deleted = $wpdb->delete($table, ['id' => $id], ['%d']);
-    return ($deleted !== false);
+    $ok = ($deleted !== false);
+    if ($ok) {
+      delete_transient('bp_services_all_all');
+      delete_transient('bp_services_all_active_1');
+      delete_transient('bp_services_all_active_0');
+    }
+    return $ok;
   }
 }
 

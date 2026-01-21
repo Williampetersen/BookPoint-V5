@@ -72,5 +72,21 @@ final class BP_CustomerModel extends BP_Model {
 
     return $row ?: null;
   }
+
+  public static function anonymize(int $customer_id) : bool {
+    global $wpdb;
+    $table = self::table();
+
+    $anon = 'deleted+' . $customer_id . '@example.invalid';
+    $updated = $wpdb->update($table, [
+      'first_name' => 'Deleted',
+      'last_name' => 'Customer',
+      'email' => $anon,
+      'phone' => '',
+      'updated_at' => self::now_mysql(),
+    ], ['id' => $customer_id], ['%s','%s','%s','%s','%s'], ['%d']);
+
+    return ($updated !== false);
+  }
 }
 

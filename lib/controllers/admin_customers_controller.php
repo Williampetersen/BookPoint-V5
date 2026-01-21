@@ -33,4 +33,27 @@ final class BP_AdminCustomersController extends BP_Controller {
       'bookings' => $bookings,
     ]);
   }
+
+  public function gdpr_delete() : void {
+    $this->require_cap('bp_manage_customers');
+    check_admin_referer('bp_admin');
+
+    $id = absint($_GET['id'] ?? 0);
+    if ($id <= 0) {
+      wp_safe_redirect(admin_url('admin.php?page=bp_customers'));
+      exit;
+    }
+
+    BP_CustomerModel::anonymize($id);
+    BP_BookingModel::detach_customer($id);
+
+    BP_AuditHelper::log('gdpr_customer_anonymized', [
+      'actor_type' => 'admin',
+      'customer_id' => $id,
+      'meta' => ['reason' => 'admin_action'],
+    ]);
+
+    wp_safe_redirect(admin_url('admin.php?page=bp_customers&gdpr_deleted=1'));
+    exit;
+  }
 }

@@ -3,21 +3,23 @@ defined('ABSPATH') || exit;
 
 final class BP_AdminDashboardController extends BP_Controller {
 
-  public function index() : void {
-    // Any admin can see dashboard if they have at least one BPV5 cap
-    $allowed = current_user_can('BP_manage_bookings')
-      || current_user_can('BP_manage_services')
-      || current_user_can('BP_manage_customers')
-      || current_user_can('BP_manage_settings')
-      || current_user_can('manage_options');
+  public function index(): void {
+    $this->require_cap('bp_manage_bookings');
 
-    if (!$allowed) {
-      wp_die(esc_html__('You do not have permission to access BookPoint V5.', 'bookpoint'));
-    }
+    $range = BP_DashboardHelper::range();
+    $kpis = BP_DashboardHelper::kpis_for_range($range['from'], $range['to']);
+    $series = BP_DashboardHelper::bookings_series_for_range($range['from'], $range['to']);
 
-    $this->render('admin/dashboard', [
-      'title' => 'BookPoint V5 Dashboard',
-    ]);
+    $top_services = BP_DashboardHelper::top_services($range['from'], $range['to']);
+    $top_categories = BP_DashboardHelper::top_categories($range['from'], $range['to']);
+    $top_agents = BP_DashboardHelper::top_agents($range['from'], $range['to']);
+
+    $pending = BP_DashboardHelper::pending_bookings(8);
+    $recent = BP_DashboardHelper::recent_bookings(10);
+
+    $this->render('admin/dashboard_v2', compact(
+      'range', 'kpis', 'series', 'top_services', 'top_categories', 'top_agents', 'pending', 'recent'
+    ));
   }
 }
 

@@ -71,6 +71,84 @@ final class BP_AvailabilityHelper {
     ));
   }
 
+  public static function overlapping_count_excluding_booking(int $service_id, string $start_dt, string $end_dt, int $agent_id = 0, int $exclude_booking_id = 0) : int {
+    global $wpdb;
+    $table = $wpdb->prefix . 'bp_bookings';
+
+    if ($agent_id > 0) {
+      return (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$table}
+         WHERE service_id = %d AND agent_id = %d
+           AND id != %d
+           AND status != 'cancelled'
+           AND start_datetime < %s
+           AND end_datetime > %s",
+        $service_id, $agent_id, $exclude_booking_id, $end_dt, $start_dt
+      ));
+    }
+
+    return (int) $wpdb->get_var($wpdb->prepare(
+      "SELECT COUNT(*) FROM {$table}
+       WHERE service_id = %d
+         AND id != %d
+         AND status != 'cancelled'
+         AND start_datetime < %s
+         AND end_datetime > %s",
+      $service_id, $exclude_booking_id, $end_dt, $start_dt
+    ));
+  }
+
+  public static function is_slot_available_excluding_booking(int $service_id, string $start_dt, string $end_dt, int $capacity = 1, int $agent_id = 0, int $exclude_booking_id = 0) : bool {
+    $capacity = max(1, min(50, $capacity));
+    $count = self::overlapping_count_excluding_booking($service_id, $start_dt, $end_dt, $agent_id, $exclude_booking_id);
+    return ($count < $capacity);
+  }
+
+  public static function get_available_slots_for_date(int $service_id, string $date_ymd, int $duration_minutes, int $agent_id = 0, int $exclude_booking_id = 0) : array {
+    $service = BP_ServiceModel::find($service_id);
+    if (!$service) return [];
+
+    $day_schedule = BP_ScheduleHelper::get_service_day_schedule($service, $date_ymd);
+    if (empty($day_schedule)) return [];
+
+    $interval = (int)BP_SettingsHelper::get_with_default('bp_slot_interval_minutes');
+    $breaks = BP_ScheduleHelper::get_break_ranges();
+
+    $slots = self::generate_slots_for_date(
+      $date_ymd,
+      $interval,
+      $day_schedule['open'],
+      $day_schedule['close'],
+      $breaks
+    );
+
+    $capacity = (int)($service['capacity'] ?? 1);
+    $buf_before = (int)($service['buffer_before_minutes'] ?? 0);
+    $buf_after  = (int)($service['buffer_after_minutes'] ?? 0);
+
+    $out = [];
+    foreach ($slots as $hm) {
+      $start_ts = strtotime($date_ymd . ' ' . $hm);
+      if (!$start_ts) continue;
+
+      $start_ts_adj = $start_ts - ($buf_before * 60);
+      $end_ts_adj   = $start_ts + ($duration_minutes * 60) + ($buf_after * 60);
+
+      $start_dt = date('Y-m-d H:i:s', $start_ts_adj);
+      $end_dt   = date('Y-m-d H:i:s', $end_ts_adj);
+
+      if (self::is_slot_available_excluding_booking($service_id, $start_dt, $end_dt, $capacity, $agent_id, $exclude_booking_id)) {
+        $out[] = [
+          'start' => date('Y-m-d H:i:s', $start_ts),
+          'end' => date('Y-m-d H:i:s', $start_ts + ($duration_minutes * 60)),
+          'label' => date('H:i', $start_ts),
+        ];
+      }
+    }
+
+    return $out;
+  }
+
   public static function remove_unavailable_slots(
     int $service_id,
     string $date_ymd,

@@ -106,7 +106,7 @@ final class BP_PublicBookingsController extends BP_Controller {
     }
 
     // basic spam honeypot (hidden field)
-    $hp = (string)($_POST['BP_hp'] ?? '');
+    $hp = (string)($_POST['bp_hp'] ?? '');
     if ($hp !== '') {
       $this->json_error('BP_SPAM', __('Spam detected.', 'bookpoint'));
     }
@@ -187,12 +187,8 @@ final class BP_PublicBookingsController extends BP_Controller {
       $this->json_error('BP_CREATE_FAILED', __('Could not create booking.', 'bookpoint'));
     }
 
-    // Fetch manage key for response
-    $booking = BP_BookingModel::find_by_manage_key(''); // not usable; we need to read inserted row
-    // Quick read:
-    global $wpdb;
-    $table = $wpdb->prefix . 'bp_bookings';
-    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $booking_id), ARRAY_A);
+    // Fetch booking for response
+    $row = BP_BookingModel::find($booking_id);
     $manage_key = $row['manage_key'] ?? '';
 
     $manage_url = add_query_arg([
@@ -204,7 +200,6 @@ final class BP_PublicBookingsController extends BP_Controller {
     $email_enabled = (int)BP_SettingsHelper::get_with_default('bp_email_enabled') === 1;
 
     if ($email_enabled && $row) {
-      // Build customer array for template
       $customer_arr = [
         'first_name' => $first_name,
         'last_name'  => $last_name,
@@ -212,24 +207,31 @@ final class BP_PublicBookingsController extends BP_Controller {
         'phone'      => $phone,
       ];
 
-      // Send to customer if email exists
-      if ($email) {
-        BP_EmailHelper::send(
-          $email,
-          BP_EmailHelper::customer_booking_subject(),
-          BP_EmailHelper::customer_template($row, $service, $customer_arr, $manage_url)
-        );
-      }
+      BP_EmailHelper::booking_created_customer($row, $service, $customer_arr);
+      BP_EmailHelper::booking_created_admin($row, $service, $customer_arr);
+    }
 
-      // Send to admin
-      $admin_email = BP_SettingsHelper::get_with_default('bp_admin_email');
-      if ($admin_email) {
-        BP_EmailHelper::send(
-          $admin_email,
-          BP_EmailHelper::admin_booking_subject(),
-          BP_EmailHelper::admin_template($row, $service, $customer_arr, $manage_url)
-        );
-      }
+    if ($row) {
+      BP_WebhookHelper::fire('booking_created', [
+        'booking_id' => (int)$row['id'],
+        'status' => (string)($row['status'] ?? ''),
+        'old_status' => '',
+        'service_id' => (int)($row['service_id'] ?? 0),
+        'customer_id' => (int)($row['customer_id'] ?? 0),
+        'agent_id' => (int)($row['agent_id'] ?? 0),
+        'start_datetime' => (string)($row['start_datetime'] ?? ''),
+        'end_datetime' => (string)($row['end_datetime'] ?? ''),
+      ]);
+
+      BP_AuditHelper::log('booking_created', [
+        'actor_type' => 'customer',
+        'booking_id' => (int)$row['id'],
+        'customer_id' => (int)($row['customer_id'] ?? 0),
+        'meta' => [
+          'service_id' => (int)($row['service_id'] ?? 0),
+          'agent_id' => (int)($row['agent_id'] ?? 0),
+        ],
+      ]);
     }
 
     $this->json_success([
@@ -256,13 +258,16 @@ final class BP_PublicBookingsController extends BP_Controller {
     if ($booking) {
       $cancel_url = wp_nonce_url(
         add_query_arg([
-          'BP_manage_booking' => 1,
+          'bp_manage_booking' => 1,
           'key' => $booking['manage_key'],
-          'BP_action' => 'cancel',
+          'bp_action' => 'cancel',
         ], home_url('/')),
         'BP_manage_booking'
       );
     }
+
+    wp_enqueue_style('bp-portal', BP_PLUGIN_URL . 'public/stylesheets/portal.css', [], BP_Plugin::VERSION);
+    wp_enqueue_script('bp-manage', BP_PLUGIN_URL . 'public/javascripts/manage-booking.js', [], BP_Plugin::VERSION, true);
 
     // Render view
     $this->render('public/manage_booking', [
@@ -274,7 +279,96 @@ final class BP_PublicBookingsController extends BP_Controller {
   }
 
   public function handle_manage_actions() : void {
-    if (!isset($_GET['BP_action']) || $_GET['BP_action'] !== 'cancel') return;
+    BP_Plugin::rate_limit_or_block('manage_action', 30, 600);
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bp_manage_action'])) {
+      if (!wp_verify_nonce($_POST['_wpnonce'] ?? '', 'BP_manage_booking')) {
+        wp_die(esc_html__('Security check failed.', 'bookpoint'));
+      }
+
+      $key = sanitize_text_field($_POST['key'] ?? $_POST['bp_manage_token'] ?? '');
+      $booking = BP_BookingModel::find_by_manage_key($key);
+      if (!$booking) {
+        wp_die(esc_html__('Booking not found.', 'bookpoint'));
+      }
+
+      if ($_POST['bp_manage_action'] === 'reschedule') {
+        $new_start = sanitize_text_field($_POST['bp_new_start'] ?? '');
+        $new_end   = sanitize_text_field($_POST['bp_new_end'] ?? '');
+
+        $start_ts = strtotime($new_start);
+        $end_ts   = strtotime($new_end);
+        if (!$start_ts || !$end_ts || $end_ts <= $start_ts) {
+          wp_safe_redirect(add_query_arg(['bp_manage_booking' => 1, 'key' => $key, 'error' => 'bad_time'], home_url('/')));
+          exit;
+        }
+
+        $service = BP_ServiceModel::find((int)$booking['service_id']);
+        if (!$service) {
+          wp_safe_redirect(add_query_arg(['bp_manage_booking' => 1, 'key' => $key, 'error' => 'no_service'], home_url('/')));
+          exit;
+        }
+
+        $capacity   = (int)($service['capacity'] ?? 1);
+        $buf_before = (int)($service['buffer_before_minutes'] ?? 0);
+        $buf_after  = (int)($service['buffer_after_minutes'] ?? 0);
+
+        $start_adj = date('Y-m-d H:i:s', $start_ts - ($buf_before * 60));
+        $end_adj   = date('Y-m-d H:i:s', $end_ts + ($buf_after * 60));
+
+        $service_id = (int)$booking['service_id'];
+        $agent_id   = (int)($booking['agent_id'] ?? 0);
+        $exclude_id = (int)$booking['id'];
+
+        $ok = BP_AvailabilityHelper::is_slot_available_excluding_booking(
+          $service_id,
+          $start_adj,
+          $end_adj,
+          $capacity,
+          $agent_id,
+          $exclude_id
+        );
+
+        if (!$ok) {
+          wp_safe_redirect(add_query_arg(['bp_manage_booking' => 1, 'key' => $key, 'error' => 'not_available'], home_url('/')));
+          exit;
+        }
+
+        BP_BookingModel::update_times_public($exclude_id, $new_start, $new_end);
+
+        $new_token = BP_BookingModel::rotate_manage_token($exclude_id) ?: $key;
+        BP_BookingModel::mark_token_used($exclude_id);
+
+        $updated = BP_BookingModel::find($exclude_id);
+        if ($updated) {
+          BP_WebhookHelper::fire('booking_updated', [
+            'booking_id' => (int)$updated['id'],
+            'status' => (string)($updated['status'] ?? ''),
+            'old_status' => '',
+            'service_id' => (int)($updated['service_id'] ?? 0),
+            'customer_id' => (int)($updated['customer_id'] ?? 0),
+            'agent_id' => (int)($updated['agent_id'] ?? 0),
+            'start_datetime' => (string)($updated['start_datetime'] ?? ''),
+            'end_datetime' => (string)($updated['end_datetime'] ?? ''),
+          ]);
+
+          BP_AuditHelper::log('customer_rescheduled', [
+            'actor_type' => 'customer',
+            'booking_id' => (int)$updated['id'],
+            'customer_id' => (int)($updated['customer_id'] ?? 0),
+            'meta' => [
+              'old_start' => (string)($booking['start_datetime'] ?? ''),
+              'new_start' => (string)($updated['start_datetime'] ?? ''),
+            ],
+          ]);
+        }
+
+        wp_safe_redirect(add_query_arg(['bp_manage_booking' => 1, 'key' => $new_token, 'updated' => 1], home_url('/')));
+        exit;
+      }
+    }
+
+    if (!isset($_GET['bp_action']) || $_GET['bp_action'] !== 'cancel') return;
 
     $key = isset($_GET['key']) ? sanitize_text_field($_GET['key']) : '';
 
@@ -289,9 +383,36 @@ final class BP_PublicBookingsController extends BP_Controller {
 
     BP_BookingModel::cancel_by_key($key);
 
+    $new_token = BP_BookingModel::rotate_manage_token((int)$booking['id']) ?: $key;
+    BP_BookingModel::mark_token_used((int)$booking['id']);
+
+    $cancelled = BP_BookingModel::find((int)$booking['id']);
+    if ($cancelled) {
+      BP_WebhookHelper::fire('booking_cancelled', [
+        'booking_id' => (int)$cancelled['id'],
+        'status' => (string)($cancelled['status'] ?? ''),
+        'old_status' => '',
+        'service_id' => (int)($cancelled['service_id'] ?? 0),
+        'customer_id' => (int)($cancelled['customer_id'] ?? 0),
+        'agent_id' => (int)($cancelled['agent_id'] ?? 0),
+        'start_datetime' => (string)($cancelled['start_datetime'] ?? ''),
+        'end_datetime' => (string)($cancelled['end_datetime'] ?? ''),
+      ]);
+
+      BP_AuditHelper::log('customer_cancelled', [
+        'actor_type' => 'customer',
+        'booking_id' => (int)$cancelled['id'],
+        'customer_id' => (int)($cancelled['customer_id'] ?? 0),
+        'meta' => [
+          'service_id' => (int)($cancelled['service_id'] ?? 0),
+          'agent_id' => (int)($cancelled['agent_id'] ?? 0),
+        ],
+      ]);
+    }
+
     wp_safe_redirect(add_query_arg([
-      'BP_manage_booking' => 1,
-      'key' => $key,
+      'bp_manage_booking' => 1,
+      'key' => $new_token,
       'cancelled' => 1,
     ], home_url('/')));
     exit;

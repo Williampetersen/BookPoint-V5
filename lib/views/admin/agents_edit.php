@@ -1,5 +1,10 @@
 <?php defined('ABSPATH') || exit;
 $id = isset($agent['id']) ? (int)$agent['id'] : 0;
+$services = $services ?? [];
+$selected_service_ids = $selected_service_ids ?? [];
+
+$image_id  = (int)($agent['image_id'] ?? 0);
+$image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
 ?>
 <div class="wrap">
   <h1><?php echo $id ? esc_html__('Edit Agent', 'bookpoint') : esc_html__('Add Agent', 'bookpoint'); ?></h1>
@@ -27,6 +32,25 @@ $id = isset($agent['id']) ? (int)$agent['id'] : 0;
         <td><input type="text" name="phone" value="<?php echo esc_attr($agent['phone'] ?? ''); ?>" class="regular-text"></td>
       </tr>
       <tr>
+        <th><label><?php echo esc_html__('Agent Image', 'bookpoint'); ?></label></th>
+        <td>
+          <input type="hidden" name="image_id" id="bp_agent_image_id" value="<?php echo esc_attr((string)$image_id); ?>">
+
+          <div id="bp_agent_image_preview" style="margin-bottom:10px;">
+            <?php if ($image_url): ?>
+              <img src="<?php echo esc_url($image_url); ?>" style="width:140px;height:140px;object-fit:cover;border-radius:14px;border:1px solid #ddd;">
+            <?php else: ?>
+              <div style="width:140px;height:140px;border-radius:14px;border:1px dashed #ccc;display:flex;align-items:center;justify-content:center;color:#777;">
+                <?php echo esc_html__('No image', 'bookpoint'); ?>
+              </div>
+            <?php endif; ?>
+          </div>
+
+          <button type="button" class="button" id="bp_agent_pick_image"><?php echo esc_html__('Choose Image', 'bookpoint'); ?></button>
+          <button type="button" class="button" id="bp_agent_remove_image"><?php echo esc_html__('Remove', 'bookpoint'); ?></button>
+        </td>
+      </tr>
+      <tr>
         <th><?php esc_html_e('Active', 'bookpoint'); ?></th>
         <td><label><input type="checkbox" name="is_active" value="1" <?php checked((int)($agent['is_active'] ?? 1), 1); ?>> <?php esc_html_e('Enabled', 'bookpoint'); ?></label></td>
       </tr>
@@ -35,6 +59,25 @@ $id = isset($agent['id']) ? (int)$agent['id'] : 0;
         <td>
           <textarea name="schedule_json" rows="4" class="large-text" placeholder='{"1":"09:00-17:00","2":"09:00-17:00","0":""}'><?php echo esc_textarea($agent['schedule_json'] ?? ''); ?></textarea>
           <p class="description"><?php esc_html_e('Optional override schedule for this agent.', 'bookpoint'); ?></p>
+        </td>
+      </tr>
+      <tr>
+        <th><label><?php echo esc_html__('Services', 'bookpoint'); ?></label></th>
+        <td>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:720px;">
+            <?php if (empty($services)): ?>
+              <div style="color:#666;"><?php echo esc_html__('No services found. Create services first.', 'bookpoint'); ?></div>
+            <?php else: foreach ($services as $s): 
+              $sid = (int)$s['id'];
+              $checked = in_array($sid, $selected_service_ids, true);
+            ?>
+              <label style="border:1px solid #e5e5e5;border-radius:12px;padding:10px;display:flex;gap:10px;align-items:center;">
+                <input type="checkbox" name="service_ids[]" value="<?php echo esc_attr((string)$sid); ?>" <?php checked($checked); ?>>
+                <span><?php echo esc_html($s['name']); ?></span>
+              </label>
+            <?php endforeach; endif; ?>
+          </div>
+          <p class="description"><?php echo esc_html__('Only these services will be available when selecting this agent in the booking form.', 'bookpoint'); ?></p>
         </td>
       </tr>
     </table>

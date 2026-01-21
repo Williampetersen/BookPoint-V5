@@ -3,6 +3,10 @@ defined('ABSPATH') || exit;
 
 final class BP_EmailHelper {
 
+  public static function admin_email() : string {
+    return (string) get_option('admin_email');
+  }
+
   public static function send(string $to, string $subject, string $html_body) : bool {
     $to = sanitize_email($to);
     if ($to === '') return false;
@@ -39,6 +43,34 @@ final class BP_EmailHelper {
     $body = wp_kses($html_body, $allowed);
 
     return wp_mail($to, $subject, $body, $headers);
+  }
+
+  public static function booking_created_customer(array $booking, array $service, array $customer) : void {
+    if (empty($customer['email'])) return;
+
+    $subject = sprintf(__('Your booking request: %s', 'bookpoint'), (string)($service['name'] ?? ''));
+    $body = self::tpl_customer_created($booking, $service, $customer);
+
+    self::send($customer['email'], $subject, $body);
+  }
+
+  public static function booking_created_admin(array $booking, array $service, array $customer) : void {
+    $to = self::admin_email();
+    if ($to === '') return;
+
+    $subject = sprintf(__('New booking: %s', 'bookpoint'), (string)($service['name'] ?? ''));
+    $body = self::tpl_admin_created($booking, $service, $customer);
+
+    self::send($to, $subject, $body);
+  }
+
+  public static function booking_status_changed_customer(array $booking, array $service, array $customer, string $old, string $new) : void {
+    if (empty($customer['email'])) return;
+
+    $subject = sprintf(__('Booking status updated: %s', 'bookpoint'), (string)($service['name'] ?? ''));
+    $body = self::tpl_customer_status($booking, $service, $customer, $old, $new);
+
+    self::send($customer['email'], $subject, $body);
   }
 
   public static function customer_booking_subject() : string {
@@ -90,6 +122,55 @@ final class BP_EmailHelper {
       <strong>" . esc_html__('Phone:', 'bookpoint') . "</strong> {$phone}</p>
 
       <p><a href=\"" . esc_url($manage_url) . "\">" . esc_html__('Manage link', 'bookpoint') . "</a></p>
+    ";
+  }
+
+  private static function tpl_customer_created(array $b, array $s, array $c) : string {
+    $start = esc_html($b['start_datetime'] ?? '');
+    $name  = esc_html(trim(($c['first_name'] ?? '') . ' ' . ($c['last_name'] ?? '')));
+    $svc   = esc_html($s['name'] ?? '');
+
+    return "
+      <h2>Booking Received</h2>
+      <p>Hi {$name},</p>
+      <p>We received your booking request for <strong>{$svc}</strong>.</p>
+      <p><strong>Date/Time:</strong> {$start}</p>
+      <p>Status: <strong>Pending</strong></p>
+      <p>We will confirm shortly.</p>
+    ";
+  }
+
+  private static function tpl_admin_created(array $b, array $s, array $c) : string {
+    $start = esc_html($b['start_datetime'] ?? '');
+    $svc   = esc_html($s['name'] ?? '');
+    $name  = esc_html(trim(($c['first_name'] ?? '') . ' ' . ($c['last_name'] ?? '')));
+    $email = esc_html($c['email'] ?? '');
+    $phone = esc_html($c['phone'] ?? '');
+
+    return "
+      <h2>New Booking</h2>
+      <p><strong>Service:</strong> {$svc}</p>
+      <p><strong>Date/Time:</strong> {$start}</p>
+      <p><strong>Customer:</strong> {$name}</p>
+      <p><strong>Email:</strong> {$email}</p>
+      <p><strong>Phone:</strong> {$phone}</p>
+      <p>Status: <strong>Pending</strong></p>
+    ";
+  }
+
+  private static function tpl_customer_status(array $b, array $s, array $c, string $old, string $new) : string {
+    $start = esc_html($b['start_datetime'] ?? '');
+    $name  = esc_html(trim(($c['first_name'] ?? '') . ' ' . ($c['last_name'] ?? '')));
+    $svc   = esc_html($s['name'] ?? '');
+    $oldE = esc_html($old);
+    $newE = esc_html($new);
+
+    return "
+      <h2>Booking Status Updated</h2>
+      <p>Hi {$name},</p>
+      <p>Your booking for <strong>{$svc}</strong> has been updated.</p>
+      <p><strong>Date/Time:</strong> {$start}</p>
+      <p><strong>Status:</strong> {$oldE} → <strong>{$newE}</strong></p>
     ";
   }
 }

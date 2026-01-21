@@ -3,14 +3,20 @@
     $wrap.find('.bp-message').html('<div style="padding:10px;border:1px solid #ccc;">'+msg+'</div>');
   }
 
-  // Step 16: Load agents
-  function loadAgents($wrap){
+  // Step 18: Load agents for service
+  function loadAgentsForService($wrap, serviceId){
     const $select = $wrap.find('.bp-agent');
     if(!$select.length) return;
 
     $select.prop('disabled', true);
+    $select.empty().append('<option value="0">Any agent</option>');
 
-    fetch('/wp-json/bp/v1/agents')
+    if(!serviceId || serviceId <= 0){
+      $select.prop('disabled', false);
+      return;
+    }
+
+    fetch(`/wp-json/bp/v1/service-agents?service_id=${serviceId}`)
       .then(r => r.json())
       .then(res => {
         const list = res && res.data ? res.data : [];
@@ -32,6 +38,10 @@
     const date = $wrap.find('.bp-date').val();
     const agentId = $wrap.find('.bp-agent').val() || 0;
 
+    if(!serviceId || serviceId <= 0){
+      $wrap.find('.bp-time').html('<option value="">Select a service first</option>');
+      return;
+    }
     if(!date){ return; }
 
     const $select = $wrap.find('.bp-time');
@@ -83,6 +93,10 @@
       agent_id: $wrap.find('.bp-agent').val() || 0
     };
 
+    if(!payload.service_id || payload.service_id <= 0){
+      setMessage($wrap, 'Please select a service.', false);
+      return;
+    }
     if(!payload.date || !payload.time){
       setMessage($wrap, 'Please select date and time.', false);
       return;
@@ -115,6 +129,14 @@
     loadSlots($(this).closest('.bp-book-form'));
   });
 
+  $(document).on('change', '.bp-book-form .bp-service', function(){
+    const $wrap = $(this).closest('.bp-book-form');
+    const serviceId = parseInt($(this).val() || '0', 10);
+    $wrap.data('service-id', serviceId);
+    loadAgentsForService($wrap, serviceId);
+    loadSlots($wrap);
+  });
+
   // Step 16: Reload slots when agent changes
   $(document).on('change', '.bp-book-form .bp-agent', function(){
     loadSlots($(this).closest('.bp-book-form'));
@@ -124,10 +146,39 @@
     submitBooking($(this).closest('.bp-book-form'));
   });
 
+  function loadServices($wrap){
+    const $select = $wrap.find('.bp-service');
+    if(!$select.length) return;
+
+    $select.prop('disabled', true);
+
+    fetch('/wp-json/bp/v1/services')
+      .then(r => r.json())
+      .then(res => {
+        const list = res && res.data ? res.data : [];
+        if(Array.isArray(list)){
+          list.forEach(s => {
+            $select.append(`<option value="${s.id}">${s.name}</option>`);
+          });
+        }
+      })
+      .catch(()=>{})
+      .finally(()=>{
+        $select.prop('disabled', false);
+      });
+  }
+
   $(function(){
     $('.bp-book-form').each(function(){
       const $wrap = $(this);
-      loadAgents($wrap);
+      const serviceId = $wrap.data('service-id');
+      const hasServiceSelect = $wrap.find('.bp-service').length > 0;
+
+      if(hasServiceSelect){
+        loadServices($wrap);
+      } else {
+        loadAgentsForService($wrap, serviceId);
+      }
 
       const date = $wrap.find('.bp-date').val();
       if(date){

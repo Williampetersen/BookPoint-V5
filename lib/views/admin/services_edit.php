@@ -1,6 +1,9 @@
 <?php
 defined('ABSPATH') || exit;
 
+$service = $service ?? ($item ?? null);
+$categories = $categories ?? [];
+
 $id = isset($service['id']) ? (int)$service['id'] : 0;
 $name = $service['name'] ?? '';
 $description = $service['description'] ?? '';
@@ -8,6 +11,15 @@ $duration = isset($service['duration_minutes']) ? (int)$service['duration_minute
 $price_cents = isset($service['price_cents']) ? (int)$service['price_cents'] : 0;
 $currency = $service['currency'] ?? 'USD';
 $is_active = isset($service['is_active']) ? (int)$service['is_active'] : 1;
+
+$category_id = (int)($service['category_id'] ?? 0);
+$image_id = (int)($service['image_id'] ?? 0);
+$image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
+
+$selected_category_ids = !empty($service['id'])
+  ? BP_ServiceModel::get_category_ids((int)$service['id'])
+  : [];
+$categories = $categories ?? BP_CategoryModel::all(['is_active' => 1]);
 
 // Step 15: Service-based availability (with null-safe defaults)
 $use_global_schedule = (is_array($service) && isset($service['use_global_schedule'])) ? (int)$service['use_global_schedule'] : 1;
@@ -72,6 +84,50 @@ function BP_field_error($errors, $key) {
       </tr>
 
       <tr>
+        <th><label><?php echo esc_html__('Categories', 'bookpoint'); ?></label></th>
+        <td>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:760px;">
+            <?php foreach ($categories as $cat):
+              $cid = (int)$cat['id'];
+              $img = !empty($cat['image_id']) ? wp_get_attachment_image_url((int)$cat['image_id'], 'thumbnail') : '';
+            ?>
+              <label style="border:1px solid #e5e5e5;border-radius:14px;padding:10px;display:flex;gap:10px;align-items:center;">
+                <input type="checkbox" name="category_ids[]" value="<?php echo esc_attr((string)$cid); ?>"
+                  <?php checked(in_array($cid, $selected_category_ids, true)); ?>>
+                <?php if ($img): ?>
+                  <img src="<?php echo esc_url($img); ?>" style="width:36px;height:36px;border-radius:10px;object-fit:cover;">
+                <?php endif; ?>
+                <span><?php echo esc_html($cat['name']); ?></span>
+              </label>
+            <?php endforeach; ?>
+          </div>
+          <p class="description"><?php echo esc_html__('A service can belong to multiple categories.', 'bookpoint'); ?></p>
+        </td>
+      </tr>
+
+      <tr>
+        <th><label><?php echo esc_html__('Service Image', 'bookpoint'); ?></label></th>
+        <td>
+          <input type="hidden" name="image_id" id="bp_service_image_id" value="<?php echo esc_attr((string)$image_id); ?>">
+
+          <div id="bp_service_image_preview" style="margin-bottom:10px;">
+            <?php if ($image_url): ?>
+              <img src="<?php echo esc_url($image_url); ?>" style="width:140px;height:140px;object-fit:cover;border-radius:14px;border:1px solid #ddd;">
+            <?php else: ?>
+              <div style="width:140px;height:140px;border-radius:14px;border:1px dashed #ccc;display:flex;align-items:center;justify-content:center;color:#777;">
+                <?php echo esc_html__('No image', 'bookpoint'); ?>
+              </div>
+            <?php endif; ?>
+          </div>
+
+          <button type="button" class="button" id="bp_service_pick_image"><?php echo esc_html__('Choose Image', 'bookpoint'); ?></button>
+          <button type="button" class="button" id="bp_service_remove_image"><?php echo esc_html__('Remove', 'bookpoint'); ?></button>
+
+          <p class="description"><?php echo esc_html__('Stored as Media Library attachment ID.', 'bookpoint'); ?></p>
+        </td>
+      </tr>
+
+      <tr>
         <th><?php echo esc_html__('Active', 'bookpoint'); ?></th>
         <td>
           <label>
@@ -125,6 +181,22 @@ function BP_field_error($errors, $key) {
         </td>
       </tr>
     </table>
+
+    <h2><?php esc_html_e('Agents for this service', 'bookpoint'); ?></h2>
+
+    <?php if (!empty($all_agents)) : ?>
+      <?php foreach ($all_agents as $a) :
+        $aid = (int)$a['id'];
+        $checked = in_array($aid, $selected_agent_ids ?? [], true);
+      ?>
+        <label style="display:block; margin:6px 0;">
+          <input type="checkbox" name="agent_ids[]" value="<?php echo esc_attr($aid); ?>" <?php checked($checked); ?>>
+          <?php echo esc_html(BP_AgentModel::display_name($a)); ?>
+        </label>
+      <?php endforeach; ?>
+    <?php else : ?>
+      <p><?php esc_html_e('No agents yet. Add agents first.', 'bookpoint'); ?></p>
+    <?php endif; ?>
 
     <p class="submit">
       <button type="submit" class="button button-primary"><?php echo esc_html__('Save Service', 'bookpoint'); ?></button>

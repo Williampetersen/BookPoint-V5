@@ -7,12 +7,22 @@ $default_date = $options['default_date'] ?? '';
 $hide_notes = !empty($options['hide_notes']);
 $require_phone = !empty($options['require_phone']);
 $compact = !empty($options['compact']);
+$allow_service_select = !empty($options['allow_service_select']);
 ?>
 <div class="bp-book-form <?php echo $compact ? 'bp-compact' : ''; ?>" data-service-id="<?php echo esc_attr($service_id); ?>" data-require-phone="<?php echo $require_phone ? '1' : '0'; ?>">
   <div class="bp-message" style="margin:10px 0;"></div>
 
   <input type="hidden" class="bp-nonce" value="<?php echo esc_attr($nonce); ?>">
   <input type="text" name="bp_hp" class="bp-hp" value="" style="display:none" autocomplete="off">
+
+  <?php if ($allow_service_select) : ?>
+  <p>
+    <label><?php echo esc_html__('Service', 'bookpoint'); ?></label><br>
+    <select class="bp-service">
+      <option value="0"><?php echo esc_html__('Select a service', 'bookpoint'); ?></option>
+    </select>
+  </p>
+  <?php endif; ?>
 
   <p>
     <label><?php echo esc_html__('Date', 'bookpoint'); ?></label><br>

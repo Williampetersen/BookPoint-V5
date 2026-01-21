@@ -3,7 +3,247 @@ defined('ABSPATH') || exit;
 
 final class BP_MigrationsHelper {
 
+  const DB_VERSION = '1.4.0';
+  const OPT_DB_VERSION = 'bp_db_version';
   const DB_VERSION_OPTION = 'BP_db_version';
+
+  public static function run(): void {
+    $installed = (string) get_option(self::OPT_DB_VERSION, '0.0.0');
+    if (version_compare($installed, self::DB_VERSION, '>=') && !self::needs_run()) {
+      return;
+    }
+
+    self::create_tables();
+
+    global $wpdb;
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $charset = $wpdb->get_charset_collate();
+    $prefix  = $wpdb->prefix . 'bp_';
+
+    dbDelta("
+      CREATE TABLE {$prefix}categories (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        name VARCHAR(190) NOT NULL,
+        description TEXT NULL,
+        image_id BIGINT UNSIGNED NULL,
+        sort_order INT NOT NULL DEFAULT 0,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        PRIMARY KEY (id),
+        KEY is_active (is_active),
+        KEY sort_order (sort_order)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}service_extras (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        service_id BIGINT UNSIGNED NOT NULL,
+        name VARCHAR(190) NOT NULL,
+        description TEXT NULL,
+        price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        duration_min INT NULL,
+        image_id BIGINT UNSIGNED NULL,
+        sort_order INT NOT NULL DEFAULT 0,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        PRIMARY KEY (id),
+        KEY service_id (service_id),
+        KEY is_active (is_active),
+        KEY sort_order (sort_order)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}bundles (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        name VARCHAR(190) NOT NULL,
+        description TEXT NULL,
+        price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        image_id BIGINT UNSIGNED NULL,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        PRIMARY KEY (id),
+        KEY is_active (is_active)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}bundle_items (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        bundle_id BIGINT UNSIGNED NOT NULL,
+        item_type VARCHAR(20) NOT NULL,
+        item_id BIGINT UNSIGNED NOT NULL,
+        qty INT NOT NULL DEFAULT 1,
+        sort_order INT NOT NULL DEFAULT 0,
+        PRIMARY KEY (id),
+        KEY bundle_id (bundle_id),
+        KEY item_type (item_type),
+        KEY item_id (item_id)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}form_fields (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        scope VARCHAR(20) NOT NULL,
+        label VARCHAR(190) NOT NULL,
+        name_key VARCHAR(120) NOT NULL,
+        type VARCHAR(30) NOT NULL,
+        options_json LONGTEXT NULL,
+        required TINYINT(1) NOT NULL DEFAULT 0,
+        sort_order INT NOT NULL DEFAULT 0,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY scope_name_key (scope, name_key),
+        KEY scope (scope),
+        KEY is_active (is_active),
+        KEY sort_order (sort_order)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}promo_codes (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        code VARCHAR(60) NOT NULL,
+        type VARCHAR(10) NOT NULL,
+        amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        starts_at DATETIME NULL,
+        ends_at DATETIME NULL,
+        max_uses INT NULL,
+        uses_count INT NOT NULL DEFAULT 0,
+        min_total DECIMAL(10,2) NULL,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY code (code),
+        KEY is_active (is_active)
+      ) {$charset};
+    ");
+
+    self::maybe_add_column($wpdb->prefix . 'bp_services', 'category_id', 'BIGINT UNSIGNED NULL');
+    self::maybe_add_column($wpdb->prefix . 'bp_services', 'image_id', 'BIGINT UNSIGNED NULL');
+
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'category_id', 'BIGINT UNSIGNED NULL');
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'service_id', 'BIGINT UNSIGNED NULL');
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'extras_json', 'LONGTEXT NULL');
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'promo_code', 'VARCHAR(60) NULL');
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'discount_total', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00');
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'total_price', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00');
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'customer_fields_json', 'LONGTEXT NULL');
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'booking_fields_json', 'LONGTEXT NULL');
+
+    self::maybe_add_column($wpdb->prefix . 'bp_customers', 'custom_fields_json', 'LONGTEXT NULL');
+
+    self::maybe_add_index($wpdb->prefix . 'bp_bookings', 'service_id', 'service_id');
+    self::maybe_add_index($wpdb->prefix . 'bp_bookings', 'category_id', 'category_id');
+
+    self::maybe_add_column($wpdb->prefix . 'bp_agents', 'image_id', 'BIGINT UNSIGNED NULL');
+
+    dbDelta("
+      CREATE TABLE {$prefix}agent_services (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        agent_id BIGINT UNSIGNED NOT NULL,
+        service_id BIGINT UNSIGNED NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY agent_service (agent_id, service_id),
+        KEY agent_id (agent_id),
+        KEY service_id (service_id)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}service_categories (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        service_id BIGINT UNSIGNED NOT NULL,
+        category_id BIGINT UNSIGNED NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq (service_id, category_id),
+        KEY service_id (service_id),
+        KEY category_id (category_id)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}extra_services (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        extra_id BIGINT UNSIGNED NOT NULL,
+        service_id BIGINT UNSIGNED NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq (extra_id, service_id),
+        KEY extra_id (extra_id),
+        KEY service_id (service_id)
+      ) {$charset};
+    ");
+
+    if (!get_option('bp_relations_migrated_1_4')) {
+      if (class_exists('BP_RelationsHelper')) {
+        BP_RelationsHelper::migrate_legacy_relations();
+      }
+      update_option('bp_relations_migrated_1_4', 1, false);
+    }
+
+    update_option(self::OPT_DB_VERSION, self::DB_VERSION, false);
+  }
+
+  private static function needs_run(): bool {
+    global $wpdb;
+
+    $tables = [
+      $wpdb->prefix . 'bp_categories',
+      $wpdb->prefix . 'bp_service_extras',
+      $wpdb->prefix . 'bp_bundles',
+      $wpdb->prefix . 'bp_bundle_items',
+      $wpdb->prefix . 'bp_form_fields',
+      $wpdb->prefix . 'bp_promo_codes',
+      $wpdb->prefix . 'bp_agent_services',
+      $wpdb->prefix . 'bp_service_categories',
+      $wpdb->prefix . 'bp_extra_services',
+    ];
+
+    foreach ($tables as $table) {
+      $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+      if ($found !== $table) {
+        return true;
+      }
+    }
+
+    $service_table = $wpdb->prefix . 'bp_services';
+    $booking_table = $wpdb->prefix . 'bp_bookings';
+    $agent_table = $wpdb->prefix . 'bp_agents';
+
+    $service_columns = ['category_id', 'image_id'];
+    foreach ($service_columns as $col) {
+      if (!self::column_exists($service_table, $col)) return true;
+    }
+
+    $booking_columns = ['category_id', 'service_id', 'extras_json', 'promo_code', 'discount_total', 'total_price', 'customer_fields_json', 'booking_fields_json'];
+    foreach ($booking_columns as $col) {
+      if (!self::column_exists($booking_table, $col)) return true;
+    }
+
+    if (!self::column_exists($wpdb->prefix . 'bp_customers', 'custom_fields_json')) return true;
+
+    if (!self::column_exists($agent_table, 'image_id')) return true;
+
+    return false;
+  }
+
+  private static function column_exists(string $table, string $column): bool {
+    global $wpdb;
+    $exists = $wpdb->get_var($wpdb->prepare(
+      "SHOW COLUMNS FROM {$table} LIKE %s",
+      $column
+    ));
+    return !empty($exists);
+  }
 
   public static function create_tables() : void {
     global $wpdb;
@@ -77,12 +317,134 @@ final class BP_MigrationsHelper {
     dbDelta($sql_bookings);
     dbDelta($sql_settings);
 
+    // Step 19: Ensure bookings columns exist
+    self::migrate_booking_notes_status();
+
+    // Step 21: Manage token last-used timestamp
+    self::migrate_booking_token_last_used();
+
+    // Audit log
+    self::migrate_audit_table();
+
+    // Indexes
+    self::migrate_indexes();
+
     // Step 15: Service-based availability migration
     self::migrate_add_service_availability_fields();
 
     // Step 16: Agent management
     self::migrate_create_agents_table();
     self::migrate_add_agent_id_to_bookings();
+
+    // Step 18: Service-Agent pivot
+    self::migrate_create_service_agents_table();
+  }
+
+  // Step 19: Ensure bookings have status + notes columns
+  private static function migrate_booking_notes_status() : void {
+    global $wpdb;
+    $table = $wpdb->prefix . 'bp_bookings';
+
+    $columns = $wpdb->get_col("DESC {$table}", 0);
+
+    if (!in_array('status', $columns, true)) {
+      $wpdb->query("ALTER TABLE {$table} ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'pending'");
+    }
+    if (!in_array('notes', $columns, true)) {
+      $wpdb->query("ALTER TABLE {$table} ADD COLUMN notes LONGTEXT NULL");
+    }
+  }
+
+  // Step 21: Track manage token last used
+  private static function migrate_booking_token_last_used() : void {
+    global $wpdb;
+    $table = $wpdb->prefix . 'bp_bookings';
+
+    $columns = $wpdb->get_col("DESC {$table}", 0);
+
+    if (!in_array('manage_token_last_used_at', $columns, true)) {
+      $wpdb->query("ALTER TABLE {$table} ADD COLUMN manage_token_last_used_at DATETIME NULL");
+    }
+  }
+
+  private static function migrate_audit_table() : void {
+    global $wpdb;
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $table = $wpdb->prefix . 'bp_audit_log';
+    $charset = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE {$table} (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      event VARCHAR(60) NOT NULL,
+      actor_type VARCHAR(20) NOT NULL,
+      actor_wp_user_id BIGINT UNSIGNED NULL,
+      actor_ip VARCHAR(60) NULL,
+      booking_id BIGINT UNSIGNED NULL,
+      customer_id BIGINT UNSIGNED NULL,
+      meta LONGTEXT NULL,
+      created_at DATETIME NOT NULL,
+      PRIMARY KEY (id),
+      KEY event (event),
+      KEY booking_id (booking_id),
+      KEY customer_id (customer_id),
+      KEY created_at (created_at)
+    ) {$charset};";
+
+    dbDelta($sql);
+  }
+
+  private static function migrate_indexes() : void {
+    global $wpdb;
+
+    $b = $wpdb->prefix . 'bp_bookings';
+    self::ensure_index($b, 'status');
+    self::ensure_index($b, 'customer_id');
+    self::ensure_index($b, 'agent_id');
+    self::ensure_index($b, 'service_id');
+    self::ensure_index($b, 'start_datetime');
+
+    $a = $wpdb->prefix . 'bp_audit_log';
+    self::ensure_index($a, 'event');
+    self::ensure_index($a, 'created_at');
+    self::ensure_index($a, 'booking_id');
+    self::ensure_index($a, 'customer_id');
+  }
+
+  private static function ensure_index(string $table, string $column) : void {
+    global $wpdb;
+
+    $exists = $wpdb->get_var($wpdb->prepare(
+      'SHOW INDEX FROM ' . $table . ' WHERE Column_name = %s',
+      $column
+    ));
+
+    if ($exists) return;
+
+    $wpdb->query("ALTER TABLE {$table} ADD INDEX {$column} ({$column})");
+  }
+
+  private static function maybe_add_column(string $table, string $column, string $definition): void {
+    global $wpdb;
+    $exists = $wpdb->get_var($wpdb->prepare(
+      "SHOW COLUMNS FROM {$table} LIKE %s",
+      $column
+    ));
+    if (!$exists) {
+      $wpdb->query("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
+    }
+  }
+
+  private static function maybe_add_index(string $table, string $index_name, string $column): void {
+    global $wpdb;
+    $exists = $wpdb->get_var($wpdb->prepare(
+      "SHOW INDEX FROM {$table} WHERE Key_name = %s",
+      $index_name
+    ));
+    if (!$exists) {
+      $wpdb->query("ALTER TABLE {$table} ADD INDEX {$index_name} ({$column})");
+    }
   }
 
   private static function migrate_add_service_availability_fields() : void {
@@ -143,6 +505,27 @@ final class BP_MigrationsHelper {
       $wpdb->query("ALTER TABLE {$table} ADD COLUMN agent_id BIGINT UNSIGNED NULL AFTER customer_id");
       $wpdb->query("ALTER TABLE {$table} ADD INDEX agent_id (agent_id)");
     }
+  }
+
+  // Step 18: Create service_agents pivot table
+  private static function migrate_create_service_agents_table() : void {
+    global $wpdb;
+    $table = $wpdb->prefix . 'bp_service_agents';
+    $charset = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE {$table} (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      service_id BIGINT UNSIGNED NOT NULL,
+      agent_id BIGINT UNSIGNED NOT NULL,
+      created_at DATETIME NULL,
+      PRIMARY KEY (id),
+      UNIQUE KEY service_agent (service_id, agent_id),
+      KEY service_id (service_id),
+      KEY agent_id (agent_id)
+    ) {$charset};";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
   }
 }
 
