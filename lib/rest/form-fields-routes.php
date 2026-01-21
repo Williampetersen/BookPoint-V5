@@ -109,6 +109,9 @@ add_action('rest_api_init', function(){
 
       if (!$ok) return new WP_REST_Response(['status'=>'error','message'=>'Insert failed'], 500);
       return new WP_REST_Response(['status'=>'success'], 200);
+    },
+    'permission_callback' => function() {
+      return current_user_can('bp_manage_settings') || current_user_can('administrator');
     }
   ]);
 
@@ -143,6 +146,9 @@ add_action('rest_api_init', function(){
       if ($ok === false) return new WP_REST_Response(['status'=>'error','message'=>'Update failed'], 500);
 
       return new WP_REST_Response(['status'=>'success'], 200);
+    },
+    'permission_callback' => function() {
+      return current_user_can('bp_manage_settings') || current_user_can('administrator');
     }
   ]);
 
@@ -159,6 +165,9 @@ add_action('rest_api_init', function(){
       $id = (int)$req['id'];
       $wpdb->delete($t, ['id'=>$id], ['%d']);
       return new WP_REST_Response(['status'=>'success'], 200);
+    },
+    'permission_callback' => function() {
+      return current_user_can('bp_manage_settings') || current_user_can('administrator');
     }
   ]);
 

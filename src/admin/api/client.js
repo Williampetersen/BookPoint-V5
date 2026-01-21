@@ -10,11 +10,13 @@ export async function bpFetch(path, opts = {}) {
   const nonce = window.BP_ADMIN?.nonce;
   if (nonce) headers['X-WP-Nonce'] = nonce;
 
+  const body = typeof opts.body === 'string' ? opts.body : (opts.body ? JSON.stringify(opts.body) : undefined);
+
   const res = await fetch(url, {
     method: opts.method || 'GET',
     credentials: 'same-origin',
     headers,
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
+    body,
   });
 
   const json = await res.json().catch(() => ({}));
