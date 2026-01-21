@@ -49,10 +49,10 @@ export default function FormFieldsScreen(){
     try{
       const data = { ...form, scope };
       if(editId){
-        await bpFetch(`/admin/form-fields/${editId}`, { method:'PATCH', body:JSON.stringify(data) });
+        await bpFetch(`/admin/form-fields/${editId}`, { method:'PATCH', body:data });
         setSuccess("Field updated!");
       }else{
-        await bpFetch(`/admin/form-fields`, { method:'POST', body:JSON.stringify(data) });
+        await bpFetch(`/admin/form-fields`, { method:'POST', body:data });
         setSuccess("Field created!");
       }
       setShowCreate(false);
