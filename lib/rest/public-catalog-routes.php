@@ -59,6 +59,11 @@ function bp_rest_public_services(WP_REST_Request $req) {
 
   $category_id = (int)($req->get_param('category_id') ?? 0);
 
+  $has_rel = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$t_rel}");
+  if ($category_id > 0 && $has_rel === 0) {
+    $category_id = 0;
+  }
+
   if ($category_id > 0) {
     $rows = $wpdb->get_results($wpdb->prepare("
       SELECT s.id,s.name,s.duration,s.price,s.image_id,s.sort_order,
