@@ -72,6 +72,18 @@ function bp_generate_slots_for_public(string $date, int $agent_id, int $service_
   $t_book = $wpdb->prefix . 'bp_bookings';
   $t_srv  = $wpdb->prefix . 'bp_services';
 
+  $cols = $wpdb->get_col("SHOW COLUMNS FROM {$t_srv}") ?: [];
+  $has_duration_minutes = in_array('duration_minutes', $cols, true);
+  $has_duration = in_array('duration', $cols, true);
+  $has_buffer_before_minutes = in_array('buffer_before_minutes', $cols, true);
+  $has_buffer_after_minutes = in_array('buffer_after_minutes', $cols, true);
+  $has_buffer_before = in_array('buffer_before', $cols, true);
+  $has_buffer_after = in_array('buffer_after', $cols, true);
+
+  $duration_expr = $has_duration_minutes ? 's.duration_minutes' : ($has_duration ? 's.duration' : '30');
+  $buffer_before_expr = $has_buffer_before_minutes ? 's.buffer_before_minutes' : ($has_buffer_before ? 's.buffer_before' : '0');
+  $buffer_after_expr = $has_buffer_after_minutes ? 's.buffer_after_minutes' : ($has_buffer_after ? 's.buffer_after' : '0');
+
   $day_start = '07:00:00';
   $day_end   = '20:00:00';
 
@@ -107,7 +119,7 @@ function bp_generate_slots_for_public(string $date, int $agent_id, int $service_
           AND (
             DATE_ADD(
               STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-              INTERVAL (COALESCE(s.duration,30)+COALESCE(s.buffer_before,0)+COALESCE(s.buffer_after,0)) MINUTE
+              INTERVAL (COALESCE({$duration_expr},30)+COALESCE({$buffer_before_expr},0)+COALESCE({$buffer_after_expr},0)) MINUTE
             )
             > STR_TO_DATE(CONCAT(%s,' ',%s), '%%Y-%%m-%%d %%H:%%i:%%s')
           )
@@ -130,7 +142,7 @@ function bp_generate_slots_for_public(string $date, int $agent_id, int $service_
           AND (
             DATE_ADD(
               STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-              INTERVAL (COALESCE(s.duration,30)+COALESCE(s.buffer_before,0)+COALESCE(s.buffer_after,0)) MINUTE
+              INTERVAL (COALESCE({$duration_expr},30)+COALESCE({$buffer_before_expr},0)+COALESCE({$buffer_after_expr},0)) MINUTE
             )
             > STR_TO_DATE(CONCAT(%s,' ',%s), '%%Y-%%m-%%d %%H:%%i:%%s')
           )
