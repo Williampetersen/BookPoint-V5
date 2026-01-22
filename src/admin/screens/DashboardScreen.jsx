@@ -1,170 +1,137 @@
-import React, { useEffect, useState } from 'react';
-import { bpFetch } from '../api/client';
+import React, { useEffect, useState } from "react";
+import { bpFetch } from "../api/client";
+
+function Badge({ status }){
+  const s = (status || "pending").toLowerCase();
+  return <span className={`bp-badge ${s}`}>{s}</span>;
+}
 
 export default function DashboardScreen(){
-  const [stats, setStats] = useState({
-    bookings_today: 0,
-    bookings_week: 0,
-    revenue_month: 0,
-    pending: 0,
-    recent: []
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [data, setData] = useState({
+    kpi: { bookings_today:0, upcoming_7d:0, pending:0, services:0, agents:0 },
+    recent: [],
+    chart7: [],
   });
 
-  const [loading, setLoading] = useState(false);
+  async function load(){
+    setLoading(true);
+    setErr("");
+    try{
+      const res = await bpFetch("/admin/dashboard");
+      setData(res?.data || data);
+    }catch(e){
+      setErr(e.message || "Failed to load dashboard");
+    }finally{
+      setLoading(false);
+    }
+  }
 
-  useEffect(()=>{
-    (async()=>{
-      setLoading(true);
-      try{
-        // if endpoint not ready yet, dashboard still looks good with zeros
-        const res = await bpFetch('/admin/dashboard-stats').catch(()=>null);
-        if(res?.data) setStats(res.data);
-      }finally{
-        setLoading(false);
-      }
-    })();
-  }, []);
+  useEffect(()=>{ load(); /* eslint-disable-next-line */ }, []);
 
   return (
-    <div className="bp-page">
-      <div className="bp-header">
+    <div>
+      <div className="bp-page-head">
         <div>
-          <h2 className="bp-title">Dashboard</h2>
-          <div className="bp-subtitle">Overview of bookings, revenue, and quick actions.</div>
+          <div className="bp-h1">Main Dashboard</div>
+          <div className="bp-muted">Overview of bookings, services, agents</div>
         </div>
-
-        <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
-          <button className="bp-btn bp-btn-soft" onClick={()=>location.href='admin.php?page=bp_catalog'}>Catalog</button>
-          <button className="bp-btn bp-btn-soft" onClick={()=>location.href='admin.php?page=bp_calendar'}>Calendar</button>
-          <button className="bp-btn bp-btn-primary" onClick={()=>location.href='admin.php?page=bp_bookings'}>Bookings</button>
+        <div className="bp-head-actions">
+          <a className="bp-top-btn" href="admin.php?page=bp-services">+ Add Service</a>
+          <a className="bp-top-btn" href="admin.php?page=bp-agents">+ Add Agent</a>
+          <button className="bp-primary-btn" onClick={()=>alert("Next: open booking wizard")}>
+            + Create Booking
+          </button>
         </div>
       </div>
 
-      <div style={{height:14}} />
+      {err ? <div className="bp-error">{err}</div> : null}
 
-      <div className="bp-grid bp-grid-4">
-        <KPI title="Bookings Today" value={stats.bookings_today} hint="Today" />
-        <KPI title="This Week" value={stats.bookings_week} hint="Last 7 days" />
-        <KPI title="Pending" value={stats.pending} hint="Need review" />
-        <KPI title="Revenue (Month)" value={formatMoney(stats.revenue_month)} hint="This month" />
+      <div className="bp-cards">
+        <div className="bp-card">
+          <div className="bp-card-label">Bookings Today</div>
+          <div className="bp-card-value">{loading ? "…" : data.kpi.bookings_today}</div>
+        </div>
+        <div className="bp-card">
+          <div className="bp-card-label">Upcoming (7 days)</div>
+          <div className="bp-card-value">{loading ? "…" : data.kpi.upcoming_7d}</div>
+        </div>
+        <div className="bp-card">
+          <div className="bp-card-label">Pending</div>
+          <div className="bp-card-value">{loading ? "…" : data.kpi.pending}</div>
+        </div>
+        <div className="bp-card">
+          <div className="bp-card-label">Services</div>
+          <div className="bp-card-value">{loading ? "…" : data.kpi.services}</div>
+        </div>
+        <div className="bp-card">
+          <div className="bp-card-label">Agents</div>
+          <div className="bp-card-value">{loading ? "…" : data.kpi.agents}</div>
+        </div>
       </div>
 
-      <div style={{height:14}} />
-
-      <div className="bp-grid" style={{gridTemplateColumns:'2fr 1fr', alignItems:'start'}}>
-        <div className="bp-card">
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:12}}>
-            <div>
-              <div className="bp-card-title">Recent bookings</div>
-              <div className="bp-card-muted">Latest activity inside BookPoint.</div>
-            </div>
-            <span className="bp-chip">{loading ? 'Loading…' : 'Live'}</span>
+      <div className="bp-grid" style={{marginTop:14}}>
+        <div className="bp-card bp-card-big">
+          <div className="bp-card-label" style={{marginBottom:10}}>Bookings (last 7 days)</div>
+          <div className="bp-mini-chart">
+            {(data.chart7 || []).map((p)=>(
+              <div key={p.day} className="bp-mini-bar">
+                <div
+                  className="bp-mini-bar-fill"
+                  style={{height: `${Math.min(100, (p.count*18)+10)}%`}}
+                  title={`${p.day} • ${p.count} bookings`}
+                />
+                <div className="bp-mini-bar-label">{p.day.slice(5)}</div>
+              </div>
+            ))}
+            {(!data.chart7 || data.chart7.length===0) && (
+              <div className="bp-muted">No chart data yet.</div>
+            )}
           </div>
-
-          <div style={{height:10}} />
-
-          <table className="bp-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Service</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(stats.recent?.length ? stats.recent : demoRows).map((r, idx)=>(
-                <tr key={idx}>
-                  <td>{r.date}</td>
-                  <td>{r.customer}</td>
-                  <td>{r.service}</td>
-                  <td>
-                    <StatusPill status={r.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
 
         <div className="bp-card">
-          <div className="bp-card-title">Quick actions</div>
-          <div className="bp-card-muted">Most-used shortcuts.</div>
+          <div className="bp-card-label" style={{marginBottom:10}}>Quick Links</div>
+          <div className="bp-quick">
+            <a className="bp-quick-item" href="admin.php?page=bp-bookings">Manage bookings</a>
+            <a className="bp-quick-item" href="admin.php?page=bp-calendar">Open calendar</a>
+            <a className="bp-quick-item" href="admin.php?page=bp-form-fields">Edit form fields</a>
+            <a className="bp-quick-item" href="admin.php?page=bp-settings">Settings</a>
+          </div>
+        </div>
+      </div>
 
-          <div style={{height:12}} />
+      <div className="bp-card" style={{marginTop:14}}>
+        <div className="bp-card-label" style={{marginBottom:10}}>Recent Bookings</div>
 
-          <div style={{display:'grid', gap:10}}>
-            <button className="bp-btn bp-btn-primary" onClick={()=>location.href='admin.php?page=bp_catalog'}>
-              + Add service / category
-            </button>
-            <button className="bp-btn bp-btn-soft" onClick={()=>location.href='admin.php?page=bp_schedule'}>
-              Edit schedule
-            </button>
-            <button className="bp-btn bp-btn-soft" onClick={()=>location.href='admin.php?page=bp_holidays'}>
-              Add holiday / closed dates
-            </button>
+        <div className="bp-table">
+          <div className="bp-tr bp-th">
+            <div>ID</div>
+            <div>When</div>
+            <div>Service</div>
+            <div>Agent</div>
+            <div>Customer</div>
+            <div>Status</div>
           </div>
 
-          <div style={{height:12}} />
+          {(data.recent || []).map((b)=>(
+            <a key={b.id} className="bp-tr" href={`admin.php?page=bp-bookings&view=${b.id}`}>
+              <div>#{b.id}</div>
+              <div className="bp-muted">{b.start}</div>
+              <div>{b.service_name || "-"}</div>
+              <div>{b.agent_name || "-"}</div>
+              <div>{b.customer_name || "-"}</div>
+              <div><Badge status={b.status} /></div>
+            </a>
+          ))}
 
-          <div className="bp-card" style={{boxShadow:'none', background:'#f8fafc'}}>
-            <div style={{fontWeight:950}}>Next milestone</div>
-            <div style={{color:'#64748b', fontWeight:850, marginTop:6}}>
-              Build Booking Calendar (day/week/month) + Bookings CRUD.
-            </div>
-          </div>
+          {(!data.recent || data.recent.length===0) && (
+            <div className="bp-muted" style={{padding:10}}>No bookings yet.</div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function KPI({ title, value, hint }){
-  return (
-    <div className="bp-card">
-      <div className="bp-kpi">
-        <div>
-          <div className="lbl">{title}</div>
-          <div className="num">{value}</div>
-        </div>
-        <span className="bp-chip">{hint}</span>
-      </div>
-    </div>
-  );
-}
-
-function StatusPill({ status }){
-  const s = String(status || '').toLowerCase();
-  const bg =
-    s === 'confirmed' ? 'rgba(34,197,94,.12)' :
-    s === 'pending' ? 'rgba(245,158,11,.12)' :
-    s === 'cancelled' ? 'rgba(239,68,68,.12)' : 'rgba(100,116,139,.12)';
-
-  const color =
-    s === 'confirmed' ? '#166534' :
-    s === 'pending' ? '#92400e' :
-    s === 'cancelled' ? '#991b1b' : '#334155';
-
-  return (
-    <span style={{
-      padding:'6px 10px',
-      borderRadius:999,
-      fontWeight:950,
-      background:bg,
-      color
-    }}>
-      {status}
-    </span>
-  );
-}
-
-function formatMoney(n){
-  const x = Number(n || 0);
-  return x.toFixed(2);
-}
-
-const demoRows = [
-  { date:'Today 10:00', customer:'Demo Customer', service:'Demo Service', status:'pending' },
-  { date:'Today 12:30', customer:'Demo Customer', service:'Demo Service', status:'confirmed' },
-  { date:'Yesterday 16:00', customer:'Demo Customer', service:'Demo Service', status:'cancelled' },
-];

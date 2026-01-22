@@ -85,7 +85,7 @@ export default function FormFieldsScreen(){
 
   function openEdit(row){
     setForm({
-      field_key: row.field_key,
+      field_key: row.field_key || row.name_key || '',
       label: row.label,
       type: row.type,
       step_key: row.step_key,
@@ -120,6 +120,7 @@ export default function FormFieldsScreen(){
           <p style={{margin:0, opacity:.7, fontSize:13}}>Manage custom form fields for booking wizard</p>
         </div>
         <div style={{display:'flex', gap:8, alignItems:'center', flexWrap:'wrap'}}>
+          <button onClick={()=>setScope("form")} style={scopeBtn(scope==="form")}>🧩 Form</button>
           <button onClick={()=>setScope("customer")} style={scopeBtn(scope==="customer")}>👤 Customer</button>
           <button onClick={()=>setScope("booking")} style={scopeBtn(scope==="booking")}>📅 Booking</button>
           <button onClick={handleReseed} style={{...secondaryBtn, fontSize:12, padding:'8px 12px'}}>🔄 Reseed Defaults</button>
@@ -143,17 +144,17 @@ export default function FormFieldsScreen(){
                   <th style={th}>Key</th>
                   <th style={th}>Label</th>
                   <th style={th}>Type</th>
-                  <th style={th} style={{textAlign:'center'}}>Step</th>
-                  <th style={th} style={{textAlign:'center'}}>Required</th>
-                  <th style={th} style={{textAlign:'center'}}>Wizard</th>
-                  <th style={th} style={{textAlign:'center'}}>Enabled</th>
+                  <th style={{...th, textAlign:'center'}}>Step</th>
+                  <th style={{...th, textAlign:'center'}}>Required</th>
+                  <th style={{...th, textAlign:'center'}}>Wizard</th>
+                  <th style={{...th, textAlign:'center'}}>Enabled</th>
                   <th style={{...th, textAlign:'right'}}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map(r=>(
                   <tr key={r.id} style={{borderBottom:'1px solid #f3f4f6', ':hover':{background:'#fafbfc'}}}>
-                    <td style={td}><code style={{background:'#f1f5f9', padding:'4px 8px', borderRadius:6, fontSize:12, fontWeight:900}}>{r.field_key}</code></td>
+                    <td style={td}><code style={{background:'#f1f5f9', padding:'4px 8px', borderRadius:6, fontSize:12, fontWeight:900}}>{r.field_key || r.name_key || ''}</code></td>
                     <td style={td}>{r.label}</td>
                     <td style={td}><span style={{background:'#eef2ff', color:'#3730a3', padding:'4px 8px', borderRadius:6, fontSize:12, fontWeight:900}}>{r.type}</span></td>
                     <td style={{...td, textAlign:'center', fontSize:12}}>{r.step_key}</td>
@@ -179,7 +180,7 @@ export default function FormFieldsScreen(){
           <div style={{display:'grid', gap:16}}>
             <div>
               <label style={lbl}>Field Key *</label>
-              <input type="text" value={form.field_key} onChange={e=>setForm({...form, field_key:e.target.value})} placeholder="e.g., company_name" style={input} disabled={editId !== null} />
+              <input type="text" value={form.field_key} onChange={e=>setForm({...form, field_key:e.target.value})} placeholder="e.g., company_name" style={input} disabled={editId !== null && !!form.field_key} />
             </div>
             <div>
               <label style={lbl}>Label *</label>

@@ -39,15 +39,17 @@ function bp_public_create_booking(WP_REST_Request $req){
 
   $t_fields = $wpdb->prefix . 'bp_form_fields';
   $fields = $wpdb->get_results("\
-    SELECT id, field_key, label, scope, type, is_required
+    SELECT id, field_key, name_key, label, scope, type, is_required, required
     FROM {$t_fields}
     WHERE is_enabled=1 AND show_in_wizard=1
     ORDER BY scope ASC, sort_order ASC
   ", ARRAY_A) ?: [];
 
   foreach ($fields as $f) {
-    if ((int)$f['is_required'] !== 1) continue;
-    $k = $f['scope'] . '.' . $f['field_key'];
+    $is_required = (int)($f['is_required'] ?? $f['required'] ?? 0);
+    if ($is_required !== 1) continue;
+    $field_key = $f['field_key'] ?: ($f['name_key'] ?? '');
+    $k = $f['scope'] . '.' . $field_key;
     $v = $field_values[$k] ?? null;
     $empty = ($v === null || $v === '' || (is_array($v) && empty($v)));
     if ($empty) {

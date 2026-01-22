@@ -19,12 +19,13 @@ final class BP_FormFieldModel {
     $params = [$scope];
 
     if ($q !== '') {
-      $where .= " AND (label LIKE %s OR name_key LIKE %s)";
+      $where .= " AND (label LIKE %s OR field_key LIKE %s OR name_key LIKE %s)";
+      $params[] = '%' . $wpdb->esc_like($q) . '%';
       $params[] = '%' . $wpdb->esc_like($q) . '%';
       $params[] = '%' . $wpdb->esc_like($q) . '%';
     }
     if ($is_active !== null) {
-      $where .= " AND is_active = %d";
+      $where .= " AND (CASE WHEN (field_key IS NULL OR field_key = '') THEN is_active ELSE is_enabled END) = %d";
       $params[] = $is_active;
     }
 
@@ -51,6 +52,8 @@ final class BP_FormFieldModel {
     if (!in_array($scope, ['form','customer','booking'], true)) $scope = 'form';
 
     $name_key = sanitize_key($data['name_key'] ?? '');
+    $field_key = sanitize_key($data['field_key'] ?? '') ?: $name_key;
+    if ($name_key === '' && $field_key !== '') $name_key = $field_key;
     $type = sanitize_text_field($data['type'] ?? 'text');
     $allowed_types = ['text','email','tel','textarea','select','checkbox','radio','date'];
     if (!in_array($type, $allowed_types, true)) $type = 'text';
@@ -72,12 +75,19 @@ final class BP_FormFieldModel {
     $payload = [
       'scope' => $scope,
       'label' => sanitize_text_field($data['label'] ?? ''),
+      'field_key' => $field_key,
       'name_key' => $name_key,
       'type' => $type,
+      'step_key' => sanitize_text_field($data['step_key'] ?? 'details'),
+      'placeholder' => sanitize_text_field($data['placeholder'] ?? ''),
+      'options' => $options_json,
       'options_json' => $options_json,
-      'required' => !empty($data['required']) ? 1 : 0,
+      'required' => !empty($data['required']) ? 1 : (!empty($data['is_required']) ? 1 : 0),
+      'is_required' => !empty($data['is_required']) ? 1 : (!empty($data['required']) ? 1 : 0),
       'sort_order' => (int)($data['sort_order'] ?? 0),
-      'is_active' => !empty($data['is_active']) ? 1 : 0,
+      'is_active' => !empty($data['is_active']) ? 1 : (!empty($data['is_enabled']) ? 1 : 0),
+      'is_enabled' => !empty($data['is_enabled']) ? 1 : (!empty($data['is_active']) ? 1 : 0),
+      'show_in_wizard' => !empty($data['show_in_wizard']) ? 1 : 0,
       'updated_at' => current_time('mysql'),
     ];
 

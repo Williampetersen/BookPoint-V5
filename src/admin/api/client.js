@@ -29,3 +29,7 @@ export async function bpFetch(path, opts = {}) {
   }
   return json;
 }
+
+export async function bpPost(path, body = {}) {
+  return bpFetch(path, { method: 'POST', body });
+}
