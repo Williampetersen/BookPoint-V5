@@ -10,6 +10,13 @@
 
 defined('ABSPATH') || exit;
 
+add_filter('admin_body_class', function($classes){
+  if (!isset($_GET['page'])) return $classes;
+  $page = sanitize_text_field($_GET['page']);
+  if (strpos($page, 'bp') !== 0) return $classes;
+  return $classes . ' bp-app-mode';
+});
+
 final class BP_Plugin {
 
   const VERSION    = '5.0.0';
@@ -49,6 +56,7 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'helpers/roles_helper.php';
     require_once BP_LIB_PATH . 'helpers/migrations_helper.php';
     require_once BP_LIB_PATH . 'helpers/form_fields_helper.php';
+    require_once BP_LIB_PATH . 'helpers/form_fields_seed_helper.php';
     require_once BP_LIB_PATH . 'helpers/field_values_helper.php';
     require_once BP_LIB_PATH . 'helpers/database_helper.php';
 
@@ -138,10 +146,13 @@ final class BP_Plugin {
     // REST routes (Admin)
     require_once BP_LIB_PATH . 'rest/admin-calendar-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-bookings-routes.php';
+    require_once BP_LIB_PATH . 'rest/bookings-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-catalog-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-schedule-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-schedule-editor-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-holidays-routes.php';
+    require_once BP_LIB_PATH . 'rest/calendar-routes.php';
+    require_once BP_LIB_PATH . 'rest/dashboard-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-catalog-manager-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-field-values-routes.php';
     require_once BP_LIB_PATH . 'rest/settings-routes.php';
@@ -165,6 +176,12 @@ final class BP_Plugin {
 
     add_action('admin_init', function () {
       BP_MigrationsHelper::run();
+    });
+
+    add_action('admin_init', function () {
+      if (!current_user_can('administrator') && !current_user_can('bp_manage_settings')) return;
+      if (!class_exists('BP_FormFieldsSeedHelper')) return;
+      BP_FormFieldsSeedHelper::ensure_defaults();
     });
 
     add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_admin_assets']);
@@ -283,6 +300,9 @@ final class BP_Plugin {
     self::seed_default_agent_hours();
     bp_install_form_fields_table();
     bp_seed_default_form_fields();
+    if (class_exists('BP_FormFieldsSeedHelper')) {
+      BP_FormFieldsSeedHelper::ensure_defaults();
+    }
     bp_install_field_values_table();
 
     // Store plugin version too (optional but helpful)
@@ -631,22 +651,20 @@ final class BP_Plugin {
     add_menu_page(
       __('BookPoint', 'bookpoint'),
       __('BookPoint', 'bookpoint'),
-      'read',
-      'bp',
-      [__CLASS__, 'render_dashboard'],
+      'bp_manage_settings',
+      'bp_dashboard',
+      'bp_render_admin_app',
       'dashicons-calendar-alt',
       56
     );
 
     add_submenu_page(
-      'bp',
-      __('Dashboard', 'bookpoint'),
-      __('Dashboard', 'bookpoint'),
-      'bp_manage_bookings',
       'bp_dashboard',
-      function () {
-        (new BP_AdminDashboardController())->index();
-      },
+      __('Dashboard', 'bookpoint'),
+      __('Dashboard', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_dashboard',
+      'bp_render_admin_app',
       0
     );
 
@@ -654,27 +672,27 @@ final class BP_Plugin {
       'bp',
       __('Bookings', 'bookpoint'),
       __('Bookings', 'bookpoint'),
-      'bp_manage_bookings',
+      'bp_manage_settings',
       'bp_bookings',
-      [__CLASS__, 'render_bookings']
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
       'bp',
       __('Calendar', 'bookpoint'),
       __('Calendar', 'bookpoint'),
-      'bp_manage_bookings',
+      'bp_manage_settings',
       'bp_calendar',
-      [__CLASS__, 'render_calendar']
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
       'bp',
       __('Schedule', 'bookpoint'),
       __('Schedule', 'bookpoint'),
-      'bp_manage_bookings',
+      'bp_manage_settings',
       'bp_schedule',
-      [__CLASS__, 'render_schedule']
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
@@ -683,8 +701,9 @@ final class BP_Plugin {
       __('Holidays', 'bookpoint'),
       'bp_manage_settings',
       'bp_holidays',
-      [__CLASS__, 'render_holidays']
+      'bp_render_admin_app'
     );
+
 
     add_submenu_page(
       'bp_dashboard',
@@ -699,37 +718,27 @@ final class BP_Plugin {
       'bp',
       __('Services', 'bookpoint'),
       __('Services', 'bookpoint'),
-      'bp_manage_services',
+      'bp_manage_settings',
       'bp_services',
-      [__CLASS__, 'render_services_index']
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
       'bp',
       __('Categories', 'bookpoint'),
       __('Categories', 'bookpoint'),
-      'bp_manage_services',
+      'bp_manage_settings',
       'bp_categories',
-      function () {
-        $ctrl = new BP_AdminCategoriesController();
-        $action = sanitize_text_field($_GET['action'] ?? 'index');
-        if (!method_exists($ctrl, $action)) $action = 'index';
-        $ctrl->$action();
-      }
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
       'bp',
       __('Service Extras', 'bookpoint'),
       __('Service Extras', 'bookpoint'),
-      'bp_manage_services',
+      'bp_manage_settings',
       'bp_extras',
-      function () {
-        $ctrl = new BP_AdminExtrasController();
-        $action = sanitize_text_field($_GET['action'] ?? 'index');
-        if (!method_exists($ctrl, $action)) $action = 'index';
-        $ctrl->$action();
-      }
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
@@ -738,12 +747,7 @@ final class BP_Plugin {
       __('Promo Codes', 'bookpoint'),
       'bp_manage_settings',
       'bp_promo_codes',
-      function () {
-        $ctrl = new BP_AdminPromoCodesController();
-        $action = sanitize_text_field($_GET['action'] ?? 'index');
-        if (!method_exists($ctrl, $action)) $action = 'index';
-        $ctrl->$action();
-      }
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
@@ -752,16 +756,16 @@ final class BP_Plugin {
       __('Form Fields', 'bookpoint'),
       'bp_manage_settings',
       'bp-form-fields',
-      [__CLASS__, 'render_form_fields']
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
       'bp',
       __('Customers', 'bookpoint'),
       __('Customers', 'bookpoint'),
-      'bp_manage_customers',
+      'bp_manage_settings',
       'bp_customers',
-      [__CLASS__, 'render_customers']
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
@@ -770,7 +774,7 @@ final class BP_Plugin {
       __('Settings', 'bookpoint'),
       'bp_manage_settings',
       'bp_settings',
-      [__CLASS__, 'render_settings']
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
@@ -779,16 +783,16 @@ final class BP_Plugin {
       __('Audit Log', 'bookpoint'),
       'bp_manage_settings',
       'bp_audit',
-      [__CLASS__, 'render_audit_log']
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
       'bp',
       __('Tools', 'bookpoint'),
       __('Tools', 'bookpoint'),
-      'bp_manage_tools',
+      'bp_manage_settings',
       'bp_tools',
-      [__CLASS__, 'render_tools']
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
@@ -797,16 +801,16 @@ final class BP_Plugin {
       __('BookPoint Tools', 'bookpoint'),
       'bp_manage_settings',
       'bp_tools',
-      [__CLASS__, 'render_tools']
+      'bp_render_admin_app'
     );
 
     add_submenu_page(
       'bp',
       __('Agents', 'bookpoint'),
       __('Agents', 'bookpoint'),
-      'bp_manage_agents',
+      'bp_manage_settings',
       'bp_agents',
-      [__CLASS__, 'render_agents']
+      'bp_render_admin_app'
     );
 
     // Hidden pages for internal use
@@ -886,8 +890,19 @@ final class BP_Plugin {
       '1.0.0'
     );
 
-    // React admin bundle (Calendar + Schedule + Holidays + Form Fields)
-    if (in_array($page, ['bp_dashboard', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog', 'bp-form-fields'], true)) {
+    if (strpos($page, 'bp') === 0) {
+      $admin_app_css = BP_PLUGIN_PATH . 'public/admin-app.css';
+      $admin_app_ver = file_exists($admin_app_css) ? (string)@filemtime($admin_app_css) : self::VERSION;
+      wp_enqueue_style(
+        'bp-admin-app-css',
+        plugin_dir_url(__FILE__) . 'public/admin-app.css',
+        [],
+        $admin_app_ver
+      );
+    }
+
+    // React admin bundle (Dashboard + Bookings + Calendar + Schedule + Holidays + Form Fields)
+    if (in_array($page, ['bp_dashboard', 'bp_bookings', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog', 'bp-form-fields'], true)) {
       $asset_path = BP_PLUGIN_PATH . 'build/admin.asset.php';
       $asset = [
         'dependencies' => ['react', 'react-dom', 'react-jsx-runtime'],
@@ -932,13 +947,15 @@ final class BP_Plugin {
 
       $route = $page === 'bp_dashboard'
         ? 'dashboard'
-        : ($page === 'bp_schedule'
-          ? 'schedule'
-          : ($page === 'bp_holidays'
-            ? 'holidays'
-            : ($page === 'bp_catalog'
-              ? 'catalog'
-              : ($page === 'bp-form-fields' ? 'form-fields' : 'calendar'))));
+        : ($page === 'bp_bookings'
+          ? 'bookings'
+          : ($page === 'bp_schedule'
+            ? 'schedule'
+            : ($page === 'bp_holidays'
+              ? 'holidays'
+              : ($page === 'bp_catalog'
+                ? 'catalog'
+                : ($page === 'bp-form-fields' ? 'form-fields' : 'calendar')))));
 
       wp_localize_script('bp-admin', 'BP_ADMIN', [
         'restUrl' => esc_url_raw(rest_url('bp/v1')),
@@ -1730,6 +1747,13 @@ if (!function_exists('bp_render_admin_app_catalog')) {
   }
 }
 
+if (!function_exists('bp_render_admin_app')) {
+  function bp_render_admin_app() {
+    echo '<div id="bp-admin-app"></div>';
+  }
+}
+
+
 if (!function_exists('bp_rest_get_form_fields')) {
   function bp_rest_get_form_fields(\WP_REST_Request $req) {
     $scope = sanitize_text_field($req->get_param('scope') ?? 'form');
@@ -1745,12 +1769,15 @@ if (!function_exists('bp_rest_get_form_fields')) {
         if (is_array($decoded)) $opts = $decoded;
       }
 
+      $key = (string)($f['field_key'] ?: ($f['name_key'] ?? ''));
+      $is_required = (int)($f['is_required'] ?? $f['required'] ?? 0);
+
       $data[] = [
         'id' => (int)$f['id'],
         'label' => (string)$f['label'],
-        'key' => (string)$f['name_key'],
+        'key' => $key,
         'type' => (string)$f['type'],
-        'required' => ((int)$f['required'] === 1),
+        'required' => ($is_required === 1),
         'options' => $opts,
       ];
     }
@@ -1763,8 +1790,9 @@ if (!function_exists('bp_validate_required_fields')) {
   function bp_validate_required_fields(string $scope, array $submitted): array {
     $fields = BP_FormFieldModel::active_fields($scope);
     foreach ($fields as $f) {
-      if ((int)$f['required'] !== 1) continue;
-      $key = (string)$f['name_key'];
+      $is_required = (int)($f['is_required'] ?? $f['required'] ?? 0);
+      if ($is_required !== 1) continue;
+      $key = (string)($f['field_key'] ?: ($f['name_key'] ?? ''));
 
       $val = $submitted[$key] ?? null;
 

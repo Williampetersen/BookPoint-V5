@@ -41,7 +41,7 @@ function bp_admin_get_form_fields(WP_REST_Request $req){
   global $wpdb;
   $t = $wpdb->prefix.'bp_form_fields';
   $scope = sanitize_text_field($req->get_param('scope') ?? 'customer');
-  if (!in_array($scope, ['booking','customer'], true)) $scope='customer';
+  if (!in_array($scope, ['booking','customer','form'], true)) $scope='customer';
 
   $rows = $wpdb->get_results($wpdb->prepare("
     SELECT * FROM {$t}
@@ -51,11 +51,13 @@ function bp_admin_get_form_fields(WP_REST_Request $req){
 
   foreach($rows as &$r){
     $r['id'] = (int)$r['id'];
-    $r['is_required'] = (int)$r['is_required'];
-    $r['is_enabled'] = (int)$r['is_enabled'];
-    $r['show_in_wizard'] = (int)$r['show_in_wizard'];
+    $r['field_key'] = $r['field_key'] ?: ($r['name_key'] ?? '');
+    $r['is_required'] = (int)($r['is_required'] ?? $r['required'] ?? 0);
+    $r['is_enabled'] = (int)($r['is_enabled'] ?? $r['is_active'] ?? 0);
+    $r['show_in_wizard'] = (int)($r['show_in_wizard'] ?? 1);
     $r['sort_order'] = (int)$r['sort_order'];
-    $r['options'] = $r['options'] ? json_decode($r['options'], true) : null;
+    $raw_options = $r['options'] ?: ($r['options_json'] ?? null);
+    $r['options'] = $raw_options ? json_decode($raw_options, true) : null;
   }
 
   return new WP_REST_Response(['status'=>'success','data'=>$rows], 200);
@@ -74,7 +76,7 @@ function bp_admin_create_form_field(WP_REST_Request $req){
   $step_key = sanitize_text_field($p['step_key'] ?? 'details');
 
   if (!$field_key || !$label) return new WP_REST_Response(['status'=>'error','message'=>'Missing key/label'], 400);
-  if (!in_array($scope, ['booking','customer'], true)) $scope='customer';
+  if (!in_array($scope, ['booking','customer','form'], true)) $scope='customer';
 
   $allowed_types = ['text','email','tel','textarea','number','date','select','checkbox'];
   if (!in_array($type, $allowed_types, true)) $type='text';
