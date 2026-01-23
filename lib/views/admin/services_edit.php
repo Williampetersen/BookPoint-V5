@@ -35,15 +35,118 @@ function BP_field_error($errors, $key) {
 }
 ?>
 <?php $is_legacy = isset($_GET['legacy']); ?>
-<div class="wrap">
-  <h1><?php echo $id ? esc_html__('Edit Service', 'bookpoint') : esc_html__('Add Service', 'bookpoint'); ?></h1>
+<style>
+  .bp-legacy-admin{
+    --bp-bg:#f5f7ff;
+    --bp-card:#ffffff;
+    --bp-text:#0f172a;
+    --bp-muted:#64748b;
+    --bp-border:#e5e7eb;
+    --bp-primary:#4318ff;
+    background:var(--bp-bg);
+    padding:18px;
+    border-radius:16px;
+  }
+  .bp-legacy-admin .bp-page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+  .bp-legacy-admin .bp-h1{font-size:22px;font-weight:1100;margin:0 0 6px;}
+  .bp-legacy-admin .bp-muted{color:var(--bp-muted);font-weight:850;}
+  .bp-legacy-admin .bp-head-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .bp-legacy-admin .bp-top-btn{padding:10px 12px;border-radius:14px;border:1px solid var(--bp-border);background:var(--bp-card);color:var(--bp-text);font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;}
+  .bp-legacy-admin .bp-top-btn:hover{border-color:rgba(67,24,255,.35);} 
+  .bp-legacy-admin .bp-card{background:var(--bp-card);border:1px solid var(--bp-border);border-radius:18px;padding:14px;box-shadow:0 10px 30px rgba(2,6,23,.04);} 
+  .bp-legacy-admin .form-table{width:100%;border-collapse:separate;border-spacing:0 12px;}
+  .bp-legacy-admin .form-table th{width:240px;text-align:left;font-weight:900;color:var(--bp-muted);vertical-align:top;padding:10px 12px;}
+  .bp-legacy-admin .form-table td{background:var(--bp-card);border:1px solid var(--bp-border);border-radius:14px;padding:12px;}
+  .bp-legacy-admin input[type="text"],
+  .bp-legacy-admin input[type="number"],
+  .bp-legacy-admin textarea{
+    width:100%;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid var(--bp-border);
+    background:#fff;
+    color:var(--bp-text);
+    font-weight:900;
+    box-sizing:border-box;
+  }
+  .bp-legacy-admin textarea{min-height:90px;}
+  .bp-legacy-admin .description{color:var(--bp-muted);font-weight:850;}
+  .bp-legacy-admin .bp-btn{padding:10px 14px;border-radius:14px;border:1px solid var(--bp-border);background:var(--bp-card);color:var(--bp-text);font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;}
+  .bp-legacy-admin .bp-btn-primary{background:var(--bp-primary);color:#fff;border-color:rgba(67,24,255,.25);} 
+  .bp-legacy-admin .bp-btn-primary:hover{filter:brightness(1.03);} 
+  .bp-legacy-admin .submit{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;}
+</style>
+
+<div class="bp-app">
+  <div class="bp-shell">
+    <aside class="bp-sidebar">
+      <div class="bp-brand">
+        <div class="bp-logo">BP</div>
+        <div>
+          <div class="bp-title">BookPoint</div>
+          <div class="bp-sub">Admin</div>
+        </div>
+      </div>
+
+      <nav class="bp-nav">
+        <div class="bp-group-title">OVERVIEW</div>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_dashboard')); ?>">Dashboard</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_bookings')); ?>">Bookings</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_calendar')); ?>">Calendar</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_schedule')); ?>">Schedule</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_holidays')); ?>">Holidays</a>
+
+        <div class="bp-group-title">RESOURCES</div>
+        <a class="bp-nav-item active" href="<?php echo esc_url(admin_url('admin.php?page=bp_services')); ?>">Services</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_categories')); ?>">Categories</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_extras')); ?>">Service Extras</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_agents')); ?>">Agents</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_customers')); ?>">Customers</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_promo_codes')); ?>">Promo Codes</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_form_fields')); ?>">Form Fields</a>
+
+        <div class="bp-group-title">SYSTEM</div>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_settings')); ?>">Settings</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_audit')); ?>">Audit Log</a>
+        <a class="bp-nav-item" href="<?php echo esc_url(admin_url('admin.php?page=bp_tools')); ?>">Tools</a>
+      </nav>
+
+      <div class="bp-sidebar-footer">
+        <a class="bp-top-btn" href="<?php echo esc_url(admin_url()); ?>">← Back to WordPress</a>
+      </div>
+    </aside>
+
+    <main class="bp-main">
+      <header class="bp-topbar">
+        <div class="bp-search">
+          <input placeholder="Search…">
+        </div>
+        <div class="bp-top-actions">
+          <div class="bp-avatar">W</div>
+        </div>
+      </header>
+
+      <div class="bp-content">
+        <div class="wrap bp-legacy-admin">
+          <div class="bp-page-head">
+            <div>
+              <div class="bp-h1"><?php echo $id ? esc_html__('Edit Service', 'bookpoint') : esc_html__('Add Service', 'bookpoint'); ?></div>
+              <div class="bp-muted"><?php echo esc_html__('Manage service details, pricing, and availability.', 'bookpoint'); ?></div>
+            </div>
+            <div class="bp-head-actions">
+              <a class="bp-top-btn" href="<?php echo esc_url(admin_url('admin.php?page=bp_services')); ?>"<?php echo $is_legacy ? ' target="_top"' : ''; ?>>
+                <?php echo esc_html__('Back to Services', 'bookpoint'); ?>
+              </a>
+            </div>
+          </div>
 
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"<?php echo $is_legacy ? ' target="_top"' : ''; ?>>
     <?php wp_nonce_field('bp_admin'); ?>
     <input type="hidden" name="action" value="bp_admin_services_save">
     <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
 
-    <table class="form-table" role="presentation">
+    <div class="bp-card">
+      <table class="form-table" role="presentation">
       <tr>
         <th><label for="bp_name"><?php echo esc_html__('Name', 'bookpoint'); ?></label></th>
         <td>
@@ -181,9 +284,13 @@ function BP_field_error($errors, $key) {
           <p class="description"><?php echo esc_html__('Optional. Keys are weekday numbers 0-6. Values are "HH:MM-HH:MM" or empty for closed.', 'bookpoint'); ?></p>
         </td>
       </tr>
-    </table>
+      </table>
+    </div>
 
-    <h2><?php esc_html_e('Agents for this service', 'bookpoint'); ?></h2>
+    <div class="bp-card" style="margin-top:14px;">
+      <h2 style="margin:0 0 10px;">
+        <?php esc_html_e('Agents for this service', 'bookpoint'); ?>
+      </h2>
 
     <?php if (!empty($all_agents)) : ?>
       <?php foreach ($all_agents as $a) :
@@ -196,13 +303,18 @@ function BP_field_error($errors, $key) {
         </label>
       <?php endforeach; ?>
     <?php else : ?>
-      <p><?php esc_html_e('No agents yet. Add agents first.', 'bookpoint'); ?></p>
+      <p class="bp-muted"><?php esc_html_e('No agents yet. Add agents first.', 'bookpoint'); ?></p>
     <?php endif; ?>
 
     <p class="submit">
-      <button type="submit" class="button button-primary"><?php echo esc_html__('Save Service', 'bookpoint'); ?></button>
-      <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=bp_services')); ?>"<?php echo $is_legacy ? ' target="_top"' : ''; ?>><?php echo esc_html__('Back', 'bookpoint'); ?></a>
+      <button type="submit" class="bp-btn bp-btn-primary"><?php echo esc_html__('Save Service', 'bookpoint'); ?></button>
+      <a class="bp-btn" href="<?php echo esc_url(admin_url('admin.php?page=bp_services')); ?>"<?php echo $is_legacy ? ' target="_top"' : ''; ?>><?php echo esc_html__('Back', 'bookpoint'); ?></a>
     </p>
-  </form>
+    </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
 </div>
 

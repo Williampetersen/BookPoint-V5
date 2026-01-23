@@ -1,11 +1,9 @@
 <?php defined('ABSPATH') || exit; ?>
-
-<div class="wrap">
-  <h1 class="wp-heading-inline"><?php echo esc_html__('Service Extras', 'bookpoint'); ?></h1>
-  <a class="page-title-action" href="<?php echo esc_url(admin_url('admin.php?page=bp_extras&action=edit')); ?>">
-    <?php echo esc_html__('Add New', 'bookpoint'); ?>
-  </a>
-  <hr class="wp-header-end">
+<?php require_once __DIR__ . '/legacy_shell.php'; ?>
+<?php
+  $actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp_extras&action=edit')) . '">' . esc_html__('Add New', 'bookpoint') . '</a>';
+  bp_render_legacy_shell_start(esc_html__('Service Extras', 'bookpoint'), esc_html__('Manage add-ons attached to services.', 'bookpoint'), $actions_html, 'extras');
+?>
 
   <form method="get" style="margin:12px 0;">
     <input type="hidden" name="page" value="bp_extras">
@@ -82,4 +80,4 @@
       <?php endforeach; endif; ?>
     </tbody>
   </table>
-</div>
+<?php bp_render_legacy_shell_end(); ?>

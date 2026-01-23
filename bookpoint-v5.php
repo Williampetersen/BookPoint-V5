@@ -315,6 +315,8 @@ final class BP_Plugin {
 
     $t_hours  = $wpdb->prefix . 'bp_agent_working_hours';
     $t_breaks = $wpdb->prefix . 'bp_agent_breaks';
+    $t_schedules = $wpdb->prefix . 'bp_schedules';
+    $t_schedule_settings = $wpdb->prefix . 'bp_schedule_settings';
     $t_holidays = $wpdb->prefix . 'bp_holidays';
     $t_services = $wpdb->prefix . 'bp_services';
     $t_categories = $wpdb->prefix . 'bp_categories';
@@ -347,6 +349,29 @@ final class BP_Plugin {
       note VARCHAR(255) NULL,
       PRIMARY KEY (id),
       KEY agent_date (agent_id, break_date)
+    ) {$charset_collate};");
+
+    dbDelta("CREATE TABLE {$t_schedules} (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      agent_id BIGINT UNSIGNED NULL,
+      day_of_week TINYINT NOT NULL,
+      start_time TIME NOT NULL,
+      end_time TIME NOT NULL,
+      breaks_json LONGTEXT NULL,
+      is_enabled TINYINT NOT NULL DEFAULT 1,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NULL,
+      PRIMARY KEY (id),
+      KEY agent_day (agent_id, day_of_week)
+    ) {$charset_collate};");
+
+    dbDelta("CREATE TABLE {$t_schedule_settings} (
+      id BIGINT UNSIGNED NOT NULL,
+      slot_interval_minutes INT NOT NULL DEFAULT 30,
+      timezone VARCHAR(64) NOT NULL DEFAULT 'Europe/Copenhagen',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NULL,
+      PRIMARY KEY (id)
     ) {$charset_collate};");
 
     dbDelta("CREATE TABLE {$t_holidays} (
@@ -394,6 +419,12 @@ final class BP_Plugin {
 
     self::add_column_if_missing($t_agents, 'image_id', "ALTER TABLE {$t_agents} ADD COLUMN image_id BIGINT UNSIGNED NOT NULL DEFAULT 0");
 
+    // Holiday extensions (agent-specific + metadata)
+    self::add_column_if_missing($t_holidays, 'agent_id', "ALTER TABLE {$t_holidays} ADD COLUMN agent_id BIGINT UNSIGNED NULL");
+    self::add_column_if_missing($t_holidays, 'is_recurring', "ALTER TABLE {$t_holidays} ADD COLUMN is_recurring TINYINT NOT NULL DEFAULT 0");
+    self::add_column_if_missing($t_holidays, 'created_at', "ALTER TABLE {$t_holidays} ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
+    self::add_column_if_missing($t_holidays, 'updated_at', "ALTER TABLE {$t_holidays} ADD COLUMN updated_at DATETIME NULL");
+
     // Indexes for speed
     self::add_index_if_missing($t_bookings, 'agent_start_date', "CREATE INDEX agent_start_date ON {$t_bookings} (agent_id, start_date)");
     self::add_index_if_missing($t_bookings, 'service_start_date', "CREATE INDEX service_start_date ON {$t_bookings} (service_id, start_date)");
@@ -401,6 +432,8 @@ final class BP_Plugin {
     self::add_index_if_missing($t_categories, 'sort_order', "CREATE INDEX sort_order ON {$t_categories} (sort_order)");
     self::add_index_if_missing($t_services, 'sort_order', "CREATE INDEX sort_order ON {$t_services} (sort_order)");
     self::add_index_if_missing($t_extras, 'sort_order', "CREATE INDEX sort_order ON {$t_extras} (sort_order)");
+    self::add_index_if_missing($t_holidays, 'agent_id', "CREATE INDEX agent_id ON {$t_holidays} (agent_id)");
+    self::add_index_if_missing($t_schedules, 'agent_day', "CREATE INDEX agent_day ON {$t_schedules} (agent_id, day_of_week)");
 
     $cols = $wpdb->get_results("SHOW COLUMNS FROM {$t_services}", ARRAY_A);
     $names = array_column($cols, 'Field');
@@ -575,6 +608,39 @@ final class BP_Plugin {
       'methods' => 'GET',
       'callback' => [__CLASS__, 'rest_manage_slots'],
       'permission_callback' => '__return_true',
+    ]);
+
+    // ----------------------------
+    // Admin: Agents list (React UI)
+    // GET /wp-json/bp/v1/admin/agents
+    // ----------------------------
+    register_rest_route('bp/v1', '/admin/agents', [
+      'methods'  => 'GET',
+      'callback' => function(\WP_REST_Request $req){
+
+        if (!current_user_can('administrator') && !current_user_can('bp_manage_settings') && !current_user_can('bp_manage_bookings')) {
+          return new \WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+        }
+
+        global $wpdb;
+        $tA = $wpdb->prefix . 'bp_agents';
+
+        $rows = $wpdb->get_results("SELECT * FROM {$tA} ORDER BY id DESC", ARRAY_A) ?: [];
+
+        $agents = array_map(function($a){
+          $first = $a['first_name'] ?? '';
+          $last  = $a['last_name'] ?? '';
+          $name  = trim($first . ' ' . $last);
+          if(!$name) $name = $a['name'] ?? ($a['full_name'] ?? ('Agent #'.$a['id']));
+
+          return [
+            'id' => (int)$a['id'],
+            'name' => $name,
+          ];
+        }, $rows);
+
+        return new \WP_REST_Response(['status'=>'success','data'=>$agents], 200);
+      }
     ]);
 
     // ----------------------------
@@ -1111,6 +1177,15 @@ final class BP_Plugin {
 
     add_submenu_page(
       null,
+      __('Edit Category', 'bookpoint'),
+      __('Edit Category', 'bookpoint'),
+      'bp_manage_services',
+      'bp_categories_edit',
+      [__CLASS__, 'render_categories_edit']
+    );
+
+    add_submenu_page(
+      null,
       __('Delete Service', 'bookpoint'),
       __('Delete Service', 'bookpoint'),
       'bp_manage_services',
@@ -1254,7 +1329,7 @@ final class BP_Plugin {
       return;
     }
 
-    if ($page === 'bp_categories' && isset($_GET['action']) && $_GET['action'] === 'edit') {
+    if ($page === 'bp_categories_edit' || ($page === 'bp_categories' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
       wp_enqueue_media();
       wp_enqueue_script('bp-admin-media', BP_PLUGIN_URL . 'public/admin-media.js', ['jquery'], self::VERSION, true);
       return;
@@ -1288,6 +1363,10 @@ final class BP_Plugin {
 
   public static function render_services_edit() : void {
     (new BP_AdminServicesController())->edit();
+  }
+
+  public static function render_categories_edit() : void {
+    (new BP_AdminCategoriesController())->edit();
   }
 
   public static function render_services_delete() : void {

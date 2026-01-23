@@ -1,7 +1,8 @@
 <?php defined('ABSPATH') || exit; ?>
-
-<div class="wrap">
-  <h1><?php esc_html_e('Customers', 'bookpoint'); ?></h1>
+<?php require_once __DIR__ . '/legacy_shell.php'; ?>
+<?php
+  bp_render_legacy_shell_start(esc_html__('Customers', 'bookpoint'), esc_html__('View and manage customer details.', 'bookpoint'), '', 'customers');
+?>
 
   <table class="widefat striped">
     <thead>
@@ -40,4 +41,4 @@
       <?php endforeach; endif; ?>
     </tbody>
   </table>
-</div>
+<?php bp_render_legacy_shell_end(); ?>

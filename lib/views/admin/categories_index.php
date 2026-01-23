@@ -1,11 +1,9 @@
 <?php defined('ABSPATH') || exit; ?>
-
-<div class="wrap">
-  <h1 class="wp-heading-inline"><?php echo esc_html__('Categories', 'bookpoint'); ?></h1>
-  <a class="page-title-action" href="<?php echo esc_url(admin_url('admin.php?page=bp_categories&action=edit')); ?>">
-    <?php echo esc_html__('Add New', 'bookpoint'); ?>
-  </a>
-  <hr class="wp-header-end">
+<?php require_once __DIR__ . '/legacy_shell.php'; ?>
+<?php
+  $actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp_categories_edit')) . '">' . esc_html__('Add New', 'bookpoint') . '</a>';
+  bp_render_legacy_shell_start(esc_html__('Categories', 'bookpoint'), esc_html__('Organize your services into categories.', 'bookpoint'), $actions_html, 'categories');
+?>
 
   <form method="get" style="margin:12px 0;">
     <input type="hidden" name="page" value="bp_categories">
@@ -37,9 +35,13 @@
           $url = wp_get_attachment_image_url((int)$row['image_id'], 'thumbnail');
           if ($url) $img = '<img src="'.esc_url($url).'" style="width:44px;height:44px;object-fit:cover;border-radius:10px;" />';
         }
+        if (!$img) {
+          $initial = mb_substr((string)($row['name'] ?? '—'), 0, 1);
+          $img = '<div style="width:44px;height:44px;border-radius:10px;background:var(--bp-bg);display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--bp-muted);">'.esc_html($initial).'</div>';
+        }
         ?>
         <tr>
-          <td><?php echo $img ?: '—'; ?></td>
+          <td><?php echo $img; ?></td>
           <td>
             <strong>
               <a href="<?php echo esc_url(admin_url('admin.php?page=bp_categories&action=edit&id='.(int)$row['id'])); ?>">
@@ -53,20 +55,12 @@
           </td>
           <td><?php echo (int)$row['sort_order']; ?></td>
           <td>
-            <a class="button button-small" href="<?php echo esc_url(admin_url('admin.php?page=bp_categories&action=edit&id='.(int)$row['id'])); ?>">
+            <a class="button button-small" href="<?php echo esc_url(admin_url('admin.php?page=bp_categories_edit&id='.(int)$row['id'])); ?>">
               <?php echo esc_html__('Edit', 'bookpoint'); ?>
-            </a>
-            <a class="button button-small button-link-delete" href="<?php
-              echo esc_url(wp_nonce_url(
-                admin_url('admin.php?page=bp_categories&action=delete&id='.(int)$row['id']),
-                'bp_admin'
-              ));
-            ?>" onclick="return confirm('Delete this category?');">
-              <?php echo esc_html__('Delete', 'bookpoint'); ?>
             </a>
           </td>
         </tr>
       <?php endforeach; endif; ?>
     </tbody>
   </table>
-</div>
+<?php bp_render_legacy_shell_end(); ?>

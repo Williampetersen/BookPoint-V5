@@ -1,6 +1,6 @@
 <?php defined('ABSPATH') || exit; ?>
-<div class="wrap">
-  <h1><?php esc_html_e('Tools', 'bookpoint'); ?></h1>
+<?php require_once __DIR__ . '/legacy_shell.php'; ?>
+<?php bp_render_legacy_shell_start(esc_html__('Tools', 'bookpoint'), esc_html__('Maintenance, tests, and data utilities.', 'bookpoint'), '', 'tools'); ?>
 
   <h2><?php esc_html_e('System Status', 'bookpoint'); ?></h2>
   <p><strong><?php esc_html_e('Plugin version:', 'bookpoint'); ?></strong> <?php echo esc_html($plugin_version ?: '-'); ?></p>
@@ -103,4 +103,4 @@
     <input type="file" name="bp_settings_file" accept="application/json">
     <button class="button button-primary"><?php esc_html_e('Import', 'bookpoint'); ?></button>
   </form>
-</div>
+<?php bp_render_legacy_shell_end(); ?>

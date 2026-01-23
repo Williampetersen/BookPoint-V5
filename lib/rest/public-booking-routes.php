@@ -96,7 +96,7 @@ function bp_public_create_booking(WP_REST_Request $req){
     return new WP_REST_Response(['status'=>'error','message'=>'Email required'], 400);
   }
 
-  if (class_exists('BP_ScheduleHelper') && BP_ScheduleHelper::is_date_closed($date)) {
+  if (class_exists('BP_ScheduleHelper') && BP_ScheduleHelper::is_date_closed($date, $agent_id)) {
     return new WP_REST_Response(['status'=>'error','message'=>'Date is closed'], 400);
   }
 

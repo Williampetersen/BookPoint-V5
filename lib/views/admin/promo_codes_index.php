@@ -1,10 +1,9 @@
 <?php defined('ABSPATH') || exit; ?>
-<div class="wrap">
-  <h1 class="wp-heading-inline"><?php echo esc_html__('Promo Codes', 'bookpoint'); ?></h1>
-  <a class="page-title-action" href="<?php echo esc_url(admin_url('admin.php?page=bp_promo_codes&action=edit')); ?>">
-    <?php echo esc_html__('Add New', 'bookpoint'); ?>
-  </a>
-  <hr class="wp-header-end">
+<?php require_once __DIR__ . '/legacy_shell.php'; ?>
+<?php
+  $actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp_promo_codes&action=edit')) . '">' . esc_html__('Add New', 'bookpoint') . '</a>';
+  bp_render_legacy_shell_start(esc_html__('Promo Codes', 'bookpoint'), esc_html__('Create and manage discount codes.', 'bookpoint'), $actions_html, 'promo');
+?>
 
   <form method="get" style="margin:12px 0;">
     <input type="hidden" name="page" value="bp_promo_codes">
@@ -55,4 +54,4 @@
       <?php endforeach; endif; ?>
     </tbody>
   </table>
-</div>
+<?php bp_render_legacy_shell_end(); ?>

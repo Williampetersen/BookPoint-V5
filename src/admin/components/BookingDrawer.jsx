@@ -99,6 +99,16 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
               <div style={{height:12}} />
 
               <div className="bp-card" style={{boxShadow:'none'}}>
+                <div style={{fontWeight:950, marginBottom:8}}>Service</div>
+                <div style={{fontWeight:900}}>{data.service_name || '—'}</div>
+                {data.service?.duration_minutes ? (
+                  <div style={{marginTop:6, color:'var(--bp-muted)', fontWeight:850}}>Duration: {data.service.duration_minutes} min</div>
+                ) : null}
+              </div>
+
+              <div style={{height:12}} />
+
+              <div className="bp-card" style={{boxShadow:'none'}}>
                 <div style={{fontWeight:950}}>Customer</div>
                 <div style={{marginTop:8, fontWeight:900}}>{data.customer_name || '—'}</div>
                 <div style={{marginTop:6, color:'var(--bp-muted)', fontWeight:850}}>

@@ -1,9 +1,8 @@
 <?php defined('ABSPATH') || exit;
 $f = $filters ?? [];
+require_once __DIR__ . '/legacy_shell.php';
+bp_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint'), esc_html__('Review system activity and changes.', 'bookpoint'), '', 'audit');
 ?>
-
-<div class="wrap">
-  <h1><?php esc_html_e('Audit Log', 'bookpoint'); ?></h1>
 
   <?php $p = $pagination ?? ['page' => 1, 'per_page' => 50, 'total' => 0]; ?>
 
@@ -99,4 +98,4 @@ $f = $filters ?? [];
       ]);
     }
   ?>
-</div>
+<?php bp_render_legacy_shell_end(); ?>

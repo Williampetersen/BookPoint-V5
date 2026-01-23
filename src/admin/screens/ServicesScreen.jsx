@@ -6,6 +6,10 @@ export default function ServicesScreen() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [sortBy, setSortBy] = useState("name");
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     loadServices();
@@ -24,6 +28,55 @@ export default function ServicesScreen() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function openEdit(serviceId) {
+    setEditingId(serviceId);
+    setEditLoading(true);
+    try {
+      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/services/${serviceId}`, {
+        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce },
+      });
+      const json = await resp.json();
+      setEditData(json.data || {});
+    } catch (e) {
+      console.error(e);
+      setEditData(null);
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
+  async function saveEdit() {
+    if (!editData || !editingId) return;
+    setEditSaving(true);
+    try {
+      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/services/${editingId}`, {
+        method: "PATCH",
+        headers: { 
+          "X-WP-Nonce": window.BP_ADMIN?.nonce,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(editData),
+      });
+      const json = await resp.json();
+      if (json.status === "success") {
+        setEditingId(null);
+        setEditData(null);
+        await loadServices();
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Save failed: " + e.message);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  function closeEdit() {
+    setEditingId(null);
+    setEditData(null);
+    setEditLoading(false);
   }
 
   const filtered = services
@@ -125,67 +178,149 @@ export default function ServicesScreen() {
       ) : filtered.length === 0 ? (
         <div className="bp-card">No services found.</div>
       ) : (
-        <div className="bp-service-grid">
-          {filtered.map((s) => {
-            const name = s.name || s.title || `#${s.id}`;
-            const duration = s.duration_minutes ?? s.duration ?? s.duration_min ?? s.duration_minutes;
-            const priceCents =
-              s.price_cents ??
-              (s.price !== undefined && s.price !== null
-                ? Math.round(parseFloat(s.price) * 100)
-                : null);
-            const priceDisplay =
-              priceCents !== null ? `$${(priceCents / 100).toFixed(2)}` : "-";
-            const isActive =
-              s.is_active !== undefined
-                ? !!Number(s.is_active)
-                : s.is_enabled !== undefined
-                  ? !!Number(s.is_enabled)
-                  : true;
-            const imageUrl = s.image_url || s.image || "";
-            const initials = (name || "?").trim().slice(0, 1).toUpperCase();
+        <div className="bp-card">
+          <div className="bp-table">
+            <div className="bp-tr bp-th">
+              <div>Image</div>
+              <div>Name</div>
+              <div>Duration</div>
+              <div>Price</div>
+              <div>Status</div>
+              <div>Actions</div>
+            </div>
+            {filtered.map((s) => {
+              const name = s.name || s.title || `#${s.id}`;
+              const duration = s.duration_minutes ?? s.duration ?? s.duration_min ?? s.duration_minutes;
+              const priceCents =
+                s.price_cents ??
+                (s.price !== undefined && s.price !== null
+                  ? Math.round(parseFloat(s.price) * 100)
+                  : null);
+              const priceDisplay =
+                priceCents !== null ? `$${(priceCents / 100).toFixed(2)}` : "-";
+              const isActive =
+                s.is_active !== undefined
+                  ? !!Number(s.is_active)
+                  : s.is_enabled !== undefined
+                    ? !!Number(s.is_enabled)
+                    : true;
+              const imageUrl = s.image_url || s.image || "";
 
-            return (
-              <div key={s.id} className="bp-service-card">
-                <div className="bp-service-media">
-                  {imageUrl ? (
-                    <img src={imageUrl} alt={name} />
-                  ) : (
-                    <div className="bp-service-placeholder">{initials}</div>
-                  )}
-                </div>
-                <div className="bp-service-body">
-                  <div className="bp-service-head">
-                    <div className="bp-service-name">{name}</div>
+              return (
+                <div key={s.id} className="bp-tr">
+                  <div>
+                    {imageUrl ? (
+                      <img src={imageUrl} alt={name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover" }} />
+                    ) : (
+                      <div style={{ width: 44, height: 44, borderRadius: 8, background: "var(--bp-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "var(--bp-muted)" }}>—</div>
+                    )}
+                  </div>
+                  <div style={{ fontWeight: 900 }}>{name}</div>
+                  <div>{duration ? `${duration} min` : "-"}</div>
+                  <div>{priceDisplay}</div>
+                  <div>
                     <span className={`bp-status-pill ${isActive ? "active" : "inactive"}`}>
                       {isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
-
-                  <div className="bp-service-meta">
-                    <div>
-                      <div className="bp-muted" style={{ fontSize: 12 }}>Price</div>
-                      <div className="bp-service-value">{priceDisplay}</div>
-                    </div>
-                    <div>
-                      <div className="bp-muted" style={{ fontSize: 12 }}>Duration</div>
-                      <div className="bp-service-value">{duration ? `${duration} min` : "-"}</div>
-                    </div>
-                  </div>
-
-                  <div className="bp-service-actions">
-                    <a
+                  <div className="bp-row-actions">
+                    <button
                       className="bp-btn-sm"
-                      href={`admin.php?page=bp_services_edit&id=${s.id}`}
+                      onClick={() => openEdit(s.id)}
                     >
                       Edit
-                    </a>
-                    <button className="bp-btn-sm bp-btn-danger">Delete</button>
+                    </button>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {editingId && (
+        <div className="bp-drawer-wrap" onClick={(e) => e.target.classList.contains("bp-drawer-wrap") && closeEdit()}>
+          <div className="bp-drawer">
+            <div className="bp-drawer-head">
+              <div>
+                <div className="bp-drawer-title">Edit Service</div>
               </div>
-            );
-          })}
+              <button className="bp-top-btn" onClick={closeEdit}>Close</button>
+            </div>
+
+            {editLoading ? (
+              <div className="bp-drawer-body" style={{ textAlign: "center", padding: 20 }}>Loading...</div>
+            ) : !editData ? (
+              <div className="bp-drawer-body" style={{ textAlign: "center", padding: 20 }}>Failed to load service</div>
+            ) : (
+              <>
+                <div className="bp-drawer-body">
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 900, display: "block", marginBottom: 8 }}>Name</label>
+                    <input
+                      type="text"
+                      value={editData.name || ""}
+                      onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                      className="bp-input"
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 900, display: "block", marginBottom: 8 }}>Description</label>
+                    <textarea
+                      value={editData.description || ""}
+                      onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                      className="bp-input"
+                      style={{ width: "100%", minHeight: 80, fontFamily: "inherit" }}
+                    />
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+                    <div>
+                      <label style={{ fontWeight: 900, display: "block", marginBottom: 8 }}>Price</label>
+                      <input
+                        type="number"
+                        value={editData.price_cents ? (editData.price_cents / 100).toFixed(2) : ""}
+                        onChange={(e) => setEditData({ ...editData, price_cents: Math.round(parseFloat(e.target.value || 0) * 100) })}
+                        className="bp-input"
+                        step="0.01"
+                        min="0"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 900, display: "block", marginBottom: 8 }}>Duration (min)</label>
+                      <input
+                        type="number"
+                        value={editData.duration_minutes || ""}
+                        onChange={(e) => setEditData({ ...editData, duration_minutes: parseInt(e.target.value || 0, 10) })}
+                        className="bp-input"
+                        min="5"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 900, display: "flex", gap: 8, alignItems: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={Number(editData.is_active) === 1}
+                        onChange={(e) => setEditData({ ...editData, is_active: e.target.checked ? 1 : 0 })}
+                      />
+                      Active
+                    </label>
+                  </div>
+                </div>
+
+                <div style={{ padding: 16, borderTop: "1px solid var(--bp-border)", display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button onClick={closeEdit} className="bp-btn" disabled={editSaving}>Cancel</button>
+                  <button onClick={saveEdit} className="bp-btn bp-btn-primary" disabled={editSaving}>
+                    {editSaving ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

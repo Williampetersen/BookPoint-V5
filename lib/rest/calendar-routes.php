@@ -3,7 +3,7 @@ defined('ABSPATH') || exit;
 
 add_action('rest_api_init', function(){
 
-  register_rest_route('bp/v1', '/admin/calendar', [
+  register_rest_route('bp/v1', '/admin/calendar-legacy', [
     'methods' => 'GET',
     'callback' => function(WP_REST_Request $req){
 

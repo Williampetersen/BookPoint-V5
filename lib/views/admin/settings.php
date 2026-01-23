@@ -7,9 +7,9 @@ function bp_err($errors, $k) {
     echo '<p style="color:#b32d2e;margin:6px 0 0;">' . esc_html($errors[$k]) . '</p>';
   }
 }
+require_once __DIR__ . '/legacy_shell.php';
+bp_render_legacy_shell_start(esc_html__('BookPoint Settings', 'bookpoint'), esc_html__('Configure global settings and integrations.', 'bookpoint'), '', 'settings');
 ?>
-<div class="wrap">
-  <h1><?php echo esc_html__('BookPoint Settings', 'bookpoint'); ?></h1>
 
   <h2 class="nav-tab-wrapper">
     <a class="nav-tab <?php echo $tab === 'general' ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url(admin_url('admin.php?page=bp_settings&tab=general')); ?>"><?php esc_html_e('General', 'bookpoint'); ?></a>
@@ -315,4 +315,4 @@ function bp_err($errors, $k) {
               <?php endif; ?>
             </div>
           <?php endif; ?>
-</div>
+<?php bp_render_legacy_shell_end(); ?>

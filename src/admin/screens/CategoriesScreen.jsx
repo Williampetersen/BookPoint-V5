@@ -32,7 +32,7 @@ export default function CategoriesScreen() {
     <div className="bp-container">
       <div className="bp-header">
         <h1>Categories</h1>
-        <button className="bp-btn bp-btn-primary">+ New Category</button>
+        <a className="bp-btn bp-btn-primary" href="admin.php?page=bp_categories_edit">+ New Category</a>
       </div>
 
       <div className="bp-card" style={{ marginBottom: 20 }}>
@@ -51,41 +51,50 @@ export default function CategoriesScreen() {
       ) : filtered.length === 0 ? (
         <div className="bp-card">No categories found.</div>
       ) : (
-        <div className="bp-table-wrapper">
-          <table className="bp-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Services Count</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((c) => {
-                const name = c.name || c.title || `#${c.id}`;
-                const count = c.services_count ?? c.service_count ?? 0;
-                const isActive =
-                  c.is_active !== undefined
-                    ? !!Number(c.is_active)
-                    : c.is_enabled !== undefined
-                      ? !!Number(c.is_enabled)
-                      : true;
+        <div className="bp-card">
+          <div className="bp-table">
+            <div className="bp-tr bp-th">
+              <div>Image</div>
+              <div>Name</div>
+              <div>Services</div>
+              <div>Status</div>
+              <div>Actions</div>
+            </div>
+            {filtered.map((c) => {
+              const name = c.name || c.title || `#${c.id}`;
+              const imageUrl = c.image_url || c.image || "";
+              const initial = (name || "?").trim().slice(0, 1).toUpperCase();
+              const count = c.services_count ?? c.service_count ?? 0;
+              const isActive =
+                c.is_active !== undefined
+                  ? !!Number(c.is_active)
+                  : c.is_enabled !== undefined
+                    ? !!Number(c.is_enabled)
+                    : true;
 
-                return (
-                  <tr key={c.id}>
-                    <td>{name}</td>
-                    <td>{count}</td>
-                    <td>{isActive ? "Active" : "Inactive"}</td>
-                  <td>
-                    <button className="bp-btn-sm">Edit</button>
-                    <button className="bp-btn-sm bp-btn-danger">Delete</button>
-                  </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+              return (
+                <div key={c.id} className="bp-tr">
+                  <div>
+                    {imageUrl ? (
+                      <img src={imageUrl} alt={name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover" }} />
+                    ) : (
+                      <div style={{ width: 44, height: 44, borderRadius: 8, background: "var(--bp-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "var(--bp-muted)" }}>{initial}</div>
+                    )}
+                  </div>
+                  <div style={{ fontWeight: 900 }}>{name}</div>
+                  <div>{count}</div>
+                  <div>
+                    <span className={`bp-status-pill ${isActive ? "active" : "inactive"}`}>
+                      {isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  <div className="bp-row-actions">
+                    <a className="bp-btn-sm" href={`admin.php?page=bp_categories_edit&id=${c.id}`}>Edit</a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

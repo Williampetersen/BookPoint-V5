@@ -1,11 +1,9 @@
 <?php defined('ABSPATH') || exit; ?>
-<div class="wrap">
-  <h1>
-    <?php esc_html_e('Agents', 'bookpoint'); ?>
-    <a class="page-title-action" href="<?php echo esc_url(admin_url('admin.php?page=bp_agents_edit')); ?>">
-      <?php esc_html_e('Add New', 'bookpoint'); ?>
-    </a>
-  </h1>
+<?php require_once __DIR__ . '/legacy_shell.php'; ?>
+<?php
+  $actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp_agents_edit')) . '">' . esc_html__('Add New', 'bookpoint') . '</a>';
+  bp_render_legacy_shell_start(esc_html__('Agents', 'bookpoint'), esc_html__('Manage your team members and assignments.', 'bookpoint'), $actions_html, 'agents');
+?>
 
   <table class="widefat striped">
     <thead>
@@ -44,4 +42,4 @@
       <?php endforeach; endif; ?>
     </tbody>
   </table>
-</div>
+<?php bp_render_legacy_shell_end(); ?>

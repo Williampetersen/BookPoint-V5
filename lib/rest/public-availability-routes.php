@@ -2,12 +2,53 @@
 defined('ABSPATH') || exit;
 
 add_action('rest_api_init', function () {
+  register_rest_route('bp/v1', '/availability/timeslots', [
+    'methods'  => 'GET',
+    'callback' => 'bp_rest_public_timeslots',
+    'permission_callback' => '__return_true',
+  ]);
+
   register_rest_route('bp/v1', '/public/availability-slots', [
     'methods'  => 'GET',
     'callback' => 'bp_rest_public_availability_slots',
     'permission_callback' => '__return_true',
   ]);
 });
+
+function bp_rest_public_timeslots(WP_REST_Request $req) {
+  $service_id = (int)($req->get_param('service_id') ?? 0);
+  $agent_id   = (int)($req->get_param('agent_id') ?? 0);
+  $date       = sanitize_text_field($req->get_param('date') ?? '');
+
+  $date = substr($date, 0, 10);
+
+  if ($service_id <= 0) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'service_id is required'], 400);
+  }
+  if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid date'], 400);
+  }
+
+  if (!class_exists('BP_AvailabilityHelper')) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Availability helper missing'], 500);
+  }
+
+  if (class_exists('BP_ScheduleHelper') && !BP_ScheduleHelper::is_date_allowed($date)) {
+    return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
+  }
+
+  $slots = BP_AvailabilityHelper::get_timeslots_for_date($service_id, $date, $agent_id);
+
+  return new WP_REST_Response([
+    'status' => 'success',
+    'data' => $slots,
+    'meta' => [
+      'date' => $date,
+      'service_id' => $service_id,
+      'agent_id' => $agent_id,
+    ],
+  ], 200);
+}
 
 function bp_rest_public_availability_slots(WP_REST_Request $req) {
   $service_id = (int)($req->get_param('service_id') ?? 0);
@@ -39,7 +80,7 @@ function bp_rest_public_availability_slots(WP_REST_Request $req) {
     return new WP_REST_Response(['status' => 'error', 'message' => 'Schedule helper missing'], 500);
   }
 
-  if (BP_ScheduleHelper::is_date_closed($date)) {
+  if (BP_ScheduleHelper::is_date_closed($date, $agent_id)) {
     return new WP_REST_Response(['status' => 'success', 'data' => [], 'meta' => [
       'date' => $date,
       'service_id' => $service_id,

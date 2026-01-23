@@ -28,10 +28,19 @@ add_action('rest_api_init', function () {
     ],
   ]);
 
-  // PATCH reschedule booking (drag/drop)
+  // PATCH/POST reschedule booking (drag/drop)
   register_rest_route('bp/v1', '/admin/bookings/(?P<id>\d+)/reschedule', [
-    'methods'  => 'PATCH',
+    'methods'  => ['PATCH','POST'],
     'callback' => 'bp_rest_admin_booking_reschedule',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_bookings');
+    },
+  ]);
+
+  // POST change booking status
+  register_rest_route('bp/v1', '/admin/bookings/(?P<id>\d+)/status', [
+    'methods'  => 'POST',
+    'callback' => 'bp_rest_admin_booking_change_status',
     'permission_callback' => function () {
       return current_user_can('bp_manage_bookings');
     },
@@ -217,61 +226,148 @@ function bp_rest_admin_calendar_events(WP_REST_Request $req) {
   $agent_id  = (int)($req->get_param('agent_id') ?: 0);
   $service_id= (int)($req->get_param('service_id') ?: 0);
   $status    = sanitize_text_field($req->get_param('status') ?: '');
+  $q         = sanitize_text_field($req->get_param('q') ?: '');
 
   $t_book = $wpdb->prefix . 'bp_bookings';
   $t_srv  = $wpdb->prefix . 'bp_services';
+  $t_cust = $wpdb->prefix . 'bp_customers';
+  $t_agent= $wpdb->prefix . 'bp_agents';
 
-  // We compute end time using service duration (minutes)
-  // Assumed columns:
-  // bookings: id, customer_name, status, service_id, agent_id, start_date, start_time, total_price
-  // services: id, name, duration
-  $where = "WHERE b.start_date BETWEEN %s AND %s";
-  $params = [$start_date, $end_date];
+  $bCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_book}") ?: [];
+  $sCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_srv}") ?: [];
+  $aCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_agent}") ?: [];
+  $cCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_cust}") ?: [];
+
+  $has_start_datetime = in_array('start_datetime', $bCols, true);
+  $has_end_datetime = in_array('end_datetime', $bCols, true);
+  $has_start_date = in_array('start_date', $bCols, true);
+  $has_start_time = in_array('start_time', $bCols, true);
+
+  $durationExpr = in_array('duration_minutes', $sCols, true)
+    ? 's.duration_minutes'
+    : (in_array('duration', $sCols, true) ? 's.duration' : '30');
+
+  $bufferBeforeExpr = in_array('buffer_before_minutes', $sCols, true)
+    ? 's.buffer_before_minutes'
+    : (in_array('buffer_before', $sCols, true) ? 's.buffer_before' : '0');
+  $bufferAfterExpr = in_array('buffer_after_minutes', $sCols, true)
+    ? 's.buffer_after_minutes'
+    : (in_array('buffer_after', $sCols, true) ? 's.buffer_after' : '0');
+
+  $select = [
+    'b.id',
+    'b.status',
+    'b.service_id',
+    'b.agent_id',
+    'b.customer_id',
+    "COALESCE(s.name,'') AS service_name",
+    "COALESCE({$durationExpr},30) AS duration",
+    "COALESCE({$bufferBeforeExpr},0) AS buffer_before",
+    "COALESCE({$bufferAfterExpr},0) AS buffer_after",
+  ];
+
+  if ($has_start_datetime) $select[] = 'b.start_datetime';
+  if ($has_end_datetime) $select[] = 'b.end_datetime';
+  if ($has_start_date) $select[] = 'b.start_date';
+  if ($has_start_time) $select[] = 'b.start_time';
+
+  if (in_array('name', $aCols, true)) {
+    $select[] = "COALESCE(a.name,'') AS agent_name";
+  } else {
+    if (in_array('first_name', $aCols, true)) $select[] = "COALESCE(a.first_name,'') AS agent_first_name";
+    if (in_array('last_name', $aCols, true)) $select[] = "COALESCE(a.last_name,'') AS agent_last_name";
+  }
+
+  if (in_array('first_name', $cCols, true)) $select[] = "COALESCE(c.first_name,'') AS customer_first_name";
+  if (in_array('last_name', $cCols, true)) $select[] = "COALESCE(c.last_name,'') AS customer_last_name";
+  if (in_array('email', $cCols, true)) $select[] = "COALESCE(c.email,'') AS customer_email";
+
+  $where = '';
+  $params = [];
+  if ($has_start_datetime) {
+    $where = "WHERE b.start_datetime >= %s AND b.start_datetime <= %s";
+    $params[] = $start_date . ' 00:00:00';
+    $params[] = $end_date . ' 23:59:59';
+  } else {
+    $where = "WHERE b.start_date >= %s AND b.start_date <= %s";
+    $params[] = $start_date;
+    $params[] = $end_date;
+  }
 
   if ($agent_id > 0) { $where .= " AND b.agent_id = %d"; $params[] = $agent_id; }
   if ($service_id > 0) { $where .= " AND b.service_id = %d"; $params[] = $service_id; }
-  if ($status !== '') { $where .= " AND b.status = %s"; $params[] = $status; }
+  if ($status !== '' && $status !== 'all') { $where .= " AND LOWER(b.status) = %s"; $params[] = strtolower($status); }
+  if ($q !== '') { 
+    $like = '%'.$wpdb->esc_like($q).'%';
+    $where .= " AND (b.customer_name LIKE %s OR b.customer_email LIKE %s OR s.name LIKE %s OR a.name LIKE %s OR CONCAT(a.first_name,' ',a.last_name) LIKE %s OR c.email LIKE %s)";
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+  }
 
   $sql = "
-    SELECT
-      b.id,
-      b.customer_name,
-      b.status,
-      b.service_id,
-      b.agent_id,
-      b.start_date,
-      b.start_time,
-      COALESCE(b.total_price,0) as total_price,
-      COALESCE(s.name,'(deleted)') as service_name,
-      COALESCE(s.duration,30) as duration_min
+    SELECT " . implode(',', $select) . "
     FROM {$t_book} b
     LEFT JOIN {$t_srv} s ON s.id = b.service_id
+    LEFT JOIN {$t_agent} a ON a.id = b.agent_id
+    LEFT JOIN {$t_cust} c ON c.id = b.customer_id
     {$where}
-    ORDER BY b.start_date ASC, b.start_time ASC
+    ORDER BY " . ($has_start_datetime ? 'b.start_datetime' : 'b.start_date') . " ASC
   ";
 
-  $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+  $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) ?: [];
 
   $events = [];
   foreach ($rows as $r) {
-    $dur = max(5, (int)$r['duration_min']);
-    $startIso = $r['start_date'] . 'T' . substr($r['start_time'], 0, 5) . ':00';
-    $endIso = gmdate('Y-m-d\TH:i:s', strtotime($startIso . " +{$dur} minutes"));
+    $duration = (int)($r['duration'] ?? 30);
+    $bf = (int)($r['buffer_before'] ?? 0);
+    $ba = (int)($r['buffer_after'] ?? 0);
 
-    $title = $r['service_name'] . ' • ' . ($r['customer_name'] ?: ('#'.$r['id']));
+    $start_dt = '';
+    if ($has_start_datetime && !empty($r['start_datetime'])) {
+      $start_dt = $r['start_datetime'];
+    } elseif ($has_start_date && $has_start_time) {
+      $start_dt = ($r['start_date'] ?? '') . ' ' . ($r['start_time'] ?? '');
+    }
+
+    $start_ts = $start_dt ? strtotime($start_dt) : null;
+    if (!$start_ts) continue;
+
+    $end_dt = '';
+    if ($has_end_datetime && !empty($r['end_datetime'])) {
+      $end_dt = $r['end_datetime'];
+    } else {
+      $end_dt = date('Y-m-d H:i:s', $start_ts + ($duration * 60));
+    }
+
+    $customer_name = trim((string)($r['customer_first_name'] ?? '') . ' ' . (string)($r['customer_last_name'] ?? ''));
+
+    $agent_name = '';
+    if (!empty($r['agent_name'])) {
+      $agent_name = (string)$r['agent_name'];
+    } else {
+      $agent_name = trim((string)($r['agent_first_name'] ?? '') . ' ' . (string)($r['agent_last_name'] ?? ''));
+    }
+
+    $title = trim((($r['service_name'] ?? 'Service') ?: 'Service') . ' • ' . ($customer_name ?: ('#'.$r['id'])));
 
     $events[] = [
-      'id' => (int)$r['id'],
+      'id' => (string)$r['id'],
       'title' => $title,
-      'start' => $startIso,
-      'end'   => $endIso,
-      'extendedProps' => [
-        'status' => $r['status'],
-        'service_id' => (int)$r['service_id'],
-        'agent_id' => (int)$r['agent_id'],
-        'customer_name' => $r['customer_name'],
-        'total_price' => (float)$r['total_price'],
-      ],
+      'start' => date('Y-m-d H:i:s', $start_ts),
+      'end' => $end_dt,
+      'status' => $r['status'] ?? 'pending',
+      'service_name' => $r['service_name'] ?? '',
+      'agent_name' => $agent_name,
+      'customer_name' => $customer_name,
+      'customer_email' => $r['customer_email'] ?? '',
+      'agent_id' => (int)($r['agent_id'] ?? 0),
+      'service_id' => (int)($r['service_id'] ?? 0),
+      'buffer_before' => $bf,
+      'buffer_after' => $ba,
     ];
   }
 
@@ -286,8 +382,8 @@ function bp_rest_admin_booking_reschedule(WP_REST_Request $req) {
   if ($id <= 0) return new WP_REST_Response(['status'=>'error','message'=>'Invalid booking id'], 400);
 
   $body = $req->get_json_params();
-  $start = isset($body['start']) ? sanitize_text_field($body['start']) : '';
-  $end   = isset($body['end']) ? sanitize_text_field($body['end']) : '';
+  $start = isset($body['start_datetime']) ? sanitize_text_field($body['start_datetime']) : (isset($body['start']) ? sanitize_text_field($body['start']) : '');
+  $end   = isset($body['end_datetime']) ? sanitize_text_field($body['end_datetime']) : (isset($body['end']) ? sanitize_text_field($body['end']) : '');
   $agent_id = isset($body['agent_id']) ? (int)$body['agent_id'] : 0;
 
   if (!$start || !$end) {
@@ -313,6 +409,22 @@ function bp_rest_admin_booking_reschedule(WP_REST_Request $req) {
   // Rule: do not move cancelled bookings (optional)
   if (($booking['status'] ?? '') === 'cancelled') {
     return new WP_REST_Response(['status'=>'error','message'=>'Cancelled booking cannot be rescheduled'], 400);
+  }
+
+  // Compute end time using service duration (C15.3)
+  $service_id = (int)($booking['service_id'] ?? 0);
+  $duration = 0;
+  if ($service_id > 0) {
+    $duration = (int)$wpdb->get_var($wpdb->prepare(
+      "SELECT duration_minutes FROM {$t_srv} WHERE id=%d",
+      $service_id
+    ));
+  }
+  if ($duration <= 0) $duration = (int)get_option('bp_slot_interval_minutes', 30);
+
+  // If end is missing or doesn't match duration, recompute
+  if (!$end || ($end_dt - $start_dt) / 60 != $duration) {
+    $end_dt = $start_dt + ($duration * 60);
   }
 
   // (Optional but recommended) validate agent can do service
@@ -402,15 +514,30 @@ function bp_rest_admin_booking_reschedule(WP_REST_Request $req) {
   }
 
   // Update booking
+  $update_data = [
+    'start_date' => $new_date,
+    'start_time' => $new_time,
+    'agent_id'   => $agent_id,
+  ];
+  $update_formats = ['%s','%s','%d'];
+
+  $book_cols = $wpdb->get_col("SHOW COLUMNS FROM {$t_book}") ?: [];
+  $has_start_datetime = in_array('start_datetime', $book_cols, true);
+  $has_end_datetime = in_array('end_datetime', $book_cols, true);
+  if ($has_start_datetime) {
+    $update_data['start_datetime'] = date('Y-m-d H:i:s', $start_dt);
+    $update_formats[] = '%s';
+  }
+  if ($has_end_datetime) {
+    $update_data['end_datetime'] = date('Y-m-d H:i:s', $new_end_dt);
+    $update_formats[] = '%s';
+  }
+
   $updated = $wpdb->update(
     $t_book,
-    [
-      'start_date' => $new_date,
-      'start_time' => $new_time,
-      'agent_id'   => $agent_id,
-    ],
+    $update_data,
     ['id' => $id],
-    ['%s','%s','%d'],
+    $update_formats,
     ['%d']
   );
 
@@ -432,4 +559,35 @@ function bp_rest_admin_booking_reschedule(WP_REST_Request $req) {
       'agent_id'=>$agent_id
     ]
   ], 200);
+}
+
+function bp_rest_admin_booking_change_status(\WP_REST_Request $req) {
+  global $wpdb;
+  $id = (int) $req['id'];
+  $params = $req->get_json_params();
+  $status = sanitize_text_field($params['status'] ?? 'pending');
+
+  // Validate status
+  $valid_statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
+  if (!in_array($status, $valid_statuses)) {
+    return new WP_REST_Response(['status'=>'error','message'=>'Invalid status'], 400);
+  }
+
+  $t_book = $wpdb->prefix . 'bp_bookings';
+  $updated = $wpdb->update(
+    $t_book,
+    [
+      'status' => $status,
+      'updated_at' => current_time('mysql')
+    ],
+    ['id' => $id],
+    ['%s', '%s'],
+    ['%d']
+  );
+
+  if ($updated === false) {
+    return new WP_REST_Response(['status'=>'error','message'=>'Failed to update status'], 500);
+  }
+
+  return new WP_REST_Response(['status'=>'success','data'=>['id'=>$id,'status'=>$status]], 200);
 }

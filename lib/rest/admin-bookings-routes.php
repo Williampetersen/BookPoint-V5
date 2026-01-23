@@ -100,12 +100,14 @@ function bp_rest_admin_booking_get(WP_REST_Request $req) {
   $service = [
     'id' => $service_id ?: null,
     'name' => $pick_first($row, ['service_name','service']),
+    'duration_minutes' => null,
   ];
   $service_price = null;
   if ($service_id && $table_exists($tServices)) {
     $sRow = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tServices} WHERE id=%d", $service_id), ARRAY_A);
     if ($sRow) {
       $service['name'] = $service['name'] ?: ($pick_first($sRow, ['name','title','service_name']) ?: null);
+      $service['duration_minutes'] = (int)($sRow['duration_minutes'] ?? 0);
       $service_price = $pick_first($sRow, ['price_cents','price','amount','price_amount','price_value']);
       if ($service_price !== null && array_key_exists('price_cents', $sRow)) {
         $service_price = ((float)$service_price) / 100;
@@ -436,7 +438,7 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
     }
 
     if (class_exists('BP_ScheduleHelper') && method_exists('BP_ScheduleHelper','is_date_closed')) {
-      if (BP_ScheduleHelper::is_date_closed($new_date)) {
+      if (BP_ScheduleHelper::is_date_closed($new_date, $agent_id)) {
         return new WP_REST_Response(['status'=>'error','message'=>'Selected date is closed'], 400);
       }
     }
