@@ -74,6 +74,11 @@ bp_render_legacy_shell_start(
       <a class="bp-btn" href="<?php echo esc_url(admin_url('admin.php?page=bp_categories')); ?>">
         <?php echo esc_html__('Back', 'bookpoint'); ?>
       </a>
+      <?php if ($id): ?>
+        <a class="bp-btn bp-btn-danger" href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=bp_categories_delete&id=' . absint($id)), 'bp_admin')); ?>" onclick="return confirm('<?php echo esc_js(__('Delete category?', 'bookpoint')); ?>');">
+          <?php echo esc_html__('Delete', 'bookpoint'); ?>
+        </a>
+      <?php endif; ?>
     </p>
   </form>
 

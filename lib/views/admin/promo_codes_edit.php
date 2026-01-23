@@ -1,4 +1,6 @@
-<?php defined('ABSPATH') || exit;
+<?php
+defined('ABSPATH') || exit;
+require_once __DIR__ . '/legacy_shell.php';
 
 $id = (int)($item['id'] ?? 0);
 $code = (string)($item['code'] ?? '');
@@ -9,9 +11,15 @@ $ends_at = (string)($item['ends_at'] ?? '');
 $max_uses = isset($item['max_uses']) ? (string)$item['max_uses'] : '';
 $min_total = isset($item['min_total']) ? (string)$item['min_total'] : '';
 $is_active = isset($item['is_active']) ? (int)$item['is_active'] : 1;
+
+$actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp_promo_codes')) . '">' . esc_html__('Back to Promo Codes', 'bookpoint') . '</a>';
+bp_render_legacy_shell_start(
+  $id ? esc_html__('Edit Promo Code', 'bookpoint') : esc_html__('Add Promo Code', 'bookpoint'),
+  esc_html__('Create discounts and manage usage limits.', 'bookpoint'),
+  $actions_html,
+  'promo-codes'
+);
 ?>
-<div class="wrap">
-  <h1><?php echo $id ? esc_html__('Edit Promo Code', 'bookpoint') : esc_html__('Add Promo Code', 'bookpoint'); ?></h1>
 
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
     <?php wp_nonce_field('bp_admin'); ?>
@@ -28,8 +36,8 @@ $is_active = isset($item['is_active']) ? (int)$item['is_active'] : 1;
         <th><label><?php echo esc_html__('Type', 'bookpoint'); ?></label></th>
         <td>
           <select name="type">
-            <option value="percent" <?php selected($type, 'percent'); ?>>Percent</option>
-            <option value="fixed" <?php selected($type, 'fixed'); ?>>Fixed</option>
+            <option value="percent" <?php selected($type, 'percent'); ?>><?php echo esc_html__('Percent', 'bookpoint'); ?></option>
+            <option value="fixed" <?php selected($type, 'fixed'); ?>><?php echo esc_html__('Fixed', 'bookpoint'); ?></option>
           </select>
         </td>
       </tr>
@@ -61,10 +69,23 @@ $is_active = isset($item['is_active']) ? (int)$item['is_active'] : 1;
 
       <tr>
         <th><label><?php echo esc_html__('Active', 'bookpoint'); ?></label></th>
-        <td><label><input type="checkbox" name="is_active" value="1" <?php checked($is_active, 1); ?>> Enabled</label></td>
+        <td><label><input type="checkbox" name="is_active" value="1" <?php checked($is_active, 1); ?>> <?php echo esc_html__('Enabled', 'bookpoint'); ?></label></td>
       </tr>
     </table>
 
-    <?php submit_button($id ? __('Save Changes', 'bookpoint') : __('Create Promo Code', 'bookpoint')); ?>
+    <p class="submit">
+      <button type="submit" class="bp-btn bp-btn-primary">
+        <?php echo $id ? esc_html__('Save Changes', 'bookpoint') : esc_html__('Create Promo Code', 'bookpoint'); ?>
+      </button>
+      <a class="bp-btn" href="<?php echo esc_url(admin_url('admin.php?page=bp_promo_codes')); ?>">
+        <?php echo esc_html__('Back', 'bookpoint'); ?>
+      </a>
+      <?php if ($id): ?>
+        <a class="bp-btn bp-btn-danger" href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=bp_promo_codes_delete&id=' . absint($id)), 'bp_admin')); ?>" onclick="return confirm('<?php echo esc_js(__('Delete promo code?', 'bookpoint')); ?>');">
+          <?php echo esc_html__('Delete', 'bookpoint'); ?>
+        </a>
+      <?php endif; ?>
+    </p>
   </form>
-</div>
+
+<?php bp_render_legacy_shell_end(); ?>

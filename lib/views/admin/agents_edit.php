@@ -1,18 +1,27 @@
-<?php defined('ABSPATH') || exit;
+<?php
+defined('ABSPATH') || exit;
+require_once __DIR__ . '/legacy_shell.php';
+
 $id = isset($agent['id']) ? (int)$agent['id'] : 0;
 $services = $services ?? [];
 $selected_service_ids = $selected_service_ids ?? [];
 
 $image_id  = (int)($agent['image_id'] ?? 0);
 $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
+
+$actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp_agents')) . '">' . esc_html__('Back to Agents', 'bookpoint') . '</a>';
+bp_render_legacy_shell_start(
+  $id ? esc_html__('Edit Agent', 'bookpoint') : esc_html__('Add Agent', 'bookpoint'),
+  esc_html__('Manage agent profile, photo, and service assignments.', 'bookpoint'),
+  $actions_html,
+  'agents'
+);
 ?>
-<div class="wrap">
-  <h1><?php echo $id ? esc_html__('Edit Agent', 'bookpoint') : esc_html__('Add Agent', 'bookpoint'); ?></h1>
 
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
     <?php wp_nonce_field('bp_admin'); ?>
     <input type="hidden" name="action" value="bp_admin_agents_save">
-    <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
+    <input type="hidden" name="id" value="<?php echo esc_attr((string)$id); ?>">
 
     <table class="form-table" role="presentation">
       <tr>
@@ -48,6 +57,7 @@ $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
 
           <button type="button" class="button" id="bp_agent_pick_image"><?php echo esc_html__('Choose Image', 'bookpoint'); ?></button>
           <button type="button" class="button" id="bp_agent_remove_image"><?php echo esc_html__('Remove', 'bookpoint'); ?></button>
+          <p class="description"><?php echo esc_html__('Uses Media Library. Stores attachment ID.', 'bookpoint'); ?></p>
         </td>
       </tr>
       <tr>
@@ -67,7 +77,7 @@ $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:720px;">
             <?php if (empty($services)): ?>
               <div style="color:#666;"><?php echo esc_html__('No services found. Create services first.', 'bookpoint'); ?></div>
-            <?php else: foreach ($services as $s): 
+            <?php else: foreach ($services as $s):
               $sid = (int)$s['id'];
               $checked = in_array($sid, $selected_service_ids, true);
             ?>
@@ -83,8 +93,13 @@ $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
     </table>
 
     <p class="submit">
-      <button class="button button-primary" type="submit"><?php esc_html_e('Save', 'bookpoint'); ?></button>
-      <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=bp_agents')); ?>"><?php esc_html_e('Cancel', 'bookpoint'); ?></a>
+      <button type="submit" class="bp-btn bp-btn-primary">
+        <?php echo $id ? esc_html__('Save Changes', 'bookpoint') : esc_html__('Create Agent', 'bookpoint'); ?>
+      </button>
+      <a class="bp-btn" href="<?php echo esc_url(admin_url('admin.php?page=bp_agents')); ?>">
+        <?php echo esc_html__('Back', 'bookpoint'); ?>
+      </a>
     </p>
   </form>
-</div>
+
+<?php bp_render_legacy_shell_end(); ?>

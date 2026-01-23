@@ -327,9 +327,33 @@ function bp_rest_admin_agents_list(WP_REST_Request $req) {
   global $wpdb;
   $t = $wpdb->prefix . 'bp_agents';
 
-  // Adjust columns if needed: id, name, image_id
-  $rows = $wpdb->get_results("SELECT id, name FROM {$t} ORDER BY name ASC", ARRAY_A);
-  return new WP_REST_Response(['status'=>'success','data'=>($rows ?: [])], 200);
+  $cols = $wpdb->get_col("SHOW COLUMNS FROM {$t}") ?: [];
+  $has_name = in_array('name', $cols, true);
+  $has_first = in_array('first_name', $cols, true);
+  $has_last = in_array('last_name', $cols, true);
+  $has_email = in_array('email', $cols, true);
+
+  $select = ['id'];
+  if ($has_name) $select[] = 'name';
+  if ($has_first) $select[] = 'first_name';
+  if ($has_last) $select[] = 'last_name';
+  if ($has_email) $select[] = 'email';
+
+  $order = $has_name
+    ? 'name ASC'
+    : (($has_first || $has_last) ? "first_name ASC, last_name ASC" : 'id ASC');
+
+  $sql = "SELECT " . implode(', ', $select) . " FROM {$t} ORDER BY {$order}";
+  $rows = $wpdb->get_results($sql, ARRAY_A) ?: [];
+
+  foreach ($rows as &$row) {
+    if (empty($row['name'])) {
+      $full = trim((string)($row['first_name'] ?? '') . ' ' . (string)($row['last_name'] ?? ''));
+      if ($full !== '') $row['name'] = $full;
+    }
+  }
+
+  return new WP_REST_Response(['status'=>'success','data'=>$rows], 200);
 }
 
 

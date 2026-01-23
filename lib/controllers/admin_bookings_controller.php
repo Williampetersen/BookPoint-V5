@@ -150,6 +150,55 @@ final class BP_AdminBookingsController extends BP_Controller {
     exit;
   }
 
+  public function export_pdf() : void {
+    $this->require_cap('bp_manage_bookings');
+    check_admin_referer('bp_admin');
+
+    $args = [
+      'q' => sanitize_text_field($_GET['q'] ?? ''),
+      'status' => sanitize_text_field($_GET['status'] ?? ''),
+      'service_id' => absint($_GET['service_id'] ?? 0),
+      'agent_id' => absint($_GET['agent_id'] ?? 0),
+      'date_from' => sanitize_text_field($_GET['date_from'] ?? ''),
+      'date_to' => sanitize_text_field($_GET['date_to'] ?? ''),
+    ];
+
+    $rows = BP_BookingModel::admin_list($args);
+
+    header('Content-Type: text/html; charset=UTF-8');
+    header('Content-Disposition: inline; filename="bookings-' . date('Y-m-d') . '.html"');
+
+    echo '<!doctype html><html><head><meta charset="utf-8">';
+    echo '<title>Bookings Export</title>';
+    echo '<style>body{font-family:Arial,sans-serif;color:#111;padding:24px;}h1{font-size:20px;margin:0 0 12px;}table{width:100%;border-collapse:collapse;font-size:12px;}th,td{border:1px solid #e5e7eb;padding:6px 8px;text-align:left;vertical-align:top;}th{background:#f9fafb;} .muted{color:#64748b;font-size:12px;margin-bottom:12px;}</style>';
+    echo '</head><body>'; 
+    echo '<h1>Bookings Export</h1>';
+    echo '<div class="muted">Generated ' . esc_html(date('Y-m-d H:i')) . '</div>';
+    echo '<table><thead><tr>';
+    echo '<th>ID</th><th>Status</th><th>Service</th><th>Agent</th><th>Customer</th><th>Email</th><th>Phone</th><th>Start</th><th>End</th><th>Notes</th>';
+    echo '</tr></thead><tbody>';
+
+    foreach ($rows as $r) {
+      echo '<tr>';
+      echo '<td>' . esc_html((string)($r['id'] ?? '')) . '</td>';
+      echo '<td>' . esc_html((string)($r['status'] ?? '')) . '</td>';
+      echo '<td>' . esc_html((string)($r['service_name'] ?? '')) . '</td>';
+      echo '<td>' . esc_html((string)($r['agent_name'] ?? '')) . '</td>';
+      echo '<td>' . esc_html((string)($r['customer_name'] ?? '')) . '</td>';
+      echo '<td>' . esc_html((string)($r['customer_email'] ?? '')) . '</td>';
+      echo '<td>' . esc_html((string)($r['customer_phone'] ?? '')) . '</td>';
+      echo '<td>' . esc_html((string)($r['start_datetime'] ?? '')) . '</td>';
+      echo '<td>' . esc_html((string)($r['end_datetime'] ?? '')) . '</td>';
+      echo '<td>' . esc_html((string)($r['notes'] ?? '')) . '</td>';
+      echo '</tr>';
+    }
+
+    echo '</tbody></table>';
+    echo '<script>window.onload=function(){window.print();};</script>';
+    echo '</body></html>';
+    exit;
+  }
+
   private function email_status_change(int $booking_id, string $old, string $new) : void {
     $b = BP_BookingModel::find($booking_id);
     if (!$b) return;

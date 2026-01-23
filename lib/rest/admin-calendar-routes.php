@@ -436,8 +436,8 @@ function bp_rest_admin_booking_reschedule(WP_REST_Request $req) {
   $service_id = (int)($booking['service_id'] ?? 0);
 
   // compute new times
-  $new_date = gmdate('Y-m-d', $start_dt);
-  $new_time = gmdate('H:i:s', $start_dt);
+  $new_date = date('Y-m-d', $start_dt);
+  $new_time = date('H:i:s', $start_dt);
 
   $rules = BP_ScheduleHelper::get_service_rules($service_id);
   $dur = (int)$rules['duration'];
@@ -450,80 +450,108 @@ function bp_rest_admin_booking_reschedule(WP_REST_Request $req) {
   $new_end_dt_occ = $start_dt + ($occupied * 60);
 
   // Validate within working hours + breaks
-  $start_time_only = gmdate('H:i:s', $start_dt);
+  $start_time_only = date('H:i:s', $start_dt);
   if (!BP_ScheduleHelper::is_within_schedule($agent_id, $new_date, $start_time_only, $occupied)) {
     return new WP_REST_Response(['status'=>'error','message'=>'Outside working hours or in break'], 409);
   }
+
+  // Determine booking schema columns
+  $book_cols = $wpdb->get_col("SHOW COLUMNS FROM {$t_book}") ?: [];
+  $has_start_date = in_array('start_date', $book_cols, true);
+  $has_start_time = in_array('start_time', $book_cols, true);
+  $has_end_time = in_array('end_time', $book_cols, true);
+  $has_start_datetime = in_array('start_datetime', $book_cols, true);
+  $has_end_datetime = in_array('end_datetime', $book_cols, true);
+  $has_agent_id = in_array('agent_id', $book_cols, true);
+  $has_updated_at = in_array('updated_at', $book_cols, true);
 
   // Find overlaps for the same agent (excluding this booking)
   // We compare by building existing booking start+duration end in SQL.
   $start_iso = gmdate('Y-m-d\TH:i:s', $start_dt);
   $end_iso   = gmdate('Y-m-d\TH:i:s', $new_end_dt_occ);
 
-  if ($capacity <= 1) {
-    $sql = "
-      SELECT b.id
-      FROM {$t_book} b
-      LEFT JOIN {$t_srv} s ON s.id = b.service_id
-      WHERE b.id <> %d
-        AND b.agent_id = %d
-        AND b.status IN ('pending','confirmed')
-        AND (
-          STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s')
-          < STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-        )
-        AND (
-          DATE_ADD(
-            STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-            INTERVAL (COALESCE(s.duration,30) + COALESCE(s.buffer_before,0) + COALESCE(s.buffer_after,0)) MINUTE
-          )
-          > STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-        )
-      LIMIT 1
-    ";
+  $start_expr = '';
+  if ($has_start_datetime) {
+    $start_expr = 'b.start_datetime';
+  } elseif ($has_start_date && $has_start_time) {
+    $start_expr = "STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s')";
+  }
 
-    $conflict = $wpdb->get_var($wpdb->prepare($sql, $id, $agent_id, $end_iso, $start_iso));
-    if ($conflict) {
-      return new WP_REST_Response(['status'=>'error','message'=>'Time slot is not available (conflict)'], 409);
-    }
-  } else {
-    $sql = "
-      SELECT COUNT(*)
-      FROM {$t_book} b
-      LEFT JOIN {$t_srv} s ON s.id = b.service_id
-      WHERE b.id <> %d
-        AND b.agent_id = %d
-        AND b.status IN ('pending','confirmed')
-        AND (
-          STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s')
-          < STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-        )
-        AND (
-          DATE_ADD(
-            STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-            INTERVAL (COALESCE(s.duration,30) + COALESCE(s.buffer_before,0) + COALESCE(s.buffer_after,0)) MINUTE
-          )
-          > STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-        )
-    ";
+  $can_check_conflicts = ($capacity > 0) && $has_agent_id && !empty($start_expr);
 
-    $count = (int)$wpdb->get_var($wpdb->prepare($sql, $id, $agent_id, $end_iso, $start_iso));
-    if ($count >= $capacity) {
-      return new WP_REST_Response(['status'=>'error','message'=>'Time slot is not available (capacity)'], 409);
+  if ($can_check_conflicts) {
+    $sCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_srv}") ?: [];
+    $durationExpr = in_array('duration_minutes', $sCols, true)
+      ? 's.duration_minutes'
+      : (in_array('duration', $sCols, true) ? 's.duration' : '30');
+    $bufferBeforeExpr = in_array('buffer_before_minutes', $sCols, true)
+      ? 's.buffer_before_minutes'
+      : (in_array('buffer_before', $sCols, true) ? 's.buffer_before' : '0');
+    $bufferAfterExpr = in_array('buffer_after_minutes', $sCols, true)
+      ? 's.buffer_after_minutes'
+      : (in_array('buffer_after', $sCols, true) ? 's.buffer_after' : '0');
+
+    $end_expr = "DATE_ADD({$start_expr}, INTERVAL (COALESCE({$durationExpr},30) + COALESCE({$bufferBeforeExpr},0) + COALESCE({$bufferAfterExpr},0)) MINUTE)";
+
+    if ($capacity <= 1) {
+      $sql = "
+        SELECT b.id
+        FROM {$t_book} b
+        LEFT JOIN {$t_srv} s ON s.id = b.service_id
+        WHERE b.id <> %d
+          AND b.agent_id = %d
+          AND b.status IN ('pending','confirmed')
+          AND ({$start_expr} < STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s'))
+          AND ({$end_expr} > STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s'))
+        LIMIT 1
+      ";
+
+      $conflict = $wpdb->get_var($wpdb->prepare($sql, $id, $agent_id, $end_iso, $start_iso));
+      if ($wpdb->last_error) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Conflict check failed: ' . $wpdb->last_error], 500);
+      }
+      if ($conflict) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Time slot is not available (conflict)'], 409);
+      }
+    } else {
+      $sql = "
+        SELECT COUNT(*)
+        FROM {$t_book} b
+        LEFT JOIN {$t_srv} s ON s.id = b.service_id
+        WHERE b.id <> %d
+          AND b.agent_id = %d
+          AND b.status IN ('pending','confirmed')
+          AND ({$start_expr} < STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s'))
+          AND ({$end_expr} > STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s'))
+      ";
+
+      $count = (int)$wpdb->get_var($wpdb->prepare($sql, $id, $agent_id, $end_iso, $start_iso));
+      if ($wpdb->last_error) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Conflict check failed: ' . $wpdb->last_error], 500);
+      }
+      if ($count >= $capacity) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Time slot is not available (capacity)'], 409);
+      }
     }
   }
 
   // Update booking
-  $update_data = [
-    'start_date' => $new_date,
-    'start_time' => $new_time,
-    'agent_id'   => $agent_id,
-  ];
-  $update_formats = ['%s','%s','%d'];
 
-  $book_cols = $wpdb->get_col("SHOW COLUMNS FROM {$t_book}") ?: [];
-  $has_start_datetime = in_array('start_datetime', $book_cols, true);
-  $has_end_datetime = in_array('end_datetime', $book_cols, true);
+  $update_data = [];
+  $update_formats = [];
+
+  if ($has_start_date) {
+    $update_data['start_date'] = $new_date;
+    $update_formats[] = '%s';
+  }
+  if ($has_start_time) {
+    $update_data['start_time'] = $new_time;
+    $update_formats[] = '%s';
+  }
+  if ($has_end_time) {
+    $update_data['end_time'] = date('H:i:s', $new_end_dt);
+    $update_formats[] = '%s';
+  }
   if ($has_start_datetime) {
     $update_data['start_datetime'] = date('Y-m-d H:i:s', $start_dt);
     $update_formats[] = '%s';
@@ -531,6 +559,18 @@ function bp_rest_admin_booking_reschedule(WP_REST_Request $req) {
   if ($has_end_datetime) {
     $update_data['end_datetime'] = date('Y-m-d H:i:s', $new_end_dt);
     $update_formats[] = '%s';
+  }
+  if ($has_agent_id) {
+    $update_data['agent_id'] = $agent_id;
+    $update_formats[] = '%d';
+  }
+  if ($has_updated_at) {
+    $update_data['updated_at'] = current_time('mysql');
+    $update_formats[] = '%s';
+  }
+
+  if (!$update_data) {
+    return new WP_REST_Response(['status'=>'error','message'=>'No updatable columns found'], 500);
   }
 
   $updated = $wpdb->update(
@@ -542,7 +582,9 @@ function bp_rest_admin_booking_reschedule(WP_REST_Request $req) {
   );
 
   if ($updated === false) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Database update failed'], 500);
+    $last_error = $wpdb->last_error;
+    $message = $last_error ? ('Database update failed: ' . $last_error) : 'Database update failed';
+    return new WP_REST_Response(['status'=>'error','message'=>$message], 500);
   }
 
   // TODO later:
