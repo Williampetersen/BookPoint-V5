@@ -1,4 +1,6 @@
-<?php defined('ABSPATH') || exit;
+<?php
+defined('ABSPATH') || exit;
+require_once __DIR__ . '/legacy_shell.php';
 
 $id = (int)($item['id'] ?? 0);
 $service_id = (int)($item['service_id'] ?? 0);
@@ -14,10 +16,15 @@ $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
 
 $selected_service_ids = $id ? BP_ServiceExtraModel::get_service_ids($id) : [];
 $services = $services ?? BP_ServiceModel::all(['is_active' => 1]);
-?>
 
-<div class="wrap">
-  <h1><?php echo $id ? esc_html__('Edit Extra', 'bookpoint') : esc_html__('Add Extra', 'bookpoint'); ?></h1>
+$actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp_extras')) . '">' . esc_html__('Back to Extras', 'bookpoint') . '</a>';
+bp_render_legacy_shell_start(
+  $id ? esc_html__('Edit Extra', 'bookpoint') : esc_html__('Add Extra', 'bookpoint'),
+  esc_html__('Configure extra items, pricing, and service availability.', 'bookpoint'),
+  $actions_html,
+  'extras'
+);
+?>
 
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
     <?php wp_nonce_field('bp_admin'); ?>
@@ -97,6 +104,19 @@ $services = $services ?? BP_ServiceModel::all(['is_active' => 1]);
       </tr>
     </table>
 
-    <?php submit_button($id ? __('Save Changes', 'bookpoint') : __('Create Extra', 'bookpoint')); ?>
+    <p class="submit">
+      <button type="submit" class="bp-btn bp-btn-primary">
+        <?php echo $id ? esc_html__('Save Changes', 'bookpoint') : esc_html__('Create Extra', 'bookpoint'); ?>
+      </button>
+      <a class="bp-btn" href="<?php echo esc_url(admin_url('admin.php?page=bp_extras')); ?>">
+        <?php echo esc_html__('Back', 'bookpoint'); ?>
+      </a>
+      <?php if ($id): ?>
+        <a class="bp-btn bp-btn-danger" href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=bp_extras_delete&id=' . absint($id)), 'bp_admin')); ?>" onclick="return confirm('<?php echo esc_js(__('Delete extra?', 'bookpoint')); ?>');">
+          <?php echo esc_html__('Delete', 'bookpoint'); ?>
+        </a>
+      <?php endif; ?>
+    </p>
   </form>
-</div>
+
+<?php bp_render_legacy_shell_end(); ?>

@@ -33,6 +33,15 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
   function mysqlFromDateTime(dateStr, timeStr){
     return `${dateStr} ${timeStr}:00`;
   }
+  function mysqlFromDateObj(d){
+    if (!(d instanceof Date) || isNaN(d.getTime())) return "";
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${day} ${hh}:${mm}:00`;
+  }
 
   useEffect(()=>{
     if(!bookingId) return;
@@ -41,13 +50,14 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
       setErr('');
       try{
         const res = await bpFetch(`/admin/bookings/${bookingId}`);
-        const d = res?.data;
+        const d = normalizeBookingResponse(res);
         setData(d);
-        setStatus(d?.status || 'pending');
-        setAdminNotes(d?.admin_notes || '');
+        const booking = d?.booking || d || {};
+        setStatus(booking?.status || d?.status || 'pending');
+        setAdminNotes(booking?.admin_notes || d?.admin_notes || '');
         
         // Initialize reschedule fields (C17.2)
-        const b = d?.booking || d || {};
+        const b = booking;
         setRsDate(toDateInput(b.start_datetime || b.start));
         setRsTime(toTimeInput(b.start_datetime || b.start));
         setRsSlots([]);
@@ -79,10 +89,11 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
         const res = await bpFetch(`/admin/availability/slots?date=${rsDate}&agent_id=${agentId}&service_id=${serviceId}`);
         const payload = res?.data?.data ? res.data.data : (res?.data ? res.data : res);
         const slots = payload?.slots || [];
-        setRsSlots(Array.isArray(slots) ? slots : []);
+        const normalized = normalizeSlots(slots);
+        setRsSlots(normalized);
         // if current time isn't in slots, reset selection
-        if(slots.length && !slots.find(s => s === rsTime)) setRsTime(slots[0]?.time || slots[0] || "");
-        if(!slots.length) setRsTime("");
+        if(normalized.length && !normalized.includes(rsTime)) setRsTime(normalized[0] || "");
+        if(!normalized.length) setRsTime("");
       }catch(e){
         setRsSlots([]);
         setRsTime("");
@@ -102,7 +113,7 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
         method:'PATCH',
         body: payload
       });
-      const d = res?.data;
+      const d = normalizeBookingResponse(res);
       setData(d);
       if (onUpdated) onUpdated(d);
     }catch(e){
@@ -126,22 +137,26 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
 
     try{
       const start = mysqlFromDateTime(rsDate, rsTime);
+      const booking = data?.booking || data || {};
+      const service = data?.service || {};
+      const durationMinutes =
+        Number(service.duration_minutes || booking.duration_minutes || booking.duration || 30);
+      const startTs = new Date(`${rsDate}T${rsTime}:00`).getTime();
+      const endTs = startTs + durationMinutes * 60000;
+      const endDate = new Date(endTs);
+      const end = mysqlFromDateObj(endDate);
 
       await bpFetch(`/admin/bookings/${bookingId}/reschedule`, {
         method: "POST",
         body: JSON.stringify({
           start_datetime: start,
-          end_datetime: ""
+          end_datetime: end
         })
       });
 
       // Reload booking details to show updated times
       const res = await bpFetch(`/admin/bookings/${bookingId}`);
-      const payload =
-        res?.data?.booking ? res.data :
-        res?.booking ? res :
-        res?.data ? res.data :
-        res;
+      const payload = normalizeBookingResponse(res);
 
       setData(payload);
 
@@ -187,13 +202,35 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
               <div className="bp-card" style={{boxShadow:'none'}}>
                 <div style={{display:'flex', justifyContent:'space-between', gap:12, flexWrap:'wrap'}}>
                   <div>
-                    <div style={{fontWeight:1000}}>{data.service_name}</div>
-                    <div style={{color:'var(--bp-muted)', fontWeight:850, marginTop:6}}>
-                      {data.date} • {data.start_time}–{data.end_time}
-                    </div>
-                    <div style={{color:'var(--bp-muted)', fontWeight:850, marginTop:6}}>
-                      Agent: <span style={{fontWeight:950, color:'var(--bp-text)'}}>{data.agent_name}</span>
-                    </div>
+                    {(() => {
+                      const booking = data?.booking || data || {};
+                      const service = data?.service || {};
+                      const agent = data?.agent || {};
+                      const customer = data?.customer || {};
+                      const serviceName = service.name || booking.service_name || data.service_name || '—';
+                      const agentName = agent.name || booking.agent_name || data.agent_name || `${agent.first_name || ''} ${agent.last_name || ''}`.trim() || '—';
+                      const startRaw = booking.start_datetime || booking.start;
+                      const endRaw = booking.end_datetime || booking.end;
+                      const dateStr = toDateInput(startRaw) || booking.start_date || '—';
+                      const startTime = toTimeInput(startRaw);
+                      const endTime = toTimeInput(endRaw);
+                      return (
+                        <>
+                          <div style={{fontWeight:1000}}>{serviceName}</div>
+                          <div style={{color:'var(--bp-muted)', fontWeight:850, marginTop:6}}>
+                            {dateStr} • {startTime && endTime ? `${startTime}–${endTime}` : (startTime || '—')}
+                          </div>
+                          <div style={{color:'var(--bp-muted)', fontWeight:850, marginTop:6}}>
+                            Agent: <span style={{fontWeight:950, color:'var(--bp-text)'}}>{agentName}</span>
+                          </div>
+                          {customer.email ? (
+                            <div style={{color:'var(--bp-muted)', fontWeight:850, marginTop:6}}>
+                              {customer.email}
+                            </div>
+                          ) : null}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <span style={{
@@ -212,21 +249,97 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
               <div style={{height:12}} />
 
               <div className="bp-card" style={{boxShadow:'none'}}>
+                <div style={{fontWeight:950, marginBottom:8}}>All Details</div>
+                {(() => {
+                  const booking = data?.booking || data || {};
+                  const customer = data?.customer || {};
+                  const service = data?.service || {};
+                  const agent = data?.agent || {};
+                  const pricing = data?.pricing || {};
+                  const answers = data?.answers || {};
+                  const fields = data?.field_defs || data?.form_fields || [];
+
+                  const extras = Array.isArray(data?.extras) ? data.extras : [];
+
+                  return (
+                    <div className="bp-kv">
+                      <div className="bp-k">Booking ID</div><div className="bp-v">{booking.id || booking.booking_id || '—'}</div>
+                      <div className="bp-k">Status</div><div className="bp-v">{booking.status || '—'}</div>
+                      <div className="bp-k">Start</div><div className="bp-v">{booking.start_datetime || booking.start || '—'}</div>
+                      <div className="bp-k">End</div><div className="bp-v">{booking.end_datetime || booking.end || '—'}</div>
+                      <div className="bp-k">Service</div><div className="bp-v">{service.name || booking.service_name || '—'}</div>
+                      <div className="bp-k">Agent</div><div className="bp-v">{agent.name || booking.agent_name || '—'}</div>
+                      <div className="bp-k">Customer</div><div className="bp-v">{customer.name || booking.customer_name || '—'}</div>
+                      <div className="bp-k">Email</div><div className="bp-v">{customer.email || booking.customer_email || '—'}</div>
+                      <div className="bp-k">Phone</div><div className="bp-v">{customer.phone || booking.customer_phone || '—'}</div>
+                      <div className="bp-k">Total</div><div className="bp-v">{pricing.total ?? booking.total_price ?? '—'}</div>
+                      <div className="bp-k">Discount</div><div className="bp-v">{pricing.discount_total ?? booking.discount_total ?? '—'}</div>
+                      <div className="bp-k">Promo</div><div className="bp-v">{pricing.promo_code || booking.promo_code || '—'}</div>
+                      <div className="bp-k">Extras</div>
+                      <div className="bp-v">
+                        {extras.length ? extras.map((e) => `${e.name || 'Extra'} (${e.price ?? '-'})`).join(', ') : '—'}
+                      </div>
+
+                      {Object.keys(answers || {}).length > 0 ? (
+                        Object.keys(answers).map((k) => {
+                          const def = fields.find((d) => d.key === k || d.field_key === k || d.slug === k);
+                          const label = def?.label || def?.name || k;
+                          const val = Array.isArray(answers[k]) ? answers[k].join(', ') : answers[k];
+                          return (
+                            <React.Fragment key={`ans-${k}`}>
+                              <div className="bp-k">{label}</div>
+                              <div className="bp-v">{val === '' || val == null ? '—' : String(val)}</div>
+                            </React.Fragment>
+                          );
+                        })
+                      ) : (
+                        <>
+                          <div className="bp-k">Form Responses</div>
+                          <div className="bp-v">—</div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div className="bp-card" style={{boxShadow:'none'}}>
                 <div style={{fontWeight:950, marginBottom:8}}>Service</div>
-                <div style={{fontWeight:900}}>{data.service_name || '—'}</div>
-                {data.service?.duration_minutes ? (
-                  <div style={{marginTop:6, color:'var(--bp-muted)', fontWeight:850}}>Duration: {data.service.duration_minutes} min</div>
-                ) : null}
+                {(() => {
+                  const booking = data?.booking || data || {};
+                  const service = data?.service || {};
+                  const serviceName = service.name || booking.service_name || data.service_name || '—';
+                  const duration = service.duration_minutes || booking.duration_minutes || booking.duration || null;
+                  return (
+                    <>
+                      <div style={{fontWeight:900}}>{serviceName}</div>
+                      {duration ? (
+                        <div style={{marginTop:6, color:'var(--bp-muted)', fontWeight:850}}>Duration: {duration} min</div>
+                      ) : null}
+                    </>
+                  );
+                })()}
               </div>
 
               <div style={{height:12}} />
 
               <div className="bp-card" style={{boxShadow:'none'}}>
                 <div style={{fontWeight:950}}>Customer</div>
-                <div style={{marginTop:8, fontWeight:900}}>{data.customer_name || '—'}</div>
-                <div style={{marginTop:6, color:'var(--bp-muted)', fontWeight:850}}>
-                  {data.customer_email || ''}{data.customer_phone ? ` • ${data.customer_phone}` : ''}
-                </div>
+                {(() => {
+                  const booking = data?.booking || data || {};
+                  const customer = data?.customer || {};
+                  const name = customer.name || booking.customer_name || data.customer_name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || '—';
+                  const email = customer.email || booking.customer_email || data.customer_email || '';
+                  const phone = customer.phone || booking.customer_phone || data.customer_phone || '';
+                  return (
+                    <>
+                      <div style={{marginTop:8, fontWeight:900}}>{name}</div>
+                      <div style={{marginTop:6, color:'var(--bp-muted)', fontWeight:850}}>
+                        {email}{phone ? ` • ${phone}` : ''}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <div style={{height:12}} />
@@ -287,7 +400,9 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
                       disabled={rsLoading || !rsSlots.length}
                     >
                       {!rsSlots.length ? <option value="">No available times</option> : null}
-                      {rsSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                      {rsSlots.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -347,6 +462,26 @@ function statusColor(s){
   if(s==='pending') return '#92400e';
   if(s==='cancelled') return '#991b1b';
   return '#334155';
+}
+
+function normalizeSlots(slots){
+  if (!Array.isArray(slots)) return [];
+  return slots.map((s) => {
+    if (typeof s === 'string') return s;
+    if (typeof s === 'number') return String(s);
+    if (s && typeof s === 'object') {
+      return String(s.time || s.start_time || s.start || s.label || s.value || '');
+    }
+    return '';
+  }).filter(Boolean);
+}
+
+function normalizeBookingResponse(res){
+  if (!res) return res;
+  if (res?.data?.booking) return res.data;
+  if (res?.booking) return res;
+  if (res?.data) return res.data;
+  return res;
 }
 
 const overlay = { position:'fixed', inset:0, background:'rgba(2,6,23,.55)', zIndex: 999999, display:'flex', justifyContent:'flex-end' };

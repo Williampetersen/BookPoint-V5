@@ -28,9 +28,6 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
             {/* RESOURCES */}
             <div className="bp-group-title">RESOURCES</div>
             <div className="bp-sidegroup">
-              <a className={`bp-nav-item ${["bp_services","bp_categories","bp_extras"].includes(page)?"active":""}`} href="admin.php?page=bp_services">
-                Services
-              </a>
               <div className="bp-subnav">
                 <a className={`bp-sub-item ${is("bp_services")?"active":""}`} href="admin.php?page=bp_services">Services</a>
                 <a className={`bp-sub-item ${is("bp_categories")?"active":""}`} href="admin.php?page=bp_categories">Categories</a>

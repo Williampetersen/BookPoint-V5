@@ -154,6 +154,7 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'rest/calendar-routes.php';
     require_once BP_LIB_PATH . 'rest/dashboard-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-catalog-manager-routes.php';
+    require_once BP_LIB_PATH . 'rest/admin-misc-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-field-values-routes.php';
     require_once BP_LIB_PATH . 'rest/settings-routes.php';
     require_once BP_LIB_PATH . 'rest/public-catalog-routes.php';
@@ -240,9 +241,14 @@ final class BP_Plugin {
 
     // Bookings export CSV
     add_action('admin_post_bp_admin_bookings_export_csv', [__CLASS__, 'handle_bookings_export_csv']);
+    add_action('admin_post_bp_admin_bookings_export_pdf', [__CLASS__, 'handle_bookings_export_pdf']);
 
     // GDPR delete customer
     add_action('admin_post_bp_admin_customer_gdpr_delete', [__CLASS__, 'handle_customer_gdpr_delete']);
+
+    // Customers import/export CSV
+    add_action('admin_post_bp_admin_customers_export_csv', [__CLASS__, 'handle_customers_export_csv']);
+    add_action('admin_post_bp_admin_customers_import_csv', [__CLASS__, 'handle_customers_import_csv']);
 
     // Tools actions
     add_action('admin_post_bp_admin_tools_email_test', [__CLASS__, 'handle_tools_email_test']);
@@ -1177,6 +1183,24 @@ final class BP_Plugin {
 
     add_submenu_page(
       null,
+      __('Edit Extra', 'bookpoint'),
+      __('Edit Extra', 'bookpoint'),
+      'bp_manage_services',
+      'bp_extras_edit',
+      [__CLASS__, 'render_extras_edit']
+    );
+
+    add_submenu_page(
+      null,
+      __('Delete Extra', 'bookpoint'),
+      __('Delete Extra', 'bookpoint'),
+      'bp_manage_services',
+      'bp_extras_delete',
+      [__CLASS__, 'render_extras_delete']
+    );
+
+    add_submenu_page(
+      null,
       __('Edit Category', 'bookpoint'),
       __('Edit Category', 'bookpoint'),
       'bp_manage_services',
@@ -1186,11 +1210,38 @@ final class BP_Plugin {
 
     add_submenu_page(
       null,
+      __('Delete Category', 'bookpoint'),
+      __('Delete Category', 'bookpoint'),
+      'bp_manage_services',
+      'bp_categories_delete',
+      [__CLASS__, 'render_categories_delete']
+    );
+
+    add_submenu_page(
+      null,
       __('Delete Service', 'bookpoint'),
       __('Delete Service', 'bookpoint'),
       'bp_manage_services',
       'bp_services_delete',
       [__CLASS__, 'render_services_delete']
+    );
+
+    add_submenu_page(
+      null,
+      __('Edit Promo Code', 'bookpoint'),
+      __('Edit Promo Code', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_promo_codes_edit',
+      [__CLASS__, 'render_promo_codes_edit']
+    );
+
+    add_submenu_page(
+      null,
+      __('Delete Promo Code', 'bookpoint'),
+      __('Delete Promo Code', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_promo_codes_delete',
+      [__CLASS__, 'render_promo_codes_delete']
     );
 
     add_submenu_page(
@@ -1319,6 +1370,8 @@ final class BP_Plugin {
       wp_localize_script('bp-admin', 'BP_ADMIN', [
         'restUrl' => esc_url_raw(rest_url('bp/v1')),
         'nonce'   => wp_create_nonce('wp_rest'),
+        'adminNonce' => wp_create_nonce('bp_admin'),
+        'adminPostUrl' => admin_url('admin-post.php'),
         'route'   => $route,
         'page'    => $page,
         'build'   => (file_exists(BP_PLUGIN_PATH . 'build/admin.js') ? (string)@filemtime(BP_PLUGIN_PATH . 'build/admin.js') : ''),
@@ -1341,7 +1394,7 @@ final class BP_Plugin {
       return;
     }
 
-    if ($page === 'bp_extras' && isset($_GET['action']) && $_GET['action'] === 'edit') {
+    if ($page === 'bp_extras_edit' || ($page === 'bp_extras' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
       wp_enqueue_media();
       wp_enqueue_script('bp-admin-extra-media', BP_PLUGIN_URL . 'public/admin-extra-media.js', ['jquery'], self::VERSION, true);
       return;
@@ -1365,12 +1418,32 @@ final class BP_Plugin {
     (new BP_AdminServicesController())->edit();
   }
 
+  public static function render_extras_edit() : void {
+    (new BP_AdminExtrasController())->edit();
+  }
+
+  public static function render_extras_delete() : void {
+    (new BP_AdminExtrasController())->delete();
+  }
+
   public static function render_categories_edit() : void {
     (new BP_AdminCategoriesController())->edit();
   }
 
+  public static function render_categories_delete() : void {
+    (new BP_AdminCategoriesController())->delete();
+  }
+
   public static function render_services_delete() : void {
     (new BP_AdminServicesController())->delete();
+  }
+
+  public static function render_promo_codes_edit() : void {
+    (new BP_AdminPromoCodesController())->edit();
+  }
+
+  public static function render_promo_codes_delete() : void {
+    (new BP_AdminPromoCodesController())->delete();
   }
 
   public static function handle_services_save() : void {
@@ -1606,6 +1679,129 @@ final class BP_Plugin {
 
   public static function handle_bookings_export_csv() : void {
     (new BP_AdminBookingsController())->export_csv();
+  }
+
+  public static function handle_bookings_export_pdf() : void {
+    (new BP_AdminBookingsController())->export_pdf();
+  }
+
+  public static function handle_customers_export_csv() : void {
+    if (!current_user_can('bp_manage_customers') && !current_user_can('bp_manage_bookings') && !current_user_can('bp_manage_settings') && !current_user_can('manage_options')) {
+      wp_die('No permission');
+    }
+    check_admin_referer('bp_admin');
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'bp_customers';
+    $rows = $wpdb->get_results("SELECT * FROM {$table} ORDER BY id DESC", ARRAY_A) ?: [];
+
+    $filename = 'bookpoint-customers-' . date('Y-m-d') . '.csv';
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=' . $filename);
+
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['id','first_name','last_name','email','phone','wp_user_id','created_at','updated_at']);
+
+    foreach ($rows as $r) {
+      fputcsv($out, [
+        $r['id'] ?? '',
+        $r['first_name'] ?? '',
+        $r['last_name'] ?? '',
+        $r['email'] ?? '',
+        $r['phone'] ?? '',
+        $r['wp_user_id'] ?? '',
+        $r['created_at'] ?? '',
+        $r['updated_at'] ?? '',
+      ]);
+    }
+
+    fclose($out);
+    exit;
+  }
+
+  public static function handle_customers_import_csv() : void {
+    if (!current_user_can('bp_manage_customers') && !current_user_can('bp_manage_bookings') && !current_user_can('bp_manage_settings') && !current_user_can('manage_options')) {
+      wp_die('No permission');
+    }
+    check_admin_referer('bp_admin');
+
+    if (empty($_FILES['csv']) || !is_uploaded_file($_FILES['csv']['tmp_name'])) {
+      wp_safe_redirect(admin_url('admin.php?page=bp_customers&import=0'));
+      exit;
+    }
+
+    $file = $_FILES['csv']['tmp_name'];
+    $handle = fopen($file, 'r');
+    if (!$handle) {
+      wp_safe_redirect(admin_url('admin.php?page=bp_customers&import=0'));
+      exit;
+    }
+
+    $header = fgetcsv($handle);
+    $map = [];
+    if (is_array($header)) {
+      foreach ($header as $i => $col) {
+        $key = strtolower(trim($col));
+        $map[$key] = $i;
+      }
+    }
+
+    $count = 0;
+    global $wpdb;
+    $table = $wpdb->prefix . 'bp_customers';
+
+    while (($row = fgetcsv($handle)) !== false) {
+      if (!is_array($row) || count($row) === 0) continue;
+
+      $first = $map['first_name'] ?? null;
+      $last = $map['last_name'] ?? null;
+      $emailIdx = $map['email'] ?? null;
+      $phoneIdx = $map['phone'] ?? null;
+      $nameIdx = $map['name'] ?? null;
+
+      $first_name = $first !== null ? sanitize_text_field($row[$first] ?? '') : '';
+      $last_name  = $last !== null ? sanitize_text_field($row[$last] ?? '') : '';
+      $email      = $emailIdx !== null ? sanitize_email($row[$emailIdx] ?? '') : '';
+      $phone      = $phoneIdx !== null ? sanitize_text_field($row[$phoneIdx] ?? '') : '';
+
+      if (($first_name === '' && $last_name === '') && $nameIdx !== null) {
+        $name = sanitize_text_field($row[$nameIdx] ?? '');
+        if ($name !== '') {
+          $parts = preg_split('/\s+/', $name, 2);
+          $first_name = $parts[0] ?? '';
+          $last_name = $parts[1] ?? '';
+        }
+      }
+
+      if ($email === '' && $first_name === '' && $last_name === '' && $phone === '') continue;
+
+      if ($email !== '') {
+        $existing = BP_CustomerModel::find_by_email($email);
+        if ($existing) {
+          $wpdb->update($table, [
+            'first_name' => $first_name !== '' ? $first_name : ($existing['first_name'] ?? null),
+            'last_name'  => $last_name !== '' ? $last_name : ($existing['last_name'] ?? null),
+            'phone'      => $phone !== '' ? $phone : ($existing['phone'] ?? null),
+            'updated_at' => current_time('mysql'),
+          ], ['id' => (int)$existing['id']], ['%s','%s','%s','%s'], ['%d']);
+          $count++;
+          continue;
+        }
+      }
+
+      BP_CustomerModel::create([
+        'first_name' => $first_name ?: null,
+        'last_name'  => $last_name ?: null,
+        'email'      => $email ?: null,
+        'phone'      => $phone ?: null,
+      ]);
+      $count++;
+    }
+
+    fclose($handle);
+
+    wp_safe_redirect(admin_url('admin.php?page=bp_customers&import=' . $count));
+    exit;
   }
 
   public static function handle_customer_gdpr_delete() : void {

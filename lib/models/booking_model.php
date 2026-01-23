@@ -39,8 +39,15 @@ final class BP_BookingModel extends BP_Model {
       $payload,
       ['%d','%d','%d','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s']
     );
+    $booking_id = (int)$wpdb->insert_id;
 
-    return (int)$wpdb->insert_id;
+    // Notifications: trigger workflows for booking_created
+    if ($booking_id) {
+      if (class_exists('BP_Notifications_Helper')) {
+        BP_Notifications_Helper::run_workflows_for_event('booking_created', $booking_id);
+      }
+    }
+    return $booking_id;
   }
 
   public static function find_by_manage_key(string $key) : ?array {
@@ -347,6 +354,15 @@ final class BP_BookingModel extends BP_Model {
       ['%d']
     );
 
+    // Notifications: trigger workflows for booking_updated and status-specific events
+    if ($updated !== false && class_exists('BP_Notifications_Helper')) {
+      BP_Notifications_Helper::run_workflows_for_event('booking_updated', $id);
+      if ($status === 'confirmed') {
+        BP_Notifications_Helper::run_workflows_for_event('booking_confirmed', $id);
+      } elseif ($status === 'cancelled') {
+        BP_Notifications_Helper::run_workflows_for_event('booking_cancelled', $id);
+      }
+    }
     return ($updated !== false);
   }
 

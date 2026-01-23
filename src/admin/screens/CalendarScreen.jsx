@@ -41,9 +41,6 @@ export default function CalendarScreen(){
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [selectedBookingId, setSelectedBookingId] = useState(null);
-  const [drawer, setDrawer] = useState(null);
-  const [drawerLoading, setDrawerLoading] = useState(false);
-  const [drawerErr, setDrawerErr] = useState("");
   const [currentRange, setCurrentRange] = useState({ start: new Date(), end: addDays(new Date(), 30) });
   const [currentRangeStart, setCurrentRangeStart] = useState(new Date());
   const [currentRangeEnd, setCurrentRangeEnd] = useState(addDays(new Date(), 30));
@@ -80,26 +77,6 @@ export default function CalendarScreen(){
     }
   }
 
-  async function openBookingDrawer(id){
-    setDrawerLoading(true);
-    setDrawerErr("");
-    setDrawer({ id, _loading: true });
-
-    try{
-      const res = await bpFetch(`/admin/bookings/${id}`);
-      const payload =
-        res?.data?.booking ? res.data :
-        res?.booking ? res :
-        res?.data ? res.data :
-        res;
-
-      setDrawer(payload);
-    }catch(e){
-      setDrawerErr(e?.message || "Failed to load booking details");
-    }finally{
-      setDrawerLoading(false);
-    }
-  }
 
   useEffect(() => {
     if (currentRange?.start && currentRange?.end) {
@@ -192,7 +169,9 @@ export default function CalendarScreen(){
   }
 
   function handleEventClick(info){
-    openBookingDrawer(info.event.id);
+    const id = info?.event?.id;
+    if (!id) return;
+    setSelectedBookingId(id);
   }
 
   function handleDatesSet(info){
@@ -330,14 +309,16 @@ export default function CalendarScreen(){
       </div>
 
       {selectedBookingId ? (
-        <BookingDrawer
-          bookingId={selectedBookingId}
-          onClose={() => setSelectedBookingId(null)}
-          onUpdated={(data) => {
-            bpEmit('booking_updated', { id: selectedBookingId });
-            loadEvents(currentRange.start, currentRange.end);
-          }}
-        />
+        <DrawerErrorBoundary onClose={() => setSelectedBookingId(null)}>
+          <BookingDrawer
+            bookingId={selectedBookingId}
+            onClose={() => setSelectedBookingId(null)}
+            onUpdated={(data) => {
+              bpEmit('booking_updated', { id: selectedBookingId });
+              loadEvents(currentRange.start, currentRange.end);
+            }}
+          />
+        </DrawerErrorBoundary>
       ) : null}
 
       {holidayOpen ? (
@@ -430,93 +411,39 @@ export default function CalendarScreen(){
         </div>
       ) : null}
 
-      {drawer ? (
-        <div className="bp-drawer-wrap" onMouseDown={(e)=>{ if(e.target.classList.contains("bp-drawer-wrap")) setDrawer(null); }}>
-          <div className="bp-drawer">
-            <div className="bp-drawer-head">
-              <div>
-                <div className="bp-drawer-title">Booking #{drawer?.booking?.id || drawer?.id}</div>
-                <div className="bp-muted">
-                  {drawer?.booking?.start_datetime || drawer?.start || "-"} → {drawer?.booking?.end_datetime || drawer?.end || "-"}
-                </div>
-              </div>
-              <button className="bp-top-btn" onClick={()=>setDrawer(null)}>Close</button>
-            </div>
-
-            {drawerErr ? <div className="bp-error">{drawerErr}</div> : null}
-            {drawerLoading ? <div className="bp-muted" style={{padding:12}}>Loading…</div> : null}
-
-            {!drawerLoading && !drawerErr ? (
-              <div className="bp-drawer-body">
-                <div className="bp-drawer-grid">
-                  {(() => {
-                    const booking = drawer?.booking || drawer || {};
-                    const customer = drawer?.customer || {};
-                    const service = drawer?.service || {};
-                    const agent = drawer?.agent || {};
-                    const pricing = drawer?.pricing || {};
-                    const answers = drawer?.answers || {};
-                    const fieldDefs = drawer?.field_defs || drawer?.form_fields || [];
-
-                    return (
-                      <>
-                        <div className="bp-section">
-                          <div className="bp-section-title">Customer</div>
-                          <div className="bp-kv">
-                            <div className="bp-k">Name</div><div className="bp-v">{customer.name || "-"}</div>
-                            <div className="bp-k">Email</div><div className="bp-v">{customer.email || "-"}</div>
-                            <div className="bp-k">Phone</div><div className="bp-v">{customer.phone || "-"}</div>
-                          </div>
-                        </div>
-
-                        <div className="bp-section">
-                          <div className="bp-section-title">Service</div>
-                          <div className="bp-kv">
-                            <div className="bp-k">Service</div><div className="bp-v">{service.name || "-"}</div>
-                            <div className="bp-k">Agent</div><div className="bp-v">{agent.name || "-"}</div>
-                          </div>
-                        </div>
-
-                        <div className="bp-section">
-                          <div className="bp-section-title">Pricing</div>
-                          <div className="bp-kv">
-                            <div className="bp-k">Total</div><div className="bp-v">{pricing.total ?? "-"}</div>
-                            <div className="bp-k">Promo</div><div className="bp-v">{pricing.promo_code || "-"}</div>
-                          </div>
-                        </div>
-
-                        <div className="bp-section">
-                          <div className="bp-section-title">Status</div>
-                          <div className="bp-v">{booking.status || "-"}</div>
-                        </div>
-
-                        {Object.keys(answers || {}).length > 0 ? (
-                          <div className="bp-section">
-                            <div className="bp-section-title">Form Responses</div>
-                            <div className="bp-kv">
-                              {Object.keys(answers).map((k)=>{
-                                const def = (fieldDefs||[]).find(d => d.key === k);
-                                const label = def?.label || k;
-                                const val = Array.isArray(answers[k]) ? answers[k].join(", ") : answers[k];
-                                return (
-                                  <React.Fragment key={k}>
-                                    <div className="bp-k">{label}</div>
-                                    <div className="bp-v">{val === "" || val == null ? "-" : String(val)}</div>
-                                  </React.Fragment>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ) : null}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
+}
+
+class DrawerErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, message: "" };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, message: error?.message || "Unexpected error" };
+  }
+
+  componentDidCatch(error, info) {
+    console.error("Booking drawer crashed", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bp-error" style={{ marginTop: 12 }}>
+          Failed to open booking details. {this.state.message}
+          <button
+            className="bp-btn"
+            style={{ marginLeft: 10 }}
+            onClick={this.props.onClose}
+          >
+            Close
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }

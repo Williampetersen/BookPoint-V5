@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { bpFetch } from "../api/client";
 
 export default function CategoriesScreen() {
   const [categories, setCategories] = useState([]);
@@ -12,11 +13,8 @@ export default function CategoriesScreen() {
   async function loadCategories() {
     try {
       setLoading(true);
-      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/categories`, {
-        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce },
-      });
-      const json = await resp.json();
-      setCategories(json.data || []);
+      const resp = await bpFetch("/admin/categories");
+      setCategories(resp?.data || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -28,11 +26,47 @@ export default function CategoriesScreen() {
     (c.name || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  const stats = categories.reduce(
+    (acc, c) => {
+      const isActive =
+        c.is_active !== undefined
+          ? !!Number(c.is_active)
+          : c.is_enabled !== undefined
+            ? !!Number(c.is_enabled)
+            : true;
+      acc.total += 1;
+      if (isActive) acc.active += 1;
+      else acc.inactive += 1;
+      return acc;
+    },
+    { total: 0, active: 0, inactive: 0 }
+  );
+
   return (
-    <div className="bp-container">
-      <div className="bp-header">
-        <h1>Categories</h1>
-        <a className="bp-btn bp-btn-primary" href="admin.php?page=bp_categories_edit">+ New Category</a>
+    <div className="bp-content">
+      <div className="bp-page-head">
+        <div>
+          <div className="bp-h1">Categories</div>
+          <div className="bp-muted">Group services for easier discovery.</div>
+        </div>
+        <div className="bp-head-actions">
+          <a className="bp-primary-btn" href="admin.php?page=bp_categories_edit">+ New Category</a>
+        </div>
+      </div>
+
+      <div className="bp-cards" style={{ marginBottom: 14 }}>
+        <div className="bp-card">
+          <div className="bp-card-label">Total</div>
+          <div className="bp-card-value">{loading ? "…" : stats.total}</div>
+        </div>
+        <div className="bp-card">
+          <div className="bp-card-label">Active</div>
+          <div className="bp-card-value">{loading ? "…" : stats.active}</div>
+        </div>
+        <div className="bp-card">
+          <div className="bp-card-label">Inactive</div>
+          <div className="bp-card-value">{loading ? "…" : stats.inactive}</div>
+        </div>
       </div>
 
       <div className="bp-card" style={{ marginBottom: 20 }}>
@@ -51,50 +85,39 @@ export default function CategoriesScreen() {
       ) : filtered.length === 0 ? (
         <div className="bp-card">No categories found.</div>
       ) : (
-        <div className="bp-card">
-          <div className="bp-table">
-            <div className="bp-tr bp-th">
-              <div>Image</div>
-              <div>Name</div>
-              <div>Services</div>
-              <div>Status</div>
-              <div>Actions</div>
-            </div>
-            {filtered.map((c) => {
-              const name = c.name || c.title || `#${c.id}`;
-              const imageUrl = c.image_url || c.image || "";
-              const initial = (name || "?").trim().slice(0, 1).toUpperCase();
-              const count = c.services_count ?? c.service_count ?? 0;
-              const isActive =
-                c.is_active !== undefined
-                  ? !!Number(c.is_active)
-                  : c.is_enabled !== undefined
-                    ? !!Number(c.is_enabled)
-                    : true;
+        <div className="bp-entity-grid">
+          {filtered.map((c) => {
+            const name = c.name || c.title || `#${c.id}`;
+            const imageUrl = c.image_url || c.image || "";
+            const initial = (name || "?").trim().slice(0, 1).toUpperCase();
+            const count = c.services_count ?? c.service_count ?? 0;
+            const isActive =
+              c.is_active !== undefined
+                ? !!Number(c.is_active)
+                : c.is_enabled !== undefined
+                  ? !!Number(c.is_enabled)
+                  : true;
 
-              return (
-                <div key={c.id} className="bp-tr">
+            return (
+              <div key={c.id} className="bp-entity-card">
+                <div className="bp-entity-head">
+                  <div className="bp-entity-thumb">
+                    {imageUrl ? <img src={imageUrl} alt={name} /> : <div className="bp-entity-initial">{initial}</div>}
+                  </div>
                   <div>
-                    {imageUrl ? (
-                      <img src={imageUrl} alt={name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover" }} />
-                    ) : (
-                      <div style={{ width: 44, height: 44, borderRadius: 8, background: "var(--bp-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "var(--bp-muted)" }}>{initial}</div>
-                    )}
+                    <div className="bp-entity-title">{name}</div>
+                    <div className="bp-entity-sub">Services: {count}</div>
                   </div>
-                  <div style={{ fontWeight: 900 }}>{name}</div>
-                  <div>{count}</div>
-                  <div>
-                    <span className={`bp-status-pill ${isActive ? "active" : "inactive"}`}>
-                      {isActive ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                  <div className="bp-row-actions">
-                    <a className="bp-btn-sm" href={`admin.php?page=bp_categories_edit&id=${c.id}`}>Edit</a>
-                  </div>
+                  <span className={`bp-status-pill ${isActive ? "active" : "inactive"}`}>
+                    {isActive ? "Active" : "Inactive"}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="bp-entity-actions">
+                  <a className="bp-btn-sm" href={`admin.php?page=bp_categories_edit&id=${c.id}`}>Edit</a>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

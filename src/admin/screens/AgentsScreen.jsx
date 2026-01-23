@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { bpFetch } from "../api/client";
 
 export default function AgentsScreen() {
   const [agents, setAgents] = useState([]);
@@ -12,13 +13,11 @@ export default function AgentsScreen() {
   async function loadAgents() {
     try {
       setLoading(true);
-      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/agents-full`, {
-        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce },
-      });
-      const json = await resp.json();
-      setAgents(json.data || []);
+      const resp = await bpFetch("/admin/agents-full");
+      setAgents(resp?.data || []);
     } catch (e) {
       console.error(e);
+      setAgents([]);
     } finally {
       setLoading(false);
     }
@@ -31,13 +30,18 @@ export default function AgentsScreen() {
   });
 
   return (
-    <div className="bp-container">
-      <div className="bp-header">
-        <h1>Agents</h1>
-        <button className="bp-btn bp-btn-primary">+ New Agent</button>
+    <div className="bp-content">
+      <div className="bp-page-head">
+        <div>
+          <div className="bp-h1">Agents</div>
+          <div className="bp-muted">Manage team members, photos, and assignments.</div>
+        </div>
+        <div className="bp-head-actions">
+          <a className="bp-primary-btn" href="admin.php?page=bp_agents_edit">+ New Agent</a>
+        </div>
       </div>
 
-      <div className="bp-card" style={{ marginBottom: 20 }}>
+      <div className="bp-card" style={{ marginBottom: 14 }}>
         <input
           type="text"
           placeholder="Search agents..."
@@ -53,46 +57,57 @@ export default function AgentsScreen() {
       ) : filtered.length === 0 ? (
         <div className="bp-card">No agents found.</div>
       ) : (
-        <div className="bp-table-wrapper">
-          <table className="bp-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Services</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((a) => {
-                const fullName = `${a.first_name || ""} ${a.last_name || ""}`.trim();
-                const name = fullName || a.name || `#${a.id}`;
-                const services = a.services_count ?? a.service_count ?? 0;
-                const isActive =
-                  a.is_active !== undefined
-                    ? !!Number(a.is_active)
-                    : a.is_enabled !== undefined
-                      ? !!Number(a.is_enabled)
-                      : true;
+        <div className="bp-agents-grid">
+          {filtered.map((a) => {
+            const fullName = `${a.first_name || ""} ${a.last_name || ""}`.trim();
+            const name = fullName || a.name || `#${a.id}`;
+            const services = a.services_count ?? a.service_count ?? 0;
+            const isActive =
+              a.is_active !== undefined
+                ? !!Number(a.is_active)
+                : a.is_enabled !== undefined
+                  ? !!Number(a.is_enabled)
+                  : true;
+            const initials = name
+              .split(" ")
+              .map((p) => p[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase();
 
-                return (
-                  <tr key={a.id}>
-                    <td>{name}</td>
-                    <td>{a.email || "-"}</td>
-                    <td>{a.phone || "-"}</td>
-                    <td>{services}</td>
-                    <td>{isActive ? "Active" : "Inactive"}</td>
-                  <td>
-                    <button className="bp-btn-sm">Edit</button>
-                    <button className="bp-btn-sm bp-btn-danger">Delete</button>
-                  </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+            return (
+              <div className="bp-agent-card" key={a.id}>
+                <div className="bp-agent-thumb">
+                  {a.image_url ? (
+                    <img src={a.image_url} alt={name} />
+                  ) : (
+                    <div className="bp-agent-initials">{initials || "A"}</div>
+                  )}
+                </div>
+
+                <div className="bp-agent-meta">
+                  <div className="bp-agent-name">{name}</div>
+                  <div className="bp-agent-sub">
+                    {a.email || "—"}{a.phone ? ` • ${a.phone}` : ""}
+                  </div>
+                </div>
+
+                <div className="bp-agent-stats">
+                  <div className="bp-agent-stat">
+                    <div className="bp-agent-stat-label">Services</div>
+                    <div className="bp-agent-stat-value">{services}</div>
+                  </div>
+                  <div className={`bp-agent-status ${isActive ? "on" : "off"}`}>
+                    {isActive ? "Active" : "Inactive"}
+                  </div>
+                </div>
+
+                <div className="bp-agent-actions">
+                  <a className="bp-top-btn" href={`admin.php?page=bp_agents_edit&id=${a.id}`}>Edit</a>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -11,6 +11,8 @@ async function main() {
     "build/admin.js",
     "build/admin.asset.php",
     "public/admin-app.css",
+    "public/admin-agent-media.js",
+    "public/admin-extra-media.js",
     "bookpoint-v5.php",
     "lib/rest/settings-routes.php",
   ];

@@ -334,13 +334,16 @@ export default function SettingsScreen() {
   const exportUrl = `${adminPostUrl}?action=bp_admin_settings_export_json&_wpnonce=${encodeURIComponent(adminNonce)}`;
 
   return (
-    <div className="bp-container">
-      <div className="bp-header">
-        <h1>Settings</h1>
+    <div className="bp-container bp-settings">
+      <div className="bp-settings-hero">
+        <div>
+          <div className="bp-settings-title">Settings</div>
+          <div className="bp-muted">Configure scheduling, notifications, and system preferences.</div>
+        </div>
       </div>
 
-      <div className="bp-card" style={{ marginBottom: 12 }}>
-        <div className="bp-tabs">
+      <div className="bp-settings-layout">
+        <div className="bp-settings-nav bp-card">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -352,165 +355,157 @@ export default function SettingsScreen() {
             </button>
           ))}
         </div>
-      </div>
 
-      {activeTab === "general" && (
-        <>
-          <div className="bp-card">
-            <div style={{ marginBottom: 20 }}>
-              <label className="bp-label">Open time</label>
-              <input
-                type="text"
-                placeholder="09:00"
-                value={getSetting("bp_open_time", "09:00")}
-                onChange={(e) => updateSetting("bp_open_time", e.target.value)}
-                className="bp-input"
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label className="bp-label">Close time</label>
-              <input
-                type="text"
-                placeholder="17:00"
-                value={getSetting("bp_close_time", "17:00")}
-                onChange={(e) => updateSetting("bp_close_time", e.target.value)}
-                className="bp-input"
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label className="bp-label">Slot Interval (minutes)</label>
-              <input
-                type="number"
-                min={5}
-                max={120}
-                value={getSetting("slot_interval_minutes", 15)}
-                onChange={(e) => updateSetting("slot_interval_minutes", parseInt(e.target.value || 15, 10))}
-                className="bp-input"
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label className="bp-label">Currency</label>
-              <select
-                value={getSetting(["currency", "bp_default_currency"], "USD")}
-                onChange={(e) => updateSetting("currency", e.target.value)}
-                className="bp-input"
-              >
-                {currencyOptions.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.code} - {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label className="bp-label">Currency Position</label>
-              <select
-                value={getSetting(["currency_position", "bp_currency_position"], "before")}
-                onChange={(e) => updateSetting("currency_position", e.target.value)}
-                className="bp-input"
-              >
-                <option value="before">Before amount (e.g., $10)</option>
-                <option value="after">After amount (e.g., 10$)</option>
-              </select>
-            </div>
-
-            <div className="bp-section-title" style={{ marginBottom: 10 }}>Availability & Scheduling</div>
-            <div style={{ marginBottom: 20 }}>
-              <label className="bp-label">Booking limit (days ahead)</label>
-              <input
-                type="number"
-                min={1}
-                max={365}
-                value={getSetting("bp_future_days_limit", 60)}
-                onChange={(e) => updateSetting("bp_future_days_limit", parseInt(e.target.value || 60, 10))}
-                className="bp-input"
-              />
-              <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                Customers can only book up to this many days in advance
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label className="bp-label">Daily breaks</label>
-              <input
-                type="text"
-                placeholder="12:00-13:00,15:00-15:15"
-                value={getSetting("bp_breaks", "12:00-13:00")}
-                onChange={(e) => updateSetting("bp_breaks", e.target.value)}
-                className="bp-input"
-              />
-              <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                Comma-separated break times (e.g., 12:00-13:00,15:00-15:15)
-              </div>
-            </div>
-
-            <div className="bp-section-title" style={{ marginBottom: 10 }}>Weekly Schedule</div>
-            <div className="bp-card" style={{ padding: 12, background: "var(--bp-bg)", border: "1px solid var(--bp-border)", marginBottom: 20 }}>
-              {DAYS.map((label, index) => (
-                <div key={label} style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 12, alignItems: "center", marginBottom: 10 }}>
-                  <div style={{ fontWeight: 900 }}>{label}</div>
-                  <input
-                    type="text"
-                    placeholder="09:00-17:00"
-                    value={getSetting(`bp_schedule_${index}`, "")}
-                    onChange={(e) => updateSetting(`bp_schedule_${index}`, e.target.value)}
-                    className="bp-input"
-                  />
+        <div className="bp-settings-panel">
+          {activeTab === "general" && (
+            <div className="bp-settings-grid">
+              <div className="bp-card">
+                <div className="bp-section-title">Business Hours</div>
+                <div className="bp-settings-grid-2">
+                  <div className="bp-settings-field">
+                    <label className="bp-label">Open time</label>
+                    <input
+                      type="text"
+                      placeholder="09:00"
+                      value={getSetting("bp_open_time", "09:00")}
+                      onChange={(e) => updateSetting("bp_open_time", e.target.value)}
+                      className="bp-input"
+                    />
+                  </div>
+                  <div className="bp-settings-field">
+                    <label className="bp-label">Close time</label>
+                    <input
+                      type="text"
+                      placeholder="17:00"
+                      value={getSetting("bp_close_time", "17:00")}
+                      onChange={(e) => updateSetting("bp_close_time", e.target.value)}
+                      className="bp-input"
+                    />
+                  </div>
+                  <div className="bp-settings-field">
+                    <label className="bp-label">Slot Interval (minutes)</label>
+                    <input
+                      type="number"
+                      min={5}
+                      max={120}
+                      value={getSetting("slot_interval_minutes", 15)}
+                      onChange={(e) => updateSetting("slot_interval_minutes", parseInt(e.target.value || 15, 10))}
+                      className="bp-input"
+                    />
+                  </div>
+                  <div className="bp-settings-field">
+                    <label className="bp-label">Booking limit (days ahead)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={getSetting("bp_future_days_limit", 60)}
+                      onChange={(e) => updateSetting("bp_future_days_limit", parseInt(e.target.value || 60, 10))}
+                      className="bp-input"
+                    />
+                    <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
+                      Customers can only book up to this many days in advance
+                    </div>
+                  </div>
                 </div>
-              ))}
-              <div className="bp-muted" style={{ fontSize: 12 }}>
-                Leave empty for closed days. Format: HH:MM-HH:MM (e.g., 09:00-17:00)
+
+                <div className="bp-section-title" style={{ marginTop: 16 }}>Pricing</div>
+                <div className="bp-settings-grid-2">
+                  <div className="bp-settings-field">
+                    <label className="bp-label">Currency</label>
+                    <select
+                      value={getSetting(["currency", "bp_default_currency"], "USD")}
+                      onChange={(e) => updateSetting("currency", e.target.value)}
+                      className="bp-input"
+                    >
+                      {currencyOptions.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.code} - {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="bp-settings-field">
+                    <label className="bp-label">Currency Position</label>
+                    <select
+                      value={getSetting(["currency_position", "bp_currency_position"], "before")}
+                      onChange={(e) => updateSetting("currency_position", e.target.value)}
+                      className="bp-input"
+                    >
+                      <option value="before">Before amount (e.g., $10)</option>
+                      <option value="after">After amount (e.g., 10$)</option>
+                    </select>
+                  </div>
+                  <div className="bp-settings-field" style={{ gridColumn: "1 / -1" }}>
+                    <label className="bp-label">Daily breaks</label>
+                    <input
+                      type="text"
+                      placeholder="12:00-13:00,15:00-15:15"
+                      value={getSetting("bp_breaks", "12:00-13:00")}
+                      onChange={(e) => updateSetting("bp_breaks", e.target.value)}
+                      className="bp-input"
+                    />
+                    <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
+                      Comma-separated break times (e.g., 12:00-13:00,15:00-15:15)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bp-section-title" style={{ marginTop: 16 }}>Weekly Schedule</div>
+                <div className="bp-settings-week">
+                  {DAYS.map((label, index) => (
+                    <div key={label} className="bp-settings-week-row">
+                      <div className="bp-settings-week-day">{label}</div>
+                      <input
+                        type="text"
+                        placeholder="09:00-17:00"
+                        value={getSetting(`bp_schedule_${index}`, "")}
+                        onChange={(e) => updateSetting(`bp_schedule_${index}`, e.target.value)}
+                        className="bp-input"
+                      />
+                    </div>
+                  ))}
+                  <div className="bp-muted" style={{ fontSize: 12 }}>
+                    Leave empty for closed days. Format: HH:MM-HH:MM (e.g., 09:00-17:00)
+                  </div>
+                </div>
+
+                <div className="bp-section-title" style={{ marginTop: 16 }}>Uninstall</div>
+                <label className="bp-check">
+                  <input
+                    type="checkbox"
+                    checked={toBool(getSetting("bp_remove_data_on_uninstall", 0))}
+                    onChange={(e) => updateSetting("bp_remove_data_on_uninstall", e.target.checked ? 1 : 0)}
+                  />
+                  Delete all BookPoint data when the plugin is uninstalled.
+                </label>
+
+                <div className="bp-settings-actions">
+                  <button onClick={saveSettings} className="bp-btn bp-btn-primary">Save Settings</button>
+                  {saved && <span className="bp-settings-saved">✓ Saved!</span>}
+                </div>
+              </div>
+
+              <div className="bp-card">
+                <div className="bp-section-title">All Settings</div>
+                {advancedKeys.length === 0 ? (
+                  <div className="bp-muted">No additional settings found.</div>
+                ) : (
+                  <div className="bp-kv">
+                    {advancedKeys.map((key) => (
+                      <React.Fragment key={key}>
+                        <div className="bp-k">{key}</div>
+                        <div className="bp-v">{renderInput(key, settings[key])}</div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-
-            <div className="bp-section-title" style={{ marginBottom: 10 }}>Uninstall</div>
-            <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <input
-                type="checkbox"
-                checked={toBool(getSetting("bp_remove_data_on_uninstall", 0))}
-                onChange={(e) => updateSetting("bp_remove_data_on_uninstall", e.target.checked ? 1 : 0)}
-              />
-              Delete all BookPoint data when the plugin is uninstalled.
-            </label>
-
-            <div style={{ marginTop: 16 }}>
-              <button
-                onClick={saveSettings}
-                className="bp-btn bp-btn-primary"
-                style={{ marginRight: 10 }}
-              >
-                Save Settings
-              </button>
-              {saved && (
-                <span style={{ color: "green", marginLeft: 10 }}>✓ Saved!</span>
-              )}
-            </div>
-          </div>
-
-          <div className="bp-card" style={{ marginTop: 16 }}>
-            <div className="bp-section-title" style={{ marginBottom: 10 }}>All Settings</div>
-            {advancedKeys.length === 0 ? (
-              <div className="bp-muted">No additional settings found.</div>
-            ) : (
-              <div className="bp-kv">
-                {advancedKeys.map((key) => (
-                  <React.Fragment key={key}>
-                    <div className="bp-k">{key}</div>
-                    <div className="bp-v">{renderInput(key, settings[key])}</div>
-                  </React.Fragment>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
+          )}
 
       {activeTab === "emails" && (
-        <div className="bp-card">
+        <div className="bp-card bp-settings-section">
           <div className="bp-section-title" style={{ marginBottom: 10 }}>Email Notifications</div>
 
           <label style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
@@ -522,33 +517,36 @@ export default function SettingsScreen() {
             Send email notifications for bookings
           </label>
 
-          <div style={{ marginBottom: 20 }}>
-            <label className="bp-label">Admin email</label>
+          <div style={{ marginBottom: 22 }}>
+            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Admin email</label>
             <input
               type="email"
               value={getSetting("bp_admin_email", "")}
               onChange={(e) => updateSetting("bp_admin_email", e.target.value)}
-              className="bp-input"
+              className="bp-input bp-settings-input-wide"
+              autoComplete="off"
             />
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label className="bp-label">From name</label>
+          <div style={{ marginBottom: 22 }}>
+            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>From name</label>
             <input
               type="text"
               value={getSetting("bp_email_from_name", "")}
               onChange={(e) => updateSetting("bp_email_from_name", e.target.value)}
-              className="bp-input"
+              className="bp-input bp-settings-input-wide"
+              autoComplete="off"
             />
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label className="bp-label">From email</label>
+          <div style={{ marginBottom: 22 }}>
+            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>From email</label>
             <input
               type="email"
               value={getSetting("bp_email_from_email", "")}
               onChange={(e) => updateSetting("bp_email_from_email", e.target.value)}
-              className="bp-input"
+              className="bp-input bp-settings-input-wide"
+              autoComplete="off"
             />
           </div>
 
@@ -566,68 +564,71 @@ export default function SettingsScreen() {
       )}
 
       {activeTab === "webhooks" && (
-        <div className="bp-card">
+        <div className="bp-card bp-settings-section">
           <div className="bp-section-title" style={{ marginBottom: 10 }}>Webhooks</div>
 
           <label style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
             <input
               type="checkbox"
-              checked={toBool(getSetting("webhooks_enabled", 0))}
-              onChange={(e) => updateSetting("webhooks_enabled", e.target.checked ? 1 : 0)}
+              checked={toBool(getSetting("bp_webhooks_enabled", 0))}
+              onChange={(e) => updateSetting("bp_webhooks_enabled", e.target.checked ? 1 : 0)}
             />
             Send webhook events for bookings
           </label>
 
-          <div style={{ marginBottom: 20 }}>
-            <label className="bp-label">Webhook secret</label>
+          <div style={{ marginBottom: 22 }}>
+            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Webhook secret</label>
             <input
               type="text"
-              value={getSetting("webhooks_secret", "")}
-              onChange={(e) => updateSetting("webhooks_secret", e.target.value)}
-              className="bp-input"
+              value={getSetting("bp_webhook_secret", "")}
+              onChange={(e) => updateSetting("bp_webhook_secret", e.target.value)}
+              className="bp-input bp-settings-input-wide"
+              autoComplete="off"
             />
-            <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-              Used to sign webhook payloads (optional).
-            </div>
+            <div className="bp-settings-desc">Used to sign webhook payloads (optional).</div>
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label className="bp-label">Booking created URL</label>
+          <div style={{ marginBottom: 22 }}>
+            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Booking created URL</label>
             <input
-              type="url"
-              value={getSetting("webhooks_url_booking_created", "")}
-              onChange={(e) => updateSetting("webhooks_url_booking_created", e.target.value)}
-              className="bp-input"
-            />
-          </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <label className="bp-label">Booking status changed URL</label>
-            <input
-              type="url"
-              value={getSetting("webhooks_url_booking_status_changed", "")}
-              onChange={(e) => updateSetting("webhooks_url_booking_status_changed", e.target.value)}
-              className="bp-input"
+              type="text"
+              value={getSetting("bp_webhook_created_url", "")}
+              onChange={(e) => updateSetting("bp_webhook_created_url", e.target.value)}
+              className="bp-input bp-settings-input-wide"
+              autoComplete="off"
             />
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label className="bp-label">Booking updated URL</label>
+          <div style={{ marginBottom: 22 }}>
+            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Booking status changed URL</label>
             <input
-              type="url"
-              value={getSetting("webhooks_url_booking_updated", "")}
-              onChange={(e) => updateSetting("webhooks_url_booking_updated", e.target.value)}
-              className="bp-input"
+              type="text"
+              value={getSetting("bp_webhook_status_changed_url", "")}
+              onChange={(e) => updateSetting("bp_webhook_status_changed_url", e.target.value)}
+              className="bp-input bp-settings-input-wide"
+              autoComplete="off"
             />
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label className="bp-label">Booking cancelled URL</label>
+          <div style={{ marginBottom: 22 }}>
+            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Booking updated URL</label>
             <input
-              type="url"
-              value={getSetting("webhooks_url_booking_cancelled", "")}
-              onChange={(e) => updateSetting("webhooks_url_booking_cancelled", e.target.value)}
-              className="bp-input"
+              type="text"
+              value={getSetting("bp_webhook_updated_url", "")}
+              onChange={(e) => updateSetting("bp_webhook_updated_url", e.target.value)}
+              className="bp-input bp-settings-input-wide"
+              autoComplete="off"
+            />
+          </div>
+
+          <div style={{ marginBottom: 22 }}>
+            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Booking cancelled URL</label>
+            <input
+              type="text"
+              value={getSetting("bp_webhook_cancelled_url", "")}
+              onChange={(e) => updateSetting("bp_webhook_cancelled_url", e.target.value)}
+              className="bp-input bp-settings-input-wide"
+              autoComplete="off"
             />
           </div>
 
@@ -645,36 +646,23 @@ export default function SettingsScreen() {
       )}
 
       {activeTab === "license" && (
-        <div className="bp-card">
+        <div className="bp-card bp-settings-section">
           <div className="bp-section-title" style={{ marginBottom: 10 }}>License</div>
-          <div style={{ marginBottom: 10 }}>
-            <strong>Status:</strong> {licenseBadge}
-          </div>
-          {licenseMeta.checked_at ? (
-            <div className="bp-muted" style={{ fontSize: 12, marginBottom: 8 }}>
-              Last checked: {new Date(Number(licenseMeta.checked_at) * 1000).toLocaleString()}
-            </div>
-          ) : null}
-          {licenseMeta.last_error ? (
-            <div className="bp-muted" style={{ fontSize: 12, marginBottom: 12 }}>
-              Message: {licenseMeta.last_error}
-            </div>
-          ) : null}
 
-          <form method="post" action={adminPostUrl} style={{ marginBottom: 16 }}>
+          <form method="post" action={adminPostUrl} style={{ marginBottom: 18 }}>
             <input type="hidden" name="action" value="bp_admin_settings_save_license" />
             <input type="hidden" name="_wpnonce" value={adminNonce} />
-            <div style={{ marginBottom: 12 }}>
-              <label className="bp-label">License key</label>
+            <div style={{ marginBottom: 18 }}>
+              <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>License key</label>
               <input
                 type="text"
                 name="bp_license_key"
-                defaultValue={licenseMeta.key || ""}
-                className="bp-input"
+                defaultValue={getSetting("bp_license_key", "")}
+                className="bp-input bp-settings-input-wide"
+                style={{ minWidth: 260 }}
+                placeholder="Enter license key..."
               />
-              <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                Paste your license key here and save.
-              </div>
+              <span className="bp-badge" style={{ fontWeight: 900, fontSize: 14, marginLeft: 12 }}>{licenseBadge}</span>
             </div>
             <button className="bp-btn bp-btn-primary" type="submit">Save License</button>
           </form>
@@ -687,18 +675,11 @@ export default function SettingsScreen() {
               Forces a license check immediately.
             </div>
           </form>
-
-          <hr style={{ margin: "16px 0" }} />
-          <div className="bp-section-title" style={{ marginBottom: 6 }}>Updates</div>
-          <div className="bp-muted" style={{ fontSize: 12, marginBottom: 10 }}>
-            If your update server is configured, WordPress will show updates on the Plugins page.
-          </div>
-          <a className="bp-btn" href="update-core.php">Go to Updates</a>
         </div>
       )}
 
       {activeTab === "import_export" && (
-        <div className="bp-card">
+        <div className="bp-card bp-settings-section">
           <div className="bp-section-title" style={{ marginBottom: 10 }}>Import / Export</div>
 
           <div style={{ marginBottom: 12 }}>
@@ -732,6 +713,8 @@ export default function SettingsScreen() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }
