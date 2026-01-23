@@ -38,7 +38,7 @@ function bp_rest_admin_holiday_create(WP_REST_Request $req){
   $end   = substr(sanitize_text_field($b['end_date'] ?? ''),0,10);
   $rec   = !empty($b['is_recurring']) || !empty($b['is_recurring_yearly']) ? 1 : 0;
   $en    = isset($b['is_enabled']) ? (!empty($b['is_enabled']) ? 1 : 0) : 1;
-  $agent_id = isset($b['agent_id']) ? (int)$b['agent_id'] : null;
+  $agent_id = !empty($b['agent_id']) ? (int)$b['agent_id'] : null;
 
   if (!preg_match('/^\d{4}-\d{2}-\d{2}$/',$start) || !preg_match('/^\d{4}-\d{2}-\d{2}$/',$end)) {
     return new WP_REST_Response(['status'=>'error','message'=>'Invalid dates'], 400);

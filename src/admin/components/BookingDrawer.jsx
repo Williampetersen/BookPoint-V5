@@ -10,6 +10,30 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
   const [status, setStatus] = useState('pending');
   const [adminNotes, setAdminNotes] = useState('');
 
+  // Reschedule state (C17.2)
+  const [rsDate, setRsDate] = useState("");
+  const [rsTime, setRsTime] = useState("");
+  const [rsSlots, setRsSlots] = useState([]);
+  const [rsLoading, setRsLoading] = useState(false);
+  const [rsSaving, setRsSaving] = useState(false);
+  const [rsErr, setRsErr] = useState("");
+  const [rsOk, setRsOk] = useState("");
+
+  // Helper functions for date/time conversion
+  function toDateInput(mysqlOrIso){
+    if(!mysqlOrIso) return "";
+    const s = String(mysqlOrIso).replace("T"," ").slice(0,19);
+    return s.slice(0,10);
+  }
+  function toTimeInput(mysqlOrIso){
+    if(!mysqlOrIso) return "";
+    const s = String(mysqlOrIso).replace("T"," ").slice(0,19);
+    return s.slice(11,16); // HH:mm
+  }
+  function mysqlFromDateTime(dateStr, timeStr){
+    return `${dateStr} ${timeStr}:00`;
+  }
+
   useEffect(()=>{
     if(!bookingId) return;
     (async()=>{
@@ -21,6 +45,14 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
         setData(d);
         setStatus(d?.status || 'pending');
         setAdminNotes(d?.admin_notes || '');
+        
+        // Initialize reschedule fields (C17.2)
+        const b = d?.booking || d || {};
+        setRsDate(toDateInput(b.start_datetime || b.start));
+        setRsTime(toTimeInput(b.start_datetime || b.start));
+        setRsSlots([]);
+        setRsErr("");
+        setRsOk("");
       }catch(e){
         setErr(e.message || 'Failed to load booking');
       }finally{
@@ -28,6 +60,39 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
       }
     })();
   }, [bookingId]);
+
+  // Load timeslots when date changes (C17.2)
+  useEffect(()=>{
+    (async()=>{
+      if(!rsDate) return;
+      if(!data) return;
+
+      const booking = data.booking || data || {};
+      const agentId = (data.agent?.id) || booking.agent_id || 0;
+      const serviceId = (data.service?.id) || booking.service_id || 0;
+
+      setRsLoading(true);
+      setRsErr("");
+      setRsOk("");
+
+      try{
+        const res = await bpFetch(`/admin/availability/slots?date=${rsDate}&agent_id=${agentId}&service_id=${serviceId}`);
+        const payload = res?.data?.data ? res.data.data : (res?.data ? res.data : res);
+        const slots = payload?.slots || [];
+        setRsSlots(Array.isArray(slots) ? slots : []);
+        // if current time isn't in slots, reset selection
+        if(slots.length && !slots.find(s => s === rsTime)) setRsTime(slots[0]?.time || slots[0] || "");
+        if(!slots.length) setRsTime("");
+      }catch(e){
+        setRsSlots([]);
+        setRsTime("");
+        setRsErr(e?.message || "Failed to load available times");
+      }finally{
+        setRsLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rsDate]);
 
   const save = async(payload) => {
     setSaving(true);
@@ -46,6 +111,54 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
       setSaving(false);
     }
   };
+
+  // Reschedule handler (C17.2)
+  async function saveReschedule(){
+    if(!bookingId) return;
+    if(!rsDate || !rsTime){
+      setRsErr("Please select date and time");
+      return;
+    }
+
+    setRsSaving(true);
+    setRsErr("");
+    setRsOk("");
+
+    try{
+      const start = mysqlFromDateTime(rsDate, rsTime);
+
+      await bpFetch(`/admin/bookings/${bookingId}/reschedule`, {
+        method: "POST",
+        body: JSON.stringify({
+          start_datetime: start,
+          end_datetime: ""
+        })
+      });
+
+      // Reload booking details to show updated times
+      const res = await bpFetch(`/admin/bookings/${bookingId}`);
+      const payload =
+        res?.data?.booking ? res.data :
+        res?.booking ? res :
+        res?.data ? res.data :
+        res;
+
+      setData(payload);
+
+      const b = payload?.booking || payload || {};
+      setRsDate(toDateInput(b.start_datetime || b.start));
+      setRsTime(toTimeInput(b.start_datetime || b.start));
+
+      setRsOk("Rescheduled successfully ✅");
+      
+      // Notify parent to refresh calendar
+      if(onUpdated) onUpdated({ id: bookingId });
+    }catch(e){
+      setRsErr(e?.message || "Reschedule failed");
+    }finally{
+      setRsSaving(false);
+    }
+  }
 
   const quickSetStatus = async(next) => {
     setStatus(next);
@@ -149,6 +262,50 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
               <div style={{height:12}} />
 
               <div className="bp-card" style={{boxShadow:'none'}}>
+                <div style={{fontWeight:950, marginBottom:8}}>Reschedule</div>
+
+                {rsErr ? <div style={{...errorBox, marginBottom:8}}>{rsErr}</div> : null}
+                {rsOk ? <div style={{...successBox, marginBottom:8}}>{rsOk}</div> : null}
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div>
+                    <div className="bp-k" style={{ marginBottom: 6 }}>Date</div>
+                    <input
+                      className="bp-input"
+                      type="date"
+                      value={rsDate}
+                      onChange={(e)=>setRsDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="bp-k" style={{ marginBottom: 6 }}>Time</div>
+                    <select
+                      className="bp-input"
+                      value={rsTime}
+                      onChange={(e)=>setRsTime(e.target.value)}
+                      disabled={rsLoading || !rsSlots.length}
+                    >
+                      {!rsSlots.length ? <option value="">No available times</option> : null}
+                      {rsSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop: 10 }}>
+                  <div className="bp-muted">
+                    {rsLoading ? "Loading available times…" : (rsSlots.length ? `${rsSlots.length} slots available` : "No slots")}
+                  </div>
+
+                  <button className="bp-btn bp-btn-primary" onClick={saveReschedule} disabled={rsSaving || rsLoading || !rsSlots.length}>
+                    {rsSaving ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{height:12}} />
+
+              <div className="bp-card" style={{boxShadow:'none'}}>
                 <div style={{fontWeight:950, marginBottom:8}}>Admin notes</div>
                 <textarea
                   value={adminNotes}
@@ -198,3 +355,4 @@ const topbar  = { padding:14, borderBottom:'1px solid var(--bp-border)', display
 const footer  = { padding:14, borderTop:'1px solid var(--bp-border)', display:'flex', justifyContent:'flex-end', gap:10 };
 const textarea = { width:'100%', padding:'10px 12px', borderRadius:14, border:'1px solid var(--bp-border)', fontWeight:850, outline:'none' };
 const errorBox = { background:'#fef2f2', border:'1px solid #fecaca', color:'#991b1b', padding:10, borderRadius:14, fontWeight:900, marginBottom:10 };
+const successBox = { background:'rgba(34,197,94,.10)', border:'1px solid rgba(34,197,94,.35)', color:'#166534', padding:10, borderRadius:14, fontWeight:900 };
