@@ -576,6 +576,274 @@ final class BP_Plugin {
       'callback' => [__CLASS__, 'rest_manage_slots'],
       'permission_callback' => '__return_true',
     ]);
+
+    // ----------------------------
+    // Admin: Bookings list (React UI)
+    // GET /wp-json/bp/v1/admin/bookings?q=&status=&sort=&date_from=&date_to=&page=&per=
+    // ----------------------------
+    register_rest_route('bp/v1', '/admin/bookings', [
+      'methods'  => 'GET',
+      'callback' => function(\WP_REST_Request $req){
+
+        if (!current_user_can('administrator') && !current_user_can('bp_manage_bookings')) {
+          return new \WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+        }
+
+        global $wpdb;
+        $b = $wpdb->prefix . 'bp_bookings';
+        $c = $wpdb->prefix . 'bp_customers';
+        $s = $wpdb->prefix . 'bp_services';
+        $a = $wpdb->prefix . 'bp_agents';
+
+        $q        = sanitize_text_field($req->get_param('q') ?? '');
+        $status   = sanitize_text_field($req->get_param('status') ?? 'all');
+        $sort     = sanitize_text_field($req->get_param('sort') ?? 'desc'); // desc|asc
+        $dateFrom = sanitize_text_field($req->get_param('date_from') ?? ''); // YYYY-MM-DD
+        $dateTo   = sanitize_text_field($req->get_param('date_to') ?? '');   // YYYY-MM-DD
+
+        $page   = max(1, (int)($req->get_param('page') ?? 1));
+        $per    = min(50, max(10, (int)($req->get_param('per') ?? 20)));
+        $offset = ($page - 1) * $per;
+
+        $where  = "WHERE 1=1 ";
+        $params = [];
+
+        if ($status && $status !== 'all') {
+          $where .= " AND LOWER(b.status) = %s ";
+          $params[] = strtolower($status);
+        }
+
+        // date range filter
+        if ($dateFrom && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
+          $where .= " AND b.start_datetime >= %s ";
+          $params[] = $dateFrom . " 00:00:00";
+        }
+        if ($dateTo && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+          $where .= " AND b.start_datetime <= %s ";
+          $params[] = $dateTo . " 23:59:59";
+        }
+
+        if ($q) {
+          $like = '%' . $wpdb->esc_like($q) . '%';
+          $where .= " AND (
+            CONCAT(cust.first_name, ' ', cust.last_name) LIKE %s OR
+            cust.email LIKE %s OR
+            srv.name LIKE %s OR
+            ag.first_name LIKE %s OR
+            ag.last_name LIKE %s
+          ) ";
+          array_push($params, $like, $like, $like, $like, $like);
+        }
+
+        $order = (strtolower($sort) === 'asc') ? 'ASC' : 'DESC';
+
+        // total count
+        $sqlCount = "SELECT COUNT(*) FROM {$b} b
+          LEFT JOIN {$c} cust ON b.customer_id = cust.id
+          LEFT JOIN {$s} srv ON b.service_id = srv.id
+          LEFT JOIN {$a} ag ON b.agent_id = ag.id
+          {$where}";
+        $total = (int) ($params ? $wpdb->get_var($wpdb->prepare($sqlCount, $params)) : $wpdb->get_var($sqlCount));
+
+        // rows
+        $sql = "SELECT
+                  b.id,
+                  b.start_datetime,
+                  b.end_datetime,
+                  b.status,
+                  CONCAT(cust.first_name, ' ', cust.last_name) as customer_name,
+                  cust.email as customer_email,
+                  srv.name as service_name,
+                  CONCAT(ag.first_name, ' ', ag.last_name) as agent_name
+                FROM {$b} b
+                LEFT JOIN {$c} cust ON b.customer_id = cust.id
+                LEFT JOIN {$s} srv ON b.service_id = srv.id
+                LEFT JOIN {$a} ag ON b.agent_id = ag.id
+                {$where}
+                ORDER BY b.start_datetime {$order}
+                LIMIT {$per} OFFSET {$offset}";
+
+        $items = $params ? $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) : $wpdb->get_results($sql, ARRAY_A);
+        if (!$items) $items = [];
+
+        return new \WP_REST_Response([
+          'status' => 'success',
+          'data' => [
+            'items' => $items,
+            'total' => $total,
+            'page'  => $page,
+            'per'   => $per,
+            'sort'  => $order,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+          ]
+        ], 200);
+      }
+    ]);
+
+    // ----------------------------
+    // Admin: Booking details (drawer)
+    // GET /wp-json/bp/v1/admin/bookings/{id}
+    // ----------------------------
+    register_rest_route('bp/v1', '/admin/bookings/(?P<id>\d+)', [
+      'methods'  => 'GET',
+      'callback' => function(\WP_REST_Request $req){
+
+        if (!current_user_can('administrator') && !current_user_can('bp_manage_bookings')) {
+          return new \WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+        }
+
+        global $wpdb;
+        $id = (int) $req['id'];
+
+        $b = $wpdb->prefix . 'bp_bookings';
+        $c = $wpdb->prefix . 'bp_customers';
+        $s = $wpdb->prefix . 'bp_services';
+        $a = $wpdb->prefix . 'bp_agents';
+        $tFields   = $wpdb->prefix . 'bp_form_fields';
+
+        // Get booking with all JOINs for complete data
+        $sql = "SELECT
+                  b.*,
+                  CONCAT(cust.first_name, ' ', cust.last_name) as customer_name,
+                  cust.email as customer_email,
+                  cust.phone as customer_phone,
+                  srv.name as service_name,
+                  srv.price_cents as service_price_cents,
+                  CONCAT(ag.first_name, ' ', ag.last_name) as agent_name
+                FROM {$b} b
+                LEFT JOIN {$c} cust ON b.customer_id = cust.id
+                LEFT JOIN {$s} srv ON b.service_id = srv.id
+                LEFT JOIN {$a} ag ON b.agent_id = ag.id
+                WHERE b.id = %d";
+
+        $row = $wpdb->get_row($wpdb->prepare($sql, $id), ARRAY_A);
+        if (!$row) {
+          return new \WP_REST_Response(['status'=>'error','message'=>'Booking not found'], 404);
+        }
+
+        // Helper to read json columns safely
+        $read_json = function($val){
+          if (!$val) return null;
+          if (is_array($val)) return $val;
+          $decoded = json_decode($val, true);
+          return (json_last_error() === JSON_ERROR_NONE) ? $decoded : null;
+        };
+
+        // Extract customer info
+        $customer = [
+          'name'  => trim(($row['customer_name'] ?? '') . ''),
+          'email' => $row['customer_email'] ?? '',
+          'phone' => $row['customer_phone'] ?? '',
+        ];
+
+        // Extract service info
+        $service = [
+          'name' => $row['service_name'] ?? '',
+          'id'   => isset($row['service_id']) ? (int)$row['service_id'] : null,
+        ];
+
+        // Extract agent info
+        $agent = [
+          'name' => $row['agent_name'] ?? '',
+          'id'   => isset($row['agent_id']) ? (int)$row['agent_id'] : null,
+        ];
+
+        // Order items - try multiple column names
+        $order_items =
+          $read_json($row['order_items_json'] ?? null)
+          ?? $read_json($row['order_items'] ?? null)
+          ?? $read_json($row['items_json'] ?? null)
+          ?? $read_json($row['extras_json'] ?? null)
+          ?? [];
+
+        // Form answers - try multiple column names
+        $form_answers =
+          $read_json($row['form_answers_json'] ?? null)
+          ?? $read_json($row['form_data_json'] ?? null)
+          ?? $read_json($row['booking_data_json'] ?? null)
+          ?? $read_json($row['booking_fields_json'] ?? null)
+          ?? $read_json($row['customer_fields_json'] ?? null)
+          ?? $read_json($row['custom_fields_json'] ?? null)
+          ?? $read_json($row['meta_json'] ?? null)
+          ?? [];
+
+        // Extract pricing info
+        $pricing = [
+          'currency' => $row['currency'] ?? 'USD',
+          'subtotal' => isset($row['total_price']) ? (float)$row['total_price'] : null,
+          'discount_total' => isset($row['discount_total']) ? (float)$row['discount_total'] : null,
+          'tax_total' => isset($row['tax_total']) ? (float)$row['tax_total'] : null,
+          'total' => isset($row['total_price']) ? (float)$row['total_price'] : null,
+          'promo_code' => $row['promo_code'] ?? '',
+        ];
+
+        // Form field definitions
+        $field_defs = [];
+        $tables = $wpdb->get_col("SHOW TABLES");
+        if (in_array($tFields, $tables, true)) {
+          $defs = $wpdb->get_results("SELECT * FROM {$tFields} ORDER BY sort_order ASC, id ASC LIMIT 100", ARRAY_A) ?: [];
+          foreach($defs as $d){
+            $field_defs[] = [
+              'key'   => $d['field_key'] ?? ($d['slug'] ?? ($d['name'] ?? ('field_'.$d['id']))),
+              'label' => $d['label'] ?? ($d['title'] ?? ($d['name'] ?? 'Field')),
+              'type'  => $d['type'] ?? 'text',
+              'scope' => $d['scope'] ?? ($d['context'] ?? ''),
+            ];
+          }
+        }
+
+        return new \WP_REST_Response([
+          'status' => 'success',
+          'data' => [
+            'booking' => [
+              'id' => (int)$row['id'],
+              'status' => $row['status'] ?? 'pending',
+              'start_datetime' => $row['start_datetime'] ?? '',
+              'end_datetime'   => $row['end_datetime'] ?? '',
+              'created_at'     => $row['created_at'] ?? '',
+              'notes'          => $row['notes'] ?? '',
+            ],
+            'customer' => $customer,
+            'service'  => $service,
+            'agent'    => $agent,
+            'order_items' => $order_items,
+            'pricing' => $pricing,
+            'form_answers' => $form_answers,
+            'form_fields' => $field_defs
+          ]
+        ], 200);
+      }
+    ]);
+
+    // ----------------------------
+    // Admin: Update booking status
+    // POST /wp-json/bp/v1/admin/bookings/{id}/status
+    // body: { status: pending|confirmed|cancelled }
+    // ----------------------------
+    register_rest_route('bp/v1', '/admin/bookings/(?P<id>\d+)/status', [
+      'methods'  => 'POST',
+      'callback' => function(\WP_REST_Request $req){
+
+        if (!current_user_can('administrator') && !current_user_can('bp_manage_bookings')) {
+          return new \WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+        }
+
+        global $wpdb;
+        $id = (int) $req['id'];
+        $status = sanitize_text_field($req->get_param('status') ?? '');
+
+        $allowed = ['pending','confirmed','cancelled'];
+        if (!in_array($status, $allowed, true)) {
+          return new \WP_REST_Response(['status'=>'error','message'=>'Invalid status'], 400);
+        }
+
+        $t = $wpdb->prefix . 'bp_bookings';
+        $wpdb->update($t, ['status'=>$status], ['id'=>$id], ['%s'], ['%d']);
+
+        return new \WP_REST_Response(['status'=>'success'], 200);
+      }
+    ]);
   }
 
   public static function rest_get_services(\WP_REST_Request $request) {
@@ -901,8 +1169,14 @@ final class BP_Plugin {
       );
     }
 
-    // React admin bundle (Dashboard + Bookings + Calendar + Schedule + Holidays + Form Fields)
-    if (in_array($page, ['bp_dashboard', 'bp_bookings', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog', 'bp-form-fields'], true)) {
+    // React admin bundle (All admin pages)
+    $admin_react_pages = [
+      'bp_dashboard', 'bp_bookings', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog', 
+      'bp-form-fields', 'bp_services', 'bp_categories', 'bp_extras', 'bp_promo_codes', 
+      'bp_customers', 'bp_settings', 'bp_agents', 'bp_audit', 'bp_tools'
+    ];
+    
+    if (in_array($page, $admin_react_pages, true)) {
       $asset_path = BP_PLUGIN_PATH . 'build/admin.asset.php';
       $asset = [
         'dependencies' => ['react', 'react-dom', 'react-jsx-runtime'],
@@ -945,17 +1219,27 @@ final class BP_Plugin {
         return $src;
       }, 10, 2);
 
-      $route = $page === 'bp_dashboard'
-        ? 'dashboard'
-        : ($page === 'bp_bookings'
-          ? 'bookings'
-          : ($page === 'bp_schedule'
-            ? 'schedule'
-            : ($page === 'bp_holidays'
-              ? 'holidays'
-              : ($page === 'bp_catalog'
-                ? 'catalog'
-                : ($page === 'bp-form-fields' ? 'form-fields' : 'calendar')))));
+      // Map page slug to route name
+      $route_map = [
+        'bp_dashboard' => 'dashboard',
+        'bp_bookings' => 'bookings',
+        'bp_calendar' => 'calendar',
+        'bp_schedule' => 'schedule',
+        'bp_holidays' => 'holidays',
+        'bp_catalog' => 'catalog',
+        'bp-form-fields' => 'form-fields',
+        'bp_services' => 'services',
+        'bp_categories' => 'categories',
+        'bp_extras' => 'extras',
+        'bp_promo_codes' => 'promo-codes',
+        'bp_customers' => 'customers',
+        'bp_settings' => 'settings',
+        'bp_agents' => 'agents',
+        'bp_audit' => 'audit',
+        'bp_tools' => 'tools',
+      ];
+
+      $route = $route_map[$page] ?? 'dashboard';
 
       wp_localize_script('bp-admin', 'BP_ADMIN', [
         'restUrl' => esc_url_raw(rest_url('bp/v1')),

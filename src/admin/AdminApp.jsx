@@ -1,10 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Shell from "./layout/Shell";
 
-// Your screens (add gradually)
+// Screens
 import DashboardScreen from "./screens/DashboardScreen";
 import BookingsScreen from "./screens/BookingsScreen";
 import FormFieldsScreen from "./screens/FormFieldsScreen";
+import ServicesScreen from "./screens/ServicesScreen";
+import ServicesEditScreen from "./screens/ServicesEditScreen";
+import CategoriesScreen from "./screens/CategoriesScreen";
+import ExtrasScreen from "./screens/ExtrasScreen";
+import PromoCodesScreen from "./screens/PromoCodesScreen";
+import CustomersScreen from "./screens/CustomersScreen";
+import AgentsScreen from "./screens/AgentsScreen";
+import SettingsScreen from "./screens/SettingsScreen";
+import AuditScreen from "./screens/AuditScreen";
+import ToolsScreen from "./screens/ToolsScreen";
 
 function resolveScreen(page) {
   switch(page){
@@ -20,6 +30,7 @@ function resolveScreen(page) {
 
     case "bp-services": return "services";
     case "bp_services": return "services";
+    case "bp_services_edit": return "services-edit";
     case "bp-categories": return "categories";
     case "bp_categories": return "categories";
     case "bp-extras": return "extras";
@@ -72,7 +83,17 @@ export default function AdminApp() {
       {screen === "dashboard" ? <DashboardScreen /> : null}
       {screen === "bookings" ? <BookingsScreen /> : null}
       {screen === "form-fields" ? <FormFieldsScreen /> : null}
-      {["calendar","schedule","holidays","services","categories","extras","promo","customers","agents","settings","audit","tools"].includes(screen)
+      {screen === "services" ? <ServicesScreen /> : null}
+      {screen === "services-edit" ? <ServicesEditScreen /> : null}
+      {screen === "categories" ? <CategoriesScreen /> : null}
+      {screen === "extras" ? <ExtrasScreen /> : null}
+      {screen === "promo" ? <PromoCodesScreen /> : null}
+      {screen === "customers" ? <CustomersScreen /> : null}
+      {screen === "agents" ? <AgentsScreen /> : null}
+      {screen === "settings" ? <SettingsScreen /> : null}
+      {screen === "audit" ? <AuditScreen /> : null}
+      {screen === "tools" ? <ToolsScreen /> : null}
+      {["calendar","schedule","holidays","catalog"].includes(screen)
         ? <ComingSoon title={screen} />
         : null}
     </Shell>
