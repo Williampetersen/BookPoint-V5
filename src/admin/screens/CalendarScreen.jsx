@@ -20,6 +20,15 @@ function monthRange(date){
 }
 
 export default function CalendarScreen(){
+  // Helper function to format Date to YYYY-MM-DD
+  function fmtDate(d){
+    // FullCalendar gives Date object
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
   const [view, setView] = useState("month"); // month | week | day
   const [cursor, setCursor] = useState(()=> new Date());
   const [title, setTitle] = useState("");
@@ -29,8 +38,6 @@ export default function CalendarScreen(){
   const [agentId, setAgentId] = useState(0);
   const [status, setStatus] = useState("all");
   const [query, setQuery] = useState("");
-  const [showHolidayModal, setShowHolidayModal] = useState(false);
-  const [holidayDates, setHolidayDates] = useState({ start: "", end: "" });
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [selectedBookingId, setSelectedBookingId] = useState(null);
@@ -38,6 +45,21 @@ export default function CalendarScreen(){
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [drawerErr, setDrawerErr] = useState("");
   const [currentRange, setCurrentRange] = useState({ start: new Date(), end: addDays(new Date(), 30) });
+  const [currentRangeStart, setCurrentRangeStart] = useState(new Date());
+  const [currentRangeEnd, setCurrentRangeEnd] = useState(addDays(new Date(), 30));
+
+  // Holiday modal state (C17.3)
+  const [holidayOpen, setHolidayOpen] = useState(false);
+  const [holidayForm, setHolidayForm] = useState({
+    title: "",
+    start_date: "",
+    end_date: "",
+    is_recurring_yearly: false,
+    agent_id: 0,
+    is_enabled: true
+  });
+  const [holidaySaving, setHolidaySaving] = useState(false);
+  const [holidayErr, setHolidayErr] = useState("");
 
   async function loadEvents(startDate, endDate){
     setLoading(true);
@@ -175,9 +197,44 @@ export default function CalendarScreen(){
 
   function handleDatesSet(info){
     setCurrentRange({ start: info.start, end: info.end });
+    setCurrentRangeStart(info.start);
+    setCurrentRangeEnd(info.end);
     setTitle(info.view?.title || "");
     setCursor(info.start);
     loadEvents(info.start, info.end);
+  }
+
+  // Save Holiday from modal (C17.3.3)
+  async function saveHolidayFromModal(){
+    setHolidaySaving(true);
+    setHolidayErr("");
+
+    try{
+      if(!holidayForm.title.trim()) throw new Error("Title is required");
+      if(!holidayForm.start_date || !holidayForm.end_date) throw new Error("Start and end dates are required");
+
+      await bpFetch(`/admin/holidays`, {
+        method: "POST",
+        body: JSON.stringify({
+          title: holidayForm.title,
+          start_date: holidayForm.start_date,
+          end_date: holidayForm.end_date,
+          is_recurring_yearly: !!holidayForm.is_recurring_yearly,
+          is_enabled: holidayForm.is_enabled !== false,
+          agent_id: Number(holidayForm.agent_id || 0)
+        })
+      });
+
+      setHolidayOpen(false);
+
+      // refresh events to reflect closures if you show them later
+      await loadEvents(currentRangeStart, currentRangeEnd);
+
+    }catch(e){
+      setHolidayErr(e?.message || "Failed to save holiday");
+    }finally{
+      setHolidaySaving(false);
+    }
   }
 
   return (
@@ -247,6 +304,28 @@ export default function CalendarScreen(){
           eventClick={handleEventClick}
           datesSet={handleDatesSet}
           events={calendarEvents}
+          selectable={true}
+          selectMirror={true}
+          unselectAuto={true}
+          select={(info)=>{
+            // FullCalendar selection end is exclusive for all-day ranges
+            const start = fmtDate(info.start);
+            const endExclusive = info.end;
+            const endDate = new Date(endExclusive.getTime() - 86400000);
+            const end = fmtDate(endDate);
+
+            setHolidayErr("");
+            setHolidayForm(f => ({
+              ...f,
+              title: `Holiday`,
+              start_date: start,
+              end_date: end,
+              agent_id: agentId || 0, // default to current agent filter
+              is_recurring_yearly: false,
+              is_enabled: true
+            }));
+            setHolidayOpen(true);
+          }}
         />
       </div>
 
@@ -259,6 +338,96 @@ export default function CalendarScreen(){
             loadEvents(currentRange.start, currentRange.end);
           }}
         />
+      ) : null}
+
+      {holidayOpen ? (
+        <div className="bp-modal-wrap" onMouseDown={(e)=>{ if(e.target.classList.contains("bp-modal-wrap")) setHolidayOpen(false); }}>
+          <div className="bp-modal">
+            <div className="bp-modal-head">
+              <div>
+                <div className="bp-modal-title">Add Holiday</div>
+                <div className="bp-muted">{holidayForm.start_date} → {holidayForm.end_date}</div>
+              </div>
+              <button className="bp-top-btn" onClick={()=>setHolidayOpen(false)}>Close</button>
+            </div>
+
+            {holidayErr ? <div className="bp-error" style={{marginTop:10}}>{holidayErr}</div> : null}
+
+            <div style={{ display:'grid', gap:10, marginTop:12 }}>
+              <div>
+                <div className="bp-k" style={{ marginBottom: 6 }}>Title</div>
+                <input
+                  className="bp-input"
+                  value={holidayForm.title}
+                  onChange={(e)=>setHolidayForm({...holidayForm, title:e.target.value})}
+                  placeholder="e.g. Christmas"
+                />
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                <div>
+                  <div className="bp-k" style={{ marginBottom: 6 }}>Start date</div>
+                  <input
+                    className="bp-input"
+                    type="date"
+                    value={holidayForm.start_date}
+                    onChange={(e)=>setHolidayForm({...holidayForm, start_date:e.target.value})}
+                  />
+                </div>
+                <div>
+                  <div className="bp-k" style={{ marginBottom: 6 }}>End date</div>
+                  <input
+                    className="bp-input"
+                    type="date"
+                    value={holidayForm.end_date}
+                    onChange={(e)=>setHolidayForm({...holidayForm, end_date:e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, alignItems:'end' }}>
+                <div>
+                  <div className="bp-k" style={{ marginBottom: 6 }}>Scope</div>
+                  <select
+                    className="bp-input"
+                    value={holidayForm.agent_id}
+                    onChange={(e)=>setHolidayForm({...holidayForm, agent_id:Number(e.target.value)})}
+                  >
+                    <option value={0}>Global (all agents)</option>
+                    {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                </div>
+
+                <label className="bp-check" style={{ paddingBottom: 6 }}>
+                  <input
+                    type="checkbox"
+                    checked={holidayForm.is_recurring_yearly || false}
+                    onChange={(e)=>setHolidayForm({...holidayForm, is_recurring_yearly:e.target.checked})}
+                  />
+                  <span>Repeat yearly</span>
+                </label>
+              </div>
+
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop: 6 }}>
+                <label className="bp-check">
+                  <input
+                    type="checkbox"
+                    checked={holidayForm.is_enabled !== false}
+                    onChange={(e)=>setHolidayForm({...holidayForm, is_enabled:e.target.checked})}
+                  />
+                  <span>Enabled</span>
+                </label>
+
+                <div style={{ display:'flex', gap:10 }}>
+                  <button className="bp-btn bp-btn-ghost" onClick={()=>setHolidayOpen(false)}>Cancel</button>
+                  <button className="bp-btn" disabled={holidaySaving} onClick={saveHolidayFromModal}>
+                    {holidaySaving ? "Saving…" : "Save Holiday"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {drawer ? (
