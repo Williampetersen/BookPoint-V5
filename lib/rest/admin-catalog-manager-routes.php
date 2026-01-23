@@ -36,6 +36,9 @@ add_action('rest_api_init', function () {
     ['methods'=>'GET', 'callback'=>'bp_rest_admin_agents_list_full', 'permission_callback'=>'bp_rest_can_manage_catalog'],
     ['methods'=>'POST','callback'=>'bp_rest_admin_agents_create', 'permission_callback'=>'bp_rest_can_manage_catalog'],
   ]);
+  register_rest_route('bp/v1', '/admin/agents-full', [
+    ['methods'=>'GET', 'callback'=>'bp_rest_admin_agents_list_full', 'permission_callback'=>'bp_rest_can_manage_catalog'],
+  ]);
   register_rest_route('bp/v1', '/admin/agents/(?P<id>\d+)', [
     ['methods'=>'PATCH','callback'=>'bp_rest_admin_agents_patch', 'permission_callback'=>'bp_rest_can_manage_catalog'],
     ['methods'=>'DELETE','callback'=>'bp_rest_admin_agents_delete','permission_callback'=>'bp_rest_can_manage_catalog'],
@@ -59,7 +62,10 @@ add_action('rest_api_init', function () {
 });
 
 function bp_rest_can_manage_catalog() {
-  return current_user_can('bp_manage_services') || current_user_can('bp_manage_settings');
+  return current_user_can('bp_manage_services')
+    || current_user_can('bp_manage_agents')
+    || current_user_can('bp_manage_settings')
+    || current_user_can('manage_options');
 }
 
 // ---------- Helpers ----------
@@ -89,12 +95,14 @@ function bp_bool01($v) {
 function bp_rest_admin_categories_list(WP_REST_Request $req) {
   global $wpdb;
   $t = $wpdb->prefix . 'bp_categories';
-  $rows = $wpdb->get_results("SELECT * FROM {$t} ORDER BY sort_order ASC, id DESC", ARRAY_A) ?: [];
+  $t_rel = $wpdb->prefix . 'bp_service_categories';
+  $rows = $wpdb->get_results("SELECT c.*, COUNT(r.service_id) AS services_count FROM {$t} c LEFT JOIN {$t_rel} r ON r.category_id = c.id GROUP BY c.id ORDER BY c.sort_order ASC, c.id DESC", ARRAY_A) ?: [];
 
   foreach ($rows as &$r) {
     $r['image_id'] = (int)($r['image_id'] ?? 0);
     $r['image_url'] = bp_img_url($r['image_id'], 'medium');
     $r['sort_order'] = (int)($r['sort_order'] ?? 0);
+    $r['services_count'] = (int)($r['services_count'] ?? 0);
   }
   return new WP_REST_Response(['status'=>'success','data'=>$rows], 200);
 }
@@ -302,10 +310,12 @@ function bp_rest_admin_extras_delete(WP_REST_Request $req) {
 function bp_rest_admin_agents_list_full(WP_REST_Request $req) {
   global $wpdb;
   $t = $wpdb->prefix . 'bp_agents';
-  $rows = $wpdb->get_results("SELECT * FROM {$t} ORDER BY id DESC", ARRAY_A) ?: [];
+  $t_rel = $wpdb->prefix . 'bp_agent_services';
+  $rows = $wpdb->get_results("SELECT a.*, COUNT(r.service_id) AS services_count FROM {$t} a LEFT JOIN {$t_rel} r ON r.agent_id = a.id GROUP BY a.id ORDER BY a.id DESC", ARRAY_A) ?: [];
   foreach ($rows as &$r) {
     $r['image_id'] = (int)($r['image_id'] ?? 0);
     $r['image_url'] = bp_img_url($r['image_id'], 'medium');
+    $r['services_count'] = (int)($r['services_count'] ?? 0);
   }
   return new WP_REST_Response(['status'=>'success','data'=>$rows], 200);
 }

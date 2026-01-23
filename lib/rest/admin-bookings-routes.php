@@ -31,124 +31,295 @@ add_action('rest_api_init', function () {
   ]);
 });
 
-
 function bp_rest_admin_booking_get(WP_REST_Request $req) {
   global $wpdb;
 
   $id = (int)$req['id'];
   if ($id <= 0) return new WP_REST_Response(['status'=>'error','message'=>'Invalid id'], 400);
 
-  $t_book = $wpdb->prefix . 'bp_bookings';
-  $t_srv  = $wpdb->prefix . 'bp_services';
-  $t_ag   = $wpdb->prefix . 'bp_agents';
-  $t_cus  = $wpdb->prefix . 'bp_customers';
+  $tBookings  = $wpdb->prefix . 'bp_bookings';
+  $tCustomers = $wpdb->prefix . 'bp_customers';
+  $tServices  = $wpdb->prefix . 'bp_services';
+  $tAgents    = $wpdb->prefix . 'bp_agents';
+  $tFields    = $wpdb->prefix . 'bp_form_fields';
 
-  $bCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_book}") ?: [];
-  $sCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_srv}") ?: [];
-  $aCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_ag}") ?: [];
-  $cCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_cus}") ?: [];
+  $table_exists = function($table) use ($wpdb){
+    $like = $wpdb->esc_like($table);
+    $found = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $like));
+    return !empty($found);
+  };
 
-  $has_start_datetime = in_array('start_datetime', $bCols, true);
-  $has_start_date = in_array('start_date', $bCols, true);
-  $has_start_time = in_array('start_time', $bCols, true);
-  $has_admin_notes = in_array('admin_notes', $bCols, true);
-  $has_notes = in_array('notes', $bCols, true);
+  $read_json = function($val){
+    if (!$val || !is_string($val)) return null;
+    $trim = trim($val);
+    if ($trim === '' || ($trim[0] !== '{' && $trim[0] !== '[')) return null;
+    $decoded = json_decode($trim, true);
+    return (json_last_error() === JSON_ERROR_NONE) ? $decoded : null;
+  };
 
-  $durationExpr = in_array('duration_minutes', $sCols, true)
-    ? 's.duration_minutes'
-    : (in_array('duration', $sCols, true) ? 's.duration' : '30');
-  $bufferBeforeExpr = in_array('buffer_before_minutes', $sCols, true)
-    ? 's.buffer_before_minutes'
-    : (in_array('buffer_before', $sCols, true) ? 's.buffer_before' : '0');
-  $bufferAfterExpr = in_array('buffer_after_minutes', $sCols, true)
-    ? 's.buffer_after_minutes'
-    : (in_array('buffer_after', $sCols, true) ? 's.buffer_after' : '0');
+  $pick_first = function($row, array $keys){
+    foreach($keys as $k){
+      if (isset($row[$k]) && $row[$k] !== '' && $row[$k] !== null) return $row[$k];
+    }
+    return null;
+  };
 
-  $select = [
-    'b.*',
-    "COALESCE(s.name,'') AS service_name",
-    "COALESCE({$durationExpr},30) AS duration",
-    "COALESCE({$bufferBeforeExpr},0) AS buffer_before",
-    "COALESCE({$bufferAfterExpr},0) AS buffer_after",
-  ];
+  $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tBookings} WHERE id=%d", $id), ARRAY_A);
+  if (!$row) return new WP_REST_Response(['status'=>'error','message'=>'Booking not found'], 404);
 
-  if (in_array('name', $aCols, true)) {
-    $select[] = "COALESCE(a.name,'') AS agent_name";
-  } else {
-    if (in_array('first_name', $aCols, true)) $select[] = "COALESCE(a.first_name,'') AS agent_first_name";
-    if (in_array('last_name', $aCols, true)) $select[] = "COALESCE(a.last_name,'') AS agent_last_name";
-  }
-
-  if (in_array('first_name', $cCols, true)) $select[] = "COALESCE(c.first_name,'') AS customer_first_name";
-  if (in_array('last_name', $cCols, true)) $select[] = "COALESCE(c.last_name,'') AS customer_last_name";
-  if (in_array('email', $cCols, true)) $select[] = "COALESCE(c.email,'') AS customer_email";
-  if (in_array('phone', $cCols, true)) $select[] = "COALESCE(c.phone,'') AS customer_phone";
-
-  $row = $wpdb->get_row($wpdb->prepare("
-    SELECT " . implode(',', $select) . "
-    FROM {$t_book} b
-    LEFT JOIN {$t_srv} s ON s.id = b.service_id
-    LEFT JOIN {$t_ag} a ON a.id = b.agent_id
-    LEFT JOIN {$t_cus} c ON c.id = b.customer_id
-    WHERE b.id = %d
-    LIMIT 1
-  ", $id), ARRAY_A);
-
-  if (!$row) return new WP_REST_Response(['status'=>'error','message'=>'Not found'], 404);
-
-  $customer_name = trim((string)($row['customer_first_name'] ?? '') . ' ' . (string)($row['customer_last_name'] ?? ''));
-
-  $duration = (int)($row['duration'] ?? 30);
-  $bf = (int)($row['buffer_before'] ?? 0);
-  $ba = (int)($row['buffer_after'] ?? 0);
-  $occupied = max(5, $duration + $bf + $ba);
-
-  $start_dt = '';
-  if ($has_start_datetime && !empty($row['start_datetime'])) {
-    $start_dt = $row['start_datetime'];
-  } elseif ($has_start_date && $has_start_time) {
-    $start_dt = ($row['start_date'] ?? '') . ' ' . ($row['start_time'] ?? '');
-  }
-
-  $start_ts = $start_dt ? strtotime($start_dt) : null;
-  $end_time = $start_ts ? date('H:i', $start_ts + $occupied * 60) : '';
-  $date = $start_ts ? date('Y-m-d', $start_ts) : ($row['start_date'] ?? '');
-  $start_time = $start_ts ? date('H:i', $start_ts) : substr((string)($row['start_time'] ?? ''), 0, 5);
-
-  $agent_name = '';
-  if (!empty($row['agent_name'])) {
-    $agent_name = (string)$row['agent_name'];
-  } else {
-    $agent_name = trim((string)($row['agent_first_name'] ?? '') . ' ' . (string)($row['agent_last_name'] ?? ''));
-  }
-
-  $admin_notes = '';
-  if ($has_admin_notes) {
-    $admin_notes = (string)($row['admin_notes'] ?? '');
-  } elseif ($has_notes) {
-    $admin_notes = (string)($row['notes'] ?? '');
-  }
-
-  $data = [
+  $booking = [
     'id' => (int)$row['id'],
-    'status' => $row['status'] ?? '',
-    'service_id' => (int)($row['service_id'] ?? 0),
-    'agent_id' => (int)($row['agent_id'] ?? 0),
-    'customer_id' => (int)($row['customer_id'] ?? 0),
-    'date' => $date,
-    'start_time' => $start_time,
-    'end_time' => $end_time,
-    'service_name' => $row['service_name'] ?? '',
-    'agent_name' => $agent_name,
-    'customer_name' => $customer_name,
-    'customer_email' => $row['customer_email'] ?? '',
-    'customer_phone' => $row['customer_phone'] ?? '',
-    'admin_notes' => $admin_notes,
+    'status' => $row['status'] ?? ($row['booking_status'] ?? 'pending'),
+    'start_datetime' => $pick_first($row, ['start_datetime','start_at','start_time','start']),
+    'end_datetime'   => $pick_first($row, ['end_datetime','end_at','end_time','end']),
+    'created_at'     => $pick_first($row, ['created_at','created','date_created']),
   ];
 
-  return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
-}
+  $customer_id = (int) ($pick_first($row, ['customer_id','bp_customer_id','client_id']) ?? 0);
+  $service_id  = (int) ($pick_first($row, ['service_id','bp_service_id']) ?? 0);
+  $agent_id    = (int) ($pick_first($row, ['agent_id','bp_agent_id','staff_id']) ?? 0);
 
+  $customer = [
+    'id'    => $customer_id ?: null,
+    'name'  => $pick_first($row, ['customer_name','name','full_name']),
+    'email' => $pick_first($row, ['customer_email','email']),
+    'phone' => $pick_first($row, ['customer_phone','phone','mobile']),
+  ];
+
+  if ($customer_id && $table_exists($tCustomers)) {
+    $cRow = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tCustomers} WHERE id=%d", $customer_id), ARRAY_A);
+    if ($cRow) {
+      $first = $pick_first($cRow, ['first_name','firstname','fname']);
+      $last  = $pick_first($cRow, ['last_name','lastname','lname']);
+      $customer['name']  = $customer['name']  ?: trim(($first ?: '') . ' ' . ($last ?: '')) ?: ($pick_first($cRow, ['name','full_name']) ?: null);
+      $customer['email'] = $customer['email'] ?: ($pick_first($cRow, ['email','customer_email']) ?: null);
+      $customer['phone'] = $customer['phone'] ?: ($pick_first($cRow, ['phone','mobile']) ?: null);
+    }
+  }
+
+  $service = [
+    'id' => $service_id ?: null,
+    'name' => $pick_first($row, ['service_name','service']),
+  ];
+  $service_price = null;
+  if ($service_id && $table_exists($tServices)) {
+    $sRow = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tServices} WHERE id=%d", $service_id), ARRAY_A);
+    if ($sRow) {
+      $service['name'] = $service['name'] ?: ($pick_first($sRow, ['name','title','service_name']) ?: null);
+      $service_price = $pick_first($sRow, ['price_cents','price','amount','price_amount','price_value']);
+      if ($service_price !== null && array_key_exists('price_cents', $sRow)) {
+        $service_price = ((float)$service_price) / 100;
+      }
+    }
+  }
+
+  $agent = [
+    'id' => $agent_id ?: null,
+    'name' => $pick_first($row, ['agent_name','agent','staff_name']),
+  ];
+  if ($agent_id && $table_exists($tAgents)) {
+    $aRow = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$tAgents} WHERE id=%d", $agent_id), ARRAY_A);
+    if ($aRow) {
+      $first = $pick_first($aRow, ['first_name','firstname','fname']);
+      $last  = $pick_first($aRow, ['last_name','lastname','lname']);
+      $agent['name'] = $agent['name'] ?: trim(($first ?: '') . ' ' . ($last ?: '')) ?: ($pick_first($aRow, ['name','full_name']) ?: null);
+    }
+  }
+
+  $pricing = [
+    'currency' => $pick_first($row, ['currency','currency_code','currency_symbol']),
+    'subtotal' => $pick_first($row, ['subtotal','price_subtotal','amount_subtotal','subtotal_amount']),
+    'discount_total' => $pick_first($row, ['discount_total','discount','discount_amount']),
+    'tax_total' => $pick_first($row, ['tax_total','tax','tax_amount']),
+    'total' => $pick_first($row, ['total','price_total','amount_total','grand_total','total_amount']),
+    'promo_code' => $pick_first($row, ['promo_code','coupon','coupon_code']),
+  ];
+  if (($pricing['subtotal'] === null || $pricing['subtotal'] === '') && $service_price !== null) {
+    $pricing['subtotal'] = $service_price;
+  }
+  if (($pricing['total'] === null || $pricing['total'] === '') && $service_price !== null) {
+    $pricing['total'] = $service_price;
+  }
+  if (empty($pricing['currency']) && class_exists('BP_SettingsHelper')) {
+    $pricing['currency'] = BP_SettingsHelper::get('currency', 'USD');
+  }
+
+  $json_columns = [];
+  foreach($row as $col => $val){
+    $decoded = $read_json($val);
+    if ($decoded !== null) $json_columns[$col] = $decoded;
+  }
+
+  $form_answers = [];
+  $order_items  = [];
+
+  // Prefer field values table (per-booking, won't overwrite older bookings)
+  $field_values = [];
+  $t_field_values = $wpdb->prefix . 'bp_field_values';
+  if (class_exists('BP_FieldValuesHelper') && $table_exists($t_field_values)) {
+    // Only booking entity values to keep each booking unique
+    $field_values = BP_FieldValuesHelper::get_for_entity('booking', (int)$booking['id']);
+  }
+
+  foreach ($field_values as $fv) {
+    $key = sanitize_key($fv['field_key'] ?? '');
+    if ($key === '') continue;
+    $scope = sanitize_text_field($fv['scope'] ?? '');
+    $val = $fv['value_long'] ?? '';
+    $decoded = $read_json($val);
+    $val = ($decoded !== null) ? $decoded : $val;
+
+    if (!array_key_exists($key, $form_answers)) {
+      $form_answers[$key] = $val;
+    }
+    if ($scope !== '') {
+      $form_answers[$scope . '.' . $key] = $val;
+    }
+  }
+
+  // Explicit JSON columns for booking/customer fields
+  if (empty($form_answers)) {
+    $booking_fields = $read_json($row['booking_fields_json'] ?? null);
+    $customer_fields = $read_json($row['customer_fields_json'] ?? null);
+    $custom_fields = $read_json($row['custom_fields_json'] ?? null);
+
+    if (is_array($booking_fields)) $form_answers = $booking_fields;
+    if (is_array($customer_fields)) $form_answers = array_merge($form_answers, $customer_fields);
+    if (is_array($custom_fields)) $form_answers = array_merge($form_answers, $custom_fields);
+  }
+
+  // Order items: prefer explicit columns
+  $explicit_items = $read_json($row['order_items_json'] ?? null)
+    ?? $read_json($row['extras_json'] ?? null)
+    ?? $read_json($row['items_json'] ?? null);
+  if (is_array($explicit_items)) {
+    $order_items = $explicit_items;
+  }
+
+  // Resolve extras (names/prices) if extras_json contains ids or partials
+  $extras_items = [];
+  $extras_raw = $read_json($row['extras_json'] ?? null);
+  if (is_array($extras_raw) && !empty($extras_raw)) {
+    $ids = [];
+    foreach ($extras_raw as $ex) {
+      if (is_numeric($ex)) {
+        $ids[] = (int)$ex;
+      } elseif (is_array($ex)) {
+        $maybe_id = $ex['id'] ?? ($ex['extra_id'] ?? null);
+        if (is_numeric($maybe_id)) $ids[] = (int)$maybe_id;
+      }
+    }
+
+    $extras_map = [];
+    if (!empty($ids)) {
+      $ids = array_values(array_unique(array_filter($ids)));
+      $t_extras = $wpdb->prefix . 'bp_service_extras';
+      $in = implode(',', array_fill(0, count($ids), '%d'));
+      $rows = $wpdb->get_results($wpdb->prepare("SELECT id, name, price FROM {$t_extras} WHERE id IN ({$in})", $ids), ARRAY_A) ?: [];
+      foreach ($rows as $r) {
+        $extras_map[(int)$r['id']] = $r;
+      }
+    }
+
+    foreach ($extras_raw as $ex) {
+      $id = null; $name = null; $price = null; $qty = 1;
+      if (is_numeric($ex)) {
+        $id = (int)$ex;
+      } elseif (is_array($ex)) {
+        $id = isset($ex['id']) ? (int)$ex['id'] : (isset($ex['extra_id']) ? (int)$ex['extra_id'] : null);
+        $name = $ex['name'] ?? $ex['title'] ?? null;
+        $price = $ex['price'] ?? $ex['amount'] ?? null;
+        $qty = isset($ex['qty']) ? (int)$ex['qty'] : (isset($ex['quantity']) ? (int)$ex['quantity'] : 1);
+      }
+
+      if ($id && isset($extras_map[$id])) {
+        $rowEx = $extras_map[$id];
+        $name = $name ?: ($rowEx['name'] ?? null);
+        $price = $price ?? ($rowEx['price'] ?? null);
+      }
+
+      if ($name !== null || $price !== null || $id !== null) {
+        $extras_items[] = [
+          'id' => $id,
+          'name' => $name ?: ('Extra #' . ($id ?: '')),
+          'price' => $price,
+          'qty' => $qty > 0 ? $qty : 1,
+          'type' => 'extra',
+        ];
+      }
+    }
+  }
+
+  if (empty($order_items) && !empty($extras_items)) {
+    $order_items = $extras_items;
+  }
+
+  $extras_total = 0.0;
+  foreach ($extras_items as $ex) {
+    $p = isset($ex['price']) ? (float)$ex['price'] : 0.0;
+    $q = isset($ex['qty']) ? (int)$ex['qty'] : 1;
+    if ($q < 1) $q = 1;
+    $extras_total += ($p * $q);
+  }
+
+  if ($extras_total > 0) {
+    $pricing['extras_total'] = $extras_total;
+  }
+
+  if (($pricing['subtotal'] === null || $pricing['subtotal'] === '') && $service_price !== null) {
+    $pricing['subtotal'] = $service_price + $extras_total;
+  }
+  if (($pricing['total'] === null || $pricing['total'] === '') && $service_price !== null) {
+    $pricing['total'] = $service_price + $extras_total;
+  }
+
+  // Heuristic fallback
+  if (empty($form_answers) || empty($order_items)) {
+    foreach($json_columns as $col => $decoded){
+      if (empty($order_items) && is_array($decoded) && array_is_list($decoded) && count($decoded) > 0 && is_array($decoded[0])) {
+        $first = $decoded[0];
+        if (isset($first['name']) || isset($first['service_id']) || isset($first['price']) || isset($first['qty']) || isset($first['quantity'])) {
+          $order_items = $decoded;
+        }
+      }
+
+      if (empty($form_answers) && is_array($decoded) && !array_is_list($decoded)) {
+        $form_answers = $decoded;
+      }
+    }
+  }
+
+  $field_defs = [];
+  if ($table_exists($tFields)) {
+    $defs = $wpdb->get_results("SELECT * FROM {$tFields} ORDER BY sort_order ASC, id ASC", ARRAY_A) ?: [];
+    foreach($defs as $d){
+      $field_defs[] = [
+        'key'   => $d['field_key'] ?? ($d['slug'] ?? ($d['name'] ?? ('field_'.$d['id']))),
+        'label' => $d['label'] ?? ($d['title'] ?? ($d['name'] ?? 'Field')),
+        'type'  => $d['type'] ?? 'text',
+        'scope' => $d['scope'] ?? ($d['context'] ?? ''),
+        'enabled' => isset($d['is_enabled']) ? (bool)$d['is_enabled'] : (isset($d['enabled']) ? (bool)$d['enabled'] : true),
+        'required'=> isset($d['is_required']) ? (bool)$d['is_required'] : (isset($d['required']) ? (bool)$d['required'] : false),
+      ];
+    }
+  }
+
+  return new WP_REST_Response([
+    'status' => 'success',
+    'data' => [
+      'booking' => $booking,
+      'customer' => $customer,
+      'service' => $service,
+      'agent' => $agent,
+      'pricing' => $pricing,
+      'order_items' => $order_items,
+      'form_answers' => $form_answers,
+      'form_fields' => $field_defs,
+      'raw' => $row,
+      'json_columns' => $json_columns,
+    ]
+  ], 200);
+}
 
 function bp_rest_admin_agents_list(WP_REST_Request $req) {
   global $wpdb;

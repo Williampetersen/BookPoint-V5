@@ -8,7 +8,9 @@ add_action('rest_api_init', function(){
       if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
         return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
       }
-      return new WP_REST_Response(['status'=>'success','data'=>BP_SettingsHelper::get_all()], 200);
+      $data = BP_SettingsHelper::get_all();
+      $data['bp_remove_data_on_uninstall'] = (int)get_option('bp_remove_data_on_uninstall', 0);
+      return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
     },
     'permission_callback' => '__return_true',
   ]);
@@ -21,6 +23,19 @@ add_action('rest_api_init', function(){
       }
       $p = $req->get_json_params();
       if (!is_array($p)) $p = [];
+
+      $sanitize_value = function($val) use (&$sanitize_value) {
+        if (is_array($val)) {
+          $out = [];
+          foreach ($val as $k => $v) {
+            $out[$k] = $sanitize_value($v);
+          }
+          return $out;
+        }
+        if (is_bool($val) || is_int($val) || is_float($val)) return $val;
+        if (is_string($val)) return sanitize_text_field($val);
+        return $val;
+      };
 
       $interval = isset($p['slot_interval_minutes']) ? intval($p['slot_interval_minutes']) : null;
       if ($interval !== null) {
@@ -37,11 +52,34 @@ add_action('rest_api_init', function(){
       }
 
       $updates = [];
+      foreach ($p as $k => $v) {
+        $key = sanitize_key($k);
+        if ($key === '') continue;
+        $updates[$key] = $sanitize_value($v);
+      }
+
       if ($interval !== null) $updates['slot_interval_minutes'] = $interval;
       if ($currency !== null) $updates['currency'] = $currency;
       if ($currency_pos !== null) $updates['currency_position'] = $currency_pos;
 
+      $remove_flag = null;
+      if (array_key_exists('bp_remove_data_on_uninstall', $updates)) {
+        $remove_flag = (int)!empty($updates['bp_remove_data_on_uninstall']);
+        unset($updates['bp_remove_data_on_uninstall']);
+      }
+      if (array_key_exists('remove_data_on_uninstall', $updates)) {
+        $remove_flag = (int)!empty($updates['remove_data_on_uninstall']);
+        unset($updates['remove_data_on_uninstall']);
+      }
+
+      if ($remove_flag !== null) {
+        update_option('bp_remove_data_on_uninstall', $remove_flag, false);
+      }
+
       $merged = BP_SettingsHelper::merge($updates);
+      if ($remove_flag !== null) {
+        $merged['bp_remove_data_on_uninstall'] = $remove_flag;
+      }
       return new WP_REST_Response(['status'=>'success','data'=>$merged], 200);
     },
     'permission_callback' => '__return_true',

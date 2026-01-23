@@ -25,6 +25,10 @@ function bp_public_create_booking(WP_REST_Request $req){
   $booking_fields = $p['booking_fields'] ?? [];
   if (!is_array($booking_fields)) $booking_fields = [];
 
+  $extras = $p['extras'] ?? [];
+  if (!is_array($extras)) $extras = [];
+  $promo_code = strtoupper(sanitize_text_field($p['promo_code'] ?? ''));
+
   $field_values = $p['field_values'] ?? [];
   if (!is_array($field_values)) $field_values = [];
 
@@ -159,6 +163,9 @@ function bp_public_create_booking(WP_REST_Request $req){
     ]);
   }
 
+  $t_bookings = $wpdb->prefix . 'bp_bookings';
+
+  // Always create a new booking (each booking must be unique)
   $booking_id = BP_BookingModel::create([
     'service_id'     => $service_id,
     'customer_id'    => $customer_id,
@@ -174,6 +181,22 @@ function bp_public_create_booking(WP_REST_Request $req){
 
   if ($booking_id <= 0) {
     return new WP_REST_Response(['status'=>'error','message'=>'Insert failed'], 500);
+  }
+
+  // Store extras + pricing on booking (if provided)
+  $extras_json = $extras ? wp_json_encode($extras) : null;
+  $discount_total = isset($p['discount_total']) ? (float)$p['discount_total'] : null;
+  $total_price = $p['total_price'] ?? ($p['total'] ?? ($p['amount_total'] ?? null));
+  $total_price = $total_price !== null ? (float)$total_price : null;
+
+  $update = [];
+  $formats = [];
+  if ($extras_json !== null) { $update['extras_json'] = $extras_json; $formats[] = '%s'; }
+  if ($promo_code !== '') { $update['promo_code'] = $promo_code; $formats[] = '%s'; }
+  if ($discount_total !== null) { $update['discount_total'] = $discount_total; $formats[] = '%f'; }
+  if ($total_price !== null) { $update['total_price'] = $total_price; $formats[] = '%f'; }
+  if (!empty($update)) {
+    $wpdb->update($t_bookings, $update, ['id' => $booking_id], $formats, ['%d']);
   }
 
   if (class_exists('BP_FieldValuesHelper') && $fields) {
@@ -194,10 +217,8 @@ function bp_public_create_booking(WP_REST_Request $req){
       elseif ($type === 'textarea') $raw = sanitize_textarea_field($raw);
       else $raw = sanitize_text_field($raw);
 
-      $entity_type = ($scope === 'customer') ? 'customer' : 'booking';
-      $entity_id = ($scope === 'customer') ? $customer_id : $booking_id;
-
-      BP_FieldValuesHelper::upsert($entity_type, $entity_id, (int)$f['id'], $field_key, $scope, $raw);
+      // Always store per-booking values to keep old bookings unique
+      BP_FieldValuesHelper::upsert('booking', $booking_id, (int)$f['id'], $field_key, $scope, $raw);
     }
   }
 

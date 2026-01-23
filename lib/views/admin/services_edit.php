@@ -34,10 +34,11 @@ function BP_field_error($errors, $key) {
   }
 }
 ?>
+<?php $is_legacy = isset($_GET['legacy']); ?>
 <div class="wrap">
   <h1><?php echo $id ? esc_html__('Edit Service', 'bookpoint') : esc_html__('Add Service', 'bookpoint'); ?></h1>
 
-  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"<?php echo $is_legacy ? ' target="_top"' : ''; ?>>
     <?php wp_nonce_field('bp_admin'); ?>
     <input type="hidden" name="action" value="bp_admin_services_save">
     <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
@@ -200,7 +201,7 @@ function BP_field_error($errors, $key) {
 
     <p class="submit">
       <button type="submit" class="button button-primary"><?php echo esc_html__('Save Service', 'bookpoint'); ?></button>
-      <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=bp_services')); ?>"><?php echo esc_html__('Back', 'bookpoint'); ?></a>
+      <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=bp_services')); ?>"<?php echo $is_legacy ? ' target="_top"' : ''; ?>><?php echo esc_html__('Back', 'bookpoint'); ?></a>
     </p>
   </form>
 </div>
