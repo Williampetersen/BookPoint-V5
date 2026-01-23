@@ -4,6 +4,9 @@ import Shell from "./layout/Shell";
 // Screens
 import DashboardScreen from "./screens/DashboardScreen";
 import BookingsScreen from "./screens/BookingsScreen";
+import CalendarScreen from "./screens/CalendarScreen";
+import ScheduleScreen from "./screens/ScheduleScreen";
+import HolidaysScreen from "./screens/HolidaysScreen";
 import FormFieldsScreen from "./screens/FormFieldsScreen";
 import ServicesScreen from "./screens/ServicesScreen";
 import ServicesEditScreen from "./screens/ServicesEditScreen";
@@ -82,6 +85,9 @@ export default function AdminApp() {
     >
       {screen === "dashboard" ? <DashboardScreen /> : null}
       {screen === "bookings" ? <BookingsScreen /> : null}
+      {screen === "calendar" ? <CalendarScreen /> : null}
+      {screen === "schedule" ? <ScheduleScreen /> : null}
+      {screen === "holidays" ? <HolidaysScreen /> : null}
       {screen === "form-fields" ? <FormFieldsScreen /> : null}
       {screen === "services" ? <ServicesScreen /> : null}
       {screen === "services-edit" ? <ServicesEditScreen /> : null}
@@ -93,9 +99,6 @@ export default function AdminApp() {
       {screen === "settings" ? <SettingsScreen /> : null}
       {screen === "audit" ? <AuditScreen /> : null}
       {screen === "tools" ? <ToolsScreen /> : null}
-      {["calendar","schedule","holidays","catalog"].includes(screen)
-        ? <ComingSoon title={screen} />
-        : null}
     </Shell>
   );
 }

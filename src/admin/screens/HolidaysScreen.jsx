@@ -1,8 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { bpFetch } from '../api/client';
+import React, { useEffect, useMemo, useState } from "react";
+import { bpFetch } from "../api/client";
 
 export default function HolidaysScreen() {
   const [rows, setRows] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [agentId, setAgentId] = useState(0);
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [form, setForm] = useState({
+    title: "",
+    start_date: new Date().toISOString().slice(0, 10),
+    end_date: new Date().toISOString().slice(0, 10),
+    scope: "global",
+    is_recurring_yearly: false,
+  });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -11,134 +21,184 @@ export default function HolidaysScreen() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await bpFetch('/admin/holidays');
+      const agentParam = agentId ? `&agent_id=${encodeURIComponent(agentId)}` : "";
+      const res = await bpFetch(`/admin/holidays?year=${year}${agentParam}`);
       setRows(res?.data || []);
     } catch (e) {
-      pushToast('error', e.message || 'Load failed');
+      pushToast("error", e.message || "Load failed");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [year, agentId]);
 
-  const create = async () => {
-    const today = new Date().toISOString().slice(0,10);
-    try {
-      await bpFetch('/admin/holidays', {
-        method: 'POST',
-        body: { title: 'Holiday', start_date: today, end_date: today, is_recurring_yearly: false, is_enabled: true }
-      });
-      pushToast('success', 'Created ✅');
-      load();
-    } catch (e) {
-      pushToast('error', e.message || 'Create failed');
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await bpFetch("/admin/agents");
+        setAgents(res?.data || []);
+      } catch (e) {
+        setAgents([]);
+      }
+    })();
+  }, []);
+
+  const create = async (e) => {
+    e.preventDefault();
+    if (form.scope === "agent" && !agentId) {
+      pushToast("error", "Select an agent for agent-specific holidays");
+      return;
     }
-  };
-
-  const patch = async (id, patchBody) => {
     try {
-      await bpFetch(`/admin/holidays/${id}`, { method: 'PATCH', body: patchBody });
+      const payload = {
+        title: form.title || "Holiday",
+        start_date: form.start_date,
+        end_date: form.end_date,
+        agent_id: form.scope === "agent" ? agentId : null,
+        is_recurring: false,
+        is_recurring_yearly: form.is_recurring_yearly || false,
+        is_enabled: true,
+      };
+      await bpFetch("/admin/holidays", { method: "POST", body: payload });
+      pushToast("success", "Created ✅");
+      setForm({ title: "", start_date: new Date().toISOString().slice(0, 10), end_date: new Date().toISOString().slice(0, 10), scope: "global", is_recurring_yearly: false });
       load();
-    } catch (e) {
-      pushToast('error', e.message || 'Save failed');
+    } catch (e2) {
+      pushToast("error", e2.message || "Create failed");
     }
   };
 
   const remove = async (id) => {
-    if (!confirm('Delete this holiday?')) return;
+    if (!confirm("Delete this holiday?")) return;
     try {
-      await bpFetch(`/admin/holidays/${id}`, { method: 'DELETE' });
-      pushToast('success', 'Deleted ✅');
+      await bpFetch(`/admin/holidays/${id}`, { method: "DELETE" });
+      pushToast("success", "Deleted ✅");
       load();
     } catch (e) {
-      pushToast('error', e.message || 'Delete failed');
+      pushToast("error", e.message || "Delete failed");
     }
   };
 
+  const scopeLabel = useMemo(() => {
+    if (!agentId) return "Global";
+    const a = agents.find((x) => x.id === agentId);
+    return a ? (a.name || `${a.first_name || ""} ${a.last_name || ""}`.trim() || `#${a.id}`) : "Agent";
+  }, [agents, agentId]);
+
+  const agentNameMap = useMemo(() => {
+    const map = new Map();
+    agents.forEach((a) => {
+      const label = a.name || `${a.first_name || ""} ${a.last_name || ""}`.trim() || `#${a.id}`;
+      map.set(a.id, label);
+    });
+    return map;
+  }, [agents]);
+
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+    <div className="bp-container">
+      <div className="bp-header">
         <div>
-          <h2 style={{ margin: 0 }}>Holidays / Closed Days</h2>
-          <div style={{ color: '#6b7280', fontWeight: 800, marginTop: 4 }}>
-            Closed dates will remove all availability.
-          </div>
+          <h1>Holidays</h1>
+          <div className="bp-muted">Closed dates remove all availability (global or per agent).</div>
         </div>
-        <button onClick={create} style={btn}>+ Add holiday</button>
+        <div className="bp-head-actions">
+          <input
+            className="bp-input"
+            style={{ width: 120 }}
+            type="number"
+            value={year}
+            onChange={(e) => setYear(parseInt(e.target.value || "0", 10) || new Date().getFullYear())}
+          />
+          <select className="bp-input" value={agentId} onChange={(e) => setAgentId(parseInt(e.target.value, 10) || 0)}>
+            <option value={0}>Global</option>
+            {agents.map((a) => (
+              <option key={a.id} value={a.id}>{a.name || `${a.first_name || ""} ${a.last_name || ""}`.trim() || `#${a.id}`}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div style={{ marginTop: 14, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, overflow: 'hidden' }}>
-        <div style={{ padding: 12, borderBottom: '1px solid #f3f4f6', fontWeight: 950 }}>
-          {loading ? 'Loading…' : `${rows.length} items`}
-        </div>
+      <div className="bp-card" style={{ marginBottom: 14 }}>
+        <div className="bp-section-title" style={{ marginBottom: 10 }}>Add holiday</div>
+        <form onSubmit={create} style={{ display: "grid", gap: 10, gridTemplateColumns: "2fr 1fr 1fr 1fr auto", alignItems: "end" }}>
+          <div>
+            <label className="bp-label">Title</label>
+            <input className="bp-input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </div>
+          <div>
+            <label className="bp-label">From</label>
+            <input type="date" className="bp-input" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+          </div>
+          <div>
+            <label className="bp-label">To</label>
+            <input type="date" className="bp-input" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+          </div>
+          <div>
+            <label className="bp-label">Apply to</label>
+            <select className="bp-input" value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value })}>
+              <option value="global">Global</option>
+              <option value="agent">Agent ({scopeLabel})</option>
+            </select>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <label className="bp-check">
+              <input
+                type="checkbox"
+                checked={form.is_recurring_yearly || false}
+                onChange={(e) => setForm({ ...form, is_recurring_yearly: e.target.checked })}
+              />
+              <span>Repeat yearly</span>
+            </label>
+          </div>
+          <button className="bp-btn bp-btn-primary" type="submit">Add</button>
+        </form>
+      </div>
 
-        <div style={{ padding: 12, display: 'grid', gap: 10 }}>
-          {rows.length === 0 ? (
-            <div style={{ color: '#6b7280', fontWeight: 800 }}>No holidays yet.</div>
-          ) : null}
+      <div className="bp-card">
+        <div className="bp-section-title" style={{ marginBottom: 10 }}>Holidays list</div>
+        {loading ? <div className="bp-muted">Loading…</div> : null}
+        {!loading && rows.length === 0 ? <div className="bp-muted">No holidays yet.</div> : null}
 
-          {rows.map(r => (
-            <div key={r.id} style={row}>
-              <input
-                value={r.title || ''}
-                onChange={(e) => patch(r.id, { title: e.target.value })}
-                style={inputText}
-                placeholder="Title"
-              />
-              <input
-                type="date"
-                value={(r.start_date || '').slice(0, 10)}
-                onChange={(e) => patch(r.id, { start_date: e.target.value })}
-                style={input}
-              />
-              <input
-                type="date"
-                value={(r.end_date || '').slice(0, 10)}
-                onChange={(e) => patch(r.id, { end_date: e.target.value })}
-                style={input}
-              />
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 900 }}>
-                <input
-                  type="checkbox"
-                  checked={parseInt(r.is_recurring_yearly || 0, 10) === 1}
-                  onChange={(e) => patch(r.id, { is_recurring_yearly: e.target.checked })}
-                />
-                Yearly
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 900 }}>
-                <input
-                  type="checkbox"
-                  checked={parseInt(r.is_enabled || 0, 10) === 1}
-                  onChange={(e) => patch(r.id, { is_enabled: e.target.checked })}
-                />
-                Enabled
-              </label>
-              <button onClick={() => remove(r.id)} style={iconBtn}>×</button>
+        {rows.length > 0 ? (
+          <div className="bp-table">
+            <div className="bp-tr bp-th">
+              <div>Title</div>
+              <div>Dates</div>
+              <div>Scope</div>
+              <div>Actions</div>
             </div>
-          ))}
-        </div>
+            {rows.map((r) => (
+              <div key={r.id} className="bp-tr">
+                <div style={{ fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}>
+                  {r.title || "Holiday"}
+                  {r.is_recurring_yearly ? <span className="bp-badge">Yearly</span> : null}
+                  {!r.is_enabled ? <span className="bp-badge bp-badge-off">Disabled</span> : null}
+                </div>
+                <div>{(r.start_date || "").slice(0, 10)} → {(r.end_date || "").slice(0, 10)}</div>
+                <div>{r.agent_id ? (agentNameMap.get(r.agent_id) || `Agent #${r.agent_id}`) : "Global"}</div>
+                <div className="bp-row-actions">
+                  <button className="bp-btn-sm" onClick={() => remove(r.id)}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {toast ? (
         <div style={{
-          position: 'fixed', right: 18, bottom: 18,
-          background: '#0b1437', color: '#fff', padding: '10px 12px',
+          position: "fixed", right: 18, bottom: 18,
+          background: "#0b1437", color: "#fff", padding: "10px 12px",
           borderRadius: 12, fontWeight: 900, zIndex: 999999
         }}>
           {toast.msg}
           <button onClick={() => setToast(null)} style={{
-            marginLeft: 10, background: 'transparent', border: 'none', color: '#fff',
-            cursor: 'pointer', fontWeight: 900, fontSize: 16
+            marginLeft: 10, background: "transparent", border: "none", color: "#fff",
+            cursor: "pointer", fontWeight: 900, fontSize: 16
           }}>×</button>
         </div>
       ) : null}
     </div>
   );
 }
-
-const btn = { background: '#4318ff', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 12px', fontWeight: 950, cursor: 'pointer' };
-const input = { padding: '9px 10px', borderRadius: 12, border: '1px solid #e5e7eb', fontWeight: 800 };
-const inputText = { padding: '9px 10px', borderRadius: 12, border: '1px solid #e5e7eb', fontWeight: 800, width: '100%' };
-const row = { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto auto auto', gap: 10, alignItems: 'center' };
-const iconBtn = { width: 32, height: 32, borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontWeight: 900, fontSize: 18 };

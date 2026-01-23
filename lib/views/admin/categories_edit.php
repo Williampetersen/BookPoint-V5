@@ -1,4 +1,6 @@
-<?php defined('ABSPATH') || exit;
+<?php
+defined('ABSPATH') || exit;
+require_once __DIR__ . '/legacy_shell.php';
 
 $id = (int)($item['id'] ?? 0);
 $name = (string)($item['name'] ?? '');
@@ -8,10 +10,15 @@ $sort_order = (int)($item['sort_order'] ?? 0);
 $is_active = isset($item['is_active']) ? (int)$item['is_active'] : 1;
 
 $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
-?>
 
-<div class="wrap">
-  <h1><?php echo $id ? esc_html__('Edit Category', 'bookpoint') : esc_html__('Add Category', 'bookpoint'); ?></h1>
+$actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp_categories')) . '">' . esc_html__('Back to Categories', 'bookpoint') . '</a>';
+bp_render_legacy_shell_start(
+  $id ? esc_html__('Edit Category', 'bookpoint') : esc_html__('Add Category', 'bookpoint'),
+  esc_html__('Create and organize service categories.', 'bookpoint'),
+  $actions_html,
+  'categories'
+);
+?>
 
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
     <?php wp_nonce_field('bp_admin'); ?>
@@ -60,6 +67,14 @@ $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
       </tr>
     </table>
 
-    <?php submit_button($id ? __('Save Changes', 'bookpoint') : __('Create Category', 'bookpoint')); ?>
+    <p class="submit">
+      <button type="submit" class="bp-btn bp-btn-primary">
+        <?php echo $id ? esc_html__('Save Changes', 'bookpoint') : esc_html__('Create Category', 'bookpoint'); ?>
+      </button>
+      <a class="bp-btn" href="<?php echo esc_url(admin_url('admin.php?page=bp_categories')); ?>">
+        <?php echo esc_html__('Back', 'bookpoint'); ?>
+      </a>
+    </p>
   </form>
-</div>
+
+<?php bp_render_legacy_shell_end(); ?>

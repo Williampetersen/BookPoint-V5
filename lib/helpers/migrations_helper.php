@@ -3,7 +3,7 @@ defined('ABSPATH') || exit;
 
 final class BP_MigrationsHelper {
 
-  const DB_VERSION = '1.4.0';
+  const DB_VERSION = '1.5.0';
   const OPT_DB_VERSION = 'bp_db_version';
   const DB_VERSION_OPTION = 'BP_db_version';
 
@@ -111,6 +111,51 @@ final class BP_MigrationsHelper {
       ) {$charset};
     ");
 
+    dbDelta("
+      CREATE TABLE {$prefix}holidays (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        agent_id BIGINT UNSIGNED NULL,
+        title VARCHAR(190) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        is_recurring TINYINT(1) NOT NULL DEFAULT 0,
+        is_recurring_yearly TINYINT(1) NOT NULL DEFAULT 0,
+        is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        PRIMARY KEY (id),
+        KEY date_range (start_date, end_date),
+        KEY agent_id (agent_id)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}schedules (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        agent_id BIGINT UNSIGNED NULL,
+        day_of_week TINYINT NOT NULL,
+        start_time TIME NOT NULL,
+        end_time TIME NOT NULL,
+        breaks_json LONGTEXT NULL,
+        is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        PRIMARY KEY (id),
+        KEY agent_day (agent_id, day_of_week)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}schedule_settings (
+        id BIGINT UNSIGNED NOT NULL,
+        slot_interval_minutes INT NOT NULL DEFAULT 30,
+        timezone VARCHAR(64) NOT NULL DEFAULT 'Europe/Copenhagen',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        PRIMARY KEY (id)
+      ) {$charset};
+    ");
+
     self::maybe_add_column($wpdb->prefix . 'bp_services', 'category_id', 'BIGINT UNSIGNED NULL');
     self::maybe_add_column($wpdb->prefix . 'bp_services', 'image_id', 'BIGINT UNSIGNED NULL');
 
@@ -130,6 +175,11 @@ final class BP_MigrationsHelper {
     self::maybe_add_index($wpdb->prefix . 'bp_bookings', 'category_id', 'category_id');
 
     self::maybe_add_column($wpdb->prefix . 'bp_agents', 'image_id', 'BIGINT UNSIGNED NULL');
+
+    self::maybe_add_column($wpdb->prefix . 'bp_holidays', 'agent_id', 'BIGINT UNSIGNED NULL');
+    self::maybe_add_column($wpdb->prefix . 'bp_holidays', 'is_recurring', 'TINYINT(1) NOT NULL DEFAULT 0');
+    self::maybe_add_column($wpdb->prefix . 'bp_holidays', 'created_at', 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
+    self::maybe_add_column($wpdb->prefix . 'bp_holidays', 'updated_at', 'DATETIME NULL');
 
     dbDelta("
       CREATE TABLE {$prefix}agent_services (
@@ -188,6 +238,9 @@ final class BP_MigrationsHelper {
       $wpdb->prefix . 'bp_form_fields',
       $wpdb->prefix . 'bp_field_values',
       $wpdb->prefix . 'bp_promo_codes',
+      $wpdb->prefix . 'bp_holidays',
+      $wpdb->prefix . 'bp_schedules',
+      $wpdb->prefix . 'bp_schedule_settings',
       $wpdb->prefix . 'bp_agent_services',
       $wpdb->prefix . 'bp_service_categories',
       $wpdb->prefix . 'bp_extra_services',
@@ -253,7 +306,7 @@ final class BP_MigrationsHelper {
       is_active TINYINT(1) NOT NULL DEFAULT 1,
       created_at DATETIME NOT NULL,
       updated_at DATETIME NOT NULL,
-      PRIMARY KEY  (id),
+      PRIMARY KEY (id),
       KEY is_active (is_active)
     ) $charset_collate;";
 

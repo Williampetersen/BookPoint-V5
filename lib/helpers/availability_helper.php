@@ -111,7 +111,7 @@ final class BP_AvailabilityHelper {
     $day_schedule = BP_ScheduleHelper::get_service_day_schedule($service, $date_ymd);
     if (empty($day_schedule)) return [];
 
-    $interval = (int)BP_SettingsHelper::get_with_default('bp_slot_interval_minutes');
+    $interval = BP_ScheduleHelper::get_slot_interval();
     $breaks = BP_ScheduleHelper::get_break_ranges();
 
     $slots = self::generate_slots_for_date(
@@ -147,6 +147,68 @@ final class BP_AvailabilityHelper {
     }
 
     return $out;
+  }
+
+  public static function get_timeslots_for_date(int $service_id, string $date_ymd, int $agent_id = 0) : array {
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_ymd)) return [];
+
+    $service = BP_ServiceModel::find($service_id);
+    if (!$service) return [];
+
+    if (!class_exists('BP_ScheduleHelper')) return [];
+    if (BP_ScheduleHelper::is_date_closed($date_ymd, $agent_id)) return [];
+
+    $rules = BP_ScheduleHelper::get_service_rules($service_id);
+    $interval = BP_ScheduleHelper::get_slot_interval();
+    $windows = BP_ScheduleHelper::get_day_windows($agent_id, $date_ymd);
+    if (empty($windows)) return [];
+
+    $duration_minutes = (int)$rules['duration'];
+    $buf_before = (int)$rules['buffer_before'];
+    $buf_after  = (int)$rules['buffer_after'];
+    $capacity   = (int)$rules['capacity'];
+
+    $slots = [];
+    foreach ($windows as $w) {
+      $st = $w['start_time'] ?? '';
+      $et = $w['end_time'] ?? '';
+      if (!preg_match('/^\d{2}:\d{2}$/', $st) || !preg_match('/^\d{2}:\d{2}$/', $et)) continue;
+
+      $start_ts = strtotime($date_ymd . ' ' . $st);
+      $end_ts   = strtotime($date_ymd . ' ' . $et);
+      if (!$start_ts || !$end_ts || $end_ts <= $start_ts) continue;
+
+      $breaks = $w['breaks'] ?? [];
+
+      for ($t = $start_ts; $t + ($duration_minutes * 60) <= $end_ts; $t += $interval * 60) {
+        $hm = date('H:i', $t);
+
+        // Skip if overlaps break
+        $slot_start_min = BP_ScheduleHelper::to_minutes($hm);
+        $slot_end_min = $slot_start_min + $duration_minutes;
+        $in_break = false;
+        foreach ($breaks as $br) {
+          $bs = BP_ScheduleHelper::to_minutes($br['start'] ?? '');
+          $be = BP_ScheduleHelper::to_minutes($br['end'] ?? '');
+          if ($slot_start_min < $be && $slot_end_min > $bs) { $in_break = true; break; }
+        }
+        if ($in_break) continue;
+
+        $start_ts_adj = $t - ($buf_before * 60);
+        $end_ts_adj   = $t + ($duration_minutes * 60) + ($buf_after * 60);
+
+        $start_dt = date('Y-m-d H:i:s', $start_ts_adj);
+        $end_dt   = date('Y-m-d H:i:s', $end_ts_adj);
+
+        if (self::is_slot_available($service_id, $start_dt, $end_dt, $capacity, $agent_id)) {
+          $slots[] = $hm;
+        }
+      }
+    }
+
+    $slots = array_values(array_unique($slots));
+    sort($slots);
+    return $slots;
   }
 
   public static function remove_unavailable_slots(

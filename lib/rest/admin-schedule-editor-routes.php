@@ -209,7 +209,11 @@ function bp_rest_admin_save_agent_schedule(WP_REST_Request $req) {
 
 function bp_rest_admin_copy_agent_schedule(WP_REST_Request $req) {
   global $wpdb;
-  bp_rest_schedule_tables_ensure();
+  
+  if (!current_user_can('administrator') && !current_user_can('bp_manage_settings')) {
+    return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+  }
+  
   $to_agent_id = (int)$req['id'];
   $body = $req->get_json_params();
   if (!is_array($body) || empty($body)) {
@@ -217,56 +221,28 @@ function bp_rest_admin_copy_agent_schedule(WP_REST_Request $req) {
     $decoded = json_decode($raw ?: '', true);
     if (is_array($decoded)) $body = $decoded;
   }
-  $from_agent_id = (int)($body['from_agent_id'] ?? 0);
 
-  if ($to_agent_id <= 0 || $from_agent_id <= 0) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Invalid agent id(s)'], 400);
-  }
-  if ($to_agent_id === $from_agent_id) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Cannot copy from same agent'], 400);
-  }
+  $tS = $wpdb->prefix . 'bp_schedules';
 
-  $t_hours  = $wpdb->prefix . 'bp_agent_working_hours';
-  $t_breaks = $wpdb->prefix . 'bp_agent_breaks';
+  // Read global schedules
+  $global = $wpdb->get_results("
+    SELECT day_of_week,start_time,end_time,is_enabled
+    FROM {$tS}
+    WHERE agent_id IS NULL OR agent_id=0
+    ORDER BY day_of_week ASC, start_time ASC
+  ", ARRAY_A) ?: [];
 
-  $wpdb->query($wpdb->prepare("DELETE FROM {$t_hours} WHERE agent_id=%d", $to_agent_id));
-  $wpdb->query($wpdb->prepare("DELETE FROM {$t_breaks} WHERE agent_id=%d", $to_agent_id));
-
-  $hours = $wpdb->get_results($wpdb->prepare("
-    SELECT weekday, start_time, end_time, is_enabled
-    FROM {$t_hours}
-    WHERE agent_id=%d
-  ", $from_agent_id), ARRAY_A) ?: [];
-
-  foreach ($hours as $h) {
-    $wpdb->insert($t_hours, [
-      'agent_id'=>$to_agent_id,
-      'weekday'=>(int)$h['weekday'],
-      'start_time'=>$h['start_time'],
-      'end_time'=>$h['end_time'],
-      'is_enabled'=>(int)$h['is_enabled'],
-    ], ['%d','%d','%s','%s','%d']);
+  // Overwrite agent schedules
+  $wpdb->delete($tS, ['agent_id'=>$to_agent_id]);
+  foreach($global as $g){
+    $wpdb->insert($tS, [
+      'agent_id' => $to_agent_id,
+      'day_of_week' => (int)$g['day_of_week'],
+      'start_time' => $g['start_time'],
+      'end_time' => $g['end_time'],
+      'is_enabled' => (int)$g['is_enabled'],
+    ]);
   }
 
-  $breaks = $wpdb->get_results($wpdb->prepare("
-    SELECT break_date, start_time, end_time, note
-    FROM {$t_breaks}
-    WHERE agent_id=%d
-  ", $from_agent_id), ARRAY_A) ?: [];
-
-  foreach ($breaks as $b) {
-    $wpdb->insert($t_breaks, [
-      'agent_id'=>$to_agent_id,
-      'break_date'=>$b['break_date'],
-      'start_time'=>$b['start_time'],
-      'end_time'=>$b['end_time'],
-      'note'=>$b['note'],
-    ], ['%d','%s','%s','%s','%s']);
-  }
-
-  if (!empty($wpdb->last_error)) {
-    return new WP_REST_Response(['status'=>'error','message'=>$wpdb->last_error], 500);
-  }
-
-  return new WP_REST_Response(['status'=>'success','data'=>['copied'=>true]], 200);
+  return new WP_REST_Response(['status'=>'success','data'=>['copied'=>count($global)]], 200);
 }

@@ -17,6 +17,7 @@ add_action('rest_api_init', function () {
     ['methods'=>'POST','callback'=>'bp_rest_admin_services_create','permission_callback'=>'bp_rest_can_manage_catalog'],
   ]);
   register_rest_route('bp/v1', '/admin/services/(?P<id>\d+)', [
+    ['methods'=>'GET','callback'=>'bp_rest_admin_services_get','permission_callback'=>'bp_rest_can_manage_catalog'],
     ['methods'=>'PATCH','callback'=>'bp_rest_admin_services_patch','permission_callback'=>'bp_rest_can_manage_catalog'],
     ['methods'=>'DELETE','callback'=>'bp_rest_admin_services_delete','permission_callback'=>'bp_rest_can_manage_catalog'],
   ]);
@@ -161,6 +162,28 @@ function bp_rest_admin_categories_delete(WP_REST_Request $req) {
 }
 
 // ---------- SERVICES ----------
+function bp_rest_admin_services_get(WP_REST_Request $req) {
+  global $wpdb;
+  $id = (int)$req['id'];
+  if ($id <= 0) return new WP_REST_Response(['status'=>'error','message'=>'Invalid id'], 400);
+
+  $t = $wpdb->prefix . 'bp_services';
+  $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id=%d", $id), ARRAY_A);
+
+  if (!$row) return new WP_REST_Response(['status'=>'error','message'=>'Service not found'], 404);
+
+  $row['image_id'] = (int)($row['image_id'] ?? 0);
+  $row['image_url'] = bp_img_url($row['image_id'], 'medium');
+  $row['sort_order'] = (int)($row['sort_order'] ?? 0);
+  $row['duration_minutes'] = (int)($row['duration'] ?? 30);
+  $row['price_cents'] = isset($row['price']) ? (int)(floatval($row['price']) * 100) : 0;
+  $row['buffer_before'] = (int)($row['buffer_before'] ?? 0);
+  $row['buffer_after'] = (int)($row['buffer_after'] ?? 0);
+  $row['capacity'] = (int)($row['capacity'] ?? 1);
+
+  return new WP_REST_Response(['status'=>'success','data'=>$row], 200);
+}
+
 function bp_rest_admin_services_create(WP_REST_Request $req) {
   global $wpdb;
   $t = $wpdb->prefix . 'bp_services';
@@ -203,10 +226,13 @@ function bp_rest_admin_services_patch(WP_REST_Request $req) {
 
   $u = []; $f = [];
   if (isset($b['name'])) { $u['name']=sanitize_text_field($b['name']); $f[]='%s'; }
+  if (isset($b['duration_minutes'])) { $u['duration']=max(5,(int)$b['duration_minutes']); $f[]='%d'; }
   if (isset($b['duration'])) { $u['duration']=max(5,(int)$b['duration']); $f[]='%d'; }
+  if (isset($b['price_cents'])) { $u['price']=floatval($b['price_cents']) / 100; $f[]='%f'; }
   if (isset($b['price'])) { $u['price']=(float)$b['price']; $f[]='%f'; }
   if (isset($b['image_id'])) { $u['image_id']=(int)$b['image_id']; $f[]='%d'; }
   if (isset($b['sort_order'])) { $u['sort_order']=(int)$b['sort_order']; $f[]='%d'; }
+  if (isset($b['is_active'])) { $u['is_active']=(int)$b['is_active']; $f[]='%d'; }
 
   if (isset($b['buffer_before'])) { $u['buffer_before']=max(0,(int)$b['buffer_before']); $f[]='%d'; }
   if (isset($b['buffer_after']))  { $u['buffer_after']=max(0,(int)$b['buffer_after']); $f[]='%d'; }

@@ -52,6 +52,7 @@ function bp_rest_admin_services_list(WP_REST_Request $req) {
     $r['image_url'] = bp_img_url($r['image_id'], 'medium');
     $r['sort_order'] = (int)($r['sort_order'] ?? 0);
     $r['duration'] = (int)($r['duration'] ?? 30);
+    $r['duration_minutes'] = (int)($r['duration_minutes'] ?? 30);
     $r['price'] = isset($r['price']) ? (float)$r['price'] : 0.0;
     $r['buffer_before'] = (int)($r['buffer_before'] ?? 0);
     $r['buffer_after']  = (int)($r['buffer_after'] ?? 0);
@@ -87,7 +88,7 @@ function bp_rest_admin_availability_slots(WP_REST_Request $req) {
   $occupied = (int)$rules['occupied_min'];
   $capacity = (int)$rules['capacity'];
 
-  if (BP_ScheduleHelper::is_date_closed($date)) {
+  if (BP_ScheduleHelper::is_date_closed($date, $agent_id)) {
     return new WP_REST_Response(['status'=>'success','data'=>[
       'date'=>$date,
       'service_id'=>$service_id,
