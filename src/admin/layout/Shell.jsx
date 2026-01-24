@@ -2,7 +2,11 @@ import React from "react";
 
 export default function Shell({ theme, onToggleTheme, active, children }) {
   const page = window.BP_ADMIN?.page || "bp_dashboard";
-  const is = (p) => page === p;
+  const is = (p) => {
+    if (page === p) return true;
+    if (p === "bp_locations" && (page === "bp_locations_edit" || page === "bp_location_categories_edit")) return true;
+    return false;
+  };
 
   return (
     <div className="bp-app">

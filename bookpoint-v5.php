@@ -1092,7 +1092,7 @@ final class BP_Plugin {
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Locations', 'bookpoint'),
       __('Locations', 'bookpoint'),
       'bp_manage_settings',
@@ -1182,14 +1182,32 @@ final class BP_Plugin {
     );
 
     // Hidden pages for internal use
-    add_submenu_page(
-      null,
-      __('Edit Agent', 'bookpoint'),
-      __('Edit Agent', 'bookpoint'),
-      'bp_manage_agents',
-      'bp_agents_edit',
-      [__CLASS__, 'render_agents_edit']
-    );
+      add_submenu_page(
+        null,
+        __('Edit Agent', 'bookpoint'),
+        __('Edit Agent', 'bookpoint'),
+        'bp_manage_agents',
+        'bp_agents_edit',
+        [__CLASS__, 'render_agents_edit']
+      );
+
+      add_submenu_page(
+        null,
+        __('Edit Location', 'bookpoint'),
+        __('Edit Location', 'bookpoint'),
+        'bp_manage_settings',
+        'bp_locations_edit',
+        'bp_render_admin_app'
+      );
+
+      add_submenu_page(
+        null,
+        __('Edit Location Category', 'bookpoint'),
+        __('Edit Location Category', 'bookpoint'),
+        'bp_manage_settings',
+        'bp_location_categories_edit',
+        'bp_render_admin_app'
+      );
 
     add_submenu_page(
       null,
@@ -1324,11 +1342,12 @@ final class BP_Plugin {
     }
 
     // React admin bundle (All admin pages)
-    $admin_react_pages = [
-      'bp_dashboard', 'bp_bookings', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog', 
-      'bp-form-fields', 'bp_services', 'bp_categories', 'bp_extras', 'bp_locations', 'bp_promo_codes', 
-      'bp_customers', 'bp_settings', 'bp_notifications', 'bp_agents', 'bp_audit', 'bp_tools'
-    ];
+      $admin_react_pages = [
+        'bp_dashboard', 'bp_bookings', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog', 
+        'bp-form-fields', 'bp_services', 'bp_categories', 'bp_extras', 'bp_locations', 'bp_promo_codes', 
+        'bp_customers', 'bp_settings', 'bp_notifications', 'bp_agents', 'bp_audit', 'bp_tools',
+        'bp_locations_edit', 'bp_location_categories_edit'
+      ];
     
     if (in_array($page, $admin_react_pages, true)) {
       $asset_path = BP_PLUGIN_PATH . 'build/admin.asset.php';
@@ -1374,23 +1393,25 @@ final class BP_Plugin {
       }, 10, 2);
 
       // Map page slug to route name
-      $route_map = [
-        'bp_dashboard' => 'dashboard',
-        'bp_bookings' => 'bookings',
-        'bp_calendar' => 'calendar',
-        'bp_schedule' => 'schedule',
-        'bp_holidays' => 'holidays',
-        'bp_catalog' => 'catalog',
-        'bp-form-fields' => 'form-fields',
-        'bp_services' => 'services',
-        'bp_categories' => 'categories',
-        'bp_extras' => 'extras',
-        'bp_locations' => 'locations',
-        'bp_promo_codes' => 'promo-codes',
-        'bp_customers' => 'customers',
-      'bp_settings' => 'settings',
-      'bp_notifications' => 'notifications',
-      'bp_agents' => 'agents',
+        $route_map = [
+          'bp_dashboard' => 'dashboard',
+          'bp_bookings' => 'bookings',
+          'bp_calendar' => 'calendar',
+          'bp_schedule' => 'schedule',
+          'bp_holidays' => 'holidays',
+          'bp_catalog' => 'catalog',
+          'bp-form-fields' => 'form-fields',
+          'bp_services' => 'services',
+          'bp_categories' => 'categories',
+          'bp_extras' => 'extras',
+          'bp_locations' => 'locations',
+          'bp_locations_edit' => 'locations-edit',
+          'bp_location_categories_edit' => 'location-categories-edit',
+          'bp_promo_codes' => 'promo-codes',
+          'bp_customers' => 'customers',
+        'bp_settings' => 'settings',
+        'bp_notifications' => 'notifications',
+        'bp_agents' => 'agents',
         'bp_audit' => 'audit',
         'bp_tools' => 'tools',
       ];
