@@ -4,7 +4,9 @@ import { bpFetch } from '../api/client';
 export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [err, setErr] = useState('');
+  const [deleteErr, setDeleteErr] = useState('');
   const [data, setData] = useState(null);
 
   const [status, setStatus] = useState('pending');
@@ -48,6 +50,7 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
     (async()=>{
       setLoading(true);
       setErr('');
+      setDeleteErr('');
       try{
         const res = await bpFetch(`/admin/bookings/${bookingId}`);
         const d = normalizeBookingResponse(res);
@@ -123,6 +126,22 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
     }
   };
 
+  async function handleDelete(){
+    if (!bookingId) return;
+    if (!window.confirm('Delete this booking? This cannot be undone.')) return;
+    setDeleting(true);
+    setDeleteErr('');
+    try{
+      await bpFetch(`/admin/bookings/${bookingId}`, { method: 'DELETE' });
+      if (onUpdated) onUpdated({ id: bookingId, deleted: true });
+      onClose();
+    }catch(e){
+      setDeleteErr(e.message || 'Delete failed');
+    }finally{
+      setDeleting(false);
+    }
+  }
+
   // Reschedule handler (C17.2)
   async function saveReschedule(){
     if(!bookingId) return;
@@ -195,6 +214,7 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
 
         <div style={{padding:14, overflow:'auto', flex:1}}>
           {err ? <div style={errorBox}>{err}</div> : null}
+          {deleteErr ? <div style={errorBox}>{deleteErr}</div> : null}
           {loading ? <div style={{fontWeight:950}}>Loading…</div> : null}
 
           {!loading && data ? (
@@ -359,6 +379,7 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
                     <option value="pending">pending</option>
                     <option value="confirmed">confirmed</option>
                     <option value="cancelled">cancelled</option>
+                    <option value="completed">completed</option>
                   </select>
 
                   <button
@@ -370,6 +391,7 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
                     {saving ? 'Saving…' : 'Save'}
                   </button>
                 </div>
+
               </div>
 
               <div style={{height:12}} />
@@ -442,6 +464,9 @@ export default function BookingDrawer({ bookingId, onClose, onUpdated }) {
         </div>
 
         <div style={footer}>
+          <button className="bp-btn bp-btn-danger" onClick={handleDelete} disabled={deleting || saving || rsSaving}>
+            {deleting ? 'Deleting…' : 'Delete'}
+          </button>
           <button className="bp-btn" onClick={onClose}>Close</button>
         </div>
       </div>

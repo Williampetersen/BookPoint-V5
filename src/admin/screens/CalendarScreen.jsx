@@ -250,6 +250,7 @@ export default function CalendarScreen(){
               <option value="pending">Pending</option>
               <option value="confirmed">Confirmed</option>
               <option value="cancelled">Cancelled</option>
+              <option value="completed">Completed</option>
             </select>
 
             <input

@@ -93,6 +93,7 @@ final class BP_Plugin {
     // Helpers (Step 10)
     require_once BP_LIB_PATH . 'helpers/email_helper.php';
     require_once BP_LIB_PATH . 'helpers/notifications_helper.php';
+    require_once BP_LIB_PATH . 'helpers/locations_migrations_helper.php';
 
     // Helpers (Portal + Webhooks)
     require_once BP_LIB_PATH . 'helpers/portal_helper.php';
@@ -157,6 +158,7 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'rest/admin-catalog-manager-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-misc-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-notifications-routes.php';
+    require_once BP_LIB_PATH . 'rest/admin-locations-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-field-values-routes.php';
     require_once BP_LIB_PATH . 'rest/settings-routes.php';
     require_once BP_LIB_PATH . 'rest/public-catalog-routes.php';
@@ -179,6 +181,9 @@ final class BP_Plugin {
 
     add_action('admin_init', function () {
       BP_MigrationsHelper::run();
+      if (class_exists('BP_Locations_Migrations_Helper')) {
+        BP_Locations_Migrations_Helper::ensure_tables();
+      }
     });
 
     add_action('admin_init', function () {
@@ -312,6 +317,9 @@ final class BP_Plugin {
       BP_FormFieldsSeedHelper::ensure_defaults();
     }
     bp_install_field_values_table();
+    if (class_exists('BP_Locations_Migrations_Helper')) {
+      BP_Locations_Migrations_Helper::ensure_tables();
+    }
 
     // Store plugin version too (optional but helpful)
     update_option('BP_version', self::VERSION, false);
@@ -1085,6 +1093,15 @@ final class BP_Plugin {
 
     add_submenu_page(
       'bp',
+      __('Locations', 'bookpoint'),
+      __('Locations', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_locations',
+      'bp_render_admin_app'
+    );
+
+    add_submenu_page(
+      'bp',
       __('Promo Codes', 'bookpoint'),
       __('Promo Codes', 'bookpoint'),
       'bp_manage_settings',
@@ -1309,7 +1326,7 @@ final class BP_Plugin {
     // React admin bundle (All admin pages)
     $admin_react_pages = [
       'bp_dashboard', 'bp_bookings', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog', 
-      'bp-form-fields', 'bp_services', 'bp_categories', 'bp_extras', 'bp_promo_codes', 
+      'bp-form-fields', 'bp_services', 'bp_categories', 'bp_extras', 'bp_locations', 'bp_promo_codes', 
       'bp_customers', 'bp_settings', 'bp_notifications', 'bp_agents', 'bp_audit', 'bp_tools'
     ];
     
@@ -1368,6 +1385,7 @@ final class BP_Plugin {
         'bp_services' => 'services',
         'bp_categories' => 'categories',
         'bp_extras' => 'extras',
+        'bp_locations' => 'locations',
         'bp_promo_codes' => 'promo-codes',
         'bp_customers' => 'customers',
       'bp_settings' => 'settings',

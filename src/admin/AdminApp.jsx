@@ -12,6 +12,7 @@ import PromoCodesScreen from "./screens/PromoCodesScreen";
 import CalendarScreen from "./screens/CalendarScreen";
 import ScheduleScreen from "./screens/ScheduleScreen";
 import HolidaysScreen from "./screens/HolidaysScreen";
+import LocationsScreen from "./screens/LocationsScreen";
 import CustomersScreen from "./screens/CustomersScreen";
 import AgentsScreen from "./screens/AgentsScreen";
 import SettingsScreen from "./screens/SettingsScreen";
@@ -37,6 +38,8 @@ function resolveScreen(page) {
     case "bp_categories": return "categories";
     case "bp-extras": return "extras";
     case "bp_extras": return "extras";
+    case "bp-locations": return "locations";
+    case "bp_locations": return "locations";
     case "bp-promo-codes": return "promo";
     case "bp_promo_codes": return "promo";
     case "bp-form-fields": return "form-fields";
@@ -91,6 +94,7 @@ export default function AdminApp() {
       {screen === "categories" ? <CategoriesScreen /> : null}
       {screen === "extras" ? <ExtrasScreen /> : null}
       {screen === "promo" ? <PromoCodesScreen /> : null}
+      {screen === "locations" ? <LocationsScreen /> : null}
       {screen === "customers" ? <CustomersScreen /> : null}
       {screen === "agents" ? <AgentsScreen /> : null}
       {screen === "settings" ? <SettingsScreen /> : null}
