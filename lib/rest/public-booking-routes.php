@@ -9,6 +9,7 @@ add_action('rest_api_init', function(){
   ]);
 });
 
+if (!function_exists('bp_public_create_booking')) {
 function bp_public_create_booking(WP_REST_Request $req){
   global $wpdb;
 
@@ -165,6 +166,15 @@ function bp_public_create_booking(WP_REST_Request $req){
 
   $t_bookings = $wpdb->prefix . 'bp_bookings';
 
+  $default_status = 'pending';
+  if (class_exists('BP_SettingsHelper')) {
+    $default_status = (string)BP_SettingsHelper::get('bp_default_booking_status', 'pending');
+  }
+  $default_status = sanitize_key($default_status);
+  if (!in_array($default_status, ['pending', 'confirmed', 'cancelled', 'completed'], true)) {
+    $default_status = 'pending';
+  }
+
   // Always create a new booking (each booking must be unique)
   $booking_id = BP_BookingModel::create([
     'service_id'     => $service_id,
@@ -172,7 +182,7 @@ function bp_public_create_booking(WP_REST_Request $req){
     'agent_id'       => $agent_id,
     'start_datetime' => $start_dt,
     'end_datetime'   => $end_dt,
-    'status'         => 'pending',
+    'status'         => $default_status,
     'notes'          => $notes ?: null,
     'customer_fields_json' => $customer_fields_json,
     'booking_fields_json' => $booking_fields_json,
@@ -233,4 +243,5 @@ function bp_public_create_booking(WP_REST_Request $req){
     'booking_id' => $booking_id,
     'manage_url' => $manage_url,
   ]], 200);
+}
 }

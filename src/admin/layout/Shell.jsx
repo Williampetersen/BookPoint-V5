@@ -35,6 +35,7 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
               </div>
             </div>
 
+            <a className={`bp-nav-item ${is("bp_locations")?"active":""}`} href="admin.php?page=bp_locations">Locations</a>
             <a className={`bp-nav-item ${is("bp_agents")?"active":""}`} href="admin.php?page=bp_agents">Agents</a>
             <a className={`bp-nav-item ${is("bp_customers")?"active":""}`} href="admin.php?page=bp_customers">Customers</a>
             <a className={`bp-nav-item ${is("bp_promo_codes")?"active":""}`} href="admin.php?page=bp_promo_codes">Promo Codes</a>

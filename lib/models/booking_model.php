@@ -18,13 +18,22 @@ final class BP_BookingModel extends BP_Model {
     // Step 16: Include agent_id if specified
     $agent_id = isset($data['agent_id']) && $data['agent_id'] > 0 ? (int)$data['agent_id'] : null;
 
+    $default_status = $data['status'] ?? null;
+    if (!$default_status && class_exists('BP_SettingsHelper')) {
+      $default_status = BP_SettingsHelper::get('bp_default_booking_status', 'pending');
+    }
+    $default_status = sanitize_key((string)($default_status ?: 'pending'));
+    if (!in_array($default_status, ['pending', 'confirmed', 'cancelled', 'completed'], true)) {
+      $default_status = 'pending';
+    }
+
     $payload = [
       'service_id'      => (int)$data['service_id'],
       'customer_id'     => (int)$data['customer_id'],
       'agent_id'        => $agent_id,
       'start_datetime'  => $data['start_datetime'],
       'end_datetime'    => $data['end_datetime'],
-      'status'          => $data['status'] ?? 'pending',
+      'status'          => $default_status,
       'notes'           => $data['notes'] ?? null,
       'customer_fields_json' => $data['customer_fields_json'] ?? null,
       'booking_fields_json' => $data['booking_fields_json'] ?? null,

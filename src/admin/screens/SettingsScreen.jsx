@@ -9,6 +9,12 @@ const TABS = [
 ];
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const BOOKING_STATUS_OPTIONS = [
+  { value: "confirmed", label: "Approved" },
+  { value: "pending", label: "Pending Approval" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "completed", label: "Completed" },
+];
 
 export default function SettingsScreen() {
   const [settings, setSettings] = useState({});
@@ -261,6 +267,7 @@ export default function SettingsScreen() {
         "bp_admin_email",
         "bp_email_from_name",
         "bp_email_from_email",
+        "bp_default_booking_status",
         "webhooks_enabled",
         "webhooks_secret",
         "webhooks_url_booking_created",
@@ -467,6 +474,22 @@ export default function SettingsScreen() {
                   ))}
                   <div className="bp-muted" style={{ fontSize: 12 }}>
                     Leave empty for closed days. Format: HH:MM-HH:MM (e.g., 09:00-17:00)
+                  </div>
+                </div>
+
+                <div className="bp-section-title" style={{ marginTop: 16 }}>Bookings</div>
+                <div className="bp-settings-grid-2">
+                  <div className="bp-settings-field">
+                    <label className="bp-label">Default status</label>
+                    <select
+                      value={getSetting("bp_default_booking_status", "pending")}
+                      onChange={(e) => updateSetting("bp_default_booking_status", e.target.value)}
+                      className="bp-input"
+                    >
+                      {BOOKING_STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 

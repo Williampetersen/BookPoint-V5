@@ -130,6 +130,7 @@ final class BP_SettingsHelper {
       'bp_email_from_name' => get_bloginfo('name'),
       'bp_email_from_email' => get_option('admin_email'),
       'bp_future_days_limit' => 60,
+      'bp_default_booking_status' => 'pending',
       'bp_schedule_0' => '',
       'bp_schedule_1' => '09:00-17:00',
       'bp_schedule_2' => '09:00-17:00',

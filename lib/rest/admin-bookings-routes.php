@@ -21,6 +21,15 @@ add_action('rest_api_init', function () {
     },
   ]);
 
+  // Delete booking
+  register_rest_route('bp/v1', '/admin/bookings/(?P<id>\d+)', [
+    'methods'  => 'DELETE',
+    'callback' => 'bp_rest_admin_booking_delete',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_bookings') || current_user_can('bp_manage_settings');
+    },
+  ]);
+
   // Agents list (for dropdown)
   register_rest_route('bp/v1', '/admin/agents', [
     'methods'  => 'GET',
@@ -389,7 +398,7 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
   // status change
   if (isset($body['status'])) {
     $status = sanitize_text_field($body['status']);
-    if (!in_array($status, ['pending','confirmed','cancelled'], true)) {
+    if (!in_array($status, ['pending','confirmed','cancelled','completed'], true)) {
       return new WP_REST_Response(['status'=>'error','message'=>'Invalid status'], 400);
     }
     $updates['status'] = $status;
@@ -521,6 +530,28 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
   }
 
   return bp_rest_admin_booking_get($req);
+}
+
+function bp_rest_admin_booking_delete(WP_REST_Request $req) {
+  global $wpdb;
+
+  $id = (int)$req['id'];
+  if ($id <= 0) return new WP_REST_Response(['status'=>'error','message'=>'Invalid id'], 400);
+
+  $t_book = $wpdb->prefix . 'bp_bookings';
+  $row = $wpdb->get_row($wpdb->prepare("SELECT id FROM {$t_book} WHERE id=%d", $id), ARRAY_A);
+  if (!$row) return new WP_REST_Response(['status'=>'error','message'=>'Booking not found'], 404);
+
+  if (class_exists('BP_FieldValuesHelper')) {
+    BP_FieldValuesHelper::delete_for_entity('booking', $id);
+  }
+
+  $ok = $wpdb->delete($t_book, ['id'=>$id], ['%d']);
+  if ($ok === false) {
+    return new WP_REST_Response(['status'=>'error','message'=>'Delete failed'], 500);
+  }
+
+  return new WP_REST_Response(['status'=>'success','data'=>['id'=>$id,'deleted'=>true]], 200);
 }
 
 function bp_minutes($hhmm){
