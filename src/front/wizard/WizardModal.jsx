@@ -1,777 +1,392 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import {
+  fetchLocations,
+  fetchCategories,
+  fetchServices,
+  fetchExtras,
+  fetchAgents,
+  fetchSlots,
+  fetchFormFields,
+  createBooking,
+} from './api';
+import StepLocation from './steps/StepLocation';
+import StepCategory from './steps/StepCategory';
+import StepService from './steps/StepService';
+import StepExtras from './steps/StepExtras';
+import StepAgent from './steps/StepAgent';
+import StepDateTime from './steps/StepDateTime';
+import StepCustomer from './steps/StepCustomer';
+import StepReview from './steps/StepReview';
+import StepDone from './steps/StepDone';
 
-const API_BASE = (window.BP_FRONT?.restUrl || '/wp-json/bp/v1');
+const STEPS = [
+  { key: 'location', title: 'Location Selection', icon: 'location-image.png' },
+  { key: 'category', title: 'Choose Category', icon: 'service-image.png' },
+  { key: 'service', title: 'Choose Service', icon: 'service-image.png' },
+  { key: 'extras', title: 'Service Extras', icon: 'service-image.png' },
+  { key: 'agent', title: 'Choose Agent', icon: 'default-avatar.jpg' },
+  { key: 'datetime', title: 'Choose Date & Time', icon: 'blue-dot.png' },
+  { key: 'customer', title: 'Customer Information', icon: 'default-avatar.jpg' },
+  { key: 'review', title: 'Review Order', icon: 'white-curve.png' },
+  { key: 'done', title: 'Done', icon: 'logo.png' },
+];
 
-async function apiGet(path) {
-  const res = await fetch(`${API_BASE}${path}`, { credentials: 'same-origin' });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json?.status === 'error') {
-    throw new Error(json?.message || 'Request failed');
-  }
-  return json;
-}
+export default function WizardModal({ open, onClose, brand }) {
+  const [stepIndex, setStepIndex] = useState(0);
 
-async function apiPost(path, body) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body || {}),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json?.status === 'error') {
-    throw new Error(json?.message || 'Request failed');
-  }
-  return json;
-}
+  const [locationId, setLocationId] = useState(null);
+  const [categoryIds, setCategoryIds] = useState([]);
+  const [serviceId, setServiceId] = useState(null);
+  const [extraIds, setExtraIds] = useState([]);
+  const [agentId, setAgentId] = useState(null);
+  const [date, setDate] = useState(null);
+  const [slot, setSlot] = useState(null);
 
-export default function WizardModal({ onClose }) {
-  const [step, setStep] = useState(0);
+  const [formFields, setFormFields] = useState({ form: [], customer: [], booking: [] });
+  const [answers, setAnswers] = useState({});
 
+  const [locations, setLocations] = useState([]);
   const [categories, setCategories] = useState([]);
   const [services, setServices] = useState([]);
   const [extras, setExtras] = useState([]);
   const [agents, setAgents] = useState([]);
-
-  const [categoryId, setCategoryId] = useState(null);
-  const [serviceId, setServiceId] = useState(null);
-  const [selectedExtras, setSelectedExtras] = useState([]);
-  const [agentId, setAgentId] = useState(null);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [slot, setSlot] = useState(null);
-
-  const [formFields, setFormFields] = useState([]);
-  const [fieldsLoading, setFieldsLoading] = useState(false);
-  const [fieldValues, setFieldValues] = useState({});
-
   const [slots, setSlots] = useState([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const [bpSettings, setBpSettings] = useState({
-    slot_interval_minutes: 15,
-    currency: 'USD',
-    currency_position: 'before',
-  });
-
-  const selectedCategory = useMemo(
-    () => categories.find((c) => String(c.id) === String(categoryId)) || null,
-    [categories, categoryId]
-  );
-
-  const selectedService = useMemo(
-    () => services.find((s) => String(s.id) === String(serviceId)) || null,
-    [services, serviceId]
-  );
-
-  const selectedAgent = useMemo(
-    () => agents.find((a) => String(a.id) === String(agentId)) || null,
-    [agents, agentId]
-  );
-
-  const resetAfterCategory = () => {
-    setServiceId(null);
-    setSelectedExtras([]);
-    setAgentId(null);
-    setServices([]);
-    setExtras([]);
-    setAgents([]);
-    setSlots([]);
-    setSlot(null);
-  };
-
-  const resetAfterService = () => {
-    setSelectedExtras([]);
-    setAgentId(null);
-    setExtras([]);
-    setAgents([]);
-    setSlots([]);
-    setSlot(null);
-  };
+  const step = STEPS[stepIndex];
+  const iconUrl = useMemo(() => (brand?.imagesBase ? brand.imagesBase + step.icon : ''), [brand, step]);
 
   useEffect(() => {
+    if (!open) return;
+    document.body.classList.add('bp-modal-open');
+    return () => document.body.classList.remove('bp-modal-open');
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    setStepIndex(0);
+    setError('');
+    setLocationId(null);
+    setCategoryIds([]);
+    setServiceId(null);
+    setExtraIds([]);
+    setAgentId(null);
+    setDate(null);
+    setSlot(null);
+    setAnswers({});
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     (async () => {
-      setLoading(true);
       try {
-        const res = await apiGet('/public/categories');
-        setCategories(res?.data || []);
+        setLoading(true);
+        const [locs, cats, fields] = await Promise.all([
+          fetchLocations(),
+          fetchCategories(),
+          fetchFormFields(),
+        ]);
+        setLocations(locs);
+        setCategories(cats);
+        setFormFields(fields);
       } catch (e) {
-        setError(e.message || 'Failed to load categories');
+        setError(e?.message || 'Failed to load booking data.');
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [open]);
 
   useEffect(() => {
+    if (!open) return;
     (async () => {
       try {
-        const res = await apiGet('/public/settings');
-        if (res?.data) setBpSettings(res.data);
-      } catch (e) {
-        // keep defaults
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      setFieldsLoading(true);
-      try {
-        const res = await apiGet('/public/form-fields');
-        setFormFields(Array.isArray(res?.data) ? res.data : []);
-      } catch (e) {
-        setFormFields([]);
-        console.warn('Failed to load form fields', e);
-      } finally {
-        setFieldsLoading(false);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadServices = async (categoryId) => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await apiGet(`/public/services?category_id=${categoryId}`);
-      setServices(res?.data || []);
-    } catch (e) {
-      setError(e.message || 'Failed to load services');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadExtrasAgents = async (serviceId) => {
-    setLoading(true);
-    setError('');
-    try {
-      const [eRes, aRes] = await Promise.all([
-        apiGet(`/public/extras?service_id=${serviceId}`),
-        apiGet(`/public/agents?service_id=${serviceId}`),
-      ]);
-      setExtras(eRes?.data || []);
-      setAgents(aRes?.data || []);
-    } catch (e) {
-      setError(e.message || 'Failed to load extras/agents');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const canLoad = serviceId && agentId && date;
-    if (!canLoad) {
-      setSlots([]);
-      setSlot(null);
-      return;
-    }
-
-    (async () => {
-      setError('');
-      setLoadingSlots(true);
-      try {
-        const qs = new URLSearchParams({
-          date,
-          service_id: String(serviceId),
-          agent_id: String(agentId),
-        }).toString();
-
-        const res = await apiGet(`/public/availability-slots?${qs}`);
-        const list = Array.isArray(res?.data)
-          ? res.data
-          : (Array.isArray(res?.data?.slots) ? res.data.slots : []);
-        setSlots(list);
-        if (slot && !list.some((s) => s.start_time === slot.start_time)) {
-          setSlot(null);
+        if (step.key === 'service' || step.key === 'extras' || step.key === 'agent' || step.key === 'datetime' || step.key === 'review') {
+          const svc = await fetchServices({ category_ids: categoryIds, location_id: locationId });
+          setServices(svc);
         }
       } catch (e) {
-        setSlots([]);
-        setSlot(null);
-        setError(e.message || 'Failed to load time slots');
-      } finally {
-        setLoadingSlots(false);
+        setServices([]);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceId, agentId, date]);
-
-  const detailsFields = useMemo(
-    () => (formFields || []).filter((f) => (f.step_key || 'details') === 'details'),
-    [formFields]
-  );
-
-  const bookingFields = useMemo(
-    () => detailsFields.filter((f) => f.scope === 'booking'),
-    [detailsFields]
-  );
-
-  const customerFields = useMemo(
-    () => detailsFields.filter((f) => f.scope === 'customer'),
-    [detailsFields]
-  );
+  }, [open, step.key, categoryIds, locationId]);
 
   useEffect(() => {
-    if (!formFields?.length) return;
-
-    setFieldValues((prev) => {
-      const next = { ...prev };
-      for (const f of formFields) {
-        const key = `${f.scope}.${f.field_key}`;
-        if (f.type === 'checkbox' && next[key] === undefined) next[key] = '0';
+    if (!open) return;
+    (async () => {
+      try {
+        if (!serviceId) return;
+        const [ex, ag] = await Promise.all([
+          fetchExtras({ service_id: serviceId }),
+          fetchAgents({ service_id: serviceId, location_id: locationId }),
+        ]);
+        setExtras(ex);
+        setAgents(ag);
+      } catch (e) {
+        setExtras([]);
+        setAgents([]);
       }
-      return next;
-    });
-  }, [formFields]);
+    })();
+  }, [open, serviceId, locationId]);
 
-  function setField(key, val) {
-    setFieldValues((prev) => ({ ...prev, [key]: val }));
-  }
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      try {
+        if (!serviceId || !agentId || !date) return;
+        const s = await fetchSlots({ service_id: serviceId, agent_id: agentId, date });
+        setSlots(s);
+      } catch (e) {
+        setSlots([]);
+      }
+    })();
+  }, [open, serviceId, agentId, date]);
 
-  function getField(key) {
-    return fieldValues[key] ?? '';
-  }
-
-  function validateFields(list) {
-    for (const f of list) {
-      if (!f.is_required) continue;
-
-      const key = `${f.scope}.${f.field_key}`;
-      const v = fieldValues[key];
-
-      const empty =
-        v === undefined ||
-        v === null ||
-        v === '' ||
-        (Array.isArray(v) && v.length === 0) ||
-        (f.type === 'checkbox' && (v === '0' || v === false));
-
-      if (empty) return `${f.label} is required`;
-    }
-    return '';
-  }
-
-  function nextStep() {
+  function next() {
     setError('');
-
-    // 0 category -> 1 service -> 2 agent -> 3 date/time -> 4 details -> 5 summary
-    if (step === 0 && !categoryId) return setError('Please select a category');
-    if (step === 1 && !serviceId) return setError('Please select a service');
-    if (step === 2 && !agentId) return setError('Please select an agent');
-    if (step === 3) {
-      if (!date) return setError('Please select a date');
-      if (!slot?.start_time) return setError('Please select a time slot');
-    }
-    if (step === 4) {
-      const msg = validateFields(detailsFields);
-      if (msg) return setError(msg);
-    }
-
-    setStep((s) => s + 1);
+    setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
   }
 
-  function prevStep() {
+  function back() {
     setError('');
-    setStep((s) => Math.max(0, s - 1));
+    setStepIndex((i) => Math.max(i - 1, 0));
   }
 
   async function submitBooking() {
-    setError('');
-    setSubmitting(true);
     try {
+      setLoading(true);
+      setError('');
+
       const payload = {
+        location_id: locationId,
+        category_ids: categoryIds,
         service_id: serviceId,
+        extra_ids: extraIds,
         agent_id: agentId,
         date,
-        start_time: slot?.start_time,
-        field_values: fieldValues,
+        start_time: slot?.start_time || slot?.start || '',
+        end_time: slot?.end_time || slot?.end || '',
+        field_values: answers,
+        extras: extraIds,
       };
 
-      const res = await apiPost('/public/bookings', payload);
-      const booking_id = res?.data?.booking_id || res?.data?.id;
-      setSuccess({ booking_id });
-      setStep(999);
+      const res = await createBooking(payload);
+      setAnswers((a) => ({ ...a, __booking: res }));
+      setStepIndex(STEPS.findIndex((s) => s.key === 'done'));
     } catch (e) {
-      setError(e.message || 'Booking failed');
+      setError(e?.message || 'Could not submit booking.');
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   }
 
-  function FieldInput({ f, value, onChange }) {
-    const base = {
-      style: {
-        width: '100%',
-        padding: '10px 12px',
-        borderRadius: 14,
-        border: '1px solid #e5e7eb',
-        fontWeight: 850,
-        background: '#fff',
-        outline: 'none',
-      }
-    };
-
-    if (f.type === 'textarea') {
-      return (
-        <textarea
-          {...base}
-          rows={5}
-          placeholder={f.placeholder || ''}
-          value={value || ''}
-          onChange={(e)=>onChange(e.target.value)}
-        />
-      );
-    }
-
-    if (f.type === 'select') {
-      const choices = (f.options?.choices || []);
-      return (
-        <select {...base} value={value || ''} onChange={(e)=>onChange(e.target.value)}>
-          <option value="">Select…</option>
-          {choices.map((c, idx)=>(
-            <option key={idx} value={c.value}>{c.label}</option>
-          ))}
-        </select>
-      );
-    }
-
-    if (f.type === 'checkbox') {
-      const checked = value === '1' || value === true;
-      return (
-        <label style={{display:'flex', alignItems:'center', gap:10, fontWeight:900}}>
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={(e)=>onChange(e.target.checked ? '1' : '0')}
-          />
-          {f.placeholder || 'Yes'}
-        </label>
-      );
-    }
-
-    const inputType =
-      f.type === 'email' ? 'email' :
-      f.type === 'tel' ? 'tel' :
-      f.type === 'number' ? 'number' :
-      f.type === 'date' ? 'date' :
-      'text';
-
-    return (
-      <input
-        {...base}
-        type={inputType}
-        placeholder={f.placeholder || ''}
-        value={value || ''}
-        onChange={(e)=>onChange(e.target.value)}
-      />
-    );
-  }
-
-  function formatMoney(amount, settings){
-    const n = Number(amount || 0);
-    const cur = settings?.currency || 'USD';
-    const pos = settings?.currency_position || 'before';
-    const symbolMap = { USD:'$', EUR:'€', DKK:'kr', GBP:'£' };
-    const sym = symbolMap[cur] || cur;
-
-    const value = n.toFixed(2);
-    return pos === 'after' ? `${value} ${sym}` : `${sym} ${value}`;
-  }
-
-  const totalPrice = useMemo(() => {
-    const s = selectedService?.price ? Number(selectedService.price) : 0;
-    const ex = selectedExtras.reduce((sum, x) => sum + Number(x.price || 0), 0);
-    return (s + ex).toFixed(2);
-  }, [selectedService, selectedExtras]);
-
-  if (step === 999 && success) {
-    return (
-      <div style={overlay}>
-        <div style={modal}>
-          <div style={topbar}>
-            <div style={{ fontWeight: 950 }}>BookPoint</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={onClose} style={iconBtn}>×</button>
-            </div>
-          </div>
-
-          <div style={{ padding: 18, overflow: 'auto', flex: 1 }}>
-            <h3 style={{ margin: 0, fontWeight: 1000 }}>Booking created ✅</h3>
-            <div style={{ marginTop: 10, fontWeight: 900, opacity: .8 }}>
-              Booking ID: {success.booking_id}
-            </div>
-            <div style={{ marginTop: 16 }}>
-              <button className="bp-btn" onClick={() => window.location.reload()}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!open) return null;
 
   return (
-    <div style={overlay}>
-      <div style={modal}>
-        <div style={topbar}>
-          <div>
-            <div style={{ fontWeight: 950 }}>BookPoint</div>
-            <div style={{ color: '#6b7280', fontWeight: 800, fontSize: 12 }}>
-              Step {Math.min(step, 5) + 1} / 6
+    <div className="bp-modal-overlay" role="dialog" aria-modal="true">
+      <div className="bp-modal">
+        <button className="bp-modal-close" onClick={onClose} aria-label="Close">x</button>
+
+        <div className="bp-modal-grid">
+          <aside className="bp-side">
+            <div className="bp-side-icon">
+              {iconUrl ? <img src={iconUrl} alt="" /> : null}
             </div>
-          </div>
+            <h3 className="bp-side-title">{step.title}</h3>
+            <p className="bp-side-desc">
+              Please complete the steps to schedule your booking.
+            </p>
 
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={step === 0 ? onClose : prevStep} style={btn2}>Back</button>
-            <button onClick={onClose} style={iconBtn}>×</button>
-          </div>
-        </div>
+            <div className="bp-side-help">
+              <div>Need help?</div>
+              <div className="bp-help-phone">{brand?.helpPhone}</div>
+            </div>
+          </aside>
 
-        <div style={{ padding: 14, overflow: 'auto', flex: 1 }}>
-          {error && step !== 3 ? <div style={err}>{error}</div> : null}
-          {loading ? <div style={{ fontWeight: 900 }}>Loading…</div> : null}
+          <main className="bp-main">
+            <div className="bp-main-head">
+              <h2>{step.title}</h2>
+              <div className="bp-step-dots">
+                {STEPS.slice(0, 8).map((s, idx) => (
+                  <span key={s.key} className={idx === stepIndex ? 'bp-dot active' : 'bp-dot'} />
+                ))}
+              </div>
+            </div>
 
-          {!loading && step === 0 ? (
-            <div>
-              <GridSelect
-                title="Choose a category"
-                items={categories}
-                selectedId={categoryId}
-                onSelect={(c) => {
-                  setCategoryId(c.id);
-                  resetAfterCategory();
-                  loadServices(c.id);
-                }}
+            {error ? <div className="bp-error">{error}</div> : null}
+            {loading ? <div className="bp-loading">Loading...</div> : null}
+
+            {step.key === 'location' && (
+              <StepLocation
+                locations={locations}
+                value={locationId}
+                onChange={setLocationId}
+                onNext={next}
               />
+            )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-                <button style={btn} onClick={nextStep}>Next</button>
-              </div>
-            </div>
-          ) : null}
-
-          {!loading && step === 1 ? (
-            <div>
-              <GridSelect
-                title="Choose a service"
-                items={services}
-                selectedId={serviceId}
-                onSelect={(s) => {
-                  setServiceId(s.id);
-                  resetAfterService();
-                  loadExtrasAgents(s.id);
-                }}
+            {step.key === 'category' && (
+              <StepCategory
+                categories={categories}
+                value={categoryIds}
+                onChange={setCategoryIds}
+                onBack={back}
+                onNext={next}
               />
+            )}
 
-              <div style={{ height: 14 }} />
-
-              <h3 style={h3}>Service Extras</h3>
-              <div style={{ color: '#6b7280', fontWeight: 800, marginTop: -8, marginBottom: 10 }}>
-                Optional. Choose any extras.
-              </div>
-
-              <div style={grid}>
-                {extras.length === 0 ? (
-                  <div style={{ color: '#6b7280', fontWeight: 800 }}>No extras for this service.</div>
-                ) : extras.map((x) => {
-                  const active = selectedExtras.some((e) => e.id === x.id);
-                  return (
-                    <button
-                      key={x.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedExtras((prev) => {
-                          const has = prev.some((p) => p.id === x.id);
-                          if (has) return prev.filter((p) => p.id !== x.id);
-                          return [...prev, x];
-                        });
-                      }}
-                      style={{
-                        ...tile,
-                        borderColor: active ? 'rgba(67,24,255,.55)' : '#e5e7eb',
-                        background: active ? 'rgba(67,24,255,.08)' : '#fff',
-                      }}
-                    >
-                      <img
-                        src={x.image_url || ''}
-                        alt=""
-                        style={img}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                      <div style={{ fontWeight: 950, textAlign: 'left' }}>{x.name}</div>
-                      <div style={{ color: '#6b7280', fontWeight: 800, textAlign: 'left' }}>
-                        + {Number(x.price || 0).toFixed(2)}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                <div style={{ fontWeight: 950 }}>Total so far: {totalPrice}</div>
-                <button style={btn} onClick={nextStep}>Next: Choose agent</button>
-              </div>
-            </div>
-          ) : null}
-
-          {!loading && step === 2 ? (
-            <div>
-              <GridSelect
-                title="Choose an agent"
-                items={agents}
-                selectedId={agentId}
-                onSelect={(a) => setAgentId(a.id)}
-                compact
+            {step.key === 'service' && (
+              <StepService
+                services={services}
+                value={serviceId}
+                onChange={setServiceId}
+                onBack={back}
+                onNext={next}
               />
+            )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-                <button style={btn} onClick={nextStep}>Next: Choose time</button>
-              </div>
+            {step.key === 'extras' && (
+              <StepExtras
+                extras={extras}
+                value={extraIds}
+                onChange={setExtraIds}
+                onBack={back}
+                onNext={next}
+              />
+            )}
+
+            {step.key === 'agent' && (
+              <StepAgent
+                agents={agents}
+                value={agentId}
+                onChange={setAgentId}
+                onBack={back}
+                onNext={next}
+              />
+            )}
+
+            {step.key === 'datetime' && (
+              <StepDateTime
+                date={date}
+                onDateChange={setDate}
+                slots={slots}
+                value={slot}
+                onSlotChange={setSlot}
+                onBack={back}
+                onNext={next}
+              />
+            )}
+
+            {step.key === 'customer' && (
+              <StepCustomer
+                formFields={formFields}
+                answers={answers}
+                onChange={setAnswers}
+                onBack={back}
+                onNext={next}
+                onError={setError}
+              />
+            )}
+
+            {step.key === 'review' && (
+              <StepReview
+                locationId={locationId}
+                categoryIds={categoryIds}
+                serviceId={serviceId}
+                extraIds={extraIds}
+                agentId={agentId}
+                date={date}
+                slot={slot}
+                locations={locations}
+                categories={categories}
+                services={services}
+                extras={extras}
+                agents={agents}
+                formFields={formFields}
+                answers={answers}
+                onBack={back}
+                onSubmit={submitBooking}
+                loading={loading}
+              />
+            )}
+
+            {step.key === 'done' && (
+              <StepDone
+                booking={answers.__booking}
+                onClose={onClose}
+              />
+            )}
+          </main>
+
+          <aside className="bp-summary">
+            <div className="bp-summary-title">Summary</div>
+            <div className="bp-summary-box">
+              <SummaryBlock
+                locations={locations}
+                categories={categories}
+                services={services}
+                extras={extras}
+                agents={agents}
+                locationId={locationId}
+                categoryIds={categoryIds}
+                serviceId={serviceId}
+                extraIds={extraIds}
+                agentId={agentId}
+                date={date}
+                slot={slot}
+              />
             </div>
-          ) : null}
-
-          {!loading && step === 3 ? (
-            <div>
-              <h3 style={h3}>Choose date & time</h3>
-              <div style={{ color: '#6b7280', fontWeight: 800, marginTop: -8, marginBottom: 10 }}>
-                Pick an available time slot.
-              </div>
-
-              <div style={{ marginTop: 12 }}>
-                <label style={{ fontWeight: 900 }}>Date</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid #e5e7eb', marginTop: 6 }}
-                />
-              </div>
-
-              <div style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label style={{ fontWeight: 900 }}>Time slots</label>
-                  {loadingSlots ? <span style={{ fontWeight: 900, opacity: .7 }}>Loading…</span> : null}
-                </div>
-
-                {error ? (
-                  <div style={{ marginTop: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: 10, borderRadius: 12, fontWeight: 900 }}>
-                    {error}
-                  </div>
-                ) : null}
-
-                {!loadingSlots && date && serviceId && agentId && slots.length === 0 ? (
-                  <div style={{ marginTop: 8, opacity: .75, fontWeight: 900 }}>
-                    No available time slots for this date.
-                  </div>
-                ) : null}
-
-                <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-                  {slots.map((s) => {
-                    const active = slot?.start_time === s.start_time;
-                    return (
-                      <button
-                        key={s.start_time}
-                        type="button"
-                        onClick={() => setSlot(s)}
-                        style={{
-                          padding: '10px 10px',
-                          borderRadius: 14,
-                          border: active ? '2px solid #4318ff' : '1px solid #e5e7eb',
-                          background: active ? 'rgba(67,24,255,.10)' : '#fff',
-                          fontWeight: 950,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {s.label || s.start_time}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginTop: 14,
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 10,
-                }}
-              >
-                <div style={{ fontWeight: 950 }}>
-                  Selected: {slot ? slot.label || slot.start_time : '—'}
-                </div>
-                <button style={btn} onClick={nextStep}>Next: Your details</button>
-              </div>
-            </div>
-          ) : null}
-
-          {!loading && step === 4 ? (
-            <div>
-              <h3 style={h3}>Your details</h3>
-              <div style={{ color: '#6b7280', fontWeight: 800, marginTop: -8, marginBottom: 10 }}>
-                We’ll use this to confirm your booking.
-              </div>
-
-              {fieldsLoading ? (
-                <div style={{fontWeight:900, opacity:.7}}>Loading fields…</div>
-              ) : null}
-
-              {detailsFields.map((f) => {
-                const key = `${f.scope}.${f.field_key}`;
-                const val = getField(key);
-                return (
-                  <div key={key} style={{ marginTop: 12 }}>
-                    <label style={{ fontWeight: 950 }}>
-                      {f.label} {f.is_required ? <span style={{color:'#ef4444'}}>*</span> : null}
-                    </label>
-                    <div style={{ marginTop: 6 }}>
-                      <FieldInput f={f} value={val} onChange={(v)=>setField(key, v)} />
-                    </div>
-                  </div>
-                );
-              })}
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                <div style={{ fontWeight: 950 }}>
-                  Selected: {date} {slot ? slot.label || slot.start_time : '—'}
-                </div>
-                <button style={btn} onClick={nextStep}>
-                  Next: Summary
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {!loading && step === 5 ? (
-            <div>
-              <h3 style={h3}>Review & submit</h3>
-              <div style={{ color: '#6b7280', fontWeight: 800, marginTop: -8, marginBottom: 10 }}>
-                Please confirm your booking details.
-              </div>
-
-              <div className="bp-card" style={{ boxShadow: 'none' }}>
-                <SummaryRow label="Category" value={selectedCategory?.name} />
-                <SummaryRow label="Service" value={selectedService?.name} />
-                <SummaryRow label="Agent" value={selectedAgent?.name} />
-                <SummaryRow label="Date" value={date} />
-                <SummaryRow label="Time" value={slot?.start_time} />
-                <SummaryRow label="Price" value={formatMoney(totalPrice, bpSettings)} />
-
-                <div style={{ height: 10 }} />
-                <div style={{ fontWeight: 1000 }}>Your details</div>
-
-                {detailsFields.map((f) => {
-                  const key = `${f.scope}.${f.field_key}`;
-                  let v = fieldValues[key];
-                  if (f.type === 'checkbox') v = (v === '1') ? 'Yes' : 'No';
-                  return <SummaryRow key={key} label={f.label} value={String(v ?? '')} />;
-                })}
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                <div style={{ fontWeight: 950 }}>Total: {totalPrice}</div>
-                <button
-                  className="bp-btn bp-btn-primary"
-                  disabled={submitting}
-                  onClick={submitBooking}
-                >
-                  {submitting ? 'Submitting…' : 'Submit Booking'}
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        <div style={footer}>
-          <div style={{ fontWeight: 900, fontSize: 12, color: '#6b7280' }}>
-            Selected: {selectedCategory?.name || '—'} → {selectedService?.name || '—'} → {selectedAgent?.name || '—'}
-          </div>
-          <div style={{ fontWeight: 950 }}>Total: {totalPrice}</div>
+          </aside>
         </div>
       </div>
     </div>
   );
 }
 
-function GridSelect({ title, items, selectedId, onSelect, compact = false }) {
+function SummaryBlock(props) {
+  const {
+    locations, categories, services, extras, agents,
+    locationId, categoryIds, serviceId, extraIds, agentId, date, slot,
+  } = props;
+
+  const loc = locations.find((x) => String(x.id) === String(locationId));
+  const svc = services.find((x) => String(x.id) === String(serviceId));
+  const ag = agents.find((x) => String(x.id) === String(agentId));
+  const ex = extras.filter((x) => extraIds.includes(x.id) || extraIds.includes(String(x.id)));
+  const cats = categories.filter((x) => categoryIds.includes(x.id) || categoryIds.includes(String(x.id)));
+
   return (
-    <div>
-      <h3 style={h3}>{title}</h3>
-      <div style={{ ...grid, gridTemplateColumns: compact ? 'repeat(auto-fill, minmax(160px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-        {items.length === 0 ? (
-          <div style={{ color: '#6b7280', fontWeight: 800 }}>No items</div>
-        ) : items.map((it) => {
-          const active = selectedId === it.id;
-          return (
-            <button
-              key={it.id}
-              type="button"
-              onClick={() => onSelect(it)}
-              style={{
-                ...tile,
-                borderColor: active ? 'rgba(67,24,255,.55)' : '#e5e7eb',
-                background: active ? 'rgba(67,24,255,.08)' : '#fff',
-              }}
-            >
-              <img
-                src={it.image_url || ''}
-                alt=""
-                style={img}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-              <div style={{ fontWeight: 950, textAlign: 'left' }}>{it.name}</div>
-              {'price' in it ? (
-                <div style={{ color: '#6b7280', fontWeight: 800, textAlign: 'left' }}>{Number(it.price || 0).toFixed(2)}</div>
-              ) : null}
-              {'duration' in it ? (
-                <div style={{ color: '#6b7280', fontWeight: 800, textAlign: 'left' }}>{it.duration} min</div>
-              ) : null}
-            </button>
-          );
-        })}
+    <div className="bp-summary-items">
+      <div className="bp-summary-row">
+        <div className="k">Location</div>
+        <div className="v">{loc?.name || '-'}</div>
+      </div>
+      <div className="bp-summary-row">
+        <div className="k">Category</div>
+        <div className="v">{cats.length ? cats.map((c) => c.name).join(', ') : '-'}</div>
+      </div>
+      <div className="bp-summary-row">
+        <div className="k">Service</div>
+        <div className="v">{svc?.name || '-'}</div>
+      </div>
+      <div className="bp-summary-row">
+        <div className="k">Agent</div>
+        <div className="v">{ag?.name || '-'}</div>
+      </div>
+      <div className="bp-summary-row">
+        <div className="k">Date</div>
+        <div className="v">{date || '-'}</div>
+      </div>
+      <div className="bp-summary-row">
+        <div className="k">Time</div>
+        <div className="v">{slot?.start_time ? `${slot.start_time} - ${slot.end_time}` : '-'}</div>
+      </div>
+      <div className="bp-summary-row">
+        <div className="k">Extras</div>
+        <div className="v">{ex.length ? ex.map((e) => e.name).join(', ') : '-'}</div>
       </div>
     </div>
   );
 }
-
-function SummaryRow({ label, value }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
-      <div style={{ fontWeight: 950, opacity: .7 }}>{label}</div>
-      <div style={{ fontWeight: 950 }}>{value || '—'}</div>
-    </div>
-  );
-}
-
-/* styles */
-const overlay = { position: 'fixed', inset: 0, background: 'rgba(2,6,23,.55)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 14 };
-const modal = { width: 'min(980px, 100%)', height: 'min(86vh, 720px)', background: '#fff', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 30px 80px rgba(0,0,0,.35)' };
-const topbar = { padding: 14, borderBottom: '1px solid #eef2f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
-const footer = { padding: 14, borderTop: '1px solid #eef2f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 };
-const h3 = { margin: '0 0 10px 0' };
-
-const grid = { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' };
-const tile = { border: '1px solid #e5e7eb', borderRadius: 16, padding: 12, cursor: 'pointer', display: 'grid', gap: 8, textAlign: 'left' };
-const img = { width: '100%', height: 110, borderRadius: 14, objectFit: 'cover', background: '#f3f4f6', border: '1px solid #eef2f7' };
-
-const btn = { background: '#4318ff', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 12px', fontWeight: 950, cursor: 'pointer' };
-const btn2 = { background: '#eef2ff', color: '#1e1b4b', border: '1px solid rgba(67,24,255,.15)', borderRadius: 12, padding: '10px 12px', fontWeight: 950, cursor: 'pointer' };
-const iconBtn = { width: 34, height: 34, borderRadius: 12, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontWeight: 900, fontSize: 18 };
-const inputText = { padding: '10px 12px', borderRadius: 12, border: '1px solid #e5e7eb', fontWeight: 900, outline: 'none' };
-const textarea = { padding: '10px 12px', borderRadius: 12, border: '1px solid #e5e7eb', fontWeight: 900, outline: 'none', resize: 'vertical' };
-
-const err = { background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: 10, borderRadius: 12, fontWeight: 900, marginBottom: 10 };

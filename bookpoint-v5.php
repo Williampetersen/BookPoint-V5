@@ -164,6 +164,7 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'rest/public-catalog-routes.php';
     require_once BP_LIB_PATH . 'rest/public-availability-routes.php';
     require_once BP_LIB_PATH . 'rest/public-booking-routes.php';
+    require_once BP_LIB_PATH . 'rest/front-wizard-routes.php';
     require_once BP_LIB_PATH . 'rest/form-fields-routes.php';
   }
 
@@ -1571,7 +1572,12 @@ final class BP_Plugin {
       if (!is_singular()) return;
 
       global $post;
-      if (!$post || !has_shortcode($post->post_content, 'bookPoint')) return;
+      if (
+        !$post ||
+        (!has_shortcode($post->post_content, 'bookPoint') &&
+          !has_shortcode($post->post_content, 'bookpoint') &&
+          !has_shortcode($post->post_content, 'BookPoint'))
+      ) return;
     }
 
     $front_asset_path = BP_PLUGIN_PATH . 'public/front.asset.php';
@@ -1624,6 +1630,8 @@ final class BP_Plugin {
       'ajaxUrl' => admin_url('admin-ajax.php'),
       'siteUrl' => site_url('/'),
       'nonce' => wp_create_nonce('bp_public'),
+      'images' => BP_PLUGIN_URL . 'public/images/',
+      'tz' => wp_timezone_string(),
     ]);
   }
 
@@ -2044,8 +2052,7 @@ if (!function_exists('bp_shortcode_booking_form')) {
     }
 
     ob_start(); ?>
-    <button type="button" class="bp-open-wizard"><?php echo esc_html($atts['label']); ?></button>
-    <div id="bp-front-root" style="display:none;"></div>
+    <div class="bp-front-root" data-bp-widget="wizard" data-bp-label="<?php echo esc_attr($atts['label']); ?>"></div>
     <?php
     return ob_get_clean();
   }
