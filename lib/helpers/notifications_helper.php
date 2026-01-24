@@ -14,6 +14,73 @@ final class BP_Notifications_Helper {
     'booking_cancelled',
     'customer_created',
   ];
+  private static string $last_error = '';
+
+  public static function last_error(): string {
+    return self::$last_error;
+  }
+
+  public static function ensure_tables(): void {
+    global $wpdb;
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $charset = $wpdb->get_charset_collate();
+    $workflows = self::table(self::WORKFLOW_TABLE);
+    $actions = self::table(self::ACTION_TABLE);
+    $logs = self::table(self::LOG_TABLE);
+
+    dbDelta("
+      CREATE TABLE {$workflows} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'active',
+        event_key VARCHAR(80) NOT NULL,
+        is_conditional TINYINT(1) NOT NULL DEFAULT 0,
+        conditions_json LONGTEXT NULL,
+        has_time_offset TINYINT(1) NOT NULL DEFAULT 0,
+        time_offset_minutes INT NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        PRIMARY KEY (id),
+        KEY event_key (event_key),
+        KEY status (status)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$actions} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        workflow_id BIGINT UNSIGNED NOT NULL,
+        type VARCHAR(40) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'active',
+        config_json LONGTEXT NULL,
+        sort_order INT NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        PRIMARY KEY (id),
+        KEY workflow_id (workflow_id),
+        KEY sort_order (sort_order)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$logs} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        workflow_id BIGINT UNSIGNED NOT NULL,
+        event_key VARCHAR(80) NOT NULL,
+        entity_type VARCHAR(40) NOT NULL,
+        entity_id BIGINT UNSIGNED NULL,
+        status VARCHAR(20) NOT NULL,
+        message LONGTEXT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY workflow_id (workflow_id),
+        KEY event_key (event_key),
+        KEY entity_type (entity_type),
+        KEY entity_id (entity_id)
+      ) {$charset};
+    ");
+  }
 
   public static function allowed_events(): array {
     return self::EVENTS;
@@ -124,9 +191,12 @@ final class BP_Notifications_Helper {
     return $row;
   }
 
-  public static function create_workflow(array $data): ?array {
+  public static function create_workflow(array $data) {
     global $wpdb;
     $table = self::table(self::WORKFLOW_TABLE);
+
+    self::ensure_tables();
+    self::$last_error = '';
 
     $payload = [
       'name' => sanitize_text_field($data['name'] ?? 'Untitled workflow'),
@@ -141,9 +211,13 @@ final class BP_Notifications_Helper {
     ];
 
     $formats = ['%s','%s','%s','%d','%s','%d','%d','%s','%s'];
-    $wpdb->insert($table, $payload, $formats);
+    $ok = $wpdb->insert($table, $payload, $formats);
     $id = (int)$wpdb->insert_id;
-    return $id ? self::get_workflow($id) : null;
+    if (!$ok || !$id) {
+      self::$last_error = $wpdb->last_error ? $wpdb->last_error : 'DB insert failed';
+      return null;
+    }
+    return self::get_workflow($id);
   }
 
   public static function update_workflow(int $workflow_id, array $data): bool {
