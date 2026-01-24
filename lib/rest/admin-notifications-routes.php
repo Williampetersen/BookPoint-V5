@@ -67,7 +67,7 @@ add_action('rest_api_init', function () {
 });
 
 function bp_rest_admin_notifications_can_manage(): bool {
-  return current_user_can('bp_manage_settings');
+  return current_user_can('bp_manage_settings') || current_user_can('manage_options');
 }
 
 function bp_rest_admin_notifications_workflows_list(\WP_REST_Request $request) {
@@ -87,6 +87,9 @@ function bp_rest_admin_notifications_workflows_list(\WP_REST_Request $request) {
 }
 
 function bp_rest_admin_notifications_workflow_create(\WP_REST_Request $request) {
+  if (method_exists('BP_Notifications_Helper', 'ensure_tables')) {
+    BP_Notifications_Helper::ensure_tables();
+  }
   $body = $request->get_json_params();
   $workflow = BP_Notifications_Helper::create_workflow([
     'name' => $body['name'] ?? '',
@@ -99,7 +102,11 @@ function bp_rest_admin_notifications_workflow_create(\WP_REST_Request $request) 
   ]);
 
   if (!$workflow) {
-    return new \WP_Error('bp_notifications_error', __('Could not create workflow.', 'bookpoint'), ['status' => 500]);
+    $msg = method_exists('BP_Notifications_Helper', 'last_error') ? BP_Notifications_Helper::last_error() : '';
+    if (!$msg) {
+      $msg = __('Could not create workflow.', 'bookpoint');
+    }
+    return new \WP_Error('bp_notifications_error', $msg, ['status' => 500]);
   }
 
   return rest_ensure_response(['status' => 'success', 'data' => $workflow], 201);

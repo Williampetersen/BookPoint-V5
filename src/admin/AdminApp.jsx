@@ -9,6 +9,9 @@ import ServicesScreen from "./screens/ServicesScreen";
 import CategoriesScreen from "./screens/CategoriesScreen";
 import ExtrasScreen from "./screens/ExtrasScreen";
 import PromoCodesScreen from "./screens/PromoCodesScreen";
+import CalendarScreen from "./screens/CalendarScreen";
+import ScheduleScreen from "./screens/ScheduleScreen";
+import HolidaysScreen from "./screens/HolidaysScreen";
 import CustomersScreen from "./screens/CustomersScreen";
 import AgentsScreen from "./screens/AgentsScreen";
 import SettingsScreen from "./screens/SettingsScreen";
@@ -94,9 +97,9 @@ export default function AdminApp() {
       {screen === "audit" ? <AuditScreen /> : null}
       {screen === "tools" ? <ToolsScreen /> : null}
       {screen === "notifications" ? <NotificationsScreen /> : null}
-      {["calendar","schedule","holidays","catalog"].includes(screen)
-        ? <ComingSoon title={screen} />
-        : null}
+      {screen === "calendar" ? <CalendarScreen /> : null}
+      {screen === "schedule" ? <ScheduleScreen /> : null}
+      {screen === "holidays" ? <HolidaysScreen /> : null}
     </Shell>
   );
 }
