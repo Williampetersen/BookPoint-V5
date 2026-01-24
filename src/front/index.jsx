@@ -31,12 +31,61 @@ function BookPointWidget({ label }) {
   );
 }
 
+function getBrand() {
+  const imagesBase = (window.BP_FRONT?.images || '').replace(/\/$/, '') + '/';
+  return {
+    imagesBase,
+    helpPhone: '+45 91 67 14 52',
+  };
+}
+
+function bootLegacy() {
+  const mount = document.getElementById('bp-front-root');
+  if (!mount) return;
+
+  const root = createRoot(mount);
+  const brand = getBrand();
+
+  const open = () => {
+    mount.style.display = 'block';
+    root.render(
+      <WizardModal
+        open={true}
+        onClose={() => {
+          root.render(null);
+          mount.style.display = 'none';
+        }}
+        brand={brand}
+      />
+    );
+  };
+
+  document.addEventListener('click', (e) => {
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('.bp-open-wizard')) {
+      e.preventDefault();
+      open();
+    }
+  });
+}
+
 function boot() {
-  document.querySelectorAll(".bp-front-root[data-bp-widget='wizard']").forEach((el) => {
+  const widgets = document.querySelectorAll(".bp-front-root[data-bp-widget='wizard']");
+  if (!widgets.length) {
+    bootLegacy();
+    return;
+  }
+
+  widgets.forEach((el) => {
     const root = createRoot(el);
     const label = el.getAttribute('data-bp-label') || 'Book Now';
     root.render(<BookPointWidget label={label} />);
   });
 }
 
-document.addEventListener('DOMContentLoaded', boot);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
