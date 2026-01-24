@@ -31,6 +31,11 @@ add_action('rest_api_init', function () {
       'permission_callback' => $perm,
       'callback' => 'bp_rest_admin_locations_update',
     ],
+    [
+      'methods' => WP_REST_Server::DELETABLE,
+      'permission_callback' => $perm,
+      'callback' => 'bp_rest_admin_locations_delete',
+    ],
   ]);
 
   register_rest_route('bp/v1', '/admin/locations/(?P<id>\d+)/agents', [
@@ -195,6 +200,22 @@ function bp_rest_admin_locations_update(WP_REST_Request $req) {
   }
 
   return bp_rest_admin_locations_get(['id' => $id]);
+}
+
+function bp_rest_admin_locations_delete(WP_REST_Request $req) {
+  global $wpdb;
+  bp_locations_require_tables();
+
+  $id = (int)$req['id'];
+  if ($id <= 0) return new WP_Error('bp_location_invalid', 'Invalid id', ['status' => 400]);
+
+  $loc = $wpdb->prefix . 'bp_locations';
+  $map = $wpdb->prefix . 'bp_location_agents';
+
+  $wpdb->delete($map, ['location_id' => $id], ['%d']);
+  $wpdb->delete($loc, ['id' => $id], ['%d']);
+
+  return rest_ensure_response(['status' => 'success', 'data' => ['deleted' => true]]);
 }
 
 function bp_rest_admin_locations_agents_get(WP_REST_Request $req) {

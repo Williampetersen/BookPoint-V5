@@ -44,7 +44,7 @@ export default function LocationsScreen() {
       const [l, c, a, s] = await Promise.all([
         bpFetch("/admin/locations"),
         bpFetch("/admin/location-categories"),
-        bpFetch("/admin/agents-full"),
+        bpFetch("/admin/agents"),
         bpFetch("/admin/services"),
       ]);
       setLocations(l?.data || []);
@@ -59,18 +59,7 @@ export default function LocationsScreen() {
   }
 
   async function openNewLocation() {
-    setError("");
-    try {
-      const res = await bpFetch("/admin/locations", {
-        method: "POST",
-        body: { name: "New Location" },
-      });
-      const row = res?.data || res;
-      await openEdit(row.id);
-      await loadAll();
-    } catch (e) {
-      setError(e.message || "Failed to create location");
-    }
+    window.location.href = "admin.php?page=bp_locations_edit";
   }
 
   async function openEdit(id) {
@@ -148,6 +137,22 @@ export default function LocationsScreen() {
     }
   }
 
+  async function deleteLocation() {
+    if (!edit?.id) return;
+    if (!confirm("Delete this location?")) return;
+    setSaving(true);
+    setError("");
+    try {
+      await bpFetch(`/admin/locations/${edit.id}`, { method: "DELETE" });
+      setDrawerOpen(false);
+      await loadAll();
+    } catch (e) {
+      setError(e.message || "Delete failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function toggleAgent(id) {
     setAgentMap((prev) => {
       const entry = prev[id] || { selected: false, customize: false, services: [] };
@@ -220,13 +225,11 @@ export default function LocationsScreen() {
   }
 
   async function openNewCategory() {
-    setCatEdit({ name: "", image_id: 0, image_url: "" });
-    setCatOpen(true);
+    window.location.href = "admin.php?page=bp_location_categories_edit";
   }
 
   async function openEditCategory(row) {
-    setCatEdit({ ...row });
-    setCatOpen(true);
+    window.location.href = `admin.php?page=bp_location_categories_edit&id=${row.id}`;
   }
 
   async function saveCategory() {
@@ -351,7 +354,7 @@ export default function LocationsScreen() {
                   <div className="bp-entity-meta-value">{l.category_name || "Uncategorized"}</div>
                 </div>
                 <div className="bp-entity-actions">
-                  <button className="bp-btn-sm" onClick={() => openEdit(l.id)}>
+                  <button className="bp-btn-sm" onClick={() => { window.location.href = `admin.php?page=bp_locations_edit&id=${l.id}`; }}>
                     Edit
                   </button>
                 </div>
@@ -417,180 +420,218 @@ export default function LocationsScreen() {
           <div className="bp-drawer" style={{ width: "min(720px, 100%)" }}>
             <div className="bp-drawer-head">
               <div>
-                <div className="bp-drawer-title">{edit?.name || "Location"}</div>
-                <div className="bp-muted">Edit location details and assignments.</div>
+                <div className="bp-drawer-title">{edit?.id ? "Edit Location" : "Add Location"}</div>
+                <div className="bp-muted">Manage location profile, photo, and assignments.</div>
               </div>
               <button className="bp-top-btn" onClick={() => setDrawerOpen(false)}>Close</button>
             </div>
             <div className="bp-drawer-body">
               {!edit ? <div className="bp-muted">Loading...</div> : (
-                <div style={{ display: "grid", gap: 14 }}>
+                <div style={{ display: "grid", gap: 16 }}>
                   <div className="bp-section">
                     <div className="bp-section-title">Basic information</div>
-                    <div className="bp-kv">
-                      <div className="bp-k">Name</div>
-                      <div className="bp-v">
-                        <input
-                          className="bp-input"
-                          value={edit.name || ""}
-                          onChange={(e) => setEdit((p) => ({ ...p, name: e.target.value }))}
-                        />
-                      </div>
-                      <div className="bp-k">Address</div>
-                      <div className="bp-v">
-                        <input
-                          className="bp-input"
-                          value={edit.address || ""}
-                          onChange={(e) => setEdit((p) => ({ ...p, address: e.target.value }))}
-                        />
-                      </div>
-                      <div className="bp-k">Category</div>
-                      <div className="bp-v">
-                        <select
-                          className="bp-input"
-                          value={edit.category_id || ""}
-                          onChange={(e) => setEdit((p) => ({ ...p, category_id: e.target.value ? Number(e.target.value) : null }))}
-                        >
-                          <option value="">Uncategorized</option>
-                          {activeCategoryOptions.map((c) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="bp-k">Status</div>
-                      <div className="bp-v">
-                        <select className="bp-input" value="active" disabled>
-                          <option value="active">Active</option>
-                        </select>
-                      </div>
-                      <div className="bp-k">Image</div>
-                      <div className="bp-v">
-                        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                          <div className="bp-entity-thumb">
-                            {edit.image_url ? <img src={edit.image_url} alt="" /> : <div className="bp-entity-initial">L</div>}
-                          </div>
-                          <button className="bp-btn-sm" onClick={pickLocationImage}>Select image</button>
-                          {edit.image_id ? (
-                            <button
-                              className="bp-btn-sm"
-                              onClick={() => setEdit((p) => ({ ...p, image_id: 0, image_url: "" }))}
+                    <table className="form-table" role="presentation">
+                      <tbody>
+                        <tr>
+                          <th><label>Name</label></th>
+                          <td>
+                            <input
+                              className="regular-text"
+                              value={edit.name || ""}
+                              onChange={(e) => setEdit((p) => ({ ...p, name: e.target.value }))}
+                            />
+                          </td>
+                        </tr>
+                        <tr>
+                          <th><label>Address</label></th>
+                          <td>
+                            <input
+                              className="regular-text"
+                              value={edit.address || ""}
+                              onChange={(e) => setEdit((p) => ({ ...p, address: e.target.value }))}
+                            />
+                          </td>
+                        </tr>
+                        <tr>
+                          <th><label>Category</label></th>
+                          <td>
+                            <select
+                              className="regular-text"
+                              value={edit.category_id || ""}
+                              onChange={(e) => setEdit((p) => ({ ...p, category_id: e.target.value ? Number(e.target.value) : null }))}
                             >
-                              Remove
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
+                              <option value="">Uncategorized</option>
+                              {activeCategoryOptions.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          </td>
+                        </tr>
+                        <tr>
+                          <th><label>Status</label></th>
+                          <td>
+                            <select className="regular-text" value="active" disabled>
+                              <option value="active">Active</option>
+                            </select>
+                          </td>
+                        </tr>
+                        <tr>
+                          <th><label>Location Image</label></th>
+                          <td>
+                            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10 }}>
+                              <div className="bp-entity-thumb" style={{ width: 72, height: 72 }}>
+                                {edit.image_url ? <img src={edit.image_url} alt="" /> : <div className="bp-entity-initial">L</div>}
+                              </div>
+                              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                <button className="button" onClick={pickLocationImage}>Choose Image</button>
+                                {edit.image_id ? (
+                                  <button
+                                    className="button"
+                                    onClick={() => setEdit((p) => ({ ...p, image_id: 0, image_url: "" }))}
+                                  >
+                                    Remove
+                                  </button>
+                                ) : null}
+                              </div>
+                            </div>
+                            <p className="description">Uses Media Library. Stores attachment ID.</p>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
 
                   <div className="bp-section">
                     <div className="bp-section-title">Agents</div>
-                    <div style={{ marginBottom: 10 }}>
-                      <button className="bp-btn-sm" onClick={toggleAllAgents}>
-                        {agents.length > 0 && agents.every((a) => agentMap[a.id]?.selected) ? "Unselect All" : "Select All"}
-                      </button>
-                    </div>
-                    {agents.length === 0 ? (
-                      <div className="bp-muted">No agents found.</div>
-                    ) : (
-                      <div style={{ display: "grid", gap: 10 }}>
-                        {agents.map((a) => {
-                          const entry = agentMap[a.id] || { selected: false, customize: false, services: [] };
-                          return (
-                            <div key={a.id} style={{ border: "1px solid var(--bp-border)", borderRadius: 12, padding: 10 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                                <label style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 900 }}>
-                                  <input type="checkbox" checked={!!entry.selected} onChange={() => toggleAgent(a.id)} />
-                                  <span>{a.name || `Agent #${a.id}`}</span>
-                                </label>
-                                <button
-                                  className="bp-btn-sm"
-                                  onClick={() => toggleCustomize(a.id)}
-                                  disabled={!entry.selected}
-                                >
-                                  {entry.customize ? "All services" : "Customize services"}
-                                </button>
-                              </div>
-                              {entry.selected && entry.customize ? (
-                                <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
-                                  {services.length === 0 ? (
-                                    <div className="bp-muted">No services found.</div>
-                                  ) : (
-                                    services.map((s) => (
-                                      <label key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 900 }}>
-                                        <input
-                                          type="checkbox"
-                                          checked={(entry.services || []).includes(s.id)}
-                                          onChange={() => toggleService(a.id, s.id)}
-                                        />
-                                        <span>{s.name || s.title || `Service #${s.id}`}</span>
-                                      </label>
-                                    ))
-                                  )}
-                                </div>
-                              ) : null}
+                    <table className="form-table" role="presentation">
+                      <tbody>
+                        <tr>
+                          <th><label>Assignments</label></th>
+                          <td>
+                            <div style={{ marginBottom: 10 }}>
+                              <button className="button" onClick={toggleAllAgents}>
+                                {agents.length > 0 && agents.every((a) => agentMap[a.id]?.selected) ? "Unselect All" : "Select All"}
+                              </button>
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            {agents.length === 0 ? (
+                              <div className="bp-muted">No agents found.</div>
+                            ) : (
+                              <div style={{ display: "grid", gap: 10 }}>
+                                {agents.map((a) => {
+                                  const entry = agentMap[a.id] || { selected: false, customize: false, services: [] };
+                                  return (
+                                    <div key={a.id} style={{ border: "1px solid var(--bp-border)", borderRadius: 12, padding: 10 }}>
+                                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                                        <label style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 900 }}>
+                                          <input type="checkbox" checked={!!entry.selected} onChange={() => toggleAgent(a.id)} />
+                                          <span>{a.name || `Agent #${a.id}`}</span>
+                                        </label>
+                                        <button
+                                          className="button"
+                                          onClick={() => toggleCustomize(a.id)}
+                                          disabled={!entry.selected}
+                                        >
+                                          {entry.customize ? "All services" : "Customize services"}
+                                        </button>
+                                      </div>
+                                      {entry.selected && entry.customize ? (
+                                        <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
+                                          {services.length === 0 ? (
+                                            <div className="bp-muted">No services found.</div>
+                                          ) : (
+                                            services.map((s) => (
+                                              <label key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 900 }}>
+                                                <input
+                                                  type="checkbox"
+                                                  checked={(entry.services || []).includes(s.id)}
+                                                  onChange={() => toggleService(a.id, s.id)}
+                                                />
+                                                <span>{s.name || s.title || `Service #${s.id}`}</span>
+                                              </label>
+                                            ))
+                                          )}
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
 
                   <div className="bp-section">
                     <div className="bp-section-title">Location schedule</div>
-                    <label className="bp-check" style={{ marginBottom: 10 }}>
-                      <input
-                        type="checkbox"
-                        checked={useCustomSchedule}
-                        onChange={(e) => setUseCustomSchedule(e.target.checked)}
-                      />
-                      Use custom schedule
-                    </label>
-                    {!useCustomSchedule ? (
-                      <div className="bp-muted">Using general schedule settings.</div>
-                    ) : (
-                      <div style={{ display: "grid", gap: 10 }}>
-                        {schedule.length === 0 ? (
-                          <div className="bp-muted">No custom days yet.</div>
-                        ) : (
-                          schedule.map((d, idx) => (
-                            <div key={`${idx}`} style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr auto", alignItems: "center" }}>
-                              <select
-                                className="bp-input"
-                                value={d.day}
-                                onChange={(e) => updateScheduleDay(idx, "day", parseInt(e.target.value, 10))}
-                              >
-                                {DAYS.map((day) => (
-                                  <option key={day.value} value={day.value}>{day.label}</option>
-                                ))}
-                              </select>
+                    <table className="form-table" role="presentation">
+                      <tbody>
+                        <tr>
+                          <th><label>Custom schedule</label></th>
+                          <td>
+                            <label className="bp-check" style={{ marginBottom: 10 }}>
                               <input
-                                className="bp-input"
-                                type="time"
-                                value={d.start || "09:00"}
-                                onChange={(e) => updateScheduleDay(idx, "start", e.target.value)}
+                                type="checkbox"
+                                checked={useCustomSchedule}
+                                onChange={(e) => setUseCustomSchedule(e.target.checked)}
                               />
-                              <input
-                                className="bp-input"
-                                type="time"
-                                value={d.end || "17:00"}
-                                onChange={(e) => updateScheduleDay(idx, "end", e.target.value)}
-                              />
-                              <button className="bp-btn-sm bp-btn-danger" onClick={() => removeScheduleDay(idx)}>Remove</button>
-                            </div>
-                          ))
-                        )}
-                        <button className="bp-btn-sm" onClick={addScheduleDay}>Add Day</button>
-                      </div>
-                    )}
+                              Use custom schedule
+                            </label>
+                            {!useCustomSchedule ? (
+                              <div className="bp-muted">Using general schedule settings.</div>
+                            ) : (
+                              <div style={{ display: "grid", gap: 10 }}>
+                                {schedule.length === 0 ? (
+                                  <div className="bp-muted">No custom days yet.</div>
+                                ) : (
+                                  schedule.map((d, idx) => (
+                                    <div key={`${idx}`} style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr auto", alignItems: "center" }}>
+                                      <select
+                                        className="regular-text"
+                                        value={d.day}
+                                        onChange={(e) => updateScheduleDay(idx, "day", parseInt(e.target.value, 10))}
+                                      >
+                                        {DAYS.map((day) => (
+                                          <option key={day.value} value={day.value}>{day.label}</option>
+                                        ))}
+                                      </select>
+                                      <input
+                                        className="regular-text"
+                                        type="time"
+                                        value={d.start || "09:00"}
+                                        onChange={(e) => updateScheduleDay(idx, "start", e.target.value)}
+                                      />
+                                      <input
+                                        className="regular-text"
+                                        type="time"
+                                        value={d.end || "17:00"}
+                                        onChange={(e) => updateScheduleDay(idx, "end", e.target.value)}
+                                      />
+                                      <button className="button" onClick={() => removeScheduleDay(idx)}>Remove</button>
+                                    </div>
+                                  ))
+                                )}
+                                <button className="button" onClick={addScheduleDay}>Add Day</button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
 
-                  <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                    <button className="bp-btn" onClick={() => setDrawerOpen(false)} disabled={saving}>Cancel</button>
-                    <button className="bp-btn bp-btn-primary" onClick={saveLocation} disabled={saving || !edit.name}>
-                      {saving ? "Saving..." : "Save"}
+                  <p className="submit" style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                    {edit?.id ? (
+                      <button className="button button-secondary" onClick={deleteLocation} disabled={saving}>
+                        Delete
+                      </button>
+                    ) : null}
+                    <button className="button" onClick={() => setDrawerOpen(false)} disabled={saving}>Back</button>
+                    <button className="button button-primary" onClick={saveLocation} disabled={saving || !edit.name}>
+                      {saving ? "Saving..." : "Save Changes"}
                     </button>
-                  </div>
+                  </p>
                 </div>
               )}
             </div>
@@ -603,49 +644,62 @@ export default function LocationsScreen() {
           <div className="bp-drawer" style={{ width: "min(520px, 100%)" }}>
             <div className="bp-drawer-head">
               <div>
-                <div className="bp-drawer-title">{catEdit?.id ? "Edit Category" : "New Category"}</div>
-                <div className="bp-muted">Active categories only.</div>
+                <div className="bp-drawer-title">{catEdit?.id ? "Edit Category" : "Add Category"}</div>
+                <div className="bp-muted">Manage category profile and photo.</div>
               </div>
               <button className="bp-top-btn" onClick={() => setCatOpen(false)}>Close</button>
             </div>
             <div className="bp-drawer-body">
               {!catEdit ? null : (
-                <div style={{ display: "grid", gap: 12 }}>
-                  <div>
-                    <div className="bp-k">Name</div>
-                    <input
-                      className="bp-input"
-                      value={catEdit.name || ""}
-                      onChange={(e) => setCatEdit((p) => ({ ...p, name: e.target.value }))}
-                    />
+                <div style={{ display: "grid", gap: 16 }}>
+                  <div className="bp-section">
+                    <div className="bp-section-title">Category details</div>
+                    <table className="form-table" role="presentation">
+                      <tbody>
+                        <tr>
+                          <th><label>Name</label></th>
+                          <td>
+                            <input
+                              className="regular-text"
+                              value={catEdit.name || ""}
+                              onChange={(e) => setCatEdit((p) => ({ ...p, name: e.target.value }))}
+                            />
+                          </td>
+                        </tr>
+                        <tr>
+                          <th><label>Category Image</label></th>
+                          <td>
+                            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10 }}>
+                              <div className="bp-entity-thumb" style={{ width: 72, height: 72 }}>
+                                {catEdit.image_url ? <img src={catEdit.image_url} alt="" /> : <div className="bp-entity-initial">C</div>}
+                              </div>
+                              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                <button className="button" onClick={pickCategoryImage}>Choose Image</button>
+                                {catEdit.image_id ? (
+                                  <button className="button" onClick={() => setCatEdit((p) => ({ ...p, image_id: 0, image_url: "" }))}>
+                                    Remove
+                                  </button>
+                                ) : null}
+                              </div>
+                            </div>
+                            <p className="description">Uses Media Library. Stores attachment ID.</p>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
-                  <div>
-                    <div className="bp-k">Image</div>
-                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                      <div className="bp-entity-thumb">
-                        {catEdit.image_url ? <img src={catEdit.image_url} alt="" /> : <div className="bp-entity-initial">C</div>}
-                      </div>
-                      <button className="bp-btn-sm" onClick={pickCategoryImage}>Select image</button>
-                      {catEdit.image_id ? (
-                        <button className="bp-btn-sm" onClick={() => setCatEdit((p) => ({ ...p, image_id: 0, image_url: "" }))}>
-                          Remove
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+
+                  <p className="submit" style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                     {catEdit.id ? (
-                      <button className="bp-btn bp-btn-danger" onClick={deleteCategory} disabled={catSaving}>
+                      <button className="button button-secondary" onClick={deleteCategory} disabled={catSaving}>
                         Delete
                       </button>
-                    ) : <span />}
-                    <div style={{ display: "flex", gap: 10 }}>
-                      <button className="bp-btn" onClick={() => setCatOpen(false)} disabled={catSaving}>Cancel</button>
-                      <button className="bp-btn bp-btn-primary" onClick={saveCategory} disabled={catSaving || !catEdit.name}>
-                        {catSaving ? "Saving..." : "Save"}
-                      </button>
-                    </div>
-                  </div>
+                    ) : null}
+                    <button className="button" onClick={() => setCatOpen(false)} disabled={catSaving}>Back</button>
+                    <button className="button button-primary" onClick={saveCategory} disabled={catSaving || !catEdit.name}>
+                      {catSaving ? "Saving..." : "Save Changes"}
+                    </button>
+                  </p>
                 </div>
               )}
             </div>

@@ -17,6 +17,7 @@ export function pickImage({ title = 'Select image', button = 'Use this image' } 
         url: attachment.sizes?.medium?.url || attachment.url,
         full: attachment.url,
       });
+      frame.close();
     });
 
     frame.open();
