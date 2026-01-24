@@ -14,6 +14,7 @@ import AgentsScreen from "./screens/AgentsScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import AuditScreen from "./screens/AuditScreen";
 import ToolsScreen from "./screens/ToolsScreen";
+import NotificationsScreen from "./screens/NotificationsScreen";
 
 function resolveScreen(page) {
   switch(page){
@@ -43,6 +44,8 @@ function resolveScreen(page) {
 
     case "bp-settings": return "settings";
     case "bp_settings": return "settings";
+    case "bp-notifications": return "notifications";
+    case "bp_notifications": return "notifications";
     case "bp-audit-log": return "audit";
     case "bp_audit": return "audit";
     case "bp-tools": return "tools";
@@ -90,6 +93,7 @@ export default function AdminApp() {
       {screen === "settings" ? <SettingsScreen /> : null}
       {screen === "audit" ? <AuditScreen /> : null}
       {screen === "tools" ? <ToolsScreen /> : null}
+      {screen === "notifications" ? <NotificationsScreen /> : null}
       {["calendar","schedule","holidays","catalog"].includes(screen)
         ? <ComingSoon title={screen} />
         : null}

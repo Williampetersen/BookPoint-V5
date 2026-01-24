@@ -92,6 +92,7 @@ final class BP_Plugin {
 
     // Helpers (Step 10)
     require_once BP_LIB_PATH . 'helpers/email_helper.php';
+    require_once BP_LIB_PATH . 'helpers/notifications_helper.php';
 
     // Helpers (Portal + Webhooks)
     require_once BP_LIB_PATH . 'helpers/portal_helper.php';
@@ -155,6 +156,7 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'rest/dashboard-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-catalog-manager-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-misc-routes.php';
+    require_once BP_LIB_PATH . 'rest/admin-notifications-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-field-values-routes.php';
     require_once BP_LIB_PATH . 'rest/settings-routes.php';
     require_once BP_LIB_PATH . 'rest/public-catalog-routes.php';
@@ -1119,6 +1121,15 @@ final class BP_Plugin {
 
     add_submenu_page(
       'bp',
+      __('Notifications', 'bookpoint'),
+      __('Notifications', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_notifications',
+      'bp_render_admin_app'
+    );
+
+    add_submenu_page(
+      'bp',
       __('Audit Log', 'bookpoint'),
       __('Audit Log', 'bookpoint'),
       'bp_manage_settings',
@@ -1299,7 +1310,7 @@ final class BP_Plugin {
     $admin_react_pages = [
       'bp_dashboard', 'bp_bookings', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog', 
       'bp-form-fields', 'bp_services', 'bp_categories', 'bp_extras', 'bp_promo_codes', 
-      'bp_customers', 'bp_settings', 'bp_agents', 'bp_audit', 'bp_tools'
+      'bp_customers', 'bp_settings', 'bp_notifications', 'bp_agents', 'bp_audit', 'bp_tools'
     ];
     
     if (in_array($page, $admin_react_pages, true)) {
@@ -1359,8 +1370,9 @@ final class BP_Plugin {
         'bp_extras' => 'extras',
         'bp_promo_codes' => 'promo-codes',
         'bp_customers' => 'customers',
-        'bp_settings' => 'settings',
-        'bp_agents' => 'agents',
+      'bp_settings' => 'settings',
+      'bp_notifications' => 'notifications',
+      'bp_agents' => 'agents',
         'bp_audit' => 'audit',
         'bp_tools' => 'tools',
       ];

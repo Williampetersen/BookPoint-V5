@@ -43,6 +43,7 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
             {/* SYSTEM */}
             <div className="bp-group-title">SYSTEM</div>
             <a className={`bp-nav-item ${is("bp_settings")?"active":""}`} href="admin.php?page=bp_settings">Settings</a>
+            <a className={`bp-nav-item ${is("bp_notifications")?"active":""}`} href="admin.php?page=bp_notifications">Notifications</a>
             <a className={`bp-nav-item ${is("bp_audit")?"active":""}`} href="admin.php?page=bp_audit">Audit Log</a>
             <a className={`bp-nav-item ${is("bp_tools")?"active":""}`} href="admin.php?page=bp_tools">Tools</a>
           </nav>
