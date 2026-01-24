@@ -3,7 +3,7 @@ defined('ABSPATH') || exit;
 
 final class BP_MigrationsHelper {
 
-  const DB_VERSION = '1.5.0';
+  const DB_VERSION = '1.6.0';
   const OPT_DB_VERSION = 'bp_db_version';
   const DB_VERSION_OPTION = 'BP_db_version';
 
@@ -105,9 +105,61 @@ final class BP_MigrationsHelper {
         is_active TINYINT(1) NOT NULL DEFAULT 1,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NULL,
+      PRIMARY KEY (id),
+      UNIQUE KEY code (code),
+      KEY is_active (is_active)
+    ) {$charset};
+  ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}workflows (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'active',
+        event_key VARCHAR(80) NOT NULL,
+        is_conditional TINYINT(1) NOT NULL DEFAULT 0,
+        conditions_json LONGTEXT NULL,
+        has_time_offset TINYINT(1) NOT NULL DEFAULT 0,
+        time_offset_minutes INT NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
         PRIMARY KEY (id),
-        UNIQUE KEY code (code),
-        KEY is_active (is_active)
+        KEY event_key (event_key),
+        KEY status (status)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}workflow_actions (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        workflow_id BIGINT UNSIGNED NOT NULL,
+        type VARCHAR(40) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'active',
+        config_json LONGTEXT NULL,
+        sort_order INT NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        PRIMARY KEY (id),
+        KEY workflow_id (workflow_id),
+        KEY sort_order (sort_order)
+      ) {$charset};
+    ");
+
+    dbDelta("
+      CREATE TABLE {$prefix}workflow_logs (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        workflow_id BIGINT UNSIGNED NOT NULL,
+        event_key VARCHAR(80) NOT NULL,
+        entity_type VARCHAR(40) NOT NULL,
+        entity_id BIGINT UNSIGNED NULL,
+        status VARCHAR(20) NOT NULL,
+        message LONGTEXT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY workflow_id (workflow_id),
+        KEY event_key (event_key),
+        KEY entity_type (entity_type),
+        KEY entity_id (entity_id)
       ) {$charset};
     ");
 
@@ -244,6 +296,9 @@ final class BP_MigrationsHelper {
       $wpdb->prefix . 'bp_agent_services',
       $wpdb->prefix . 'bp_service_categories',
       $wpdb->prefix . 'bp_extra_services',
+      $wpdb->prefix . 'bp_workflows',
+      $wpdb->prefix . 'bp_workflow_actions',
+      $wpdb->prefix . 'bp_workflow_logs',
     ];
 
     foreach ($tables as $table) {

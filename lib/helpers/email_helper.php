@@ -7,7 +7,7 @@ final class BP_EmailHelper {
     return (string) get_option('admin_email');
   }
 
-  public static function send(string $to, string $subject, string $html_body) : bool {
+  public static function send(string $to, string $subject, string $html_body, array $options = []) : bool {
     $to = sanitize_email($to);
     if ($to === '') return false;
 
@@ -16,6 +16,13 @@ final class BP_EmailHelper {
 
     $from_name  = sanitize_text_field($from_name ?: get_bloginfo('name'));
     $from_email = sanitize_email($from_email ?: get_option('admin_email'));
+
+    if (!empty($options['from_name'])) {
+      $from_name = sanitize_text_field($options['from_name']);
+    }
+    if (!empty($options['from_email'])) {
+      $from_email = sanitize_email($options['from_email']);
+    }
 
     $headers = [
       'Content-Type: text/html; charset=UTF-8',
@@ -41,8 +48,12 @@ final class BP_EmailHelper {
       'span' => [],
     ];
     $body = wp_kses($html_body, $allowed);
+    $attachments = [];
+    if (!empty($options['attachments']) && is_array($options['attachments'])) {
+      $attachments = array_values(array_filter($options['attachments'], 'is_string'));
+    }
 
-    return wp_mail($to, $subject, $body, $headers);
+    return wp_mail($to, $subject, $body, $headers, $attachments);
   }
 
   public static function booking_created_customer(array $booking, array $service, array $customer) : void {
