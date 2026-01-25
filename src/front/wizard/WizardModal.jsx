@@ -5,7 +5,6 @@ import {
   fetchServices,
   fetchExtras,
   fetchAgents,
-  fetchSlots,
   fetchFormFields,
   createBooking,
 } from './api';
@@ -50,7 +49,6 @@ export default function WizardModal({ open, onClose, brand }) {
   const [services, setServices] = useState([]);
   const [extras, setExtras] = useState([]);
   const [agents, setAgents] = useState([]);
-  const [slots, setSlots] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -131,18 +129,6 @@ export default function WizardModal({ open, onClose, brand }) {
     })();
   }, [open, serviceId, locationId]);
 
-  useEffect(() => {
-    if (!open) return;
-    (async () => {
-      try {
-        if (!serviceId || !agentId || !date) return;
-        const s = await fetchSlots({ service_id: serviceId, agent_id: agentId, date });
-        setSlots(s);
-      } catch (e) {
-        setSlots([]);
-      }
-    })();
-  }, [open, serviceId, agentId, date]);
 
   function next() {
     setError('');
@@ -269,11 +255,17 @@ export default function WizardModal({ open, onClose, brand }) {
 
             {step.key === 'datetime' && (
               <StepDateTime
-                date={date}
-                onDateChange={setDate}
-                slots={slots}
-                value={slot}
-                onSlotChange={setSlot}
+                locationId={locationId}
+                serviceId={serviceId}
+                agentId={agentId}
+                serviceDurationMin={services.find((s) => String(s.id) === String(serviceId))?.duration || 30}
+                valueDate={date}
+                valueSlot={slot}
+                onChangeDate={(v) => {
+                  setDate(v);
+                  setSlot(null);
+                }}
+                onChangeSlot={setSlot}
                 onBack={back}
                 onNext={next}
               />

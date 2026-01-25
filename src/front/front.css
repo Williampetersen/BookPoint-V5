@@ -250,6 +250,13 @@
 .bp-tile-title {
   font-weight: 800;
 }
+
+.bp-tile-img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 12px;
+}
 .bp-tile-sub {
   color: #666;
   font-size: 12px;
@@ -555,6 +562,165 @@
   margin-top: 16px;
 }
 
+/* DateTime step */
+.bp-datetime {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bp-dt-head {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.bp-dt-month {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.bp-dt-month-title {
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: 0.2px;
+  min-width: 180px;
+  text-align: center;
+}
+.bp-iconbtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  background: #fff;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.bp-iconbtn:hover {
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.10);
+  transform: translateY(-1px);
+}
+
+.bp-dt-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.bp-dt-wd {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #9aa0aa;
+  padding: 6px 0;
+}
+
+.bp-dt-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.bp-dt-day {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px 0 8px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+.bp-dt-day:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+.bp-dt-day.muted {
+  opacity: 0.35;
+}
+.bp-dt-day.disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+.bp-dt-day.selected {
+  border-color: #2563eb;
+  box-shadow: 0 16px 44px rgba(37, 99, 235, 0.16);
+}
+.bp-dt-daynum {
+  text-align: center;
+  font-weight: 900;
+  font-size: 14px;
+}
+.bp-dt-bar {
+  height: 4px;
+  width: 26px;
+  border-radius: 999px;
+  margin: 8px auto 0;
+  background: rgba(0, 0, 0, 0.08);
+}
+.bp-dt-bar.on {
+  background: #22c55e;
+}
+
+.bp-dt-slots {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  border-radius: 18px;
+  padding: 16px;
+}
+.bp-dt-slots-title {
+  font-weight: 900;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.bp-dt-date {
+  color: #2563eb;
+}
+
+.bp-dt-slotgrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.bp-slot {
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  background: #f8fafc;
+  padding: 12px 10px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+.bp-slot:hover {
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.10);
+  transform: translateY(-1px);
+}
+.bp-slot.active {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #166534;
+}
+
+.bp-dt-loading,
+.bp-dt-empty {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.04);
+  color: #6b7280;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .bp-dt-slotgrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bp-dt-month-title {
+    min-width: 140px;
+    font-size: 16px;
+  }
+}
+
 @media (max-width: 920px) {
   .bp-modal-grid {
     grid-template-columns: 1fr;
@@ -567,3 +733,32 @@
     height: min(760px, 100%);
   }
 }
+
+
+/* Availability bar shimmer (unknown/loading) */
+.bp-dt-bar.loading{
+  background: linear-gradient(90deg,
+    rgba(0,0,0,.08) 0%,
+    rgba(0,0,0,.16) 40%,
+    rgba(0,0,0,.08) 80%);
+  background-size: 200% 100%;
+  animation: bpShimmer 1.1s infinite linear;
+}
+@keyframes bpShimmer {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Slot skeleton blocks */
+.bp-slot.skeleton{
+  height:42px;
+  border-radius:12px;
+  background: linear-gradient(90deg,
+    rgba(0,0,0,.06) 0%,
+    rgba(0,0,0,.12) 40%,
+    rgba(0,0,0,.06) 80%);
+  background-size: 200% 100%;
+  animation: bpShimmer 1.1s infinite linear;
+  border:1px solid rgba(0,0,0,.08);
+}
+

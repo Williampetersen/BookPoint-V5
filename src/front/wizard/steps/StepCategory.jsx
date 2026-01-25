@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { imgOf } from '../ui';
 
 export default function StepCategory({ categories, value, onChange, onBack, onNext }) {
   const [q, setQ] = useState('');
@@ -38,6 +39,7 @@ export default function StepCategory({ categories, value, onChange, onBack, onNe
               className={selected ? 'bp-tile active' : 'bp-tile'}
               onClick={() => toggle(cat.id)}
             >
+              <img className="bp-tile-img" src={imgOf(cat, 'service-image.png')} alt="" />
               <div className="bp-tile-title">{cat.name}</div>
             </button>
           );
