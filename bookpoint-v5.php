@@ -1629,7 +1629,7 @@ final class BP_Plugin {
       'restUrl' => esc_url_raw(rest_url('bp/v1')),
       'ajaxUrl' => admin_url('admin-ajax.php'),
       'siteUrl' => site_url('/'),
-      'nonce' => wp_create_nonce('bp_public'),
+      'nonce' => wp_create_nonce('wp_rest'),
       'images' => BP_PLUGIN_URL . 'public/images/',
       'tz' => wp_timezone_string(),
     ]);
@@ -1886,7 +1886,7 @@ final class BP_Plugin {
         'restUrl' => esc_url_raw(rest_url('bp/v1')),
         'ajaxUrl' => admin_url('admin-ajax.php'),
         'siteUrl' => site_url('/'),
-        'nonce' => wp_create_nonce('bp_public'),
+        'nonce' => wp_create_nonce('wp_rest'),
       ]);
     }
 

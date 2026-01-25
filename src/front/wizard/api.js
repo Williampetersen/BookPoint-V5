@@ -38,11 +38,14 @@ export const fetchAgents = ({ service_id, location_id }) =>
     body: JSON.stringify({ service_id, location_id }),
   });
 
-export const fetchSlots = ({ service_id, agent_id, date }) =>
+export const fetchSlots = ({ service_id, agent_id, date, location_id = null }) =>
   api('/front/slots', {
     method: 'POST',
-    body: JSON.stringify({ service_id, agent_id, date }),
+    body: JSON.stringify({ service_id, agent_id, date, location_id }),
   });
+
+export const fetchAvailabilityMonth = ({ month, service_id, agent_id, location_id = null }) =>
+  api(`/front/availability?month=${encodeURIComponent(month)}&service_id=${encodeURIComponent(service_id)}&agent_id=${encodeURIComponent(agent_id)}&location_id=${encodeURIComponent(location_id || '')}`);
 
 export const fetchFormFields = async () => {
   const list = await api('/front/form-fields');

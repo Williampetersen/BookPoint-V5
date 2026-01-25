@@ -49,6 +49,12 @@ add_action('rest_api_init', function () {
     'callback' => 'bp_rest_front_bookings',
     'permission_callback' => '__return_true',
   ]);
+
+  register_rest_route('bp/v1', '/front/availability', [
+    'methods'  => 'GET',
+    'callback' => 'bp_rest_front_availability_month',
+    'permission_callback' => '__return_true',
+  ]);
 });
 
 function bp_rest_front_locations() {
@@ -231,4 +237,62 @@ function bp_rest_front_bookings(WP_REST_Request $req) {
     return bp_public_create_booking($req);
   }
   return new WP_REST_Response(['status' => 'error', 'message' => 'Booking handler missing'], 500);
+}
+
+function bp_rest_front_availability_month(WP_REST_Request $req) {
+  $service_id = (int)($req->get_param('service_id') ?? 0);
+  $agent_id   = (int)($req->get_param('agent_id') ?? 0);
+  $month      = sanitize_text_field($req->get_param('month') ?? '');
+  $location_id = (int)($req->get_param('location_id') ?? 0);
+
+  if ($service_id <= 0 || $agent_id <= 0) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'service_id and agent_id are required'], 400);
+  }
+  if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid month'], 400);
+  }
+
+  $cache_key = 'bp_front_avail_' . md5($month . '|' . $service_id . '|' . $agent_id . '|' . $location_id);
+  $cached = get_transient($cache_key);
+  if (is_array($cached)) {
+    return new WP_REST_Response(['status' => 'success', 'data' => $cached], 200);
+  }
+
+  if (!function_exists('bp_rest_public_availability_slots')) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Availability handler missing'], 500);
+  }
+
+  $start_ts = strtotime($month . '-01 00:00:00');
+  if ($start_ts === false) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid month'], 400);
+  }
+  $end_ts = strtotime(date('Y-m-t', $start_ts) . ' 00:00:00');
+
+  $max_days = (int)apply_filters('bp_public_max_booking_days', 120);
+  $today_ts = strtotime(date('Y-m-d') . ' 00:00:00');
+  $max_ts = strtotime('+' . $max_days . ' days', $today_ts);
+
+  $data = [];
+  for ($ts = $start_ts; $ts <= $end_ts; $ts = strtotime('+1 day', $ts)) {
+    if ($ts < $today_ts || $ts > $max_ts) {
+      $data[date('Y-m-d', $ts)] = 0;
+      continue;
+    }
+    $date = date('Y-m-d', $ts);
+    $r = new WP_REST_Request('GET', '/bp/v1/public/availability-slots');
+    $r->set_param('service_id', $service_id);
+    $r->set_param('agent_id', $agent_id);
+    $r->set_param('date', $date);
+    $resp = bp_rest_public_availability_slots($r);
+    if ($resp instanceof WP_REST_Response) {
+      $payload = $resp->get_data();
+      $slots = $payload['data'] ?? [];
+      $data[$date] = is_array($slots) ? count($slots) : 0;
+    } else {
+      $data[$date] = 0;
+    }
+  }
+
+  set_transient($cache_key, $data, 60); // 60s cache
+  return new WP_REST_Response(['status' => 'success', 'data' => $data], 200);
 }
