@@ -1,26 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { imgOf } from '../ui';
 
 export default function StepAgent({ agents, value, onChange, onBack, onNext }) {
-  const [q, setQ] = useState('');
-
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return agents || [];
-    return (agents || []).filter((x) => (x.name || '').toLowerCase().includes(s));
-  }, [q, agents]);
+  const filtered = agents || [];
 
   const canNext = !!value;
 
   return (
     <div className="bp-step">
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search agent..."
-        className="bp-input"
-      />
-
       <div className="bp-cardlist">
         {filtered.map((ag) => {
           const active = String(value) === String(ag.id);

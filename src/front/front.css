@@ -12,6 +12,14 @@
   color: #fff;
 }
 
+.bp-modal-open .bp-fallback-btn {
+  display: none !important;
+}
+.bp-modal .bp-fallback-btn,
+.bp-modal .bp-book-btn {
+  display: none !important;
+}
+
 .bp-modal-overlay {
   position: fixed;
   inset: 0;
@@ -105,6 +113,12 @@
   padding: 22px 22px 18px;
   overflow: auto;
   background: #fff;
+}
+
+.bp-step {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 
 .bp-main-head {
@@ -221,6 +235,19 @@
   font-size: 12px;
   margin-top: 4px;
 }
+.bp-card-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bp-card-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #f2f4ff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
 
 .bp-grid {
   display: grid;
@@ -276,14 +303,16 @@
 }
 
 .bp-step-footer {
-  position: sticky;
-  bottom: 0;
   background: #fff;
   padding-top: 14px;
+  padding-bottom: 4px;
   margin-top: 18px;
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
 }
 .bp-back,
 .bp-next {
@@ -403,6 +432,11 @@
   align-items: flex-end;
   justify-content: center;
 }
+.bp-price-line {
+  font-weight: 900;
+  font-size: 15px;
+  line-height: 1;
+}
 .bp-price-num {
   font-weight: 900;
   font-size: 16px;
@@ -460,10 +494,36 @@
   display: block;
   font-weight: 800;
   margin-bottom: 8px;
+  color: #444;
+  font-size: 13px;
 }
 
 .bp-field {
-  margin-bottom: 10px;
+  margin-bottom: 14px;
+}
+
+.bp-form .bp-input,
+.bp-form textarea.bp-input,
+.bp-form select.bp-input {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.bp-form .bp-input:focus,
+.bp-form textarea.bp-input:focus,
+.bp-form select.bp-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+.bp-form textarea.bp-input {
+  min-height: 120px;
+  resize: vertical;
 }
 
 .bp-slot-grid {
@@ -760,5 +820,97 @@
   background-size: 200% 100%;
   animation: bpShimmer 1.1s infinite linear;
   border:1px solid rgba(0,0,0,.08);
+}
+
+
+
+.bp-datetime {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bp-calendar {
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 18px;
+  padding: 14px;
+  background: #fff;
+}
+
+.bp-cal-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.bp-cal-title { text-align: center; font-weight: 700; }
+
+.bp-cal-nav {
+  width: 36px; height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: #fff;
+}
+
+.bp-cal-weekdays, .bp-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.bp-cal-wd { text-align:center; font-weight:600; opacity:.55; font-size:12px; }
+
+.bp-cal-day {
+  border-radius: 14px;
+  height: 44px;
+  border: 1px solid rgba(0,0,0,.06);
+  background: #fff;
+  font-weight: 700;
+}
+.bp-cal-day.is-out { opacity: .25; }
+.bp-cal-day:disabled { opacity: .25; cursor: not-allowed; }
+.bp-cal-day.is-selected { outline: 2px solid #2563eb; }
+
+.bp-slots {
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 18px;
+  padding: 14px;
+  background: #fff;
+  min-height: 160px;
+}
+
+.bp-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.bp-slot {
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: #f5f7ff;
+  font-weight: 700;
+}
+.bp-slot.is-selected {
+  background: #dbeafe;
+  border-color: #2563eb;
+}
+
+.bp-slot-skeleton { display:grid; gap:10px; margin-top:12px; }
+.bp-skel {
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.06);
+}
+
+.bp-error { color: #b91c1c; margin-top: 10px; font-weight: 600; }
+.bp-muted { opacity: .65; margin-top: 10px; }
+
+@media (min-width: 900px) {
+  .bp-datetime { flex-direction: column; }
+  .bp-slot-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
 }
 

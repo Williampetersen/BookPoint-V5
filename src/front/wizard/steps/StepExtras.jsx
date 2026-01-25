@@ -1,14 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { imgOf } from '../ui';
 
 export default function StepExtras({ extras, value, onChange, onBack, onNext }) {
-  const [q, setQ] = useState('');
-
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return extras || [];
-    return (extras || []).filter((x) => (x.name || '').toLowerCase().includes(s));
-  }, [q, extras]);
+  const filtered = extras || [];
 
   function toggle(id) {
     const sid = String(id);
@@ -22,13 +16,6 @@ export default function StepExtras({ extras, value, onChange, onBack, onNext }) 
 
   return (
     <div className="bp-step">
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search extras..."
-        className="bp-input"
-      />
-
       <div className="bp-cardlist">
         {filtered.map((ex) => {
           const selected = (value || []).some((v) => String(v) === String(ex.id));
@@ -45,16 +32,19 @@ export default function StepExtras({ extras, value, onChange, onBack, onNext }) 
 
               <div className="bp-pickcard-mid">
                 <div className="bp-pickcard-title">{ex.name}</div>
-                {!!ex.description && <div className="bp-pickcard-sub">{ex.description}</div>}
+                {(ex.description || ex.desc || ex.summary) && (
+                  <div className="bp-pickcard-sub">
+                    {ex.description || ex.desc || ex.summary}
+                  </div>
+                )}
               </div>
 
               <div className="bp-pickcard-right">
                 <div className="bp-price">
                   {ex.price != null ? (
-                    <>
-                      <span className="bp-price-num">{Number(ex.price).toFixed(0)}</span>
-                      <span className="bp-price-cur">Kr</span>
-                    </>
+                    <span className="bp-price-line">
+                      {Number(ex.price).toFixed(0)} Kr
+                    </span>
                   ) : (
                     <span className="bp-price-cur">Extra</span>
                   )}

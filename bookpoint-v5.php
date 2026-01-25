@@ -165,6 +165,9 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'rest/public-availability-routes.php';
     require_once BP_LIB_PATH . 'rest/public-booking-routes.php';
     require_once BP_LIB_PATH . 'rest/front-wizard-routes.php';
+    require_once BP_LIB_PATH . 'rest/admin-booking-form-design-routes.php';
+    require_once BP_LIB_PATH . 'routes/front-availability-routes.php';
+    require_once BP_LIB_PATH . 'routes/front-availability-month-slots.php';
     require_once BP_LIB_PATH . 'rest/form-fields-routes.php';
   }
 
@@ -1118,6 +1121,32 @@ final class BP_Plugin {
       'bp-form-fields',
       'bp_render_admin_app'
     );
+    add_submenu_page(
+      'bp',
+      __('Form Fields', 'bookpoint'),
+      __('Form Fields', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_form_fields',
+      'bp_render_admin_app'
+    );
+
+    add_submenu_page(
+      'bp',
+      __('Booking Form Designer', 'bookpoint'),
+      __('Booking Form Designer', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_design_form',
+      'bp_render_admin_app'
+    );
+
+    add_submenu_page(
+      'bp',
+      __('Form Fields', 'bookpoint'),
+      __('Form Fields', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_form_fields_edit',
+      [__CLASS__, 'render_form_fields_edit']
+    );
 
     add_submenu_page(
       'bp',
@@ -1345,9 +1374,9 @@ final class BP_Plugin {
     // React admin bundle (All admin pages)
       $admin_react_pages = [
         'bp_dashboard', 'bp_bookings', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog', 
-        'bp-form-fields', 'bp_services', 'bp_categories', 'bp_extras', 'bp_locations', 'bp_promo_codes', 
+        'bp-form-fields', 'bp_form_fields', 'bp_services', 'bp_categories', 'bp_extras', 'bp_locations', 'bp_promo_codes', 
         'bp_customers', 'bp_settings', 'bp_notifications', 'bp_agents', 'bp_audit', 'bp_tools',
-        'bp_locations_edit', 'bp_location_categories_edit'
+        'bp_locations_edit', 'bp_location_categories_edit', 'bp_design_form'
       ];
     
     if (in_array($page, $admin_react_pages, true)) {
@@ -1402,6 +1431,8 @@ final class BP_Plugin {
           'bp_holidays' => 'holidays',
           'bp_catalog' => 'catalog',
           'bp-form-fields' => 'form-fields',
+          'bp_form_fields' => 'form-fields',
+          'bp_design_form' => 'design-form',
           'bp_services' => 'services',
           'bp_categories' => 'categories',
           'bp_extras' => 'extras',
@@ -1546,6 +1577,10 @@ final class BP_Plugin {
     echo '<div id="bp-admin-app" data-route="form-fields"></div>';
   }
 
+  public static function render_form_fields_edit() : void {
+    (new BP_AdminFormFieldsController())->edit();
+  }
+
   public static function render_booking_confirm() : void {
     (new BP_AdminBookingsController())->confirm();
   }
@@ -1615,14 +1650,14 @@ final class BP_Plugin {
 
     self::ensure_react_scripts();
 
-    $front_js = BP_PLUGIN_PATH . 'public/front.js';
+    $front_js = BP_PLUGIN_PATH . 'public/front-v2.js';
     $js_ver = file_exists($front_js) ? (@filemtime($front_js) ?: ($front_asset['version'] ?? self::VERSION)) : ($front_asset['version'] ?? self::VERSION);
     wp_enqueue_script(
       'bp-front',
-      BP_PLUGIN_URL . 'public/front.js',
+      BP_PLUGIN_URL . 'public/front-v2.js',
       $front_asset['dependencies'] ?? [],
       $js_ver,
-      false
+      true
     );
 
     wp_localize_script('bp-front', 'BP_FRONT', [
@@ -2052,7 +2087,10 @@ if (!function_exists('bp_shortcode_booking_form')) {
     }
 
     ob_start(); ?>
-    <div class="bp-front-root" data-bp-widget="wizard" data-bp-label="<?php echo esc_attr($atts['label']); ?>"></div>
+    <button type="button" class="bp-book-btn bp-fallback-btn" data-bp-open="wizard">
+      <?php echo esc_html($atts['label']); ?>
+    </button>
+    <div class="bp-front-root" data-bp-widget="wizard" data-bp-fallback="1" data-bp-label="<?php echo esc_attr($atts['label']); ?>"></div>
     <?php
     return ob_get_clean();
   }

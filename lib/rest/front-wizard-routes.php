@@ -210,13 +210,32 @@ function bp_rest_front_slots(WP_REST_Request $req) {
   $service_id = (int)($p['service_id'] ?? 0);
   $agent_id = (int)($p['agent_id'] ?? 0);
   $date = sanitize_text_field($p['date'] ?? '');
+  $location_id = (int)($p['location_id'] ?? 0);
+
+  if ($service_id <= 0 || $agent_id <= 0) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'service_id and agent_id are required'], 400);
+  }
 
   if (function_exists('bp_rest_public_availability_slots')) {
+    $cache_key = 'bp_front_slots_' . md5($date . '|' . $service_id . '|' . $agent_id . '|' . $location_id);
+    $cached = get_transient($cache_key);
+    if (is_array($cached)) {
+      return new WP_REST_Response(['status' => 'success', 'data' => $cached], 200);
+    }
+
     $r = new WP_REST_Request('GET', '/bp/v1/public/availability-slots');
     $r->set_param('service_id', $service_id);
     $r->set_param('agent_id', $agent_id);
     $r->set_param('date', $date);
-    return bp_rest_public_availability_slots($r);
+    $resp = bp_rest_public_availability_slots($r);
+    if ($resp instanceof WP_REST_Response) {
+      $payload = $resp->get_data();
+      $slots = $payload['data'] ?? [];
+      if (is_array($slots)) {
+        set_transient($cache_key, $slots, 60);
+      }
+    }
+    return $resp;
   }
 
   return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
