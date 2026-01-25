@@ -1,38 +1,69 @@
-﻿import React from "react";
+import React, { useState } from "react";
 
 export default function StepsReorderModal({ open, onClose, steps, onChange }) {
+  const [local, setLocal] = useState(steps || []);
+  const [dragIndex, setDragIndex] = useState(null);
+
+  React.useEffect(() => {
+    if (open) setLocal(steps || []);
+  }, [open, steps]);
+
+  const move = (from, to) => {
+    if (from === to) return;
+    const copy = [...local];
+    const [item] = copy.splice(from, 1);
+    copy.splice(to, 0, item);
+    setLocal(copy);
+  };
+
   if (!open) return null;
 
-  function move(idx, dir) {
-    const next = [...steps];
-    const target = idx + dir;
-    if (target < 0 || target >= next.length) return;
-    const tmp = next[idx];
-    next[idx] = next[target];
-    next[target] = tmp;
-    onChange(next);
-  }
-
   return (
-    <div className="bp-modal-overlay" style={{ zIndex: 1000000 }}>
-      <div className="bp-modal" style={{ width: 520, height: "auto" }}>
-        <div style={{ padding: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ fontWeight: 900, fontSize: 18 }}>Reorder Steps</div>
-            <button className="bp-btn" onClick={onClose}>Close</button>
+    <div className="bp-modal-overlay">
+      <div className="bp-modal bp-card bp-p-16 bp-w-720">
+        <div className="bp-flex bp-justify-between bp-items-center">
+          <div>
+            <div className="bp-text-lg bp-font-700">Change Order</div>
+            <div className="bp-text-sm bp-muted">Drag & drop steps</div>
           </div>
+          <button className="bp-btn bp-btn-ghost" onClick={onClose}>Close</button>
+        </div>
 
-          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-            {steps.map((s, idx) => (
-              <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid #e5e7eb", borderRadius: 12, padding: "10px 12px" }}>
-                <div style={{ fontWeight: 800 }}>{s.title || s.key}</div>
-                <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                  <button className="bp-btn-sm" onClick={() => move(idx, -1)}>Up</button>
-                  <button className="bp-btn-sm" onClick={() => move(idx, 1)}>Down</button>
-                </div>
+        <div className="bp-mt-14 bp-list">
+          {local.map((s, idx) => (
+            <div
+              key={s.key}
+              className="bp-reorder-item"
+              draggable
+              onDragStart={() => setDragIndex(idx)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (dragIndex === null) return;
+                move(dragIndex, idx);
+                setDragIndex(null);
+              }}
+            >
+              <div className="bp-reorder-grip">⋮⋮</div>
+              <div className="bp-flex bp-flex-col">
+                <div className="bp-font-700">{s.title || s.key}</div>
+                <div className="bp-text-sm bp-muted">{s.subtitle || ""}</div>
               </div>
-            ))}
-          </div>
+              <div className="bp-chip">{s.enabled ? "Enabled" : "Disabled"}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="bp-flex bp-justify-end bp-gap-8 bp-mt-16">
+          <button className="bp-btn bp-btn-ghost" onClick={onClose}>Cancel</button>
+          <button
+            className="bp-btn bp-btn-primary"
+            onClick={() => {
+              onChange(local);
+              onClose();
+            }}
+          >
+            Save Order
+          </button>
         </div>
       </div>
     </div>

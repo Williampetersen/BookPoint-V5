@@ -1400,14 +1400,27 @@ final class BP_Plugin {
         true
       );
 
-      if (file_exists(BP_PLUGIN_PATH . 'build/admin.css')) {
-        wp_enqueue_style(
-          'bp-admin',
-          BP_PLUGIN_URL . 'build/admin.css',
-          [],
-          $asset['version']
-        );
-      }
+        $admin_css = BP_PLUGIN_PATH . 'build/index.jsx.css';
+        if (file_exists($admin_css)) {
+          wp_enqueue_style(
+            'bp-admin',
+            BP_PLUGIN_URL . 'build/index.jsx.css',
+            [],
+            $asset['version']
+          );
+
+          if (function_exists('is_rtl') && is_rtl()) {
+            $admin_css_rtl = BP_PLUGIN_PATH . 'build/index.jsx-rtl.css';
+            if (file_exists($admin_css_rtl)) {
+              wp_enqueue_style(
+                'bp-admin-rtl',
+                BP_PLUGIN_URL . 'build/index.jsx-rtl.css',
+                ['bp-admin'],
+                $asset['version']
+              );
+            }
+          }
+        }
 
       add_filter('script_loader_src', function ($src, $handle) {
         if ($handle === 'bp-admin') {

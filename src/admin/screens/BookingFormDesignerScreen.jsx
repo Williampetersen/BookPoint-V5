@@ -1,139 +1,292 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
-import { bpFetch } from "../api/client";
-import AppearancePanel from "../components/designer/AppearancePanel";
-import StepEditorPanel from "../components/designer/StepEditorPanel";
+import React, { useEffect, useState } from "react";
 import StepsReorderModal from "../components/designer/StepsReorderModal";
 import WizardPreview from "../components/designer/WizardPreview";
+import WpMediaPicker from "../components/designer/WpMediaPicker";
+
+function wpApiFetch(path, opts = {}) {
+  const admin = window.BP_ADMIN || window.bpAdmin || {};
+  const url = admin.restUrl
+    ? admin.restUrl.replace(/\/$/, "") + path
+    : window.location.origin + "/wp-json" + path;
+
+  const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+  const nonce = admin.nonce;
+  if (nonce) headers["X-WP-Nonce"] = nonce;
+
+  return fetch(url, {
+    method: opts.method || "GET",
+    credentials: "same-origin",
+    headers,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  }).then(async (res) => {
+    const text = await res.text();
+    let json = null;
+    try { json = text ? JSON.parse(text) : null; } catch (e) {}
+    if (!res.ok) throw new Error(json?.message || `Request failed (${res.status})`);
+    return json;
+  });
+}
 
 export default function BookingFormDesignerScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [design, setDesign] = useState(null);
-  const [selectedStepKey, setSelectedStepKey] = useState("location");
-  const [reorderOpen, setReorderOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [config, setConfig] = useState(null);
   const [dirty, setDirty] = useState(false);
 
+  const [activeStepKey, setActiveStepKey] = useState("location");
+  const [reorderOpen, setReorderOpen] = useState(false);
+
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const data = await bpFetch("/admin/booking-form-design", { method: "GET" });
-        setDesign(data);
-        setSelectedStepKey(data?.steps?.[0]?.key || "location");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    let mounted = true;
+    setLoading(true);
+    wpApiFetch("/admin/booking-form-design")
+      .then((data) => {
+        if (!mounted) return;
+        setConfig(data.config);
+        const firstEnabled = data.config?.steps?.find((s) => s.enabled)?.key;
+        setActiveStepKey(firstEnabled || data.config?.steps?.[0]?.key || "location");
+      })
+      .catch((e) => mounted && setError(e.message))
+      .finally(() => mounted && setLoading(false));
+    return () => { mounted = false; };
   }, []);
 
-  const selectedStep = useMemo(() => {
-    if (!design?.steps) return null;
-    return design.steps.find((s) => s.key === selectedStepKey) || design.steps[0];
-  }, [design, selectedStepKey]);
+  const steps = config?.steps || [];
+  const activeStep = steps.find((s) => s.key === activeStepKey) || steps[0];
 
-  const onChange = (next) => {
-    setDesign(next);
+  const patchConfig = (patchFn) => {
+    setConfig((prev) => patchFn(prev));
     setDirty(true);
   };
 
-  const onSave = async () => {
-    if (!design) return;
+  const save = async () => {
+    if (!config) return;
     setSaving(true);
+    setError("");
     try {
-      await bpFetch("/admin/booking-form-design", {
+      const data = await wpApiFetch("/admin/booking-form-design", {
         method: "POST",
-        body: design,
+        body: { config },
       });
+      setConfig(data.config);
       setDirty(false);
+    } catch (e) {
+      setError(e.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const onDiscard = async () => {
-    setLoading(true);
-    try {
-      const data = await bpFetch("/admin/booking-form-design", { method: "GET" });
-      setDesign(data);
-      setDirty(false);
-      setSelectedStepKey(data?.steps?.[0]?.key || "location");
-    } finally {
-      setLoading(false);
-    }
+  const setAppearance = (patch) => {
+    patchConfig((prev) => ({
+      ...prev,
+      appearance: { ...(prev?.appearance || {}), ...patch },
+    }));
   };
 
-  if (loading || !design) {
-    return (
-      <div className="bp-card" style={{ padding: 24 }}>
-        <div className="bp-h1">Booking Form Designer</div>
-        <div className="bp-muted" style={{ marginTop: 8 }}>Loading...</div>
-      </div>
-    );
-  }
+  const setTexts = (patch) => {
+    patchConfig((prev) => ({
+      ...prev,
+      texts: { ...(prev?.texts || {}), ...patch },
+    }));
+  };
+
+  const updateStep = (key, patch) => {
+    patchConfig((prev) => ({
+      ...prev,
+      steps: (prev?.steps || []).map((s) => (s.key === key ? { ...s, ...patch } : s)),
+    }));
+  };
+
+  if (loading) return <div className="bp-card bp-p-24">Loading...</div>;
+  if (!config) return <div className="bp-card bp-p-24">No config. {error}</div>;
 
   return (
-    <div className="bp-grid" style={{ gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 16 }}>
-      <div className="bp-col" style={{ gridColumn: "span 8" }}>
-        <div className="bp-card" style={{ padding: 16 }}>
-          <div className="bp-flex" style={{ alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+    <div className="bp-grid bp-grid-12 bp-gap-20">
+      <div className="bp-col-8">
+        <div className="bp-card bp-p-16">
+          <div className="bp-flex bp-justify-between bp-items-center">
             <div>
-              <div className="bp-h1">Booking Form Designer</div>
-              <div className="bp-muted">Visual editor for the shortcode wizard</div>
+              <div className="bp-text-lg bp-font-800">Booking Form Designer</div>
+              <div className="bp-text-sm bp-muted">Visual editor for the shortcode wizard</div>
             </div>
-            <div className="bp-flex" style={{ gap: 8 }}>
-              <button className="bp-btn" onClick={onDiscard} disabled={!dirty || saving}>Discard</button>
-              <button className="bp-btn bp-btn-primary" onClick={onSave} disabled={!dirty || saving}>
-                {saving ? "Saving..." : "Save changes"}
+
+            <div className="bp-flex bp-gap-8">
+              <button
+                className="bp-btn bp-btn-ghost"
+                disabled={!dirty || saving}
+                onClick={() => window.location.reload()}
+              >
+                Discard
+              </button>
+              <button
+                className="bp-btn bp-btn-primary"
+                disabled={!dirty || saving}
+                onClick={save}
+              >
+                {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
 
-          <WizardPreview design={design} />
+          {error ? <div className="bp-alert bp-alert-error bp-mt-12">{error}</div> : null}
+
+          <div className="bp-mt-16">
+            <WizardPreview config={config} activeStepKey={activeStepKey} />
+          </div>
         </div>
       </div>
 
-      <div className="bp-col" style={{ gridColumn: "span 4" }}>
-        <div className="bp-card" style={{ padding: 16, position: "sticky", top: 12 }}>
-          <AppearancePanel
-            value={design.appearance}
-            onChange={(appearance) => onChange({ ...design, appearance })}
-          />
-
-          <div className="bp-divider" style={{ margin: "16px 0" }} />
-
-          <div className="bp-flex" style={{ alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <div style={{ fontWeight: 800 }}>Steps</div>
-            <button className="bp-btn-sm" onClick={() => setReorderOpen(true)}>Change Order</button>
+      <div className="bp-col-4">
+        <div className="bp-card bp-p-16">
+          <div className="bp-flex bp-justify-between bp-items-center">
+            <div className="bp-font-800">Appearance</div>
+            <div className="bp-chip">Live</div>
           </div>
 
-          <select
-            className="bp-input"
-            value={selectedStepKey}
-            onChange={(e) => setSelectedStepKey(e.target.value)}
-          >
-            {design.steps.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.title || s.key}
-              </option>
-            ))}
-          </select>
+          <div className="bp-mt-12">
+            <label className="bp-label">Primary color</label>
+            <input
+              type="color"
+              className="bp-color"
+              value={config.appearance?.primaryColor || "#2563EB"}
+              onChange={(e) => setAppearance({ primaryColor: e.target.value })}
+            />
+          </div>
 
-          <div style={{ marginTop: 12 }}>
-            <StepEditorPanel
-              step={selectedStep}
-              design={design}
-              onChange={onChange}
+          <div className="bp-mt-12">
+            <label className="bp-label">Border style</label>
+            <select
+              className="bp-select"
+              value={config.appearance?.borderStyle || "rounded"}
+              onChange={(e) => setAppearance({ borderStyle: e.target.value })}
+            >
+              <option value="rounded">Rounded Corners</option>
+              <option value="flat">Flat</option>
+            </select>
+          </div>
+
+          <div className="bp-mt-12 bp-flex bp-items-center bp-justify-between">
+            <div>
+              <div className="bp-font-700">Dark mode default</div>
+              <div className="bp-text-sm bp-muted">Wizard opens in dark mode</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={!!config.appearance?.darkModeDefault}
+              onChange={(e) => setAppearance({ darkModeDefault: e.target.checked })}
             />
           </div>
         </div>
 
-        <StepsReorderModal
-          open={reorderOpen}
-          onClose={() => setReorderOpen(false)}
-          steps={design.steps}
-          onChange={(steps) => onChange({ ...design, steps })}
-        />
+        <div className="bp-card bp-p-16 bp-mt-14">
+          <div className="bp-flex bp-justify-between bp-items-center">
+            <div className="bp-font-800">Steps</div>
+            <button className="bp-link" onClick={() => setReorderOpen(true)}>Change Order</button>
+          </div>
+
+          <div className="bp-mt-10">
+            <select
+              className="bp-select"
+              value={activeStepKey}
+              onChange={(e) => setActiveStepKey(e.target.value)}
+            >
+              {steps.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.title || s.key}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="bp-mt-12 bp-flex bp-items-center bp-justify-between">
+            <div className="bp-font-700">Enable this step</div>
+            <input
+              type="checkbox"
+              checked={!!activeStep?.enabled}
+              onChange={(e) => updateStep(activeStepKey, { enabled: e.target.checked })}
+            />
+          </div>
+
+          <div className="bp-mt-12">
+            <label className="bp-label">Step title</label>
+            <input
+              className="bp-input-field"
+              value={activeStep?.title || ""}
+              onChange={(e) => updateStep(activeStepKey, { title: e.target.value })}
+            />
+          </div>
+
+          <div className="bp-mt-12">
+            <label className="bp-label">Step subtitle</label>
+            <textarea
+              className="bp-textarea"
+              value={activeStep?.subtitle || ""}
+              onChange={(e) => updateStep(activeStepKey, { subtitle: e.target.value })}
+            />
+          </div>
+
+          <WpMediaPicker
+            label="Step image"
+            valueId={activeStep?.imageId}
+            valueUrl={activeStep?.imageUrl}
+            onChange={({ imageId, imageUrl }) => updateStep(activeStepKey, { imageId, imageUrl })}
+            help="This image appears on the left panel of the wizard."
+          />
+        </div>
+
+        <div className="bp-card bp-p-16 bp-mt-14">
+          <div className="bp-font-800">Texts</div>
+
+          <div className="bp-mt-12">
+            <label className="bp-label">Help title</label>
+            <input
+              className="bp-input-field"
+              value={config.texts?.helpTitle || ""}
+              onChange={(e) => setTexts({ helpTitle: e.target.value })}
+            />
+          </div>
+
+          <div className="bp-mt-12">
+            <label className="bp-label">Help phone</label>
+            <input
+              className="bp-input-field"
+              value={config.texts?.helpPhone || ""}
+              onChange={(e) => setTexts({ helpPhone: e.target.value })}
+            />
+          </div>
+
+          <div className="bp-grid bp-grid-2 bp-gap-10 bp-mt-12">
+            <div>
+              <label className="bp-label">Back label</label>
+              <input
+                className="bp-input-field"
+                value={config.texts?.backLabel || ""}
+                onChange={(e) => setTexts({ backLabel: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="bp-label">Next label</label>
+              <input
+                className="bp-input-field"
+                value={config.texts?.nextLabel || ""}
+                onChange={(e) => setTexts({ nextLabel: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
       </div>
+
+      <StepsReorderModal
+        open={reorderOpen}
+        onClose={() => setReorderOpen(false)}
+        steps={steps}
+        onChange={(newSteps) => {
+          patchConfig((prev) => ({ ...prev, steps: newSteps }));
+        }}
+      />
     </div>
   );
 }
+
