@@ -1,26 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { imgOf } from '../ui';
 
 export default function StepService({ services, value, onChange, onBack, onNext }) {
-  const [q, setQ] = useState('');
-
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return services || [];
-    return (services || []).filter((x) => (x.name || '').toLowerCase().includes(s));
-  }, [q, services]);
+  const filtered = services || [];
 
   const canNext = !!value;
 
   return (
     <div className="bp-step">
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search service..."
-        className="bp-input"
-      />
-
       <div className="bp-cardlist">
         {filtered.map((svc) => {
           const active = String(value) === String(svc.id);
@@ -52,10 +39,9 @@ export default function StepService({ services, value, onChange, onBack, onNext 
               <div className="bp-pickcard-right">
                 <div className="bp-price">
                   {svc.price != null ? (
-                    <>
-                      <span className="bp-price-num">{Number(svc.price).toFixed(0)}</span>
-                      <span className="bp-price-cur">Kr</span>
-                    </>
+                    <span className="bp-price-line">
+                      {Number(svc.price).toFixed(0)} Kr
+                    </span>
                   ) : (
                     <span className="bp-price-cur">Select</span>
                   )}

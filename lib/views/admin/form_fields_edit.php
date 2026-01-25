@@ -1,4 +1,5 @@
 <?php defined('ABSPATH') || exit;
+require_once __DIR__ . '/legacy_shell.php';
 
 $id = (int)($item['id'] ?? 0);
 $label = (string)($item['label'] ?? '');
@@ -15,10 +16,15 @@ if (!empty($item['options_json'])) {
 }
 
 $types = ['text','email','tel','textarea','select','checkbox','radio','date'];
-?>
 
-<div class="wrap">
-  <h1><?php echo $id ? esc_html__('Edit Field', 'bookpoint') : esc_html__('Add Field', 'bookpoint'); ?></h1>
+$actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp-form-fields&scope=' . $scope)) . '">' . esc_html__('Back to Form Fields', 'bookpoint') . '</a>';
+bp_render_legacy_shell_start(
+  $id ? esc_html__('Edit Field', 'bookpoint') : esc_html__('Add Field', 'bookpoint'),
+  esc_html__('Manage the customer form fields used in the booking wizard.', 'bookpoint'),
+  $actions_html,
+  'form-fields'
+);
+?>
 
   <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
     <?php wp_nonce_field('bp_admin'); ?>
@@ -26,7 +32,7 @@ $types = ['text','email','tel','textarea','select','checkbox','radio','date'];
     <input type="hidden" name="id" value="<?php echo esc_attr((string)$id); ?>">
     <input type="hidden" name="scope" value="<?php echo esc_attr($scope); ?>">
 
-    <table class="form-table">
+    <table class="form-table" role="presentation">
       <tr>
         <th><label><?php echo esc_html__('Label', 'bookpoint'); ?></label></th>
         <td><input type="text" name="label" value="<?php echo esc_attr($label); ?>" class="regular-text" required></td>
@@ -75,6 +81,14 @@ $types = ['text','email','tel','textarea','select','checkbox','radio','date'];
       </tr>
     </table>
 
-    <?php submit_button($id ? __('Save Changes', 'bookpoint') : __('Create Field', 'bookpoint')); ?>
+    <p class="submit">
+      <button type="submit" class="bp-btn bp-btn-primary">
+        <?php echo $id ? esc_html__('Save Changes', 'bookpoint') : esc_html__('Create Field', 'bookpoint'); ?>
+      </button>
+      <a class="bp-btn" href="<?php echo esc_url(admin_url('admin.php?page=bp-form-fields&scope=' . $scope)); ?>">
+        <?php echo esc_html__('Back', 'bookpoint'); ?>
+      </a>
+    </p>
   </form>
-</div>
+
+<?php bp_render_legacy_shell_end(); ?>

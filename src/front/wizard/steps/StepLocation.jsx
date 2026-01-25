@@ -1,26 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
+import { imgOf } from '../ui';
 
 export default function StepLocation({ locations, value, onChange, onNext }) {
-  const [q, setQ] = useState('');
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return locations;
-    return locations.filter((x) => (x.name || '').toLowerCase().includes(s));
-  }, [q, locations]);
+  const filtered = locations || [];
 
   const canNext = !!value;
 
   return (
     <div className="bp-step">
-      <div className="bp-step-search">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search..."
-          className="bp-input"
-        />
-      </div>
-
       <div className="bp-list">
         {filtered.map((loc) => (
           <button
@@ -29,8 +16,13 @@ export default function StepLocation({ locations, value, onChange, onNext }) {
             className={String(value) === String(loc.id) ? 'bp-card active' : 'bp-card'}
             onClick={() => onChange(loc.id)}
           >
-            <div className="bp-card-title">{loc.name}</div>
-            <div className="bp-card-sub">{loc.address || ''}</div>
+            <div className="bp-card-row">
+              <img className="bp-card-thumb" src={imgOf(loc, 'location-image.png')} alt="" />
+              <div>
+                <div className="bp-card-title">{loc.name}</div>
+                <div className="bp-card-sub">{loc.address || ''}</div>
+              </div>
+            </div>
           </button>
         ))}
         {!filtered.length ? <div className="bp-empty">No locations found.</div> : null}

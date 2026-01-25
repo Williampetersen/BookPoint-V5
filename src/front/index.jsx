@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import WizardModal from './wizard/WizardModal';
 import './front.css';
 
-function BookPointWidget({ label }) {
+function BookPointWidget({ label, mountEl }) {
   const [open, setOpen] = useState(false);
+  const hideButton = mountEl?.getAttribute('data-bp-fallback') === '1';
 
   const imagesBase = (window.BP_FRONT?.images || '').replace(/\/$/, '') + '/';
   const brand = useMemo(() => ({
@@ -12,15 +13,19 @@ function BookPointWidget({ label }) {
     helpPhone: '+45 91 67 14 52',
   }), [imagesBase]);
 
+  useEffect(() => attachOpenHandler(mountEl, setOpen), [mountEl]);
+
   return (
     <>
-      <button
-        className="bp-book-btn"
-        type="button"
-        onClick={() => setOpen(true)}
-      >
-        {label || 'Book Now'}
-      </button>
+      {!hideButton && (
+        <button
+          className="bp-book-btn"
+          type="button"
+          onClick={() => setOpen(true)}
+        >
+          {label || 'Book Now'}
+        </button>
+      )}
 
       <WizardModal
         open={open}
@@ -29,6 +34,14 @@ function BookPointWidget({ label }) {
       />
     </>
   );
+}
+
+function attachOpenHandler(mountEl, setOpen) {
+  if (!mountEl) return () => {};
+  mountEl.__bpOpen = () => setOpen(true);
+  return () => {
+    if (mountEl.__bpOpen) delete mountEl.__bpOpen;
+  };
 }
 
 function getBrand() {
@@ -80,7 +93,29 @@ function boot() {
   widgets.forEach((el) => {
     const root = createRoot(el);
     const label = el.getAttribute('data-bp-label') || 'Book Now';
-    root.render(<BookPointWidget label={label} />);
+    root.render(
+      <BookPointWidget
+        label={label}
+        mountEl={el}
+      />
+    );
+  });
+
+  document.addEventListener('click', (e) => {
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    const trigger = target.closest('.bp-fallback-btn, [data-bp-open="wizard"]');
+    if (!trigger) return;
+
+    const candidate = trigger.nextElementSibling;
+    const mount = candidate && candidate.classList.contains('bp-front-root')
+      ? candidate
+      : trigger.closest('.bp-front-root') || document.querySelector('.bp-front-root');
+
+    if (mount && typeof mount.__bpOpen === 'function') {
+      e.preventDefault();
+      mount.__bpOpen();
+    }
   });
 }
 

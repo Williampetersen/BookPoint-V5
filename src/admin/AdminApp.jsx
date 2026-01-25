@@ -21,6 +21,7 @@ import SettingsScreen from "./screens/SettingsScreen";
 import AuditScreen from "./screens/AuditScreen";
 import ToolsScreen from "./screens/ToolsScreen";
 import NotificationsScreen from "./screens/NotificationsScreen";
+import BookingFormDesignerScreen from "./screens/BookingFormDesignerScreen";
 
 function resolveScreen(page) {
   switch(page){
@@ -49,6 +50,7 @@ function resolveScreen(page) {
     case "bp-promo-codes": return "promo";
     case "bp_promo_codes": return "promo";
     case "bp-form-fields": return "form-fields";
+    case "bp_form_fields": return "form-fields";
     case "bp-customers": return "customers";
     case "bp_customers": return "customers";
     case "bp-agents": return "agents";
@@ -62,6 +64,7 @@ function resolveScreen(page) {
     case "bp_audit": return "audit";
     case "bp-tools": return "tools";
     case "bp_tools": return "tools";
+    case "bp_design_form": return "design-form";
 
     default: return "dashboard";
   }
@@ -112,6 +115,7 @@ export default function AdminApp() {
       {screen === "calendar" ? <CalendarScreen /> : null}
       {screen === "schedule" ? <ScheduleScreen /> : null}
       {screen === "holidays" ? <HolidaysScreen /> : null}
+      {screen === "design-form" ? <BookingFormDesignerScreen /> : null}
     </Shell>
   );
 }

@@ -348,6 +348,14 @@ function SummaryBlock(props) {
   const ag = agents.find((x) => String(x.id) === String(agentId));
   const ex = extras.filter((x) => extraIds.includes(x.id) || extraIds.includes(String(x.id)));
   const cats = categories.filter((x) => categoryIds.includes(x.id) || categoryIds.includes(String(x.id)));
+  const svcPrice = svc?.price != null ? Number(svc.price) : 0;
+  const extrasPrice = ex.reduce((sum, item) => sum + (item?.price != null ? Number(item.price) : 0), 0);
+  const totalPrice = svcPrice + extrasPrice;
+
+  function formatPrice(val) {
+    if (!val && val !== 0) return '-';
+    return `${Number(val).toFixed(0)} Kr`;
+  }
 
   return (
     <div className="bp-summary-items">
@@ -364,6 +372,10 @@ function SummaryBlock(props) {
         <div className="v">{svc?.name || '-'}</div>
       </div>
       <div className="bp-summary-row">
+        <div className="k">Service Price</div>
+        <div className="v">{svc?.price != null ? formatPrice(svcPrice) : '-'}</div>
+      </div>
+      <div className="bp-summary-row">
         <div className="k">Agent</div>
         <div className="v">{ag?.name || '-'}</div>
       </div>
@@ -378,6 +390,14 @@ function SummaryBlock(props) {
       <div className="bp-summary-row">
         <div className="k">Extras</div>
         <div className="v">{ex.length ? ex.map((e) => e.name).join(', ') : '-'}</div>
+      </div>
+      <div className="bp-summary-row">
+        <div className="k">Extras Price</div>
+        <div className="v">{ex.length ? formatPrice(extrasPrice) : '-'}</div>
+      </div>
+      <div className="bp-summary-row">
+        <div className="k">Total</div>
+        <div className="v">{svc?.price != null || ex.length ? formatPrice(totalPrice) : '-'}</div>
       </div>
     </div>
   );

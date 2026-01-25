@@ -1,46 +1,31 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { imgOf } from '../ui';
 
 export default function StepCategory({ categories, value, onChange, onBack, onNext }) {
-  const [q, setQ] = useState('');
+  const filtered = categories || [];
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return categories;
-    return categories.filter((x) => (x.name || '').toLowerCase().includes(s));
-  }, [q, categories]);
-
-  function toggle(id) {
-    const sid = String(id);
-    const next = value.some((v) => String(v) === sid)
-      ? value.filter((v) => String(v) !== sid)
-      : [...value, id];
-    onChange(next);
+  function selectOne(id) {
+    onChange([id]);
   }
 
-  const canNext = value.length > 0;
+  const canNext = (value || []).length > 0;
 
   return (
     <div className="bp-step">
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search..."
-        className="bp-input"
-      />
-
-      <div className="bp-grid">
+      <div className="bp-list">
         {filtered.map((cat) => {
-          const selected = value.some((v) => String(v) === String(cat.id));
+          const selected = (value || []).some((v) => String(v) === String(cat.id));
           return (
             <button
               key={cat.id}
               type="button"
-              className={selected ? 'bp-tile active' : 'bp-tile'}
-              onClick={() => toggle(cat.id)}
+              className={selected ? 'bp-card active' : 'bp-card'}
+              onClick={() => selectOne(cat.id)}
             >
-              <img className="bp-tile-img" src={imgOf(cat, 'service-image.png')} alt="" />
-              <div className="bp-tile-title">{cat.name}</div>
+              <div className="bp-card-row">
+                <img className="bp-card-thumb" src={imgOf(cat, 'service-image.png')} alt="" />
+                <div className="bp-card-title">{cat.name}</div>
+              </div>
             </button>
           );
         })}

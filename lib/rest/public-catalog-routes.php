@@ -146,8 +146,18 @@ function bp_rest_public_extras(WP_REST_Request $req) {
   $t = $wpdb->prefix . bp_extras_table_public();
   $t_rel = $wpdb->prefix . 'bp_extra_services';
 
+  $cols = $wpdb->get_col("SHOW COLUMNS FROM {$t}") ?: [];
+  $has_desc = in_array('description', $cols, true);
+  $has_desc_short = in_array('desc', $cols, true);
+  $has_details = in_array('details', $cols, true);
+
+  $select = 'e.id,e.name,e.price,e.image_id,e.sort_order';
+  if ($has_desc) $select .= ',e.description';
+  if ($has_desc_short) $select .= ',e.desc';
+  if ($has_details) $select .= ',e.details';
+
   $rows = $wpdb->get_results($wpdb->prepare("
-    SELECT e.id,e.name,e.price,e.image_id,e.sort_order
+    SELECT {$select}
     FROM {$t} e
     INNER JOIN {$t_rel} es ON es.extra_id=e.id
     WHERE es.service_id=%d
