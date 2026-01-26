@@ -8,6 +8,7 @@ import {
   fetchFormFields,
   createBooking,
 } from './api';
+import useBookingFormDesign from '../hooks/useBookingFormDesign';
 import StepLocation from './steps/StepLocation';
 import StepCategory from './steps/StepCategory';
 import StepService from './steps/StepService';
@@ -18,7 +19,7 @@ import StepCustomer from './steps/StepCustomer';
 import StepReview from './steps/StepReview';
 import StepDone from './steps/StepDone';
 
-const STEPS = [
+const DEFAULT_STEPS = [
   { key: 'location', title: 'Location Selection', icon: 'location-image.png' },
   { key: 'category', title: 'Choose Category', icon: 'service-image.png' },
   { key: 'service', title: 'Choose Service', icon: 'service-image.png' },
@@ -30,8 +31,38 @@ const STEPS = [
   { key: 'done', title: 'Done', icon: 'logo.png' },
 ];
 
+function buildSteps(designConfig) {
+  const raw = Array.isArray(designConfig?.steps) ? designConfig.steps : [];
+  const enabled = raw.filter((s) => s && s.key && s.enabled !== false);
+  const baseMap = new Map(DEFAULT_STEPS.map((s) => [s.key, s]));
+  const normalizeKey = (k) => {
+    if (k === 'agents') return 'agent';
+    if (k === 'confirm' || k === 'confirmation') return 'done';
+    return k;
+  };
+
+  const list = enabled.length
+    ? enabled.map((s) => ({
+        ...(baseMap.get(normalizeKey(s.key)) || { key: normalizeKey(s.key), title: s.title || s.key, icon: 'service-image.png' }),
+        ...s,
+        key: normalizeKey(s.key),
+        title: s.title || baseMap.get(normalizeKey(s.key))?.title || s.key,
+        subtitle: s.subtitle || '',
+      }))
+    : DEFAULT_STEPS.slice();
+
+  const seen = new Set();
+  return list.filter((s) => {
+    if (seen.has(s.key)) return false;
+    seen.add(s.key);
+    return true;
+  });
+}
+
 export default function WizardModal({ open, onClose, brand }) {
   const [stepIndex, setStepIndex] = useState(0);
+  const { config: designConfig, loading: designLoading, error: designError } = useBookingFormDesign(open);
+  const steps = useMemo(() => buildSteps(designConfig), [designConfig]);
 
   const [locationId, setLocationId] = useState(null);
   const [categoryIds, setCategoryIds] = useState([]);
@@ -53,8 +84,16 @@ export default function WizardModal({ open, onClose, brand }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const step = STEPS[stepIndex];
-  const iconUrl = useMemo(() => (brand?.imagesBase ? brand.imagesBase + step.icon : ''), [brand, step]);
+  const step = steps[stepIndex] || steps[0] || DEFAULT_STEPS[0];
+  const iconUrl = useMemo(() => {
+    if (step?.imageUrl) return step.imageUrl;
+    const file = step?.icon || step?.image || 'service-image.png';
+    return brand?.imagesBase ? brand.imagesBase + file : '';
+  }, [brand, step]);
+  const helpTitle = designConfig?.texts?.helpTitle || 'Need help?';
+  const helpPhone = designConfig?.texts?.helpPhone || designConfig?.layout?.helpPhone || brand?.helpPhone || '';
+  const showLeft = step?.showLeftPanel !== false;
+  const showHelp = step?.showHelpBox !== false;
 
   useEffect(() => {
     if (!open) return;
@@ -99,6 +138,21 @@ export default function WizardModal({ open, onClose, brand }) {
 
   useEffect(() => {
     if (!open) return;
+    const keySig = steps.map((s) => s.key).join('|');
+    if (!keySig) return;
+    setStepIndex(0);
+  }, [open, steps]);
+
+  useEffect(() => {
+    setStepIndex((i) => {
+      if (i < 0) return 0;
+      if (i >= steps.length) return Math.max(0, steps.length - 1);
+      return i;
+    });
+  }, [steps.length]);
+
+  useEffect(() => {
+    if (!open) return;
     (async () => {
       try {
         if (step.key === 'service' || step.key === 'extras' || step.key === 'agent' || step.key === 'datetime' || step.key === 'review') {
@@ -129,10 +183,9 @@ export default function WizardModal({ open, onClose, brand }) {
     })();
   }, [open, serviceId, locationId]);
 
-
   function next() {
     setError('');
-    setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
+    setStepIndex((i) => Math.min(i + 1, steps.length - 1));
   }
 
   function back() {
@@ -145,6 +198,16 @@ export default function WizardModal({ open, onClose, brand }) {
       setLoading(true);
       setError('');
 
+      const customer_fields = {};
+      const booking_fields = {};
+      Object.entries(answers || {}).forEach(([k, v]) => {
+        if (k.startsWith('customer.')) {
+          customer_fields[k.slice(9)] = v;
+        } else if (k.startsWith('booking.')) {
+          booking_fields[k.slice(8)] = v;
+        }
+      });
+
       const payload = {
         location_id: locationId,
         category_ids: categoryIds,
@@ -155,12 +218,15 @@ export default function WizardModal({ open, onClose, brand }) {
         start_time: slot?.start_time || slot?.start || '',
         end_time: slot?.end_time || slot?.end || '',
         field_values: answers,
+        customer_fields,
+        booking_fields,
         extras: extraIds,
       };
 
       const res = await createBooking(payload);
       setAnswers((a) => ({ ...a, __booking: res }));
-      setStepIndex(STEPS.findIndex((s) => s.key === 'done'));
+      const doneIdx = steps.findIndex((s) => s.key === 'done');
+      setStepIndex(doneIdx >= 0 ? doneIdx : steps.length - 1);
     } catch (e) {
       setError(e?.message || 'Could not submit booking.');
     } finally {
@@ -169,6 +235,15 @@ export default function WizardModal({ open, onClose, brand }) {
   }
 
   if (!open) return null;
+  if (designLoading && !designConfig) {
+    return <div className="bp-wizard-loading">Loading booking form…</div>;
+  }
+  if (designError && !designConfig) {
+    return <div className="bp-wizard-loading">Wizard error: {designError}</div>;
+  }
+  if (!steps.length) {
+    return <div className="bp-wizard-loading">Wizard config invalid (no steps)</div>;
+  }
 
   return (
     <div className="bp-modal-overlay" role="dialog" aria-modal="true">
@@ -176,26 +251,30 @@ export default function WizardModal({ open, onClose, brand }) {
         <button className="bp-modal-close" onClick={onClose} aria-label="Close">x</button>
 
         <div className="bp-modal-grid">
-          <aside className="bp-side">
-            <div className="bp-side-icon">
-              {iconUrl ? <img src={iconUrl} alt="" /> : null}
-            </div>
-            <h3 className="bp-side-title">{step.title}</h3>
-            <p className="bp-side-desc">
-              Please complete the steps to schedule your booking.
-            </p>
+          {showLeft ? (
+            <aside className="bp-side">
+              <div className="bp-side-icon">
+                {iconUrl ? <img src={iconUrl} alt="" /> : null}
+              </div>
+              <h3 className="bp-side-title">{step.title}</h3>
+              <p className="bp-side-desc">
+                {step.subtitle || 'Please complete the steps to schedule your booking.'}
+              </p>
 
-            <div className="bp-side-help">
-              <div>Need help?</div>
-              <div className="bp-help-phone">{brand?.helpPhone}</div>
-            </div>
-          </aside>
+              {showHelp ? (
+                <div className="bp-side-help">
+                  <div>{helpTitle}</div>
+                  <div className="bp-help-phone">{helpPhone}</div>
+                </div>
+              ) : null}
+            </aside>
+          ) : null}
 
           <main className="bp-main">
             <div className="bp-main-head">
               <h2>{step.title}</h2>
               <div className="bp-step-dots">
-                {STEPS.slice(0, 8).map((s, idx) => (
+                {steps.slice(0, 8).map((s, idx) => (
                   <span key={s.key} className={idx === stepIndex ? 'bp-dot active' : 'bp-dot'} />
                 ))}
               </div>
@@ -279,6 +358,7 @@ export default function WizardModal({ open, onClose, brand }) {
                 onBack={back}
                 onNext={next}
                 onError={setError}
+                layout={designConfig?.fieldsLayout}
               />
             )}
 

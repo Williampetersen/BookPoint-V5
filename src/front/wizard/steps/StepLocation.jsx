@@ -1,7 +1,7 @@
 import React from 'react';
 import { imgOf } from '../ui';
 
-export default function StepLocation({ locations, value, onChange, onNext }) {
+export default function StepLocation({ locations, value, onChange, onNext, nextLabel = 'Next ->' }) {
   const filtered = locations || [];
 
   const canNext = !!value;
@@ -36,7 +36,7 @@ export default function StepLocation({ locations, value, onChange, onNext }) {
           disabled={!canNext}
           onClick={() => onNext()}
         >
-          Next ->
+          {nextLabel}
         </button>
       </div>
     </div>

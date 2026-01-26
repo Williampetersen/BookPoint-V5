@@ -5,6 +5,7 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
   const is = (p) => {
     if (page === p) return true;
     if (p === "bp_locations" && (page === "bp_locations_edit" || page === "bp_location_categories_edit")) return true;
+    if (p === "bp_bookings" && page === "bp_bookings_edit") return true;
     return false;
   };
 

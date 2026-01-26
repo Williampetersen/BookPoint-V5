@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import StepsReorderModal from "../components/designer/StepsReorderModal";
 import WizardPreview from "../components/designer/WizardPreview";
 import WpMediaPicker from "../components/designer/WpMediaPicker";
+import FieldsLayoutPanel from "../components/designer/FieldsLayoutPanel";
 
 function wpApiFetch(path, opts = {}) {
   const admin = window.BP_ADMIN || window.bpAdmin || {};
@@ -33,6 +34,7 @@ export default function BookingFormDesignerScreen() {
   const [error, setError] = useState("");
   const [config, setConfig] = useState(null);
   const [dirty, setDirty] = useState(false);
+  const [fieldsAll, setFieldsAll] = useState(null);
 
   const [activeStepKey, setActiveStepKey] = useState("location");
   const [reorderOpen, setReorderOpen] = useState(false);
@@ -41,11 +43,20 @@ export default function BookingFormDesignerScreen() {
     let mounted = true;
     setLoading(true);
     wpApiFetch("/admin/booking-form-design")
-      .then((data) => {
+      .then(async (data) => {
         if (!mounted) return;
         setConfig(data.config);
         const firstEnabled = data.config?.steps?.find((s) => s.enabled)?.key;
         setActiveStepKey(firstEnabled || data.config?.steps?.[0]?.key || "location");
+
+        try {
+          const fieldsRes = await wpApiFetch("/admin/form-fields/all");
+          if (!mounted) return;
+          setFieldsAll(fieldsRes?.data || fieldsRes?.fields || null);
+        } catch (e) {
+          if (!mounted) return;
+          setFieldsAll(null);
+        }
       })
       .catch((e) => mounted && setError(e.message))
       .finally(() => mounted && setLoading(false));
@@ -119,6 +130,17 @@ export default function BookingFormDesignerScreen() {
                 onClick={() => window.location.reload()}
               >
                 Discard
+              </button>
+              <button
+                className="bp-btn bp-btn-ghost"
+                onClick={async () => {
+                  if (!confirm("Reset design to defaults?")) return;
+                  const res = await wpApiFetch("/admin/booking-form-design-reset", { method: "POST" });
+                  setConfig(res.config);
+                  setDirty(false);
+                }}
+              >
+                Reset
               </button>
               <button
                 className="bp-btn bp-btn-primary"
@@ -234,6 +256,70 @@ export default function BookingFormDesignerScreen() {
             onChange={({ imageId, imageUrl }) => updateStep(activeStepKey, { imageId, imageUrl })}
             help="This image appears on the left panel of the wizard."
           />
+
+          <div className="bp-mt-12">
+            <label className="bp-label">Back button label (this step)</label>
+            <input
+              className="bp-input-field"
+              value={activeStep?.buttonBackLabel || ""}
+              onChange={(e) => updateStep(activeStepKey, { buttonBackLabel: e.target.value })}
+              placeholder="<- Back"
+            />
+          </div>
+
+          <div className="bp-mt-12">
+            <label className="bp-label">Next button label (this step)</label>
+            <input
+              className="bp-input-field"
+              value={activeStep?.buttonNextLabel || ""}
+              onChange={(e) => updateStep(activeStepKey, { buttonNextLabel: e.target.value })}
+              placeholder="Next ->"
+            />
+          </div>
+
+          <div className="bp-mt-12">
+            <label className="bp-label">Step accent override (optional)</label>
+            <div className="bp-flex bp-items-center bp-gap-10">
+              <input
+                type="color"
+                className="bp-color"
+                value={activeStep?.accentOverride || (config.appearance?.primaryColor || "#2563EB")}
+                onChange={(e) => updateStep(activeStepKey, { accentOverride: e.target.value })}
+              />
+              <button
+                className="bp-btn bp-btn-ghost"
+                type="button"
+                onClick={() => updateStep(activeStepKey, { accentOverride: "" })}
+              >
+                Use global color
+              </button>
+            </div>
+            <div className="bp-text-xs bp-muted bp-mt-6">If set, this step uses its own highlight color.</div>
+          </div>
+
+          <div className="bp-mt-12 bp-flex bp-items-center bp-justify-between">
+            <div>
+              <div className="bp-font-700">Show left panel</div>
+              <div className="bp-text-sm bp-muted">Left image + title panel</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={activeStep?.showLeftPanel !== false}
+              onChange={(e) => updateStep(activeStepKey, { showLeftPanel: e.target.checked })}
+            />
+          </div>
+
+          <div className="bp-mt-12 bp-flex bp-items-center bp-justify-between">
+            <div>
+              <div className="bp-font-700">Show help box</div>
+              <div className="bp-text-sm bp-muted">Help title + phone block</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={activeStep?.showHelpBox !== false}
+              onChange={(e) => updateStep(activeStepKey, { showHelpBox: e.target.checked })}
+            />
+          </div>
         </div>
 
         <div className="bp-card bp-p-16 bp-mt-14">
@@ -275,6 +361,23 @@ export default function BookingFormDesignerScreen() {
               />
             </div>
           </div>
+        </div>
+
+        <div className="bp-card bp-p-16 bp-mt-14">
+          {fieldsAll ? (
+            <FieldsLayoutPanel
+              fieldsByGroup={fieldsAll}
+              value={config.fieldsLayout}
+              onChange={(fieldsLayout) => {
+                patchConfig((prev) => ({ ...prev, fieldsLayout }));
+              }}
+            />
+          ) : (
+            <div>
+              <div className="bp-font-800">Fields Layout</div>
+              <div className="bp-text-sm bp-muted">Unable to load fields list.</div>
+            </div>
+          )}
         </div>
       </div>
 

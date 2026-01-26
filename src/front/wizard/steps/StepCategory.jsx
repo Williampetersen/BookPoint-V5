@@ -1,7 +1,7 @@
 import React from 'react';
 import { imgOf } from '../ui';
 
-export default function StepCategory({ categories, value, onChange, onBack, onNext }) {
+export default function StepCategory({ categories, value, onChange, onBack, onNext, backLabel = '<- Back', nextLabel = 'Next ->' }) {
   const filtered = categories || [];
 
   function selectOne(id) {
@@ -33,9 +33,9 @@ export default function StepCategory({ categories, value, onChange, onBack, onNe
       </div>
 
       <div className="bp-step-footer">
-        <button type="button" className="bp-back" onClick={onBack}>&lt;- Back</button>
+        <button type="button" className="bp-back" onClick={onBack}>{backLabel}</button>
         <button type="button" className="bp-next" disabled={!canNext} onClick={onNext}>
-          Next ->
+          {nextLabel}
         </button>
       </div>
     </div>

@@ -18,6 +18,8 @@ export default function StepReview({
   onBack,
   onSubmit,
   loading,
+  backLabel = '<- Back',
+  nextLabel = 'Next ->',
 }) {
   const loc = locations.find((x) => String(x.id) === String(locationId));
   const svc = services.find((x) => String(x.id) === String(serviceId));
@@ -53,9 +55,9 @@ export default function StepReview({
       </div>
 
       <div className="bp-step-footer">
-        <button type="button" className="bp-back" onClick={onBack}>&lt;- Back</button>
+        <button type="button" className="bp-back" onClick={onBack}>{backLabel}</button>
         <button type="button" className="bp-next" disabled={loading} onClick={onSubmit}>
-          {loading ? 'Submitting...' : 'Confirm Booking'}
+          {loading ? 'Submitting...' : nextLabel}
         </button>
       </div>
     </div>

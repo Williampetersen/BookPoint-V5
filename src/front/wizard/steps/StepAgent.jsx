@@ -1,7 +1,7 @@
 import React from 'react';
 import { imgOf } from '../ui';
 
-export default function StepAgent({ agents, value, onChange, onBack, onNext }) {
+export default function StepAgent({ agents, value, onChange, onBack, onNext, backLabel = '<- Back', nextLabel = 'Next ->' }) {
   const filtered = agents || [];
 
   const canNext = !!value;
@@ -40,10 +40,10 @@ export default function StepAgent({ agents, value, onChange, onBack, onNext }) {
 
       <div className="bp-step-footer">
         <button type="button" className="bp-back" onClick={onBack}>
-          &lt;- Back
+          {backLabel}
         </button>
         <button type="button" className="bp-next" disabled={!canNext} onClick={onNext}>
-          Next -&gt;
+          {nextLabel}
         </button>
       </div>
     </div>

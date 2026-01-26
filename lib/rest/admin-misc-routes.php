@@ -25,6 +25,28 @@ add_action('rest_api_init', function () {
     },
   ]);
 
+  register_rest_route('bp/v1', '/admin/customers/(?P<id>\d+)', [
+    'methods'  => ['PUT','PATCH'],
+    'callback' => 'bp_rest_admin_customer_update',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_customers')
+        || current_user_can('bp_manage_bookings')
+        || current_user_can('bp_manage_settings')
+        || current_user_can('manage_options');
+    },
+  ]);
+
+  register_rest_route('bp/v1', '/admin/customers/(?P<id>\d+)', [
+    'methods'  => 'DELETE',
+    'callback' => 'bp_rest_admin_customer_delete',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_customers')
+        || current_user_can('bp_manage_bookings')
+        || current_user_can('bp_manage_settings')
+        || current_user_can('manage_options');
+    },
+  ]);
+
   register_rest_route('bp/v1', '/admin/customers', [
     'methods'  => 'POST',
     'callback' => 'bp_rest_admin_customer_create',
@@ -302,6 +324,83 @@ function bp_rest_admin_customer_form_fields(WP_REST_Request $req) {
   }
 
   return new WP_REST_Response(['status' => 'success', 'data' => $rows], 200);
+}
+
+function bp_rest_admin_customer_update(WP_REST_Request $req) {
+  global $wpdb;
+
+  $id = (int)$req['id'];
+  if ($id <= 0) return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid id'], 400);
+
+  $existing = BP_CustomerModel::find($id);
+  if (!$existing) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Customer not found'], 404);
+  }
+
+  $body = $req->get_json_params() ?: [];
+
+  $first_name = sanitize_text_field($body['first_name'] ?? '');
+  $last_name  = sanitize_text_field($body['last_name'] ?? '');
+  $email      = sanitize_email($body['email'] ?? '');
+  $phone      = sanitize_text_field($body['phone'] ?? '');
+  $custom_fields = $body['custom_fields'] ?? null;
+
+  $sanitize_value = function($val){
+    if (is_array($val)) {
+      return array_map(function($v){
+        return is_scalar($v) ? sanitize_text_field($v) : $v;
+      }, $val);
+    }
+    if (is_bool($val)) return $val ? 1 : 0;
+    return is_scalar($val) ? sanitize_text_field($val) : $val;
+  };
+
+  $custom_fields_json = null;
+  if (is_array($custom_fields)) {
+    $clean = [];
+    foreach ($custom_fields as $k => $v) {
+      $key = sanitize_key($k);
+      if ($key === '') continue;
+      $clean[$key] = $sanitize_value($v);
+    }
+    $custom_fields_json = wp_json_encode($clean);
+  }
+
+  $table = BP_CustomerModel::table();
+  $updated = $wpdb->update($table, [
+    'first_name' => $first_name !== '' ? $first_name : null,
+    'last_name'  => $last_name !== '' ? $last_name : null,
+    'email'      => $email !== '' ? $email : null,
+    'phone'      => $phone !== '' ? $phone : null,
+    'custom_fields_json' => $custom_fields_json,
+    'updated_at' => BP_Model::now_mysql(),
+  ], ['id' => $id], ['%s','%s','%s','%s','%s','%s'], ['%d']);
+
+  if ($updated === false) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Update failed'], 500);
+  }
+
+  $customer = BP_CustomerModel::find($id);
+
+  return new WP_REST_Response(['status' => 'success', 'data' => ['customer' => $customer]], 200);
+}
+
+function bp_rest_admin_customer_delete(WP_REST_Request $req) {
+  $id = (int)$req['id'];
+  if ($id <= 0) return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid id'], 400);
+
+  $existing = BP_CustomerModel::find($id);
+  if (!$existing) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Customer not found'], 404);
+  }
+
+  $table = BP_CustomerModel::table();
+  $deleted = $GLOBALS['wpdb']->delete($table, ['id' => $id], ['%d']);
+  if ($deleted === false) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Delete failed'], 500);
+  }
+
+  return new WP_REST_Response(['status' => 'success', 'message' => 'Customer deleted'], 200);
 }
 
 function bp_rest_admin_promo_codes_list(WP_REST_Request $req) {

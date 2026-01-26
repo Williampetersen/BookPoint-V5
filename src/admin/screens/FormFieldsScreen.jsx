@@ -43,20 +43,6 @@ export default function FormFieldsScreen(){
   }
 
 
-  async function handleReseed(){
-    if(!confirm("Reseed all default fields (first_name, last_name, email, phone, notes)?")) return;
-    setErr("");
-    setSuccess("");
-    try{
-      await bpFetch(`/admin/form-fields/reseed`, { method:'POST', body:{} });
-      setSuccess("Defaults reseeded!");
-      await load();
-      setTimeout(()=>setSuccess(""), 3000);
-    }catch(e){
-      setErr(e.message || "Reseed failed");
-    }
-  }
-
   return (
     <div className="bp-content">
       <div className="bp-page-head">
@@ -68,7 +54,6 @@ export default function FormFieldsScreen(){
           <button onClick={()=>setScope("form")} className={`bp-btn ${scope==="form" ? "bp-btn-primary" : ""}`}>Form</button>
           <button onClick={()=>setScope("customer")} className={`bp-btn ${scope==="customer" ? "bp-btn-primary" : ""}`}>Customer</button>
           <button onClick={()=>setScope("booking")} className={`bp-btn ${scope==="booking" ? "bp-btn-primary" : ""}`}>Booking</button>
-          <button onClick={handleReseed} className="bp-btn">Reseed Defaults</button>
           <a className="bp-primary-btn" href={`admin.php?page=bp_form_fields_edit&scope=${scope}`}>+ Add Field</a>
         </div>
       </div>
