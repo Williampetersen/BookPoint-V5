@@ -26,10 +26,27 @@
 .bp-justify-end{justify-content:flex-end}
 .bp-btn-ghost{background:#fff;border:1px solid #e5e7eb}
 .bp-btn-primary{background:#2563eb;border-color:#2563eb;color:#fff}
+.bp-toast{position:sticky;top:0;grid-column:1/-1;padding:12px 14px;border-radius:12px;font-weight:700;z-index:5}
+.bp-toast-success{background:#e8f7ee;border:1px solid #bfe8cc;color:#0a5a2b}
+.bp-pay-header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bp-pay-save{margin-left:auto}
+.bp-switch{position:relative;display:inline-block;width:44px;height:24px}
+.bp-switch input{opacity:0;width:0;height:0}
+.bp-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#cbd5e1;border-radius:999px;transition:.2s}
+.bp-slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.bp-switch input:checked + .bp-slider{background:#22c55e}
+.bp-switch input:checked + .bp-slider:before{transform:translateX(20px)}
 .bp-link{background:none;border:none;color:#2563eb;cursor:pointer;font-weight:700;padding:0}
 .bp-select{width:100%;height:44px;border-radius:999px;border:1px solid #d7dce3;padding:0 14px;background:#fff;font-size:14px;outline:0;transition:border-color .15s ease,box-shadow .15s ease}
 .bp-color{width:100%;height:44px;border-radius:12px;border:1px solid #d7dce3;padding:0 6px;background:#fff;outline:0}
 .bp-input-field{width:100%;height:44px;border-radius:999px;border:1px solid #d7dce3;padding:0 14px;background:#fff;font-size:14px;outline:0;transition:border-color .15s ease,box-shadow .15s ease}
+.bp-pay-row{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0;justify-content:flex-start}
+.bp-pay-icon{width:36px;height:36px;border-radius:10px;background:#f7f8fb;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.bp-pay-icon img{width:24px;height:24px;object-fit:contain}
+.bp-pay-text{display:flex;flex-direction:column;gap:2px}
+.bp-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.bp-card-logo{width:44px;height:44px;border-radius:12px;background:#f7f8fb;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.bp-card-logo img{width:28px;height:28px;object-fit:contain}
 .bp-time-input{
   height:44px;
   border-radius:999px;

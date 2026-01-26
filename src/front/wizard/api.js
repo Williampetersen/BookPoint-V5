@@ -74,6 +74,12 @@ export const createBooking = (payload) =>
     body: JSON.stringify(payload),
   });
 
+export const createDraftBooking = (payload) =>
+  api('/front/booking/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
 export const startWooCheckout = (payload) =>
   api('/front/payments/woocommerce/start', {
     method: 'POST',

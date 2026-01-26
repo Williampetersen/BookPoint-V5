@@ -4,6 +4,56 @@ import WizardPreview from "../components/designer/WizardPreview";
 import WpMediaPicker from "../components/designer/WpMediaPicker";
 import FieldsLayoutPanel from "../components/designer/FieldsLayoutPanel";
 
+const DESIGN_STEP_ORDER = [
+  "location",
+  "category",
+  "service",
+  "extras",
+  "agents",
+  "datetime",
+  "customer",
+  "review",
+  "payment",
+  "confirm",
+];
+
+const STEP_DEFAULTS = {
+  payment: {
+    key: "payment",
+    enabled: true,
+    title: "Payment",
+    subtitle: "Choose a payment method",
+    image: "service-image.png",
+    buttonBackLabel: "<- Back",
+    buttonNextLabel: "Next ->",
+    accentOverride: "",
+    showLeftPanel: true,
+    showHelpBox: true,
+  },
+};
+
+function normalizeStepKey(key) {
+  if (key === "agent") return "agents";
+  if (key === "done") return "confirm";
+  return key;
+}
+
+function normalizeDesignSteps(steps = []) {
+  const map = new Map();
+  steps.forEach((s) => {
+    const k = normalizeStepKey(s?.key);
+    if (!k) return;
+    if (!map.has(k)) map.set(k, { ...s, key: k });
+  });
+
+  if (!map.has("payment")) {
+    map.set("payment", { ...STEP_DEFAULTS.payment });
+  }
+
+  const ordered = DESIGN_STEP_ORDER.filter((k) => map.has(k)).map((k) => map.get(k));
+  return ordered;
+}
+
 function wpApiFetch(path, opts = {}) {
   const admin = window.BP_ADMIN || window.bpAdmin || {};
   const url = admin.restUrl
@@ -45,9 +95,11 @@ export default function BookingFormDesignerScreen() {
     wpApiFetch("/admin/booking-form-design")
       .then(async (data) => {
         if (!mounted) return;
-        setConfig(data.config);
-        const firstEnabled = data.config?.steps?.find((s) => s.enabled)?.key;
-        setActiveStepKey(firstEnabled || data.config?.steps?.[0]?.key || "location");
+        const normalizedSteps = normalizeDesignSteps(data.config?.steps || []);
+        const nextConfig = { ...data.config, steps: normalizedSteps };
+        setConfig(nextConfig);
+        const firstEnabled = normalizedSteps.find((s) => s.enabled)?.key;
+        setActiveStepKey(firstEnabled || normalizedSteps?.[0]?.key || "location");
 
         try {
           const fieldsRes = await wpApiFetch("/admin/form-fields/all");

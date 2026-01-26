@@ -173,9 +173,12 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'rest/admin-booking-form-design-routes.php';
     require_once BP_LIB_PATH . 'rest/front-booking-form-design-routes.php';
     require_once BP_LIB_PATH . 'rest/front-settings.php';
+    require_once BP_LIB_PATH . 'rest/front-booking-create.php';
+    require_once BP_LIB_PATH . 'rest/front-booking-status.php';
     require_once BP_LIB_PATH . 'rest/front-payments-woocommerce.php';
     require_once BP_LIB_PATH . 'rest/front-payments-stripe.php';
     require_once BP_LIB_PATH . 'rest/front-payments-paypal.php';
+    require_once BP_LIB_PATH . 'front/front-stripe-routes.php';
     require_once BP_LIB_PATH . 'routes/front-availability-routes.php';
     require_once BP_LIB_PATH . 'routes/front-availability-month-slots.php';
     require_once BP_LIB_PATH . 'rest/form-fields-routes.php';
@@ -1483,16 +1486,18 @@ final class BP_Plugin {
 
       $route = $route_map[$page] ?? 'dashboard';
 
-      wp_localize_script('bp-admin', 'BP_ADMIN', [
-        'restUrl' => esc_url_raw(rest_url('bp/v1')),
-        'nonce'   => wp_create_nonce('wp_rest'),
-        'adminNonce' => wp_create_nonce('bp_admin'),
-        'adminPostUrl' => admin_url('admin-post.php'),
-        'route'   => $route,
-        'page'    => $page,
-        'build'   => (file_exists(BP_PLUGIN_PATH . 'build/admin.js') ? (string)@filemtime(BP_PLUGIN_PATH . 'build/admin.js') : ''),
-        'timezone'=> wp_timezone_string(),
-      ]);
+        wp_localize_script('bp-admin', 'BP_ADMIN', [
+          'restUrl' => esc_url_raw(rest_url('bp/v1')),
+          'nonce'   => wp_create_nonce('wp_rest'),
+          'adminNonce' => wp_create_nonce('bp_admin'),
+          'adminPostUrl' => admin_url('admin-post.php'),
+          'pluginUrl' => BP_PLUGIN_URL,
+          'publicImagesUrl' => BP_PLUGIN_URL . 'public/images',
+          'route'   => $route,
+          'page'    => $page,
+          'build'   => (file_exists(BP_PLUGIN_PATH . 'build/admin.js') ? (string)@filemtime(BP_PLUGIN_PATH . 'build/admin.js') : ''),
+          'timezone'=> wp_timezone_string(),
+        ]);
 
       wp_enqueue_media();
       return;
@@ -1697,6 +1702,8 @@ final class BP_Plugin {
   }
 
   private static function front_localized_data(): array {
+    $stripe_pk = self::front_stripe_publishable_key();
+    $currency = BP_SettingsHelper::get_with_default('bp_default_currency');
     return [
       'restUrl' => esc_url_raw(rest_url('bp/v1')),
       'ajaxUrl' => admin_url('admin-ajax.php'),
@@ -1704,8 +1711,22 @@ final class BP_Plugin {
       'nonce' => wp_create_nonce('wp_rest'),
       'images' => BP_PLUGIN_URL . 'public/images/',
       'tz' => wp_timezone_string(),
+      'stripe_pk' => $stripe_pk,
+      'currency' => $currency ?: 'DKK',
       'settings' => self::front_settings_payload(),
     ];
+  }
+
+  private static function front_stripe_publishable_key(): string {
+    $pk = (string)get_option('bp_stripe_publishable_key', '');
+    if ($pk !== '') return $pk;
+
+    $settings = BP_SettingsHelper::get_all();
+    $mode = $settings['stripe_mode'] ?? 'test';
+    if ($mode === 'live') {
+      return (string)($settings['stripe_live_publishable_key'] ?? '');
+    }
+    return (string)($settings['stripe_test_publishable_key'] ?? '');
   }
 
   private static function front_settings_payload(): array {
