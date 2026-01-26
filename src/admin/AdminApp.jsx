@@ -4,6 +4,7 @@ import Shell from "./layout/Shell";
 // Screens
 import DashboardScreen from "./screens/DashboardScreen";
 import BookingsScreen from "./screens/BookingsScreen";
+import BookingEditScreen from "./screens/BookingEditScreen";
 import FormFieldsScreen from "./screens/FormFieldsScreen";
 import ServicesScreen from "./screens/ServicesScreen";
 import CategoriesScreen from "./screens/CategoriesScreen";
@@ -28,6 +29,7 @@ function resolveScreen(page) {
     case "bp_dashboard": return "dashboard";
     case "bp-bookings": return "bookings";
     case "bp_bookings": return "bookings";
+    case "bp_bookings_edit": return "bookings-edit";
     case "bp-calendar": return "calendar";
     case "bp_calendar": return "calendar";
     case "bp-schedule": return "schedule";
@@ -98,6 +100,7 @@ export default function AdminApp() {
     >
       {screen === "dashboard" ? <DashboardScreen /> : null}
       {screen === "bookings" ? <BookingsScreen /> : null}
+      {screen === "bookings-edit" ? <BookingEditScreen /> : null}
       {screen === "form-fields" ? <FormFieldsScreen /> : null}
       {screen === "services" ? <ServicesScreen /> : null}
       {screen === "categories" ? <CategoriesScreen /> : null}

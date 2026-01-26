@@ -44,6 +44,12 @@ add_action('rest_api_init', function () {
     'permission_callback' => '__return_true',
   ]);
 
+  register_rest_route('bp/v1', '/front/form-fields/active', [
+    'methods'  => 'GET',
+    'callback' => 'bp_rest_front_form_fields_active',
+    'permission_callback' => '__return_true',
+  ]);
+
   register_rest_route('bp/v1', '/front/bookings', [
     'methods'  => 'POST',
     'callback' => 'bp_rest_front_bookings',
@@ -191,6 +197,7 @@ function bp_rest_front_agents(WP_REST_Request $req) {
   $p = $req->get_json_params();
   if (!is_array($p)) $p = [];
   $service_id = (int)($p['service_id'] ?? 0);
+  $location_id = (int)($p['location_id'] ?? 0);
   if ($service_id <= 0) {
     return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
   }
@@ -198,7 +205,27 @@ function bp_rest_front_agents(WP_REST_Request $req) {
   if (function_exists('bp_rest_public_agents')) {
     $r = new WP_REST_Request('GET', '/bp/v1/public/agents');
     $r->set_param('service_id', $service_id);
-    return bp_rest_public_agents($r);
+    if ($location_id > 0) {
+      $r->set_param('location_id', $location_id);
+    }
+    $resp = bp_rest_public_agents($r);
+    if ($resp instanceof WP_REST_Response) {
+      $payload = $resp->get_data();
+      $rows = $payload['data'] ?? $payload;
+      if (!is_array($rows)) {
+        $rows = [];
+      }
+      foreach ($rows as &$row) {
+        if (!is_array($row)) continue;
+        if (isset($row['id'])) $row['id'] = (int)$row['id'];
+        if (!isset($row['image_url']) && isset($row['image_id'])) {
+          $row['image_id'] = (int)$row['image_id'];
+          $row['image_url'] = $row['image_id'] ? (wp_get_attachment_image_url($row['image_id'], 'medium') ?: '') : '';
+        }
+      }
+      return new WP_REST_Response(['status' => 'success', 'data' => $rows], 200);
+    }
+    return $resp;
   }
 
   return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
@@ -249,6 +276,43 @@ function bp_rest_front_form_fields() {
   }
 
   return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
+}
+
+function bp_rest_front_form_fields_active() {
+  global $wpdb;
+  $t = $wpdb->prefix . 'bp_form_fields';
+
+  $rows = $wpdb->get_results("
+    SELECT * FROM {$t}
+    WHERE is_enabled=1 AND show_in_wizard=1
+    ORDER BY scope ASC, sort_order ASC, id ASC
+  ", ARRAY_A) ?: [];
+
+  $out = ['form'=>[], 'customer'=>[], 'booking'=>[]];
+
+  foreach ($rows as $r) {
+    $scope = $r['scope'] ?? 'customer';
+    if (!in_array($scope, ['booking','customer','form'], true)) $scope = 'customer';
+
+    $raw_options = $r['options'] ?: ($r['options_json'] ?? null);
+    $options = $raw_options ? json_decode($raw_options, true) : null;
+
+    $out[$scope][] = [
+      'id' => $r['field_key'] ?: ($r['name_key'] ?? ''),
+      'field_key' => $r['field_key'] ?: ($r['name_key'] ?? ''),
+      'label' => $r['label'] ?? '',
+      'type' => $r['type'] ?? 'text',
+      'scope' => $scope,
+      'placeholder' => $r['placeholder'] ?? '',
+      'options' => $options,
+      'is_required' => (int)($r['is_required'] ?? $r['required'] ?? 0),
+      'is_enabled' => (int)($r['is_enabled'] ?? $r['is_active'] ?? 0),
+      'show_in_wizard' => (int)($r['show_in_wizard'] ?? 1),
+      'sort_order' => (int)($r['sort_order'] ?? 0),
+    ];
+  }
+
+  return new WP_REST_Response(['status' => 'success', 'data' => $out], 200);
 }
 
 function bp_rest_front_bookings(WP_REST_Request $req) {

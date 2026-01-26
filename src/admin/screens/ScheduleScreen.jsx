@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 
 const DAYS = [
-  { k: "1", label: "Mon" },
-  { k: "2", label: "Tue" },
-  { k: "3", label: "Wed" },
-  { k: "4", label: "Thu" },
-  { k: "5", label: "Fri" },
-  { k: "6", label: "Sat" },
-  { k: "7", label: "Sun" },
+  { k: "1", label: "Monday" },
+  { k: "2", label: "Tuesday" },
+  { k: "3", label: "Wednesday" },
+  { k: "4", label: "Thursday" },
+  { k: "5", label: "Friday" },
+  { k: "6", label: "Saturday" },
+  { k: "7", label: "Sunday" },
 ];
 
 const emptySchedule = () => {
@@ -23,6 +23,8 @@ export default function ScheduleScreen() {
   const [agentId, setAgentId] = useState(0);
   const [schedule, setSchedule] = useState(emptySchedule());
   const [settings, setSettings] = useState({ slot_interval_minutes: 30, timezone: "Europe/Copenhagen" });
+  const [timezones, setTimezones] = useState([]);
+  const [tzMode, setTzMode] = useState("select"); // select | custom
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -43,6 +45,43 @@ export default function ScheduleScreen() {
     })();
   }, []);
 
+  useEffect(() => {
+    try {
+      if (typeof Intl !== "undefined" && typeof Intl.supportedValuesOf === "function") {
+        setTimezones(Intl.supportedValuesOf("timeZone"));
+        return;
+      }
+    } catch (e) {
+      // ignore
+    }
+    setTimezones([
+      "UTC",
+      "Europe/London",
+      "Europe/Copenhagen",
+      "Europe/Paris",
+      "Europe/Berlin",
+      "Europe/Madrid",
+      "Europe/Rome",
+      "Europe/Oslo",
+      "Europe/Stockholm",
+      "Europe/Helsinki",
+      "America/New_York",
+      "America/Chicago",
+      "America/Denver",
+      "America/Los_Angeles",
+      "America/Toronto",
+      "America/Vancouver",
+      "America/Sao_Paulo",
+      "Asia/Dubai",
+      "Asia/Kolkata",
+      "Asia/Bangkok",
+      "Asia/Singapore",
+      "Asia/Tokyo",
+      "Asia/Seoul",
+      "Australia/Sydney",
+    ]);
+  }, []);
+
   const loadSchedule = async () => {
     setLoading(true);
     try {
@@ -50,6 +89,8 @@ export default function ScheduleScreen() {
       const res = await bpFetch(`/admin/schedule?agent_id=${targetId}`);
       setSchedule(res?.data?.schedule || emptySchedule());
       setSettings(res?.data?.settings || { slot_interval_minutes: 30, timezone: "Europe/Copenhagen" });
+      const tz = res?.data?.settings?.timezone || "Europe/Copenhagen";
+      setTzMode(timezones.includes(tz) ? "select" : "custom");
     } catch (e) {
       pushToast("error", e.message || "Failed to load schedule");
     } finally {
@@ -195,25 +236,25 @@ export default function ScheduleScreen() {
               {loading ? (
                 <div className="bp-muted">Loading…</div>
               ) : (
-                <div style={{ display: "grid", gap: 12 }}>
+                <div className="bp-sched-grid">
                   {DAYS.map((d) => (
-                    <div key={d.k} style={{ borderTop: "1px solid var(--bp-border)", paddingTop: 10 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                        <div style={{ fontWeight: 1000 }}>{d.label}</div>
+                    <div key={d.k} className="bp-day">
+                      <div className="bp-day-head">
+                        <div className="bp-day-title">{d.label}</div>
                         <button className="bp-btn-sm" onClick={() => addInterval(d.k)}>+ Add interval</button>
                       </div>
 
                       {(schedule[d.k] || []).length === 0 ? (
-                        <div className="bp-muted" style={{ marginBottom: 6 }}>No intervals</div>
+                        <div className="bp-day-empty">No intervals</div>
                       ) : null}
 
                       {(schedule[d.k] || []).map((it, idx) => (
-                        <div key={`${d.k}-${idx}`} style={{ display: "grid", gap: 8, marginBottom: 10 }}>
-                          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                            <input type="time" className="bp-input" style={{ width: 140 }} value={it.start_time || ""}
+                        <div key={`${d.k}-${idx}`} className="bp-interval">
+                          <div className="bp-interval-row">
+                            <input type="time" className="bp-time-input" value={it.start_time || ""}
                               onChange={(e) => updateInterval(d.k, idx, { start_time: e.target.value })} />
                             <span style={{ fontWeight: 900 }}>→</span>
-                            <input type="time" className="bp-input" style={{ width: 140 }} value={it.end_time || ""}
+                            <input type="time" className="bp-time-input" value={it.end_time || ""}
                               onChange={(e) => updateInterval(d.k, idx, { end_time: e.target.value })} />
                             <label style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 900 }}>
                               <input type="checkbox" checked={!!it.is_enabled}
@@ -223,14 +264,14 @@ export default function ScheduleScreen() {
                             <button className="bp-btn-sm" onClick={() => removeInterval(d.k, idx)}>Remove</button>
                           </div>
 
-                          <div style={{ display: "grid", gap: 6, paddingLeft: 8 }}>
+                          <div className="bp-breaks">
                             {(it.breaks || []).map((b, bIdx) => (
-                              <div key={`${d.k}-${idx}-${bIdx}`} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                              <div key={`${d.k}-${idx}-${bIdx}`} className="bp-break-row">
                                 <span className="bp-muted" style={{ fontWeight: 900 }}>Break</span>
-                                <input type="time" className="bp-input" style={{ width: 120 }} value={b.start || ""}
+                                <input type="time" className="bp-time-input" value={b.start || ""}
                                   onChange={(e) => updateBreak(d.k, idx, bIdx, { start: e.target.value })} />
                                 <span style={{ fontWeight: 900 }}>→</span>
-                                <input type="time" className="bp-input" style={{ width: 120 }} value={b.end || ""}
+                                <input type="time" className="bp-time-input" value={b.end || ""}
                                   onChange={(e) => updateBreak(d.k, idx, bIdx, { end: e.target.value })} />
                                 <button className="bp-btn-sm" onClick={() => removeBreak(d.k, idx, bIdx)}>Remove</button>
                               </div>
@@ -247,12 +288,12 @@ export default function ScheduleScreen() {
 
             <div className="bp-card" style={{ marginBottom: 14 }}>
               <div className="bp-section-title" style={{ marginBottom: 12 }}>Schedule Settings</div>
-              <div style={{ display: "grid", gap: 12 }}>
+              <div className="bp-sched-grid">
                 <div>
                   <label className="bp-label">Slot interval (minutes)</label>
                   <input
                     type="number"
-                    className="bp-input"
+                    className="bp-input-field"
                     min={5}
                     max={120}
                     value={settings.slot_interval_minutes ?? 30}
@@ -261,13 +302,40 @@ export default function ScheduleScreen() {
                 </div>
                 <div>
                   <label className="bp-label">Timezone</label>
-                  <input
-                    type="text"
-                    className="bp-input"
-                    value={settings.timezone || ""}
-                    onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                    placeholder="Europe/Copenhagen"
-                  />
+                  <div className="bp-grid bp-grid-2 bp-gap-10">
+                    <select
+                      className="bp-input-field"
+                      value={tzMode === "custom" ? "__custom__" : (settings.timezone || "")}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "__custom__") {
+                          setTzMode("custom");
+                        } else {
+                          setTzMode("select");
+                          setSettings({ ...settings, timezone: v });
+                        }
+                      }}
+                    >
+                      {timezones.map((tz) => (
+                        <option key={tz} value={tz}>{tz}</option>
+                      ))}
+                      <option value="__custom__">Custom…</option>
+                    </select>
+
+                    {tzMode === "custom" ? (
+                      <input
+                        type="text"
+                        className="bp-input-field"
+                        value={settings.timezone || ""}
+                        onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
+                        placeholder="Europe/Copenhagen"
+                      />
+                    ) : (
+                      <div className="bp-muted" style={{ alignSelf: "center" }}>
+                        {settings.timezone || "UTC"}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -283,23 +351,17 @@ export default function ScheduleScreen() {
             {loading ? (
               <div className="bp-muted">Loading…</div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 12 }}>
+              <div className="bp-week-grid">
                 {DAYS.map((d) => {
                   const intervals = schedule[d.k] || [];
                   const hasIntervals = intervals.length > 0 && intervals.some(it => it.is_enabled !== false);
 
                   return (
-                    <div key={d.k} style={{
-                      border: "1px solid var(--bp-border)",
-                      borderRadius: 8,
-                      padding: 12,
-                      background: hasIntervals ? "rgba(67, 24, 255, 0.04)" : "rgba(0, 0, 0, 0.02)",
-                      minHeight: 200
-                    }}>
-                      <div style={{ fontWeight: 1000, marginBottom: 10, textAlign: "center" }}>{d.label}</div>
+                    <div key={d.k} className={`bp-week-day ${hasIntervals ? "open" : ""}`}>
+                      <div className="bp-week-title">{d.label}</div>
 
                       {!hasIntervals ? (
-                        <div className="bp-muted" style={{ fontSize: 12, textAlign: "center" }}>Closed</div>
+                        <div className="bp-week-closed">Closed</div>
                       ) : (
                         <div style={{ display: "grid", gap: 8, fontSize: 12 }}>
                           {intervals.map((it, idx) => {
@@ -307,12 +369,12 @@ export default function ScheduleScreen() {
 
                             return (
                               <div key={idx}>
-                                <div style={{ fontWeight: 900, marginBottom: 4 }}>
+                                <div className="bp-week-slot">
                                   {it.start_time || "?"} – {it.end_time || "?"}
                                 </div>
 
                                 {(it.breaks || []).length > 0 ? (
-                                  <div style={{ paddingLeft: 8, borderLeft: "2px solid rgba(255, 107, 107, 0.3)" }}>
+                                  <div className="bp-week-breaks">
                                     {it.breaks.map((b, bIdx) => (
                                       <div key={bIdx} style={{ color: "var(--bp-muted)", fontSize: 11, marginBottom: 3 }}>
                                         Break: {b.start || "?"} – {b.end || "?"}

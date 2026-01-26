@@ -1,21 +1,54 @@
 import React from 'react';
+import DynamicFields from '../DynamicFields';
 
 function isEmptyValue(val, type) {
-  if (type === 'checkbox') return val !== '1';
+  if (type === 'checkbox') return !val;
   if (val === undefined || val === null) return true;
   if (Array.isArray(val)) return val.length === 0;
   return String(val).trim() === '';
 }
 
-export default function StepCustomer({ formFields, answers, onChange, onBack, onNext, onError }) {
-  const fields = [
-    ...(formFields?.form || []),
-    ...(formFields?.customer || []),
-    ...(formFields?.booking || []),
-  ];
+function normalizeId(def) {
+  return def?.id || def?.field_key || def?.name_key || '';
+}
 
-  function setValue(key, val) {
-    onChange((prev) => ({ ...prev, [key]: val }));
+function layoutFromDefs(defs = []) {
+  return defs
+    .map((d) => ({
+      id: normalizeId(d),
+      required: !!(d?.is_required ?? d?.required ?? false),
+      width: 'full',
+    }))
+    .filter((d) => d.id);
+}
+
+export default function StepCustomer({
+  formFields,
+  answers,
+  onChange,
+  onBack,
+  onNext,
+  onError,
+  layout,
+  backLabel = '<- Back',
+  nextLabel = 'Next ->',
+}) {
+  const customerDefs = formFields?.customer || [];
+  const bookingDefs = formFields?.booking || [];
+
+  const customerLayout = layout?.customer?.fields?.length
+    ? layout.customer.fields
+    : layoutFromDefs(customerDefs);
+  const bookingLayout = layout?.booking?.fields?.length
+    ? layout.booking.fields
+    : layoutFromDefs(bookingDefs);
+
+  function setValue(keyOrNext, val) {
+    if (keyOrNext && typeof keyOrNext === 'object' && val === undefined) {
+      onChange(keyOrNext);
+      return;
+    }
+    onChange((prev) => ({ ...prev, [keyOrNext]: val }));
   }
 
   function getValue(key) {
@@ -23,14 +56,23 @@ export default function StepCustomer({ formFields, answers, onChange, onBack, on
   }
 
   function handleNext() {
-    for (const f of fields) {
-      if (!f.is_required) continue;
-      const fieldKey = f.field_key || f.name_key || '';
-      const key = `${f.scope}.${fieldKey}`;
-      const val = getValue(key);
-      if (isEmptyValue(val, f.type)) {
-        onError?.(`${f.label || fieldKey} is required`);
-        return;
+    const allGroups = [
+      { scope: 'customer', defs: customerDefs, layout: customerLayout },
+      { scope: 'booking', defs: bookingDefs, layout: bookingLayout },
+    ];
+
+    for (const group of allGroups) {
+      for (const entry of group.layout) {
+        const def = group.defs.find((d) => normalizeId(d) === entry.id);
+        if (!def) continue;
+        const required = entry.required ?? !!(def.is_required ?? def.required ?? false);
+        if (!required) continue;
+        const key = `${group.scope}.${entry.id}`;
+        const val = getValue(key);
+        if (isEmptyValue(val, def.type)) {
+          onError?.(`${def.label || entry.id} is required`);
+          return;
+        }
       }
     }
     onError?.('');
@@ -39,83 +81,32 @@ export default function StepCustomer({ formFields, answers, onChange, onBack, on
 
   return (
     <div className="bp-step">
-      <div className="bp-form">
-        {fields.map((f) => {
-          const fieldKey = f.field_key || f.name_key || '';
-          const key = `${f.scope}.${fieldKey}`;
-          const val = getValue(key);
-          return (
-            <div className="bp-field" key={key}>
-              <label className="bp-label">
-                {f.label} {f.is_required ? <span className="bp-required">*</span> : null}
-              </label>
-              <FieldInput field={f} value={val} onChange={(v) => setValue(key, v)} />
-            </div>
-          );
-        })}
-      </div>
+      <DynamicFields
+        defs={customerDefs}
+        layout={customerLayout}
+        values={answers}
+        onChange={setValue}
+        scope="customer"
+      />
+
+      {bookingDefs.length ? (
+        <div style={{ marginTop: 14 }}>
+          <DynamicFields
+            defs={bookingDefs}
+            layout={bookingLayout}
+            values={answers}
+            onChange={setValue}
+            scope="booking"
+          />
+        </div>
+      ) : null}
 
       <div className="bp-step-footer">
-        <button type="button" className="bp-back" onClick={onBack}>&lt;- Back</button>
+        <button type="button" className="bp-back" onClick={onBack}>{backLabel}</button>
         <button type="button" className="bp-next" onClick={handleNext}>
-          Next ->
+          {nextLabel}
         </button>
       </div>
     </div>
   );
-}
-
-function FieldInput({ field, value, onChange }) {
-  const baseProps = {
-    className: 'bp-input',
-    placeholder: field.placeholder || '',
-    value: value || '',
-    onChange: (e) => onChange(e.target.value),
-  };
-
-  if (field.type === 'textarea') {
-    return (
-      <textarea
-        className="bp-input bp-textarea"
-        rows={4}
-        placeholder={field.placeholder || ''}
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    );
-  }
-
-  if (field.type === 'select') {
-    const choices = field.options?.choices || [];
-    return (
-      <select className="bp-input" value={value || ''} onChange={(e) => onChange(e.target.value)}>
-        <option value="">Select...</option>
-        {choices.map((c, idx) => (
-          <option key={idx} value={c.value}>{c.label}</option>
-        ))}
-      </select>
-    );
-  }
-
-  if (field.type === 'checkbox') {
-    const checked = value === '1' || value === true;
-    return (
-      <label className="bp-checkbox">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked ? '1' : '0')}
-        />
-        <span>{field.placeholder || 'Yes'}</span>
-      </label>
-    );
-  }
-
-  let inputType = 'text';
-  if (field.type === 'email') inputType = 'email';
-  if (field.type === 'tel') inputType = 'tel';
-  if (field.type === 'number') inputType = 'number';
-  if (field.type === 'date') inputType = 'date';
-
-  return <input {...baseProps} type={inputType} />;
 }

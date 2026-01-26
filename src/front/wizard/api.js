@@ -48,6 +48,11 @@ export const fetchAvailabilityMonth = ({ month, service_id, agent_id, location_i
   api(`/front/availability?month=${encodeURIComponent(month)}&service_id=${encodeURIComponent(service_id)}&agent_id=${encodeURIComponent(agent_id)}&location_id=${encodeURIComponent(location_id || '')}`);
 
 export const fetchFormFields = async () => {
+  const payload = await api('/front/form-fields/active');
+  if (payload && payload.form && payload.customer && payload.booking) {
+    return payload;
+  }
+
   const list = await api('/front/form-fields');
   const form = [];
   const customer = [];
@@ -68,3 +73,5 @@ export const createBooking = (payload) =>
     method: 'POST',
     body: JSON.stringify(payload),
   });
+
+export const fetchDesign = () => api(`/front/booking-form-design?_t=${Date.now()}`);

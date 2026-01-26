@@ -166,6 +166,7 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'rest/public-booking-routes.php';
     require_once BP_LIB_PATH . 'rest/front-wizard-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-booking-form-design-routes.php';
+    require_once BP_LIB_PATH . 'rest/front-booking-form-design-routes.php';
     require_once BP_LIB_PATH . 'routes/front-availability-routes.php';
     require_once BP_LIB_PATH . 'routes/front-availability-month-slots.php';
     require_once BP_LIB_PATH . 'rest/form-fields-routes.php';
@@ -1032,6 +1033,15 @@ final class BP_Plugin {
     );
 
     add_submenu_page(
+      null,
+      __('Booking Edit', 'bookpoint'),
+      __('Booking Edit', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_bookings_edit',
+      'bp_render_admin_app'
+    );
+
+    add_submenu_page(
       'bp',
       __('Calendar', 'bookpoint'),
       __('Calendar', 'bookpoint'),
@@ -1372,12 +1382,12 @@ final class BP_Plugin {
     }
 
     // React admin bundle (All admin pages)
-      $admin_react_pages = [
-        'bp_dashboard', 'bp_bookings', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog', 
-        'bp-form-fields', 'bp_form_fields', 'bp_services', 'bp_categories', 'bp_extras', 'bp_locations', 'bp_promo_codes', 
-        'bp_customers', 'bp_settings', 'bp_notifications', 'bp_agents', 'bp_audit', 'bp_tools',
-        'bp_locations_edit', 'bp_location_categories_edit', 'bp_design_form'
-      ];
+        $admin_react_pages = [
+          'bp_dashboard', 'bp_bookings', 'bp_bookings_edit', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog',
+          'bp-form-fields', 'bp_form_fields', 'bp_services', 'bp_categories', 'bp_extras', 'bp_locations', 'bp_promo_codes',
+          'bp_customers', 'bp_settings', 'bp_notifications', 'bp_agents', 'bp_audit', 'bp_tools',
+          'bp_locations_edit', 'bp_location_categories_edit', 'bp_design_form'
+        ];
     
     if (in_array($page, $admin_react_pages, true)) {
       $asset_path = BP_PLUGIN_PATH . 'build/admin.asset.php';
@@ -1436,10 +1446,11 @@ final class BP_Plugin {
       }, 10, 2);
 
       // Map page slug to route name
-        $route_map = [
-          'bp_dashboard' => 'dashboard',
-          'bp_bookings' => 'bookings',
-          'bp_calendar' => 'calendar',
+          $route_map = [
+            'bp_dashboard' => 'dashboard',
+            'bp_bookings' => 'bookings',
+            'bp_bookings_edit' => 'bookings-edit',
+            'bp_calendar' => 'calendar',
           'bp_schedule' => 'schedule',
           'bp_holidays' => 'holidays',
           'bp_catalog' => 'catalog',
@@ -1650,12 +1661,12 @@ final class BP_Plugin {
       }, 10, 2);
     }
 
-    $front_css = BP_PLUGIN_PATH . 'public/front.css';
+    $front_css = BP_PLUGIN_PATH . 'public/index.jsx.css';
     if (file_exists($front_css)) {
       $css_ver = @filemtime($front_css) ?: ($front_asset['version'] ?? self::VERSION);
       wp_enqueue_style(
         'bp-front',
-        BP_PLUGIN_URL . 'public/front.css',
+        BP_PLUGIN_URL . 'public/index.jsx.css',
         [],
         $css_ver
       );
@@ -1663,11 +1674,11 @@ final class BP_Plugin {
 
     self::ensure_react_scripts();
 
-    $front_js = BP_PLUGIN_PATH . 'public/front-v2.js';
+    $front_js = BP_PLUGIN_PATH . 'public/front.js';
     $js_ver = file_exists($front_js) ? (@filemtime($front_js) ?: ($front_asset['version'] ?? self::VERSION)) : ($front_asset['version'] ?? self::VERSION);
     wp_enqueue_script(
       'bp-front',
-      BP_PLUGIN_URL . 'public/front-v2.js',
+      BP_PLUGIN_URL . 'public/front.js',
       $front_asset['dependencies'] ?? [],
       $js_ver,
       true
@@ -1938,9 +1949,9 @@ final class BP_Plugin {
       ]);
     }
 
-    $front_css = BP_PLUGIN_PATH . 'public/front.css';
+    $front_css = BP_PLUGIN_PATH . 'public/index.jsx.css';
     if (file_exists($front_css)) {
-      wp_enqueue_style('bp-front', BP_PLUGIN_URL . 'public/front.css', [], @filemtime($front_css) ?: self::VERSION);
+      wp_enqueue_style('bp-front', BP_PLUGIN_URL . 'public/index.jsx.css', [], @filemtime($front_css) ?: self::VERSION);
     }
 
     $nonce = wp_create_nonce('bp_public');
@@ -2536,3 +2547,4 @@ if (!function_exists('bp_apply_promo_to_subtotal')) {
     ];
   }
 }
+

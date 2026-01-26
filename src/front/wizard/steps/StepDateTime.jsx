@@ -59,6 +59,8 @@ export default function StepDateTime({
   onChangeSlot,
   onBack,
   onNext,
+  backLabel = '<- Back',
+  nextLabel = 'Next ->',
 }) {
   const [viewDate, setViewDate] = useState(() => {
     const now = new Date();
@@ -272,10 +274,10 @@ export default function StepDateTime({
 
       <div className="bp-step-footer">
         <button type="button" className="bp-back" onClick={onBack}>
-          &lt;- Back
+          {backLabel}
         </button>
         <button type="button" className="bp-next" disabled={!canNext} onClick={onNext}>
-          Next -&gt;
+          {nextLabel}
         </button>
       </div>
     </div>

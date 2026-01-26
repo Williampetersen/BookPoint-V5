@@ -39,6 +39,7 @@
   position: relative;
   overflow: hidden;
   box-shadow: 0 20px 80px rgba(0, 0, 0, 0.25);
+  --bp-accent: #1973ff;
 }
 
 .bp-modal-close {
@@ -145,7 +146,7 @@
   background: #e5e7ff;
 }
 .bp-dot.active {
-  background: #3b2bff;
+  background: var(--bp-accent);
 }
 
 .bp-summary {
@@ -198,16 +199,26 @@
 
 .bp-input {
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 12px 16px;
+  border-radius: 999px;
+  border: 1px solid #d7dce3;
   outline: none;
   margin-bottom: 14px;
   background: #fff;
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .bp-textarea {
   resize: vertical;
+  min-height: 110px;
+  border-radius: 16px;
+  border: 1px solid #d7dce3;
+  padding: 12px 16px;
+  background: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .bp-list {
@@ -224,7 +235,7 @@
   cursor: pointer;
 }
 .bp-card.active {
-  border-color: #3b2bff;
+  border-color: var(--bp-accent);
   box-shadow: 0 10px 30px rgba(59, 43, 255, 0.12);
 }
 .bp-card-title {
@@ -271,7 +282,7 @@
   gap: 6px;
 }
 .bp-tile.active {
-  border-color: #3b2bff;
+  border-color: var(--bp-accent);
   box-shadow: 0 10px 30px rgba(59, 43, 255, 0.12);
 }
 .bp-tile-title {
@@ -326,7 +337,7 @@
   background: rgba(0, 0, 0, 0.06);
 }
 .bp-next {
-  background: #1973ff;
+  background: var(--bp-accent);
   color: #fff;
 }
 .bp-next:disabled {
@@ -364,7 +375,7 @@
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.08);
 }
 .bp-pickcard.active {
-  border-color: #3b2bff;
+  border-color: var(--bp-accent);
   box-shadow: 0 16px 50px rgba(59, 43, 255, 0.12);
 }
 
@@ -456,14 +467,14 @@
   position: relative;
 }
 .bp-radio.on {
-  border-color: #3b2bff;
+  border-color: var(--bp-accent);
 }
 .bp-radio.on::after {
   content: "";
   position: absolute;
   inset: 5px;
   border-radius: 999px;
-  background: #3b2bff;
+  background: var(--bp-accent);
 }
 
 .bp-check {
@@ -474,8 +485,8 @@
   position: relative;
 }
 .bp-check.on {
-  border-color: #3b2bff;
-  background: #3b2bff;
+  border-color: var(--bp-accent);
+  background: var(--bp-accent);
 }
 .bp-check.on::after {
   content: "";
@@ -496,6 +507,38 @@
   margin-bottom: 8px;
   color: #444;
   font-size: 13px;
+}
+
+.bp-input-field {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid #d7dce3;
+  background: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bp-select {
+  width: 100%;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid #d7dce3;
+  padding: 0 14px;
+  background: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bp-input:focus,
+.bp-input-field:focus,
+.bp-textarea:focus,
+.bp-select:focus {
+  border-color: #9bb7ff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .bp-field {
@@ -896,7 +939,7 @@
 }
 .bp-slot.is-selected {
   background: #dbeafe;
-  border-color: #2563eb;
+  border-color: var(--bp-accent);
 }
 
 .bp-slot-skeleton { display:grid; gap:10px; margin-top:12px; }
@@ -913,4 +956,18 @@
   .bp-datetime { flex-direction: column; }
   .bp-slot-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
 }
+
+/* Dynamic fields layout */
+.bp-fields-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+}
+.bp-field.bp-full{ grid-column: 1 / -1; }
+.bp-field.bp-half{ grid-column: auto; }
+@media (max-width: 640px){
+  .bp-fields-grid{ grid-template-columns: 1fr; }
+  .bp-field.bp-half{ grid-column: 1 / -1; }
+}
+.bp-checkbox-row{ display:flex; gap:10px; align-items:center; }
 

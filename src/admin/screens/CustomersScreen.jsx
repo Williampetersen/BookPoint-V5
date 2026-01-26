@@ -15,6 +15,12 @@ export default function CustomersScreen() {
   const [total, setTotal] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editErr, setEditErr] = useState("");
+  const [editForm, setEditForm] = useState({ first_name: "", last_name: "", email: "", phone: "" });
+  const [editCustomValues, setEditCustomValues] = useState({});
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importErr, setImportErr] = useState("");
@@ -64,6 +70,39 @@ export default function CustomersScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createOpen]);
 
+  useEffect(() => {
+    if (!editOpen || !editId) return;
+    (async () => {
+      setEditLoading(true);
+      setEditErr("");
+      try {
+        const [customerRes, fieldsRes] = await Promise.all([
+          bpFetch(`/admin/customers/${editId}`),
+          customFields.length ? Promise.resolve({ data: customFields }) : bpFetch("/admin/customers/form-fields"),
+        ]);
+
+        const customer = customerRes?.data?.customer || {};
+        setEditForm({
+          first_name: customer.first_name || "",
+          last_name: customer.last_name || "",
+          email: customer.email || "",
+          phone: customer.phone || "",
+        });
+        setEditCustomValues(customer.custom_fields || {});
+
+        if (!customFields.length) {
+          const fields = (fieldsRes?.data || []).filter((f) => (f.is_enabled ?? 1) === 1);
+          setCustomFields(fields);
+        }
+      } catch (e) {
+        setEditErr(e?.message || "Failed to load customer.");
+      } finally {
+        setEditLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editOpen, editId]);
+
   function onSearchSubmit(e) {
     e.preventDefault();
     setPage(1);
@@ -93,7 +132,45 @@ export default function CustomersScreen() {
     }
   }
 
+  async function updateCustomer() {
+    if (!editId) return;
+    setSaving(true);
+    setEditErr("");
+    try {
+      await bpFetch(`/admin/customers/${editId}`, {
+        method: "PUT",
+        body: { ...editForm, custom_fields: editCustomValues },
+      });
+      setEditOpen(false);
+      setEditId(null);
+      await load();
+    } catch (e) {
+      setEditErr(e?.message || "Failed to update customer.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteCustomer(id) {
+    if (!id) return;
+    // eslint-disable-next-line no-alert
+    if (!confirm("Delete this customer? This will anonymize their data.")) return;
+    try {
+      await bpFetch(`/admin/customers/${id}`, { method: "DELETE" });
+      if (selectedId === id) setSelectedId(null);
+      await load();
+    } catch (e) {
+      setErr(e?.message || "Failed to delete customer.");
+    }
+  }
+
   const pages = Math.max(1, Math.ceil(total / per));
+  const rowStyle = {
+    display: "grid",
+    gridTemplateColumns: "80px 1.4fr 1.2fr 1fr 90px 170px 240px",
+    alignItems: "center",
+    gap: 12,
+  };
 
   return (
     <div>
@@ -145,13 +222,14 @@ export default function CustomersScreen() {
 
       <div className="bp-card">
         <div className="bp-table">
-          <div className="bp-tr bp-th">
+          <div className="bp-tr bp-th" style={rowStyle}>
             <div>ID</div>
             <div>Name</div>
             <div>Email</div>
             <div>Phone</div>
             <div>Bookings</div>
             <div>Created</div>
+            <div>Actions</div>
           </div>
 
           {loading ? <div className="bp-muted" style={{ padding: 10 }}>Loading…</div> : null}
@@ -161,20 +239,23 @@ export default function CustomersScreen() {
             const name = fullName || c.name || `#${c.id}`;
             const bookings = c.bookings_count ?? c.booking_count ?? 0;
             return (
-              <button key={c.id} className="bp-tr bp-tr-btn" onClick={() => setSelectedId(c.id)}>
+              <div key={c.id} className="bp-tr" style={rowStyle}>
                 <div>#{c.id}</div>
                 <div>
                   <div style={{ fontWeight: 1100 }}>{name}</div>
-                  <div className="bp-muted" style={{ fontSize: 12 }}>
-                    {c.wp_user_id ? `WP User: ${c.wp_user_id}` : "—"}
-                  </div>
                 </div>
-                <div>{c.email || "—"}</div>
-                <div>{c.phone || "—"}</div>
+                <div>{c.email || ""}</div>
+                <div>{c.phone || ""}</div>
                 <div>{bookings}</div>
-                <div className="bp-muted">{c.created_at || "—"}</div>
-              </button>
+                <div className="bp-muted">{c.created_at || "?"}</div>
+                <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", justifySelf: "end" }}>
+                  <button className="bp-btn" onClick={() => setSelectedId(c.id)}>View</button>
+                  <button className="bp-btn" onClick={() => { setEditId(c.id); setEditOpen(true); }}>Edit</button>
+                  <button className="bp-btn" onClick={() => deleteCustomer(c.id)}>Delete</button>
+                </div>
+              </div>
             );
+
           })}
 
           {!loading && items.length === 0 ? (
@@ -307,6 +388,132 @@ export default function CustomersScreen() {
                 </div>
               );
             })}
+          </div>
+        ) : null}
+      </Drawer>
+
+      <Drawer open={editOpen} title="Edit Customer" onClose={() => setEditOpen(false)} footer={
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button className="bp-btn" onClick={() => setEditOpen(false)} disabled={saving}>Cancel</button>
+          <button className="bp-btn bp-btn-primary" onClick={updateCustomer} disabled={saving || editLoading}>Save</button>
+        </div>
+      }>
+        {editErr ? <div className="bp-error">{editErr}</div> : null}
+        {editLoading ? <div className="bp-muted">Loadingâ€¦</div> : null}
+
+        {!editLoading ? (
+          <div>
+            <div className="bp-card" style={{ marginBottom: 12 }}>
+              <div className="bp-muted" style={{ fontSize: 12 }}>First Name</div>
+              <input className="bp-input" value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} />
+            </div>
+            <div className="bp-card" style={{ marginBottom: 12 }}>
+              <div className="bp-muted" style={{ fontSize: 12 }}>Last Name</div>
+              <input className="bp-input" value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} />
+            </div>
+            <div className="bp-card" style={{ marginBottom: 12 }}>
+              <div className="bp-muted" style={{ fontSize: 12 }}>Email</div>
+              <input className="bp-input" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            </div>
+            <div className="bp-card" style={{ marginBottom: 12 }}>
+              <div className="bp-muted" style={{ fontSize: 12 }}>Phone</div>
+              <input className="bp-input" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+            </div>
+
+            {customFields.length ? (
+              <div className="bp-card" style={{ marginBottom: 12 }}>
+                <div style={{ fontWeight: 1000, marginBottom: 8 }}>Custom Fields</div>
+                {customFields.map((f) => {
+                  const key = f.field_key || f.name_key || `field_${f.id}`;
+                  const label = f.label || key;
+                  const type = f.type || "text";
+                  const placeholder = f.placeholder || "";
+                  const opts = Array.isArray(f.options) ? f.options : [];
+                  const value = editCustomValues[key] ?? (type === "checkbox" ? [] : "");
+
+                  if (type === "textarea") {
+                    return (
+                      <div key={key} style={{ marginBottom: 12 }}>
+                        <div className="bp-muted" style={{ fontSize: 12 }}>{label}</div>
+                        <textarea className="bp-input" rows={3} placeholder={placeholder} value={value} onChange={(e) => setEditCustomValues({ ...editCustomValues, [key]: e.target.value })} />
+                      </div>
+                    );
+                  }
+
+                  if (type === "select") {
+                    return (
+                      <div key={key} style={{ marginBottom: 12 }}>
+                        <div className="bp-muted" style={{ fontSize: 12 }}>{label}</div>
+                        <select className="bp-input" value={value} onChange={(e) => setEditCustomValues({ ...editCustomValues, [key]: e.target.value })}>
+                          <option value="">Selectâ€¦</option>
+                          {opts.map((o, idx) => {
+                            const optValue = typeof o === "string" ? o : (o?.value ?? o?.label ?? "");
+                            const optLabel = typeof o === "string" ? o : (o?.label ?? o?.value ?? "");
+                            return <option key={`${key}-${idx}`} value={optValue}>{optLabel}</option>;
+                          })}
+                        </select>
+                      </div>
+                    );
+                  }
+
+                  if (type === "checkbox") {
+                    if (opts.length) {
+                      const arr = Array.isArray(value) ? value : [];
+                      return (
+                        <div key={key} style={{ marginBottom: 12 }}>
+                          <div className="bp-muted" style={{ fontSize: 12 }}>{label}</div>
+                          {opts.map((o, idx) => {
+                            const optValue = typeof o === "string" ? o : (o?.value ?? o?.label ?? "");
+                            const optLabel = typeof o === "string" ? o : (o?.label ?? o?.value ?? "");
+                            const checked = arr.includes(optValue);
+                            return (
+                              <label key={`${key}-${idx}`} style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    const next = e.target.checked
+                                      ? [...arr, optValue]
+                                      : arr.filter((v) => v !== optValue);
+                                    setEditCustomValues({ ...editCustomValues, [key]: next });
+                                  }}
+                                />
+                                <span>{optLabel}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+
+                    const boolVal = !!editCustomValues[key];
+                    return (
+                      <label key={key} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+                        <input
+                          type="checkbox"
+                          checked={boolVal}
+                          onChange={(e) => setEditCustomValues({ ...editCustomValues, [key]: e.target.checked })}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    );
+                  }
+
+                  return (
+                    <div key={key} style={{ marginBottom: 12 }}>
+                      <div className="bp-muted" style={{ fontSize: 12 }}>{label}</div>
+                      <input
+                        className="bp-input"
+                        type={type === "number" ? "number" : type === "date" ? "date" : type === "email" ? "email" : type === "tel" ? "tel" : "text"}
+                        placeholder={placeholder}
+                        value={value}
+                        onChange={(e) => setEditCustomValues({ ...editCustomValues, [key]: e.target.value })}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </Drawer>

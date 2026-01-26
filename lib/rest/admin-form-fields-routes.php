@@ -2,6 +2,12 @@
 defined('ABSPATH') || exit;
 
 add_action('rest_api_init', function(){
+  register_rest_route('bp/v1', '/admin/form-fields/all', [
+    'methods'=>'GET',
+    'callback'=>'bp_admin_get_form_fields_all_grouped',
+    'permission_callback'=>'bp_admin_can_manage_settings',
+  ]);
+
   register_rest_route('bp/v1', '/admin/form-fields', [
     'methods'=>'GET',
     'callback'=>'bp_admin_get_form_fields',
@@ -35,6 +41,42 @@ add_action('rest_api_init', function(){
 
 function bp_admin_can_manage_settings(){
   return current_user_can('bp_manage_settings') || current_user_can('administrator');
+}
+
+function bp_admin_get_form_fields_all_grouped(WP_REST_Request $req){
+  global $wpdb;
+  $t = $wpdb->prefix.'bp_form_fields';
+
+  $rows = $wpdb->get_results("
+    SELECT * FROM {$t}
+    ORDER BY scope ASC, sort_order ASC, id ASC
+  ", ARRAY_A) ?: [];
+
+  $out = ['form'=>[], 'customer'=>[], 'booking'=>[]];
+
+  foreach($rows as $r){
+    $scope = $r['scope'] ?? 'customer';
+    if (!in_array($scope, ['booking','customer','form'], true)) $scope = 'customer';
+
+    $raw_options = $r['options'] ?: ($r['options_json'] ?? null);
+    $options = $raw_options ? json_decode($raw_options, true) : null;
+
+    $out[$scope][] = [
+      'id' => $r['field_key'] ?: ($r['name_key'] ?? ''),
+      'field_key' => $r['field_key'] ?: ($r['name_key'] ?? ''),
+      'label' => $r['label'] ?? '',
+      'type' => $r['type'] ?? 'text',
+      'scope' => $scope,
+      'placeholder' => $r['placeholder'] ?? '',
+      'options' => $options,
+      'is_required' => (int)($r['is_required'] ?? $r['required'] ?? 0),
+      'is_enabled' => (int)($r['is_enabled'] ?? $r['is_active'] ?? 0),
+      'show_in_wizard' => (int)($r['show_in_wizard'] ?? 1),
+      'sort_order' => (int)($r['sort_order'] ?? 0),
+    ];
+  }
+
+  return new WP_REST_Response(['status'=>'success','data'=>$out], 200);
 }
 
 function bp_admin_get_form_fields(WP_REST_Request $req){

@@ -374,6 +374,7 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
 
   $t_book = $wpdb->prefix . 'bp_bookings';
   $t_srv  = $wpdb->prefix . 'bp_services';
+  $t_cust = $wpdb->prefix . 'bp_customers';
 
   $booking = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t_book} WHERE id=%d", $id), ARRAY_A);
   if (!$booking) return new WP_REST_Response(['status'=>'error','message'=>'Not found'], 404);
@@ -390,10 +391,14 @@ function bp_rest_admin_booking_patch(WP_REST_Request $req) {
 
   $bCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_book}") ?: [];
   $sCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_srv}") ?: [];
+  $cCols = $wpdb->get_col("SHOW COLUMNS FROM {$t_cust}") ?: [];
   $has_start_datetime = in_array('start_datetime', $bCols, true);
   $has_end_datetime = in_array('end_datetime', $bCols, true);
   $has_start_date = in_array('start_date', $bCols, true);
   $has_start_time = in_array('start_time', $bCols, true);
+  $has_customer_name = in_array('customer_name', $bCols, true);
+  $has_customer_email = in_array('customer_email', $bCols, true);
+  $has_customer_phone = in_array('customer_phone', $bCols, true);
 
   // status change
   if (isset($body['status'])) {
@@ -544,6 +549,58 @@ function bp_rest_admin_booking_delete(WP_REST_Request $req) {
 
   if (class_exists('BP_FieldValuesHelper')) {
     BP_FieldValuesHelper::delete_for_entity('booking', $id);
+  }
+
+  // customer fields (name/email/phone)
+  $cust_name = array_key_exists('customer_name', $body) ? sanitize_text_field($body['customer_name']) : null;
+  $cust_email = array_key_exists('customer_email', $body) ? sanitize_email($body['customer_email']) : null;
+  $cust_phone = array_key_exists('customer_phone', $body) ? sanitize_text_field($body['customer_phone']) : null;
+
+  if ($cust_name !== null && $has_customer_name) {
+    $updates['customer_name'] = $cust_name;
+    $formats[] = '%s';
+  }
+  if ($cust_email !== null && $has_customer_email) {
+    $updates['customer_email'] = $cust_email;
+    $formats[] = '%s';
+  }
+  if ($cust_phone !== null && $has_customer_phone) {
+    $updates['customer_phone'] = $cust_phone;
+    $formats[] = '%s';
+  }
+
+  // also update customer row if possible
+  $customer_id = (int)($booking['customer_id'] ?? 0);
+  if ($customer_id > 0 && !empty($cCols)) {
+    $cu = [];
+    $cf = [];
+    $has_c_name = in_array('name', $cCols, true);
+    $has_c_first = in_array('first_name', $cCols, true);
+    $has_c_last = in_array('last_name', $cCols, true);
+    $has_c_email = in_array('email', $cCols, true);
+    $has_c_phone = in_array('phone', $cCols, true);
+
+    if ($cust_name !== null) {
+      if ($has_c_name) {
+        $cu['name'] = $cust_name;
+        $cf[] = '%s';
+      } elseif ($has_c_first || $has_c_last) {
+        $parts = preg_split('/\s+/', trim($cust_name), 2);
+        if ($has_c_first) { $cu['first_name'] = $parts[0] ?? ''; $cf[] = '%s'; }
+        if ($has_c_last) { $cu['last_name'] = $parts[1] ?? ''; $cf[] = '%s'; }
+      }
+    }
+    if ($cust_email !== null && $has_c_email) {
+      $cu['email'] = $cust_email;
+      $cf[] = '%s';
+    }
+    if ($cust_phone !== null && $has_c_phone) {
+      $cu['phone'] = $cust_phone;
+      $cf[] = '%s';
+    }
+    if (!empty($cu)) {
+      $wpdb->update($t_cust, $cu, ['id' => $customer_id], $cf, ['%d']);
+    }
   }
 
   $ok = $wpdb->delete($t_book, ['id'=>$id], ['%d']);

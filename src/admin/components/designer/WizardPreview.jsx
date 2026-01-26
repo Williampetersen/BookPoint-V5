@@ -15,13 +15,17 @@ export default function WizardPreview({ config, activeStepKey }) {
     steps.find((s) => s.enabled) ||
     steps[0];
 
-  const primary = config?.appearance?.primaryColor || "#2563EB";
+  const globalPrimary = config?.appearance?.primaryColor || "#2563EB";
+  const stepPrimary = step?.accentOverride ? step.accentOverride : globalPrimary;
   const rounded = (config?.appearance?.borderStyle || "rounded") === "rounded";
 
   const helpTitle = config?.texts?.helpTitle || "Need help?";
   const helpPhone = config?.texts?.helpPhone || "";
-  const nextLabel = config?.texts?.nextLabel || "Next ?";
-  const backLabel = config?.texts?.backLabel || "? Back";
+  const nextLabel = step?.buttonNextLabel || config?.texts?.nextLabel || "Next ->";
+  const backLabel = step?.buttonBackLabel || config?.texts?.backLabel || "<- Back";
+
+  const showLeft = step?.showLeftPanel !== false;
+  const showHelp = step?.showHelpBox !== false;
 
   const fallback = imgUrl(step?.image || "location-image.png");
   const src = step?.imageUrl || fallback;
@@ -29,23 +33,27 @@ export default function WizardPreview({ config, activeStepKey }) {
   return (
     <div className="bp-preview-wrap">
       <div className={`bp-preview ${rounded ? "bp-rounded" : "bp-flat"}`}>
-        <div className="bp-preview-left">
-          <div className="bp-preview-icon">
-            <img
-              src={src}
-              alt=""
-              onError={(e) => { e.currentTarget.src = fallback; }}
-            />
-          </div>
+        {showLeft && (
+          <div className="bp-preview-left">
+            <div className="bp-preview-icon">
+              <img
+                src={src}
+                alt=""
+                onError={(e) => { e.currentTarget.src = fallback; }}
+              />
+            </div>
 
-          <div className="bp-preview-title">{step?.title || "Step Title"}</div>
-          <div className="bp-preview-sub">{step?.subtitle || "Step description goes here..."}</div>
+            <div className="bp-preview-title">{step?.title || "Step Title"}</div>
+            <div className="bp-preview-sub">{step?.subtitle || "Step description goes here..."}</div>
 
-          <div className="bp-preview-help">
-            <div className="bp-preview-help-title">{helpTitle}</div>
-            <div className="bp-preview-help-phone">{helpPhone}</div>
+            {showHelp && (
+              <div className="bp-preview-help">
+                <div className="bp-preview-help-title">{helpTitle}</div>
+                <div className="bp-preview-help-phone">{helpPhone}</div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         <div className="bp-preview-right">
           <div className="bp-preview-head">
@@ -66,7 +74,7 @@ export default function WizardPreview({ config, activeStepKey }) {
 
           <div className="bp-preview-footer">
             <button className="bp-btn bp-btn-ghost">{backLabel}</button>
-            <button className="bp-btn bp-btn-primary" style={{ background: primary, borderColor: primary }}>
+            <button className="bp-btn bp-btn-primary" style={{ background: stepPrimary, borderColor: stepPrimary }}>
               {nextLabel}
             </button>
           </div>
