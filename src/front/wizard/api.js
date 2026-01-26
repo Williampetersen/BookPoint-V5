@@ -74,4 +74,28 @@ export const createBooking = (payload) =>
     body: JSON.stringify(payload),
   });
 
+export const startWooCheckout = (payload) =>
+  api('/front/payments/woocommerce/start', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+export const startStripeCheckout = (payload) =>
+  api('/front/payments/stripe/start', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+export const startPaypalCheckout = (payload) =>
+  api('/front/payments/paypal/start', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+export const capturePaypal = (payload) =>
+  api('/front/payments/paypal/capture', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
 export const fetchDesign = () => api(`/front/booking-form-design?_t=${Date.now()}`);

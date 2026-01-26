@@ -11,10 +11,41 @@ add_action('rest_api_init', function(){
 
 if (!function_exists('bp_public_create_booking')) {
 function bp_public_create_booking(WP_REST_Request $req){
-  global $wpdb;
-
   $p = $req->get_json_params();
   if (!is_array($p)) $p = [];
+
+  $allowed_methods = ['cash', 'free', 'woocommerce', 'stripe', 'paypal'];
+  $default_method = class_exists('BP_SettingsHelper')
+    ? (string)BP_SettingsHelper::get('payments_default_method', 'cash')
+    : 'cash';
+  if (!in_array($default_method, $allowed_methods, true)) $default_method = 'cash';
+
+  $payment_method = sanitize_key($p['payment_method'] ?? $default_method);
+  if (!in_array($payment_method, $allowed_methods, true)) $payment_method = $default_method;
+
+  if (!in_array($payment_method, ['cash', 'free'], true)) {
+    return new WP_Error('method_requires_checkout', 'This payment method requires checkout flow.', ['status' => 400]);
+  }
+
+  $overrides = [
+    'status' => 'confirmed',
+    'payment_method' => $payment_method,
+    'payment_status' => $payment_method === 'free' ? 'paid' : 'unpaid',
+  ];
+
+  $result = bp_insert_booking_from_payload($p, $overrides);
+  if (is_wp_error($result)) return $result;
+
+  return new WP_REST_Response(['status' => 'success', 'data' => [
+    'booking_id' => (int)$result['booking_id'],
+    'manage_url' => $result['manage_url'],
+  ]], 200);
+}
+}
+
+if (!function_exists('bp_insert_booking_from_payload')) {
+function bp_insert_booking_from_payload(array $p, array $overrides = []) {
+  global $wpdb;
 
   $service_id = (int)($p['service_id'] ?? 0);
   $agent_id = (int)($p['agent_id'] ?? 0);
@@ -59,7 +90,7 @@ function bp_public_create_booking(WP_REST_Request $req){
     $empty = ($v === null || $v === '' || (is_array($v) && empty($v)));
     if ($empty) {
       $label = !empty($f['label']) ? $f['label'] : $f['field_key'];
-      return new WP_REST_Response(['status'=>'error','message'=> $label . ' is required'], 400);
+      return new WP_Error('missing_field', $label . ' is required', ['status' => 400]);
     }
   }
 
@@ -85,25 +116,25 @@ function bp_public_create_booking(WP_REST_Request $req){
   $notes      = wp_kses_post($booking_fields['notes'] ?? ($p['notes'] ?? ''));
 
   if ($service_id <= 0 || $agent_id <= 0) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Missing service/agent'], 400);
+    return new WP_Error('missing_service_agent', 'Missing service/agent', ['status' => 400]);
   }
   if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Invalid date'], 400);
+    return new WP_Error('invalid_date', 'Invalid date', ['status' => 400]);
   }
   if (!preg_match('/^\d{2}:\d{2}$/', $start_time)) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Invalid time'], 400);
+    return new WP_Error('invalid_time', 'Invalid time', ['status' => 400]);
   }
   if (!$email) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Email required'], 400);
+    return new WP_Error('email_required', 'Email required', ['status' => 400]);
   }
 
   if (class_exists('BP_ScheduleHelper') && BP_ScheduleHelper::is_date_closed($date, $agent_id)) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Date is closed'], 400);
+    return new WP_Error('date_closed', 'Date is closed', ['status' => 400]);
   }
 
   $service = BP_ServiceModel::find($service_id);
   if (!$service) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Service not found'], 404);
+    return new WP_Error('service_not_found', 'Service not found', ['status' => 404]);
   }
 
   $duration = (int)($service['duration_minutes'] ?? 0);
@@ -122,7 +153,7 @@ function bp_public_create_booking(WP_REST_Request $req){
   $start_dt = $date . ' ' . $start_time . ':00';
   $start_ts = strtotime($start_dt);
   if (!$start_ts) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Invalid date/time'], 400);
+    return new WP_Error('invalid_datetime', 'Invalid date/time', ['status' => 400]);
   }
   $end_ts = $start_ts + ($duration * 60);
   $end_dt = date('Y-m-d H:i:s', $end_ts);
@@ -132,12 +163,12 @@ function bp_public_create_booking(WP_REST_Request $req){
 
   if (class_exists('BP_ScheduleHelper') && method_exists('BP_ScheduleHelper','is_within_schedule')) {
     if (!BP_ScheduleHelper::is_within_schedule($agent_id, $date, $start_time, $occupied)) {
-      return new WP_REST_Response(['status'=>'error','message'=>'Outside schedule'], 400);
+      return new WP_Error('outside_schedule', 'Outside schedule', ['status' => 400]);
     }
   }
 
   if (!BP_AvailabilityHelper::is_slot_available($service_id, $start_dt_adj, $end_dt_adj, $capacity, $agent_id)) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Time conflict'], 409);
+    return new WP_Error('time_conflict', 'Time conflict', ['status' => 409]);
   }
 
   $existing = BP_CustomerModel::find_by_email($email);
@@ -164,47 +195,53 @@ function bp_public_create_booking(WP_REST_Request $req){
     ]);
   }
 
-  $t_bookings = $wpdb->prefix . 'bp_bookings';
+  $payment_method = $overrides['payment_method'] ?? sanitize_key($p['payment_method'] ?? 'cash');
+  $payment_status = $overrides['payment_status'] ?? sanitize_key($p['payment_status'] ?? 'unpaid');
+  $payment_provider_ref = $overrides['payment_provider_ref'] ?? null;
 
-  $default_status = 'pending';
-  if (class_exists('BP_SettingsHelper')) {
-    $default_status = (string)BP_SettingsHelper::get('bp_default_booking_status', 'pending');
-  }
-  $default_status = sanitize_key($default_status);
-  if (!in_array($default_status, ['pending', 'confirmed', 'cancelled', 'completed'], true)) {
-    $default_status = 'pending';
+  $currency = sanitize_text_field($p['currency'] ?? ($service['currency'] ?? 'USD'));
+  if (!preg_match('/^[A-Z]{3}$/', $currency)) {
+    $currency = 'USD';
   }
 
-  // Always create a new booking (each booking must be unique)
+  $total_price = $p['total_price'] ?? ($p['total'] ?? ($p['amount_total'] ?? null));
+  $total_price = $total_price !== null ? (float)$total_price : 0.0;
+  $payment_amount = isset($overrides['payment_amount']) ? (float)$overrides['payment_amount'] : $total_price;
+  $payment_currency = $overrides['payment_currency'] ?? $currency;
+
   $booking_id = BP_BookingModel::create([
     'service_id'     => $service_id,
     'customer_id'    => $customer_id,
     'agent_id'       => $agent_id,
     'start_datetime' => $start_dt,
     'end_datetime'   => $end_dt,
-    'status'         => $default_status,
+    'status'         => $overrides['status'] ?? null,
     'notes'          => $notes ?: null,
+    'payment_method' => $payment_method,
+    'payment_status' => $payment_status,
+    'payment_provider_ref' => $payment_provider_ref,
+    'payment_amount' => $payment_amount,
+    'payment_currency' => $payment_currency,
+    'currency'       => $currency,
+    'total_price'    => $total_price,
     'customer_fields_json' => $customer_fields_json,
     'booking_fields_json' => $booking_fields_json,
     'custom_fields_json' => $booking_fields_json,
   ]);
 
   if ($booking_id <= 0) {
-    return new WP_REST_Response(['status'=>'error','message'=>'Insert failed'], 500);
+    return new WP_Error('insert_failed', 'Insert failed', ['status' => 500]);
   }
 
-  // Store extras + pricing on booking (if provided)
+  $t_bookings = $wpdb->prefix . 'bp_bookings';
   $extras_json = $extras ? wp_json_encode($extras) : null;
   $discount_total = isset($p['discount_total']) ? (float)$p['discount_total'] : null;
-  $total_price = $p['total_price'] ?? ($p['total'] ?? ($p['amount_total'] ?? null));
-  $total_price = $total_price !== null ? (float)$total_price : null;
 
   $update = [];
   $formats = [];
   if ($extras_json !== null) { $update['extras_json'] = $extras_json; $formats[] = '%s'; }
   if ($promo_code !== '') { $update['promo_code'] = $promo_code; $formats[] = '%s'; }
   if ($discount_total !== null) { $update['discount_total'] = $discount_total; $formats[] = '%f'; }
-  if ($total_price !== null) { $update['total_price'] = $total_price; $formats[] = '%f'; }
   if (!empty($update)) {
     $wpdb->update($t_bookings, $update, ['id' => $booking_id], $formats, ['%d']);
   }
@@ -227,7 +264,6 @@ function bp_public_create_booking(WP_REST_Request $req){
       elseif ($type === 'textarea') $raw = sanitize_textarea_field($raw);
       else $raw = sanitize_text_field($raw);
 
-      // Always store per-booking values to keep old bookings unique
       BP_FieldValuesHelper::upsert('booking', $booking_id, (int)$f['id'], $field_key, $scope, $raw);
     }
   }
@@ -239,9 +275,9 @@ function bp_public_create_booking(WP_REST_Request $req){
     'key' => $manage_key,
   ], home_url('/'));
 
-  return new WP_REST_Response(['status'=>'success','data'=>[
+  return [
     'booking_id' => $booking_id,
     'manage_url' => $manage_url,
-  ]], 200);
+  ];
 }
 }
