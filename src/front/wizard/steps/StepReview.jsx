@@ -15,8 +15,12 @@ export default function StepReview({
   agents,
   formFields,
   answers,
+  paymentMethodLabel,
+  totalLabel,
   onBack,
-  onSubmit,
+  onNext,
+  isCreatingBooking,
+  createError,
   loading,
   backLabel = '<- Back',
   nextLabel = 'Next ->',
@@ -43,6 +47,8 @@ export default function StepReview({
         <ReviewRow label="Date" value={date} />
         <ReviewRow label="Time" value={slot?.start_time ? `${slot.start_time} - ${slot.end_time}` : '-'} />
         <ReviewRow label="Extras" value={ex.length ? ex.map((e) => e.name).join(', ') : '-'} />
+        {paymentMethodLabel ? <ReviewRow label="Payment Method" value={paymentMethodLabel} /> : null}
+        {totalLabel ? <ReviewRow label="Total" value={totalLabel} /> : null}
 
         <div className="bp-review-section">Customer Information</div>
         {fields.map((f) => {
@@ -54,10 +60,16 @@ export default function StepReview({
         })}
       </div>
 
+      {createError ? (
+        <div className="bp-alert bp-alert-error bp-mt-12">
+          {createError}
+        </div>
+      ) : null}
+
       <div className="bp-step-footer">
         <button type="button" className="bp-back" onClick={onBack}>{backLabel}</button>
-        <button type="button" className="bp-next" disabled={loading} onClick={onSubmit}>
-          {loading ? 'Submitting...' : nextLabel}
+        <button type="button" className="bp-next" disabled={loading || isCreatingBooking} onClick={onNext}>
+          {isCreatingBooking ? 'Preparing payment...' : (loading ? 'Submitting...' : nextLabel)}
         </button>
       </div>
     </div>

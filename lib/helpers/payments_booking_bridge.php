@@ -14,7 +14,7 @@ function bp_create_pending_payment_booking_from_payload(array $payload, string $
   $overrides = [
     'status' => 'pending_payment',
     'payment_method' => $method,
-    'payment_status' => 'pending',
+    'payment_status' => 'unpaid',
     'payment_amount' => $amount,
   ];
   if ($currency !== '') {

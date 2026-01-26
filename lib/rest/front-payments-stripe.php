@@ -144,22 +144,54 @@ function bp_stripe_verify_signature(string $payload, string $sig_header, string 
 }
 
 function bp_stripe_webhook(WP_REST_Request $req) {
-  $payload = $req->get_body();
-  $sig = sanitize_text_field($_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '');
+  $settings = get_option('bp_settings', []);
+  $webhook_secret = $settings['stripe_webhook_secret'] ?? '';
 
-  $webhook_secret = class_exists('BP_SettingsHelper')
-    ? (string)BP_SettingsHelper::get('payments_stripe_webhook_secret', '')
-    : '';
-
-  if ($webhook_secret !== '') {
-    if (!bp_stripe_verify_signature($payload, $sig, $webhook_secret)) {
-      return new WP_Error('bad_signature', 'Invalid signature.', ['status' => 400]);
-    }
+  $raw = $req->get_body();
+  $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
+  if (!$webhook_secret) {
+    return new WP_Error('no_webhook_secret', 'Stripe webhook secret not configured.', ['status' => 400]);
+  }
+  if (!$sig_header) {
+    return new WP_Error('no_signature', 'Missing Stripe-Signature header.', ['status' => 400]);
   }
 
-  $event = json_decode($payload, true);
+  $tolerance = 300;
+  $timestamp = 0;
+  $v1_signatures = [];
+
+  foreach (explode(',', $sig_header) as $part) {
+    $kv = explode('=', trim($part), 2);
+    if (count($kv) !== 2) continue;
+    if ($kv[0] === 't') $timestamp = (int)$kv[1];
+    if ($kv[0] === 'v1') $v1_signatures[] = $kv[1];
+  }
+
+  if ($timestamp <= 0 || empty($v1_signatures)) {
+    return new WP_Error('bad_signature', 'Invalid Stripe-Signature header.', ['status' => 400]);
+  }
+
+  if (abs(time() - $timestamp) > $tolerance) {
+    return new WP_Error('timestamp_out_of_range', 'Webhook timestamp out of range.', ['status' => 400]);
+  }
+
+  $signed_payload = $timestamp . '.' . $raw;
+  $expected = hash_hmac('sha256', $signed_payload, $webhook_secret);
+
+  $match = false;
+  foreach ($v1_signatures as $sig) {
+    if (hash_equals($expected, $sig)) {
+      $match = true;
+      break;
+    }
+  }
+  if (!$match) {
+    return new WP_Error('signature_mismatch', 'Stripe signature verification failed.', ['status' => 400]);
+  }
+
+  $event = json_decode($raw, true);
   if (!is_array($event)) {
-    return new WP_Error('bad_json', 'Invalid JSON', ['status' => 400]);
+    return new WP_Error('bad_json', 'Invalid JSON body.', ['status' => 400]);
   }
 
   if (($event['type'] ?? '') === 'checkout.session.completed') {
