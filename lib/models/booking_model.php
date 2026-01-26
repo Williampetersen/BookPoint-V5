@@ -23,9 +23,14 @@ final class BP_BookingModel extends BP_Model {
       $default_status = BP_SettingsHelper::get('bp_default_booking_status', 'pending');
     }
     $default_status = sanitize_key((string)($default_status ?: 'pending'));
-    if (!in_array($default_status, ['pending', 'confirmed', 'cancelled', 'completed'], true)) {
+    if (!in_array($default_status, ['pending', 'pending_payment', 'confirmed', 'cancelled', 'completed', 'failed_payment'], true)) {
       $default_status = 'pending';
     }
+
+    $payment_currency = $data['payment_currency'] ?? ($data['currency'] ?? null);
+    $payment_amount = isset($data['payment_amount'])
+      ? (float)$data['payment_amount']
+      : (isset($data['total_price']) ? (float)$data['total_price'] : 0);
 
     $payload = [
       'service_id'      => (int)$data['service_id'],
@@ -35,6 +40,13 @@ final class BP_BookingModel extends BP_Model {
       'end_datetime'    => $data['end_datetime'],
       'status'          => $default_status,
       'notes'           => $data['notes'] ?? null,
+      'payment_method'  => $data['payment_method'] ?? null,
+      'payment_status'  => $data['payment_status'] ?? null,
+      'payment_provider_ref' => $data['payment_provider_ref'] ?? null,
+      'payment_amount' => $payment_amount,
+      'payment_currency' => $payment_currency,
+      'currency'        => $data['currency'] ?? null,
+      'total_price'     => isset($data['total_price']) ? (float)$data['total_price'] : 0,
       'customer_fields_json' => $data['customer_fields_json'] ?? null,
       'booking_fields_json' => $data['booking_fields_json'] ?? null,
       'custom_fields_json' => $data['custom_fields_json'] ?? null,
@@ -46,7 +58,7 @@ final class BP_BookingModel extends BP_Model {
     $wpdb->insert(
       $table,
       $payload,
-      ['%d','%d','%d','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s']
+      ['%d','%d','%d','%s','%s','%s','%s','%s','%s','%s','%f','%s','%s','%f','%s','%s','%s','%s','%s','%s']
     );
     $booking_id = (int)$wpdb->insert_id;
 
@@ -349,7 +361,7 @@ final class BP_BookingModel extends BP_Model {
     global $wpdb;
     $table = self::table();
 
-    $allowed = ['pending','confirmed','cancelled','completed'];
+    $allowed = ['pending','pending_payment','confirmed','cancelled','completed','failed_payment'];
     if (!in_array($status, $allowed, true)) return false;
 
     $updated = $wpdb->update(

@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PaymentsSettings from "./settings/PaymentsSettings";
 
 const TABS = [
   { id: "general", label: "General" },
+  { id: "payments", label: "Payments" },
   { id: "emails", label: "Emails" },
   { id: "webhooks", label: "Webhooks" },
   { id: "license", label: "License" },
@@ -525,6 +527,10 @@ export default function SettingsScreen() {
                 )}
               </div>
             </div>
+          )}
+
+          {activeTab === "payments" && (
+            <PaymentsSettings />
           )}
 
       {activeTab === "emails" && (

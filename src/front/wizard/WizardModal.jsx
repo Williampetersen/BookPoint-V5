@@ -7,6 +7,10 @@ import {
   fetchAgents,
   fetchFormFields,
   createBooking,
+  startWooCheckout,
+  startStripeCheckout,
+  startPaypalCheckout,
+  capturePaypal,
 } from './api';
 import useBookingFormDesign from '../hooks/useBookingFormDesign';
 import StepLocation from './steps/StepLocation';
@@ -16,8 +20,10 @@ import StepExtras from './steps/StepExtras';
 import StepAgent from './steps/StepAgent';
 import StepDateTime from './steps/StepDateTime';
 import StepCustomer from './steps/StepCustomer';
+import PaymentStep from './steps/PaymentStep';
 import StepReview from './steps/StepReview';
 import StepDone from './steps/StepDone';
+import useBpFrontSettings from '../hooks/useBpFrontSettings';
 
 const DEFAULT_STEPS = [
   { key: 'location', title: 'Location Selection', icon: 'location-image.png' },
@@ -63,6 +69,7 @@ export default function WizardModal({ open, onClose, brand }) {
   const [stepIndex, setStepIndex] = useState(0);
   const { config: designConfig, loading: designLoading, error: designError } = useBookingFormDesign(open);
   const steps = useMemo(() => buildSteps(designConfig), [designConfig]);
+  const { settings: bpSettings } = useBpFrontSettings(open);
 
   const [locationId, setLocationId] = useState(null);
   const [categoryIds, setCategoryIds] = useState([]);
@@ -71,6 +78,8 @@ export default function WizardModal({ open, onClose, brand }) {
   const [agentId, setAgentId] = useState(null);
   const [date, setDate] = useState(null);
   const [slot, setSlot] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [returnHandled, setReturnHandled] = useState(false);
 
   const [formFields, setFormFields] = useState({ form: [], customer: [], booking: [] });
   const [answers, setAnswers] = useState({});
@@ -94,6 +103,20 @@ export default function WizardModal({ open, onClose, brand }) {
   const helpPhone = designConfig?.texts?.helpPhone || designConfig?.layout?.helpPhone || brand?.helpPhone || '';
   const showLeft = step?.showLeftPanel !== false;
   const showHelp = step?.showHelpBox !== false;
+  const paymentEnabledMethods = Array.isArray(bpSettings?.payments_enabled_methods) && bpSettings.payments_enabled_methods.length
+    ? bpSettings.payments_enabled_methods
+    : ['cash'];
+  const totalAmount = useMemo(() => {
+    const svc = services.find((x) => String(x.id) === String(serviceId));
+    const svcPrice = svc?.price != null ? Number(svc.price) : 0;
+    const selectedExtras = extras.filter((extra) => (
+      extraIds.includes(extra.id) || extraIds.includes(String(extra.id))
+    ));
+    const extrasPrice = selectedExtras.reduce((sum, item) => (
+      sum + (item?.price != null ? Number(item.price) : 0)
+    ), 0);
+    return svcPrice + extrasPrice;
+  }, [services, serviceId, extras, extraIds]);
 
   useEffect(() => {
     if (!open) return;
@@ -112,8 +135,79 @@ export default function WizardModal({ open, onClose, brand }) {
     setAgentId(null);
     setDate(null);
     setSlot(null);
+    setPaymentMethod(null);
+    setReturnHandled(false);
     setAnswers({});
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!paymentMethod && bpSettings?.payments_default_method) {
+      setPaymentMethod(bpSettings.payments_default_method);
+    }
+  }, [open, bpSettings, paymentMethod]);
+
+  useEffect(() => {
+    if (!open || returnHandled) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const bpPayment = params.get('bp_payment');
+    const token = params.get('token');
+    const bookingId = Number(params.get('booking_id') || 0);
+
+    const doneIndex = steps.findIndex((s) => s.key === 'done');
+    const goDone = (booking_id) => {
+      setAnswers((a) => ({ ...a, __booking: { booking_id } }));
+      setStepIndex(doneIndex >= 0 ? doneIndex : steps.length - 1);
+    };
+
+    const cleanUrl = () => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('bp_payment');
+      url.searchParams.delete('token');
+      url.searchParams.delete('booking_id');
+      window.history.replaceState({}, document.title, url.toString());
+    };
+
+    if (bpPayment === 'paypal_cancel') {
+      setReturnHandled(true);
+      setError('PayPal payment cancelled');
+      cleanUrl();
+      return;
+    }
+
+    if (bpPayment === 'stripe_cancel') {
+      setReturnHandled(true);
+      setError('Stripe payment cancelled');
+      cleanUrl();
+      return;
+    }
+
+    if ((bpPayment === 'paypal_return' || bpPayment === 'paypal') && token && bookingId) {
+      setReturnHandled(true);
+      setLoading(true);
+      capturePaypal({ order_id: token, booking_id: bookingId })
+        .then(() => {
+          goDone(bookingId);
+          cleanUrl();
+        })
+        .catch((e) => setError(e?.message || 'PayPal capture failed'))
+        .finally(() => setLoading(false));
+      return;
+    }
+
+    if (bpPayment === 'stripe_success' && bookingId) {
+      setReturnHandled(true);
+      goDone(bookingId);
+      cleanUrl();
+    }
+  }, [open, returnHandled, steps]);
+
+  useEffect(() => {
+    if (error === 'Select a payment method' && paymentMethod) {
+      setError('');
+    }
+  }, [error, paymentMethod]);
 
   useEffect(() => {
     if (!open) return;
@@ -185,6 +279,10 @@ export default function WizardModal({ open, onClose, brand }) {
 
   function next() {
     setError('');
+    if (step?.key === 'payment' && !paymentMethod) {
+      setError('Select a payment method');
+      return;
+    }
     setStepIndex((i) => Math.min(i + 1, steps.length - 1));
   }
 
@@ -221,7 +319,43 @@ export default function WizardModal({ open, onClose, brand }) {
         customer_fields,
         booking_fields,
         extras: extraIds,
+        total_price: totalAmount,
+        currency: bpSettings?.currency || 'USD',
       };
+
+      const method = paymentMethod || bpSettings?.payments_default_method || 'cash';
+      payload.payment_method = method;
+
+      if (method === 'woocommerce') {
+        const res = await startWooCheckout(payload);
+        if (!res?.checkout_url) {
+          throw new Error('Checkout URL missing');
+        }
+        window.location.href = res.checkout_url;
+        return;
+      }
+
+      if (method === 'stripe') {
+        const res = await startStripeCheckout(payload);
+        if (!res?.checkout_url) {
+          throw new Error('Stripe checkout URL missing');
+        }
+        window.location.href = res.checkout_url;
+        return;
+      }
+
+      if (method === 'paypal') {
+        const res = await startPaypalCheckout(payload);
+        if (!res?.approve_url) {
+          throw new Error('PayPal approve URL missing');
+        }
+        window.location.href = res.approve_url;
+        return;
+      }
+
+      if (method !== 'cash' && method !== 'free') {
+        throw new Error('Unsupported payment method');
+      }
 
       const res = await createBooking(payload);
       setAnswers((a) => ({ ...a, __booking: res }));
@@ -362,6 +496,17 @@ export default function WizardModal({ open, onClose, brand }) {
               />
             )}
 
+            {step.key === 'payment' && (
+              <PaymentStep
+                enabledMethods={paymentEnabledMethods}
+                selected={paymentMethod}
+                onSelect={setPaymentMethod}
+                totalLabel={formatMoney(totalAmount, bpSettings)}
+                onBack={back}
+                onNext={next}
+              />
+            )}
+
             {step.key === 'review' && (
               <StepReview
                 locationId={locationId}
@@ -415,6 +560,21 @@ export default function WizardModal({ open, onClose, brand }) {
       </div>
     </div>
   );
+}
+
+function formatMoney(amount, settings = {}) {
+  if (amount == null) return '-';
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return '-';
+
+  const currency = settings.currency || 'USD';
+  const position = settings.currency_position === 'after' ? 'after' : 'before';
+  const formatted = value.toLocaleString(undefined, {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+
+  return position === 'after' ? `${formatted} ${currency}` : `${currency} ${formatted}`;
 }
 
 function SummaryBlock(props) {

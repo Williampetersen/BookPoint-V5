@@ -32,6 +32,7 @@ function bp_front_get_booking_form_design() {
         ['key' => 'agent', 'enabled' => true, 'title' => 'Choose Agent', 'subtitle' => '', 'image' => 'default-avatar.jpg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
         ['key' => 'datetime', 'enabled' => true, 'title' => 'Choose Date & Time', 'subtitle' => '', 'image' => 'blue-dot.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
         ['key' => 'customer', 'enabled' => true, 'title' => 'Customer Information', 'subtitle' => '', 'image' => 'default-avatar.jpg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
+        ['key' => 'payment', 'enabled' => true, 'title' => 'Payment', 'subtitle' => 'Choose a payment method', 'image' => 'service-image.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
         ['key' => 'review', 'enabled' => true, 'title' => 'Review Order', 'subtitle' => '', 'image' => 'white-curve.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
         ['key' => 'done', 'enabled' => true, 'title' => 'Done', 'subtitle' => '', 'image' => 'logo.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
       ],

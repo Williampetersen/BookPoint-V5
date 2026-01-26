@@ -217,6 +217,12 @@ final class BP_MigrationsHelper {
     self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'promo_code', 'VARCHAR(60) NULL');
     self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'discount_total', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00');
     self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'total_price', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00');
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'currency', "CHAR(3) NOT NULL DEFAULT 'USD'");
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'payment_method', "VARCHAR(30) NOT NULL DEFAULT 'cash'");
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'payment_status', "VARCHAR(30) NOT NULL DEFAULT 'unpaid'");
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'payment_provider_ref', 'VARCHAR(190) NULL');
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'payment_amount', 'DECIMAL(10,2) NULL');
+    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'payment_currency', 'CHAR(3) NULL');
     self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'customer_fields_json', 'LONGTEXT NULL');
     self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'booking_fields_json', 'LONGTEXT NULL');
     self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'custom_fields_json', 'LONGTEXT NULL');
@@ -317,7 +323,22 @@ final class BP_MigrationsHelper {
       if (!self::column_exists($service_table, $col)) return true;
     }
 
-    $booking_columns = ['category_id', 'service_id', 'extras_json', 'promo_code', 'discount_total', 'total_price', 'customer_fields_json', 'booking_fields_json'];
+    $booking_columns = [
+      'category_id',
+      'service_id',
+      'extras_json',
+      'promo_code',
+      'discount_total',
+      'total_price',
+      'currency',
+      'payment_method',
+      'payment_status',
+      'payment_provider_ref',
+      'payment_amount',
+      'payment_currency',
+      'customer_fields_json',
+      'booking_fields_json',
+    ];
     foreach ($booking_columns as $col) {
       if (!self::column_exists($booking_table, $col)) return true;
     }

@@ -98,6 +98,7 @@ final class BP_Plugin {
     // Helpers (Portal + Webhooks)
     require_once BP_LIB_PATH . 'helpers/portal_helper.php';
     require_once BP_LIB_PATH . 'helpers/webhook_helper.php';
+    require_once BP_LIB_PATH . 'helpers/payments_booking_bridge.php';
 
     // Helpers (Audit)
     require_once BP_LIB_PATH . 'helpers/audit_helper.php';
@@ -114,6 +115,9 @@ final class BP_Plugin {
     // Helpers (License + Updates)
     require_once BP_LIB_PATH . 'helpers/license_helper.php';
     require_once BP_LIB_PATH . 'helpers/updates_helper.php';
+
+    // Integrations
+    require_once BP_LIB_PATH . 'integrations/woocommerce-hooks.php';
 
     // Controllers (Step 3)
     require_once BP_LIB_PATH . 'controllers/controller.php';
@@ -144,6 +148,7 @@ final class BP_Plugin {
     // Controllers (Audit + Tools)
     require_once BP_LIB_PATH . 'controllers/admin_audit_controller.php';
     require_once BP_LIB_PATH . 'controllers/admin_tools_controller.php';
+    require_once BP_LIB_PATH . 'admin/admin-payments-settings-routes.php';
 
     // REST routes (Admin)
     require_once BP_LIB_PATH . 'rest/admin-calendar-routes.php';
@@ -167,6 +172,10 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'rest/front-wizard-routes.php';
     require_once BP_LIB_PATH . 'rest/admin-booking-form-design-routes.php';
     require_once BP_LIB_PATH . 'rest/front-booking-form-design-routes.php';
+    require_once BP_LIB_PATH . 'rest/front-settings.php';
+    require_once BP_LIB_PATH . 'rest/front-payments-woocommerce.php';
+    require_once BP_LIB_PATH . 'rest/front-payments-stripe.php';
+    require_once BP_LIB_PATH . 'rest/front-payments-paypal.php';
     require_once BP_LIB_PATH . 'routes/front-availability-routes.php';
     require_once BP_LIB_PATH . 'routes/front-availability-month-slots.php';
     require_once BP_LIB_PATH . 'rest/form-fields-routes.php';
@@ -1684,14 +1693,34 @@ final class BP_Plugin {
       true
     );
 
-    wp_localize_script('bp-front', 'BP_FRONT', [
+    wp_localize_script('bp-front', 'BP_FRONT', self::front_localized_data());
+  }
+
+  private static function front_localized_data(): array {
+    return [
       'restUrl' => esc_url_raw(rest_url('bp/v1')),
       'ajaxUrl' => admin_url('admin-ajax.php'),
       'siteUrl' => site_url('/'),
       'nonce' => wp_create_nonce('wp_rest'),
       'images' => BP_PLUGIN_URL . 'public/images/',
       'tz' => wp_timezone_string(),
-    ]);
+      'settings' => self::front_settings_payload(),
+    ];
+  }
+
+  private static function front_settings_payload(): array {
+    $enabled = BP_SettingsHelper::get_with_default('payments_enabled_methods');
+    if (!is_array($enabled)) {
+      $enabled = ['cash'];
+    }
+
+    return [
+      'currency' => BP_SettingsHelper::get_with_default('bp_default_currency'),
+      'currency_position' => BP_SettingsHelper::get_with_default('bp_currency_position'),
+      'payments_enabled_methods' => $enabled,
+      'payments_default_method' => BP_SettingsHelper::get_with_default('payments_default_method'),
+      'payments_require_payment_to_confirm' => BP_SettingsHelper::get_with_default('payments_require_payment_to_confirm'),
+    ];
   }
 
   public static function render_agents() : void {
@@ -1941,12 +1970,7 @@ final class BP_Plugin {
     $front_js = BP_PLUGIN_PATH . 'public/front.js';
     if (file_exists($front_js)) {
       wp_enqueue_script('bp-front', BP_PLUGIN_URL . 'public/front.js', [], @filemtime($front_js) ?: self::VERSION, true);
-      wp_localize_script('bp-front', 'BP_FRONT', [
-        'restUrl' => esc_url_raw(rest_url('bp/v1')),
-        'ajaxUrl' => admin_url('admin-ajax.php'),
-        'siteUrl' => site_url('/'),
-        'nonce' => wp_create_nonce('wp_rest'),
-      ]);
+      wp_localize_script('bp-front', 'BP_FRONT', self::front_localized_data());
     }
 
     $front_css = BP_PLUGIN_PATH . 'public/index.jsx.css';
