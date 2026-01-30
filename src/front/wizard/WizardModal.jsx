@@ -7,7 +7,6 @@ import {
   fetchAgents,
   fetchFormFields,
   createBooking,
-  createDraftBooking,
   startWooCheckout,
   startStripeCheckout,
   startPaypalCheckout,
@@ -20,11 +19,9 @@ import StepExtras from './steps/StepExtras';
 import StepAgent from './steps/StepAgent';
 import StepDateTime from './steps/StepDateTime';
 import StepCustomer from './steps/StepCustomer';
-import PaymentStep from './steps/PaymentStep';
-import PaymentStepStripe from './PaymentStepStripe';
+import StepPayment from './steps/StepPayment';
 import StepReview from './steps/StepReview';
-import StepDone from './steps/StepDone';
-import StepConfirmation from "./steps/StepConfirmation";
+import StepConfirmation from './steps/StepConfirmation';
 import useBpFrontSettings from '../hooks/useBpFrontSettings';
 
 const REQUIRED_STEP_ORDER = [
@@ -37,7 +34,7 @@ const REQUIRED_STEP_ORDER = [
   'customer',
   'review',
   'payment',
-  'done',
+  'confirmation',
 ];
 
 const DEFAULT_STEPS = [
@@ -50,7 +47,7 @@ const DEFAULT_STEPS = [
   { key: 'customer', title: 'Customer Information', icon: 'default-avatar.jpg' },
   { key: 'review', title: 'Review Order', icon: 'white-curve.png' },
   { key: 'payment', title: 'Payment', icon: 'payment_now.png' },
-  { key: 'done', title: 'Confirm', icon: 'logo.png' },
+  { key: 'confirmation', title: 'Confirm', icon: 'logo.png' },
 ];
 
 function normalizeStepKeys(stepKeys = []) {
@@ -85,9 +82,10 @@ async function paypalCapture(orderId, bookingId) {
 async function fetchBookingStatus(id) {
   const r = await fetch(`${getRestBase()}/front/bookings/${id}/status?_t=${Date.now()}`, {
     credentials: 'same-origin',
+    headers: { 'X-WP-Nonce': window.BP_FRONT?.nonce || '' },
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j?.message || 'Status fetch failed');
+  if (!r.ok || !j?.success) throw new Error(j?.message || 'Could not load booking status');
   return j.booking;
 }
 
@@ -116,15 +114,22 @@ function buildSteps(designConfig) {
   const baseMap = new Map(DEFAULT_STEPS.map((s) => [s.key, s]));
   const normalizeKey = (k) => {
     if (k === 'agents') return 'agent';
-    if (k === 'confirm' || k === 'confirmation') return 'done';
+    if (k === 'agent') return 'agent';
+    if (k === 'done' || k === 'confirm') return 'confirmation';
+    if (k === 'confirmation') return 'confirmation';
     return k;
   };
 
-  const list = enabled.length
+  const rawKeys = enabled.length
+    ? enabled
+        .map((s) => normalizeKey(s.key))
+        .filter(Boolean)
+    : DEFAULT_STEPS.map((s) => s.key);
+  const stepKeys = normalizeStepKeys(rawKeys);
+
+  const list = stepKeys.length
     ? normalizeStepKeys(
-        enabled
-          .map((s) => normalizeKey(s.key))
-          .filter(Boolean)
+        stepKeys
       ).map((key) => ({
         ...(baseMap.get(key) || { key, title: key, icon: 'service-image.png' }),
         key,
@@ -143,10 +148,6 @@ function buildSteps(designConfig) {
 
 export default function WizardModal({ open, onClose, brand }) {
   const [stepIndex, setStepIndex] = useState(0);
-  // S14.1 Confirmation step states
-  const [confirmInfo, setConfirmInfo] = useState(null);
-  const [confirmLoading, setConfirmLoading] = useState(false);
-  const [confirmError, setConfirmError] = useState("");
   const { config: designConfig, loading: designLoading, error: designError } = useBookingFormDesign(open);
   const baseSteps = useMemo(() => buildSteps(designConfig), [designConfig]);
   const { settings: bpSettings } = useBpFrontSettings(open);
@@ -167,6 +168,9 @@ export default function WizardModal({ open, onClose, brand }) {
   const [returnLoading, setReturnLoading] = useState(false);
   const [returnError, setReturnError] = useState('');
   const [confirmData, setConfirmData] = useState(null);
+  const [confirmInfo, setConfirmInfo] = useState(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [confirmError, setConfirmError] = useState('');
 
   const [formFields, setFormFields] = useState({ form: [], customer: [], booking: [] });
   const [answers, setAnswers] = useState({});
@@ -300,12 +304,10 @@ export default function WizardModal({ open, onClose, brand }) {
     (async () => {
       try {
         if (returnState.action === 'cancel') {
-          if (returnState.mode === 'paypal') {
-            await fetch(`${getRestBase()}/front/bookings/${returnState.bookingId}/payment-cancel`, {
-              method: 'POST',
-              credentials: 'same-origin',
-            });
-          }
+          await fetch(`${getRestBase()}/front/bookings/${returnState.bookingId}/payment-cancel`, {
+            method: 'POST',
+            credentials: 'same-origin',
+          });
           throw new Error('Payment cancelled.');
         }
 
@@ -323,6 +325,8 @@ export default function WizardModal({ open, onClose, brand }) {
         const confirmed = await waitForConfirmed(returnState.bookingId);
         if (!alive) return;
 
+        setBookingId(returnState.bookingId);
+        setPaymentBookingId(returnState.bookingId);
         setAnswers((a) => ({ ...a, __booking: { booking_id: returnState.bookingId } }));
         if (confirmed?.status === 'confirmed' && confirmed?.payment_status === 'paid') {
           setConfirmData({ booking: confirmed, paid: true, error: '' });
@@ -334,14 +338,16 @@ export default function WizardModal({ open, onClose, brand }) {
             pending: true,
           });
         }
-        goToStepKey('done');
+        goToStepKey('confirmation');
       } catch (e) {
         if (!alive) return;
         const message = e?.message || 'Payment failed';
         setReturnError(message);
+        setBookingId(returnState.bookingId);
+        setPaymentBookingId(returnState.bookingId);
         setAnswers((a) => ({ ...a, __booking: { booking_id: returnState.bookingId } }));
         setConfirmData({ booking: { id: returnState.bookingId }, paid: false, error: message });
-        goToStepKey('done');
+        goToStepKey('confirmation');
       } finally {
         if (!alive) return;
         setReturnLoading(false);
@@ -396,20 +402,21 @@ export default function WizardModal({ open, onClose, brand }) {
     });
   }, [steps.length]);
 
-  // S14.2 Confirmation step effect
+  const bookingData = answers?.__booking || null;
   const currentStepKey = steps[stepIndex]?.key;
+
   useEffect(() => {
     if (!open) return;
-    if (currentStepKey !== "confirmation") return;
+    if (currentStepKey !== 'confirmation') return;
     if (!bookingId) return;
 
     let alive = true;
     setConfirmLoading(true);
-    setConfirmError("");
+    setConfirmError('');
 
     fetchBookingStatus(bookingId)
       .then((b) => alive && setConfirmInfo(b))
-      .catch((e) => alive && setConfirmError(e.message || "Error"))
+      .catch((e) => alive && setConfirmError(e.message || 'Error'))
       .finally(() => alive && setConfirmLoading(false));
 
     return () => { alive = false; };
@@ -451,10 +458,6 @@ export default function WizardModal({ open, onClose, brand }) {
     setError('');
     if (step?.key === 'payment' && !paymentMethod) {
       setError('Select a payment method');
-      return;
-    }
-    if (step?.key === 'payment' && paymentMethod === 'stripe') {
-      setError('Please complete the payment.');
       return;
     }
     setStepIndex((i) => Math.min(i + 1, steps.length - 1));
@@ -501,25 +504,32 @@ export default function WizardModal({ open, onClose, brand }) {
 
   const createBookingIfNeeded = async () => {
     if (bookingId) return bookingId;
+
     setIsCreatingBooking(true);
     setCreateError(null);
+
     try {
       const payload = buildPayload();
-      const method = paymentMethod || bpSettings?.payments_default_method || 'stripe';
-      payload.payment_method = method;
+      payload.payment_method = paymentMethod || 'cash';
 
-      const res = await createDraftBooking(payload);
-      const newId = Number(res?.booking_id || 0);
-      if (!newId) {
-        throw new Error(res?.message || 'Could not create booking.');
+      const res = await fetch(`${getRestBase()}/front/booking/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-WP-Nonce': window.BP_FRONT?.nonce || '',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j?.success) {
+        throw new Error(j?.message || 'Could not create booking');
       }
-      setBookingId(newId);
-      setPaymentBookingId(newId);
-      setAnswers((a) => ({ ...a, __booking: { booking_id: newId } }));
-      return newId;
+
+      setBookingId(j.booking_id);
+      return j.booking_id;
     } catch (e) {
-      const msg = e?.message || 'Create booking failed';
-      setCreateError(msg);
+      setCreateError(e.message || 'Create booking failed');
       throw e;
     } finally {
       setIsCreatingBooking(false);
@@ -570,8 +580,15 @@ export default function WizardModal({ open, onClose, brand }) {
       }
 
       const res = await createBooking(payload);
+      setBookingId(res?.booking_id || null);
+      setPaymentBookingId(res?.booking_id || 0);
+      setConfirmData({
+        booking: res,
+        paid: method === 'free',
+        error: '',
+      });
       setAnswers((a) => ({ ...a, __booking: res }));
-      const doneIdx = steps.findIndex((s) => s.key === 'done');
+      const doneIdx = steps.findIndex((s) => s.key === 'confirmation');
       setStepIndex(doneIdx >= 0 ? doneIdx : steps.length - 1);
     } catch (e) {
       setError(e?.message || 'Could not submit booking.');
@@ -709,29 +726,13 @@ export default function WizardModal({ open, onClose, brand }) {
             )}
 
             {step.key === 'payment' && (
-              <>
-                <PaymentStep
-                  enabledMethods={paymentEnabledMethods}
-                  selected={paymentMethod}
-                  onSelect={setPaymentMethod}
-                  totalLabel={formatMoney(totalAmount, bpSettings)}
-                  imagesBase={brand?.imagesBase || ''}
-                  onBack={back}
-                  onNext={next}
-                />
-                {paymentMethod === 'stripe' ? (
-                  <PaymentStepStripe
-                    bookingId={paymentBookingId}
-                    publishableKey={bpSettings?.stripe_publishable_key || ''}
-                    amountLabel={formatMoney(totalAmount, bpSettings)}
-                    onPaid={() => {
-                      setConfirmData({ booking: { id: paymentBookingId }, paid: true, error: '' });
-                      goToStepKey('done');
-                    }}
-                    onError={(msg) => setError(msg)}
-                  />
-                ) : null}
-              </>
+              <StepPayment
+                bookingId={bookingId}
+                paymentMethod={paymentMethod}
+                totalLabel={formatMoney(totalAmount, bpSettings)}
+                onBack={() => goToStepKey('review')}
+                onPaid={() => goToStepKey('confirmation')}
+              />
             )}
 
             {step.key === 'review' && (
@@ -750,21 +751,17 @@ export default function WizardModal({ open, onClose, brand }) {
                 agents={agents}
                 formFields={formFields}
                 answers={answers}
+                bookingId={bookingId}
                 paymentMethodLabel={paymentLabelMap[paymentMethod] || paymentMethod || '-'}
                 totalLabel={formatMoney(totalAmount, bpSettings)}
                 onBack={back}
                 onNext={async () => {
-                  if (paymentMethod === 'stripe') {
-                    await createBookingIfNeeded();
-                    goToStepKey('payment');
-                    return;
-                  }
-                  await submitBooking();
+                  await createBookingIfNeeded();
+                  goToStepKey('payment');
                 }}
                 isCreatingBooking={isCreatingBooking}
                 createError={createError}
                 loading={loading}
-                nextLabel="Submit booking"
               />
             )}
 
@@ -774,7 +771,7 @@ export default function WizardModal({ open, onClose, brand }) {
                 confirmInfo={confirmInfo}
                 loading={confirmLoading}
                 error={confirmError}
-                summary={null} // Optionally pass buildSummaryText() if available
+                summary={null}
                 onClose={onClose}
                 onRetry={() => goToStepKey('payment')}
               />

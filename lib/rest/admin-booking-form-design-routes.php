@@ -55,8 +55,8 @@ function bp_booking_form_design_default() {
       ['key'=>'agents', 'enabled'=>true, 'title'=>'Choose Agent', 'subtitle'=>'Pick your agent', 'image'=>'default-avatar.jpg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
       ['key'=>'datetime', 'enabled'=>true, 'title'=>'Date & Time', 'subtitle'=>'Pick an available slot', 'image'=>'blue-dot.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
       ['key'=>'customer', 'enabled'=>true, 'title'=>'Customer Info', 'subtitle'=>'Enter your details', 'image'=>'default-avatar.jpg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
-      ['key'=>'review', 'enabled'=>true, 'title'=>'Review Order', 'subtitle'=>'Confirm everything', 'image'=>'white-curve.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
       ['key'=>'payment', 'enabled'=>true, 'title'=>'Payment', 'subtitle'=>'Choose a payment method', 'image'=>'service-image.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
+      ['key'=>'review', 'enabled'=>true, 'title'=>'Review Order', 'subtitle'=>'Confirm everything', 'image'=>'white-curve.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
       ['key'=>'confirm', 'enabled'=>true, 'title'=>'Confirmation', 'subtitle'=>'Done', 'image'=>'logo.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
     ],
     'texts' => [

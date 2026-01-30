@@ -12,8 +12,8 @@ const DESIGN_STEP_ORDER = [
   "agents",
   "datetime",
   "customer",
-  "review",
   "payment",
+  "review",
   "confirm",
 ];
 
