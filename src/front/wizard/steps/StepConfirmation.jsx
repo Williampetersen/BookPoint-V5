@@ -20,7 +20,7 @@ export default function StepConfirmation({
         <h3>Confirmation</h3>
       </div>
 
-      {loading ? <div className="bp-muted">Loading booking status…</div> : null}
+      {loading ? <div className="bp-muted">Loading booking status...</div> : null}
       {error ? <div className="bp-alert bp-alert-error">{error}</div> : null}
 
       {!loading && !error ? (

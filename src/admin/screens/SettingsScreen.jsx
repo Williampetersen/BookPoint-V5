@@ -1,13 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
-import PaymentsSettings from "./settings/PaymentsSettings";
+import ScheduleScreen from "./ScheduleScreen";
+import HolidaysScreen from "./HolidaysScreen";
+import FormFieldsScreen from "./FormFieldsScreen";
+import PromoCodesScreen from "./PromoCodesScreen";
+import NotificationsScreen from "./NotificationsScreen";
+import AuditScreen from "./AuditScreen";
+import ToolsScreen from "./ToolsScreen";
 
-const TABS = [
-  { id: "general", label: "General" },
-  { id: "payments", label: "Payments" },
-  { id: "emails", label: "Emails" },
-  { id: "webhooks", label: "Webhooks" },
-  { id: "license", label: "License" },
-  { id: "import_export", label: "Import / Export" },
+const SETTINGS_TABS = [
+  { key: "general", label: "General" },
+  { key: "schedule", label: "Schedule" },
+  { key: "holidays", label: "Holidays" },
+  { key: "form_fields", label: "Form Fields" },
+  { key: "promo_codes", label: "Promo Codes" },
+  { key: "notifications", label: "Notifications" },
+  { key: "audit_log", label: "Audit Log" },
+  { key: "tools", label: "Tools" },
 ];
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -25,7 +33,7 @@ export default function SettingsScreen() {
 
   const [activeTab, setActiveTab] = useState(() => {
     const tab = new URLSearchParams(window.location.search).get("tab");
-    return TABS.find((t) => t.id === tab)?.id || "general";
+    return SETTINGS_TABS.find((t) => t.key === tab)?.key || "general";
   });
 
   const currencyOptions = useMemo(() => ([
@@ -187,19 +195,16 @@ export default function SettingsScreen() {
     { code: "ZWL", name: "Zimbabwean Dollar" },
   ]), []);
 
-  const adminPostUrl = window.BP_ADMIN?.adminPostUrl || "admin-post.php";
-  const adminNonce = window.BP_ADMIN?.adminNonce || "";
-  const licenseMeta = window.BP_ADMIN?.license || {};
-
   useEffect(() => {
     loadSettings();
   }, []);
 
-  useEffect(() => {
+  const setTab = (key) => {
     const url = new URL(window.location.href);
-    url.searchParams.set("tab", activeTab);
-    window.history.replaceState({}, "", url.toString());
-  }, [activeTab]);
+    url.searchParams.set("tab", key);
+    window.history.pushState({}, "", url.toString());
+    setActiveTab(key);
+  };
 
   async function loadSettings() {
     try {
@@ -332,16 +337,6 @@ export default function SettingsScreen() {
 
   if (loading) return <div className="bp-card">Loading...</div>;
 
-  const licenseBadge = (() => {
-    const status = (licenseMeta.status || "").toLowerCase();
-    if (status === "valid") return "✅ valid";
-    if (status === "expired") return "⚠️ expired";
-    if (status === "invalid") return "❌ invalid";
-    return "— unset";
-  })();
-
-  const exportUrl = `${adminPostUrl}?action=bp_admin_settings_export_json&_wpnonce=${encodeURIComponent(adminNonce)}`;
-
   return (
     <div className="bp-container bp-settings">
       <div className="bp-settings-hero">
@@ -353,11 +348,11 @@ export default function SettingsScreen() {
 
       <div className="bp-settings-layout">
         <div className="bp-settings-nav bp-card">
-          {TABS.map((tab) => (
+          {SETTINGS_TABS.map((tab) => (
             <button
-              key={tab.id}
-              className={`bp-tab ${activeTab === tab.id ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.id)}
+              key={tab.key}
+              className={`bp-tab ${activeTab === tab.key ? "active" : ""}`}
+              onClick={() => setTab(tab.key)}
               type="button"
             >
               {tab.label}
@@ -529,219 +524,34 @@ export default function SettingsScreen() {
             </div>
           )}
 
-          {activeTab === "payments" && (
-            <PaymentsSettings />
+          {activeTab === "schedule" && (
+            <ScheduleScreen />
           )}
 
-      {activeTab === "emails" && (
-        <div className="bp-card bp-settings-section">
-          <div className="bp-section-title" style={{ marginBottom: 10 }}>Email Notifications</div>
-
-          <label style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
-            <input
-              type="checkbox"
-              checked={toBool(getSetting("bp_email_enabled", 1))}
-              onChange={(e) => updateSetting("bp_email_enabled", e.target.checked ? 1 : 0)}
-            />
-            Send email notifications for bookings
-          </label>
-
-          <div style={{ marginBottom: 22 }}>
-            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Admin email</label>
-            <input
-              type="email"
-              value={getSetting("bp_admin_email", "")}
-              onChange={(e) => updateSetting("bp_admin_email", e.target.value)}
-              className="bp-input bp-settings-input-wide"
-              autoComplete="off"
-            />
-          </div>
-
-          <div style={{ marginBottom: 22 }}>
-            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>From name</label>
-            <input
-              type="text"
-              value={getSetting("bp_email_from_name", "")}
-              onChange={(e) => updateSetting("bp_email_from_name", e.target.value)}
-              className="bp-input bp-settings-input-wide"
-              autoComplete="off"
-            />
-          </div>
-
-          <div style={{ marginBottom: 22 }}>
-            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>From email</label>
-            <input
-              type="email"
-              value={getSetting("bp_email_from_email", "")}
-              onChange={(e) => updateSetting("bp_email_from_email", e.target.value)}
-              className="bp-input bp-settings-input-wide"
-              autoComplete="off"
-            />
-          </div>
-
-          <button
-            onClick={saveSettings}
-            className="bp-btn bp-btn-primary"
-            style={{ marginRight: 10 }}
-          >
-            Save Settings
-          </button>
-          {saved && (
-            <span style={{ color: "green", marginLeft: 10 }}>✓ Saved!</span>
+          {activeTab === "holidays" && (
+            <HolidaysScreen />
           )}
-        </div>
-      )}
 
-      {activeTab === "webhooks" && (
-        <div className="bp-card bp-settings-section">
-          <div className="bp-section-title" style={{ marginBottom: 10 }}>Webhooks</div>
-
-          <label style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
-            <input
-              type="checkbox"
-              checked={toBool(getSetting("bp_webhooks_enabled", 0))}
-              onChange={(e) => updateSetting("bp_webhooks_enabled", e.target.checked ? 1 : 0)}
-            />
-            Send webhook events for bookings
-          </label>
-
-          <div style={{ marginBottom: 22 }}>
-            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Webhook secret</label>
-            <input
-              type="text"
-              value={getSetting("bp_webhook_secret", "")}
-              onChange={(e) => updateSetting("bp_webhook_secret", e.target.value)}
-              className="bp-input bp-settings-input-wide"
-              autoComplete="off"
-            />
-            <div className="bp-settings-desc">Used to sign webhook payloads (optional).</div>
-          </div>
-
-          <div style={{ marginBottom: 22 }}>
-            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Booking created URL</label>
-            <input
-              type="text"
-              value={getSetting("bp_webhook_created_url", "")}
-              onChange={(e) => updateSetting("bp_webhook_created_url", e.target.value)}
-              className="bp-input bp-settings-input-wide"
-              autoComplete="off"
-            />
-          </div>
-
-          <div style={{ marginBottom: 22 }}>
-            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Booking status changed URL</label>
-            <input
-              type="text"
-              value={getSetting("bp_webhook_status_changed_url", "")}
-              onChange={(e) => updateSetting("bp_webhook_status_changed_url", e.target.value)}
-              className="bp-input bp-settings-input-wide"
-              autoComplete="off"
-            />
-          </div>
-
-          <div style={{ marginBottom: 22 }}>
-            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Booking updated URL</label>
-            <input
-              type="text"
-              value={getSetting("bp_webhook_updated_url", "")}
-              onChange={(e) => updateSetting("bp_webhook_updated_url", e.target.value)}
-              className="bp-input bp-settings-input-wide"
-              autoComplete="off"
-            />
-          </div>
-
-          <div style={{ marginBottom: 22 }}>
-            <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>Booking cancelled URL</label>
-            <input
-              type="text"
-              value={getSetting("bp_webhook_cancelled_url", "")}
-              onChange={(e) => updateSetting("bp_webhook_cancelled_url", e.target.value)}
-              className="bp-input bp-settings-input-wide"
-              autoComplete="off"
-            />
-          </div>
-
-          <button
-            onClick={saveSettings}
-            className="bp-btn bp-btn-primary"
-            style={{ marginRight: 10 }}
-          >
-            Save Settings
-          </button>
-          {saved && (
-            <span style={{ color: "green", marginLeft: 10 }}>✓ Saved!</span>
+          {activeTab === "form_fields" && (
+            <FormFieldsScreen />
           )}
-        </div>
-      )}
 
-      {activeTab === "license" && (
-        <div className="bp-card bp-settings-section">
-          <div className="bp-section-title" style={{ marginBottom: 10 }}>License</div>
+          {activeTab === "promo_codes" && (
+            <PromoCodesScreen />
+          )}
 
-          <form method="post" action={adminPostUrl} style={{ marginBottom: 18 }}>
-            <input type="hidden" name="action" value="bp_admin_settings_save_license" />
-            <input type="hidden" name="_wpnonce" value={adminNonce} />
-            <div style={{ marginBottom: 18 }}>
-              <label className="bp-label" style={{ display: 'block', marginBottom: 6 }}>License key</label>
-              <input
-                type="text"
-                name="bp_license_key"
-                defaultValue={getSetting("bp_license_key", "")}
-                className="bp-input bp-settings-input-wide"
-                style={{ minWidth: 260 }}
-                placeholder="Enter license key..."
-              />
-              <span className="bp-badge" style={{ fontWeight: 900, fontSize: 14, marginLeft: 12 }}>{licenseBadge}</span>
-            </div>
-            <button className="bp-btn bp-btn-primary" type="submit">Save License</button>
-          </form>
+          {activeTab === "notifications" && (
+            <NotificationsScreen />
+          )}
 
-          <form method="post" action={adminPostUrl}>
-            <input type="hidden" name="action" value="bp_admin_settings_validate_license" />
-            <input type="hidden" name="_wpnonce" value={adminNonce} />
-            <button className="bp-btn" type="submit">Validate Now</button>
-            <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-              Forces a license check immediately.
-            </div>
-          </form>
-        </div>
-      )}
+          {activeTab === "audit_log" && (
+            <AuditScreen />
+          )}
 
-      {activeTab === "import_export" && (
-        <div className="bp-card bp-settings-section">
-          <div className="bp-section-title" style={{ marginBottom: 10 }}>Import / Export</div>
+          {activeTab === "tools" && (
+            <ToolsScreen />
+          )}
 
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontWeight: 900, marginBottom: 6 }}>Export settings</div>
-            <div className="bp-muted" style={{ fontSize: 12, marginBottom: 10 }}>
-              Downloads a JSON file with BookPoint settings.
-            </div>
-            <a className="bp-btn bp-btn-primary" href={exportUrl}>Export JSON</a>
-          </div>
-
-          <hr style={{ margin: "16px 0" }} />
-
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontWeight: 900, marginBottom: 6 }}>Import settings</div>
-            <div className="bp-muted" style={{ fontSize: 12, marginBottom: 10 }}>
-              Upload a previously exported JSON file. Only whitelisted settings keys are imported.
-            </div>
-            <form
-              method="post"
-              action={adminPostUrl}
-              encType="multipart/form-data"
-              onSubmit={(e) => {
-                if (!confirm("Import settings JSON?")) e.preventDefault();
-              }}
-            >
-              <input type="hidden" name="action" value="bp_admin_settings_import_json" />
-              <input type="hidden" name="_wpnonce" value={adminNonce} />
-              <input type="file" name="bp_settings_file" accept="application/json" required />
-              <button className="bp-btn" type="submit" style={{ marginLeft: 8 }}>Import JSON</button>
-            </form>
-          </div>
-        </div>
-      )}
         </div>
       </div>
     </div>

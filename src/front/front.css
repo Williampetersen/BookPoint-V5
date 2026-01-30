@@ -118,16 +118,17 @@
 
 .bp-step {
   display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 
 /* S14.5 Confirmation step styles */
+.bp-alert{padding:10px 12px;border-radius:10px;font-size:14px}
+.bp-alert-error{background:#ffe9e9;border:1px solid #ffb6b6}
 .bp-alert-success{background:#eaffea;border:1px solid #b6f5b6}
 .bp-alert-warn{background:#fff7e6;border:1px solid #ffd27a}
 .bp-confirm-card{margin-top:12px;padding:12px;border:1px solid rgba(0,0,0,.08);border-radius:12px;background:#fff}
 .bp-confirm-card .bp-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0}
-  flex-direction: column;
-  min-height: 100%;
-}
 
 .bp-main-head {
   display: flex;
@@ -1040,6 +1041,17 @@
   margin-top: 16px;
 }
 
+.bp-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bp-total {
+  font-weight: 700;
+}
+
 .bp-h-row {
   display: flex;
   align-items: center;
@@ -1055,12 +1067,25 @@
   margin-top: 12px;
 }
 
+.bp-pay-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .bp-pay-box {
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 14px;
   padding: 12px;
   background: #fff;
   margin-bottom: 12px;
+}
+
+.bp-pay-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 
 

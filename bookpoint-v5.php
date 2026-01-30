@@ -196,6 +196,14 @@ final class BP_Plugin {
     // Admin menu
     add_action('admin_menu', [__CLASS__, 'register_admin_menu']);
 
+    // Hide WP admin bar for BookPoint admin pages to remove top gap
+    add_action('admin_head', function () {
+      if (!isset($_GET['page'])) return;
+      $page = sanitize_text_field($_GET['page']);
+      if (strpos($page, 'bp') !== 0) return;
+      echo '<style>#wpadminbar{display:none!important;}html.wp-toolbar{padding-top:0!important;}</style>';
+    });
+
     add_action('admin_init', function () {
       BP_MigrationsHelper::run();
       if (class_exists('BP_Locations_Migrations_Helper')) {
@@ -207,6 +215,29 @@ final class BP_Plugin {
       if (!current_user_can('administrator') && !current_user_can('bp_manage_settings')) return;
       if (!class_exists('BP_FormFieldsSeedHelper')) return;
       BP_FormFieldsSeedHelper::ensure_defaults();
+    });
+
+    add_action('admin_init', function () {
+      if (!is_admin()) return;
+      if (!isset($_GET['page'])) return;
+
+      $map = [
+        'bp_schedule' => 'schedule',
+        'bp_holidays' => 'holidays',
+        'bp_form_fields' => 'form_fields',
+        'bp-form-fields' => 'form_fields',
+        'bp_promo_codes' => 'promo_codes',
+        'bp_notifications' => 'notifications',
+        'bp_audit' => 'audit_log',
+        'bp_audit_log' => 'audit_log',
+        'bp_tools' => 'tools',
+      ];
+
+      $page = sanitize_text_field($_GET['page']);
+      if (!isset($map[$page])) return;
+
+      wp_safe_redirect(admin_url('admin.php?page=bp_settings&tab=' . $map[$page]));
+      exit;
     });
 
     add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_admin_assets']);
@@ -1703,8 +1734,12 @@ final class BP_Plugin {
 
   private static function front_localized_data(): array {
     $stripe_pk = self::front_stripe_publishable_key();
-    $currency = BP_SettingsHelper::get_with_default('bp_default_currency');
+    $currency = get_option('bp_currency', '');
+    if ($currency === '') {
+      $currency = BP_SettingsHelper::get_with_default('bp_default_currency');
+    }
     return [
+      'rest' => esc_url_raw(rest_url()),
       'restUrl' => esc_url_raw(rest_url('bp/v1')),
       'ajaxUrl' => admin_url('admin-ajax.php'),
       'siteUrl' => site_url('/'),

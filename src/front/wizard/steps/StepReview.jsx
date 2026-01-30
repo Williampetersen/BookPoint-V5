@@ -68,8 +68,8 @@ export default function StepReview({
 
       <div className="bp-step-footer">
         <button type="button" className="bp-back" onClick={onBack}>{backLabel}</button>
-        <button type="button" className="bp-next" disabled={loading || isCreatingBooking} onClick={onNext}>
-          {isCreatingBooking ? 'Preparing payment...' : (loading ? 'Submitting...' : nextLabel)}
+        <button type="button" className="bp-next" disabled={!!isCreatingBooking} onClick={onNext}>
+          {isCreatingBooking ? 'Preparing payment...' : nextLabel}
         </button>
       </div>
     </div>
