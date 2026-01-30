@@ -1,3 +1,17 @@
+@import url('https://fonts.cdnfonts.com/css/sofia-pro');
+
+:root {
+  --bp-font-family: 'Sofia Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+}
+
+#bp-front-root,
+.bp-modal,
+.bp-modal *,
+.bp-book-btn,
+.bp-fallback-btn {
+  font-family: var(--bp-font-family);
+}
+
 .bp-modal-open {
   overflow: hidden;
 }

@@ -1414,6 +1414,9 @@ final class BP_Plugin {
     );
 
     if (strpos($page, 'bp') === 0) {
+      // Ensure WP Dashicons are available for sidebar icons
+      wp_enqueue_style('dashicons');
+
       $admin_app_css = BP_PLUGIN_PATH . 'public/admin-app.css';
       $admin_app_ver = file_exists($admin_app_css) ? (string)@filemtime($admin_app_css) : self::VERSION;
       wp_enqueue_style(
@@ -1524,10 +1527,15 @@ final class BP_Plugin {
           'adminPostUrl' => admin_url('admin-post.php'),
           'pluginUrl' => BP_PLUGIN_URL,
           'publicImagesUrl' => BP_PLUGIN_URL . 'public/images',
+          'publicIconsUrl' => BP_PLUGIN_URL . 'public/icons',
           'route'   => $route,
           'page'    => $page,
           'build'   => (file_exists(BP_PLUGIN_PATH . 'build/admin.js') ? (string)@filemtime(BP_PLUGIN_PATH . 'build/admin.js') : ''),
           'timezone'=> wp_timezone_string(),
+        ]);
+
+        wp_localize_script('bp-admin', 'bpAdmin', [
+          'iconsUrl' => BP_PLUGIN_URL . 'public/icons',
         ]);
 
       wp_enqueue_media();
