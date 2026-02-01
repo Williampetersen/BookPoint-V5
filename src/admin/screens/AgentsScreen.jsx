@@ -85,34 +85,25 @@ export default function AgentsScreen() {
                   )}
                 </div>
 
-                <div className="bp-agent-body">
-                  <div className="bp-agent-row">
-                    <div className="bp-agent-name">{name}</div>
-                    <div className={`bp-agent-status ${isActive ? "on" : "off"}`}>
-                      {isActive ? "Active" : "Inactive"}
-                    </div>
-                    <a
-                      className="bp-agent-more"
-                      href={`admin.php?page=bp_agents_edit&id=${a.id}`}
-                      aria-label="Edit agent"
-                      title="Edit"
-                    >
-                      ...
-                    </a>
-                  </div>
-
+                <div className="bp-agent-meta">
+                  <div className="bp-agent-name">{name}</div>
                   <div className="bp-agent-sub">
-                    <span className="bp-agent-email">{a.email || "-"}</span>
-                    {a.phone ? <span className="bp-agent-phone"> * {a.phone}</span> : null}
+                    {a.email || "—"}{a.phone ? ` • ${a.phone}` : ""}
                   </div>
+                </div>
 
-                  <div className="bp-agent-row bp-agent-row--meta">
-                    <div className="bp-agent-services">
-                      <span className="bp-agent-services-label">Services</span>
-                      <span className="bp-agent-services-value">{services}</span>
-                    </div>
-                    <a className="bp-top-btn bp-agent-edit" href={`admin.php?page=bp_agents_edit&id=${a.id}`}>Edit</a>
+                <div className="bp-agent-stats">
+                  <div className="bp-agent-stat">
+                    <div className="bp-agent-stat-label">Services</div>
+                    <div className="bp-agent-stat-value">{services}</div>
                   </div>
+                  <div className={`bp-agent-status ${isActive ? "on" : "off"}`}>
+                    {isActive ? "Active" : "Inactive"}
+                  </div>
+                </div>
+
+                <div className="bp-agent-actions">
+                  <a className="bp-top-btn" href={`admin.php?page=bp_agents_edit&id=${a.id}`}>Edit</a>
                 </div>
               </div>
             );
