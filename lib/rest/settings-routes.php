@@ -2,6 +2,70 @@
 defined('ABSPATH') || exit;
 
 add_action('rest_api_init', function(){
+  register_rest_route('bp/v1', '/admin/license', [
+    'methods' => 'GET',
+    'callback' => function(){
+      if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+      }
+
+      $data = [
+        'key' => BP_LicenseHelper::get_key(),
+        'status' => BP_LicenseHelper::status(),
+        'checked_at' => (int)get_option('bp_license_checked_at', 0),
+        'last_error' => (string)get_option('bp_license_last_error', ''),
+      ];
+
+      return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
+    },
+    'permission_callback' => '__return_true',
+  ]);
+
+  register_rest_route('bp/v1', '/admin/license', [
+    'methods' => 'POST',
+    'callback' => function(WP_REST_Request $req){
+      if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+      }
+
+      $p = $req->get_json_params();
+      if (!is_array($p)) $p = [];
+      $key = sanitize_text_field($p['key'] ?? '');
+      BP_LicenseHelper::set_key($key);
+
+      $data = [
+        'key' => BP_LicenseHelper::get_key(),
+        'status' => BP_LicenseHelper::status(),
+        'checked_at' => (int)get_option('bp_license_checked_at', 0),
+        'last_error' => (string)get_option('bp_license_last_error', ''),
+      ];
+
+      return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
+    },
+    'permission_callback' => '__return_true',
+  ]);
+
+  register_rest_route('bp/v1', '/admin/license/validate', [
+    'methods' => 'POST',
+    'callback' => function(){
+      if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+      }
+
+      BP_LicenseHelper::validate(true);
+
+      $data = [
+        'key' => BP_LicenseHelper::get_key(),
+        'status' => BP_LicenseHelper::status(),
+        'checked_at' => (int)get_option('bp_license_checked_at', 0),
+        'last_error' => (string)get_option('bp_license_last_error', ''),
+      ];
+
+      return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
+    },
+    'permission_callback' => '__return_true',
+  ]);
+
   register_rest_route('bp/v1', '/admin/settings', [
     'methods' => 'GET',
     'callback' => function(){

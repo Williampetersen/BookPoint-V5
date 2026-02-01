@@ -14,7 +14,10 @@ bp_render_legacy_shell_start(
   $id ? esc_html__('Edit Agent', 'bookpoint') : esc_html__('Add Agent', 'bookpoint'),
   esc_html__('Manage agent profile, photo, and service assignments.', 'bookpoint'),
   $actions_html,
-  'agents'
+  'agents',
+  [
+    'minimal_shell' => true,
+  ]
 );
 ?>
 
