@@ -128,7 +128,7 @@ export default function ServicesScreen() {
       ) : filtered.length === 0 ? (
         <div className="bp-card">No services found.</div>
       ) : (
-        <div className="bp-services-grid">
+        <div className="bp-entity-grid">
           {filtered.map((s) => {
             const name = s.name || s.title || `#${s.id}`;
             const description = (s.description || "").trim();
@@ -140,7 +140,7 @@ export default function ServicesScreen() {
                 : null);
             const currency = (s.currency || "USD").toUpperCase();
             const priceDisplay =
-              priceCents !== null ? `${currency} ${(priceCents / 100).toFixed(2)}` : "—";
+              priceCents !== null ? `${currency} ${(priceCents / 100).toFixed(2)}` : "???";
             const isActive =
               s.is_active !== undefined
                 ? !!Number(s.is_active)
@@ -149,45 +149,34 @@ export default function ServicesScreen() {
                   : true;
             const imageUrl = s.image_url || s.image || "";
             const initial = (name || "S").trim().charAt(0).toUpperCase();
+            const typeDisplay = duration ? `${duration} min` : "???";
 
             return (
-              <div key={s.id} className="bp-service-card">
-                <div className="bp-service-cover">
-                  {imageUrl ? (
-                    <img src={imageUrl} alt={name} />
-                  ) : (
-                    <div className="bp-service-placeholder">{initial}</div>
-                  )}
+              <div key={s.id} className="bp-entity-card">
+                <div className="bp-entity-head">
+                  <div className="bp-entity-thumb">
+                    {imageUrl ? <img src={imageUrl} alt={name} /> : <div className="bp-entity-initial">{initial}</div>}
+                  </div>
+                  <div>
+                    <div className="bp-entity-title">{name}</div>
+                    <div className="bp-entity-sub">{description || typeDisplay}</div>
+                  </div>
+                  <span className={`bp-status-pill ${isActive ? "active" : "inactive"}`}>
+                    {isActive ? "Active" : "Inactive"}
+                  </span>
                 </div>
-
-                <div className="bp-service-info">
-                  <div className="bp-service-title-row">
-                    <div className="bp-service-name">{name}</div>
-                    <span className={`bp-status-pill ${isActive ? "active" : "inactive"}`}>
-                      {isActive ? "Active" : "Inactive"}
-                    </span>
+                <div className="bp-entity-meta">
+                  <div>
+                    <div className="bp-entity-meta-label">Duration</div>
+                    <div className="bp-entity-meta-value">{typeDisplay}</div>
                   </div>
-
-                  {description ? (
-                    <div className="bp-service-desc">{description}</div>
-                  ) : (
-                    <div className="bp-service-desc muted">No description</div>
-                  )}
-
-                  <div className="bp-service-meta-row">
-                    <div className="bp-service-meta-item">
-                      <div className="bp-service-meta-label">Duration</div>
-                      <div className="bp-service-meta-value">{duration ? `${duration} min` : "—"}</div>
-                    </div>
-                    <div className="bp-service-meta-item">
-                      <div className="bp-service-meta-label">Price</div>
-                      <div className="bp-service-meta-value">{priceDisplay}</div>
-                    </div>
+                  <div>
+                    <div className="bp-entity-meta-label">Price</div>
+                    <div className="bp-entity-meta-value">{priceDisplay}</div>
                   </div>
-
-                  <div className="bp-service-actions">
-                    <a className="bp-btn-sm" href={`admin.php?page=bp_services_edit&id=${s.id}`}>Edit</a>
-                  </div>
+                </div>
+                <div className="bp-entity-actions">
+                  <a className="bp-btn-sm" href={`admin.php?page=bp_services_edit&id=${s.id}`}>Edit</a>
                 </div>
               </div>
             );

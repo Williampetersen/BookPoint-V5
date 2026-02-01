@@ -16,6 +16,7 @@ const SETTINGS_TABS = [
   { key: "notifications", label: "Notifications" },
   { key: "audit_log", label: "Audit Log" },
   { key: "tools", label: "Tools" },
+  { key: "license", label: "License" },
 ];
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -30,6 +31,14 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [license, setLicense] = useState({
+    key: "",
+    status: "unset",
+    checked_at: 0,
+    last_error: "",
+  });
+  const [licenseSaving, setLicenseSaving] = useState(false);
+  const [licenseValidating, setLicenseValidating] = useState(false);
 
   const [activeTab, setActiveTab] = useState(() => {
     const tab = new URLSearchParams(window.location.search).get("tab");
@@ -197,6 +206,7 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     loadSettings();
+    loadLicense();
   }, []);
 
   const setTab = (key) => {
@@ -218,6 +228,20 @@ export default function SettingsScreen() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadLicense() {
+    try {
+      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license`, {
+        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce },
+      });
+      const json = await resp.json();
+      if (json.status === "success") {
+        setLicense(json.data || {});
+      }
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -256,6 +280,46 @@ export default function SettingsScreen() {
       }
     } catch (e) {
       console.error(e);
+    }
+  }
+
+  async function saveLicense() {
+    try {
+      setLicenseSaving(true);
+      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license`, {
+        method: "POST",
+        headers: {
+          "X-WP-Nonce": window.BP_ADMIN?.nonce,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ key: license.key || "" }),
+      });
+      const json = await resp.json();
+      if (json.status === "success") {
+        setLicense(json.data || {});
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLicenseSaving(false);
+    }
+  }
+
+  async function validateLicense() {
+    try {
+      setLicenseValidating(true);
+      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license/validate`, {
+        method: "POST",
+        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce },
+      });
+      const json = await resp.json();
+      if (json.status === "success") {
+        setLicense(json.data || {});
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLicenseValidating(false);
     }
   }
 
@@ -550,6 +614,64 @@ export default function SettingsScreen() {
 
           {activeTab === "tools" && (
             <ToolsScreen />
+          )}
+
+          {activeTab === "license" && (
+            <div className="bp-card">
+              <div className="bp-section-title">License</div>
+              <div className="bp-muted" style={{ marginTop: 6 }}>
+                Status:{" "}
+                <strong>
+                  {license.status === "valid"
+                    ? "✅ valid"
+                    : license.status === "expired"
+                      ? "⚠️ expired"
+                      : license.status === "invalid"
+                        ? "❌ invalid"
+                        : "— unset"}
+                </strong>
+              </div>
+              {license.checked_at ? (
+                <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
+                  Last checked: {new Date(license.checked_at * 1000).toLocaleString()}
+                </div>
+              ) : null}
+              {license.last_error ? (
+                <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
+                  Message: {license.last_error}
+                </div>
+              ) : null}
+
+              <div className="bp-settings-field" style={{ marginTop: 14 }}>
+                <label className="bp-label">License key</label>
+                <input
+                  type="text"
+                  value={license.key || ""}
+                  onChange={(e) => setLicense({ ...license, key: e.target.value })}
+                  className="bp-input"
+                />
+                <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
+                  Paste your license key and save.
+                </div>
+              </div>
+
+              <div className="bp-settings-actions">
+                <button
+                  onClick={saveLicense}
+                  className="bp-btn bp-btn-primary"
+                  disabled={licenseSaving}
+                >
+                  {licenseSaving ? "Saving..." : "Save License"}
+                </button>
+                <button
+                  onClick={validateLicense}
+                  className="bp-btn"
+                  disabled={licenseValidating}
+                >
+                  {licenseValidating ? "Validating..." : "Validate Now"}
+                </button>
+              </div>
+            </div>
           )}
 
         </div>

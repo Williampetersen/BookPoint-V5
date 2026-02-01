@@ -79,17 +79,13 @@ export default function AdminApp() {
   const [theme, setTheme] = useState("light");
 
   useEffect(() => {
-    const saved = localStorage.getItem("bp_theme");
-    const t = saved === "dark" ? "dark" : "light";
-    setTheme(t);
-    document.documentElement.classList.toggle("bp-dark", t === "dark");
+    setTheme("light");
+    document.documentElement.classList.remove("bp-dark");
+    localStorage.setItem("bp_theme", "light");
   }, []);
 
   function toggleTheme() {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    localStorage.setItem("bp_theme", next);
-    document.documentElement.classList.toggle("bp-dark", next === "dark");
+    return;
   }
 
   return (

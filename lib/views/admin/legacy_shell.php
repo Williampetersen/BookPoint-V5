@@ -1,7 +1,8 @@
 <?php
 defined('ABSPATH') || exit;
 
-function bp_render_legacy_shell_start(string $title, string $subtitle = '', string $actions_html = '', string $active = ''): void {
+function bp_render_legacy_shell_start(string $title, string $subtitle = '', string $actions_html = '', string $active = '', array $opts = []): void {
+  $GLOBALS['bp_legacy_minimal_shell'] = isset($opts['minimal_shell']) && $opts['minimal_shell'] === true;
   $nav = function(string $key, string $label, string $url) use ($active) {
     $cls = 'bp-nav-item' . ($active === $key ? ' active' : '');
     echo '<a class="' . esc_attr($cls) . '" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
@@ -74,6 +75,19 @@ function bp_render_legacy_shell_start(string $title, string $subtitle = '', stri
     .bp-legacy-admin .button-link-delete{color:#b91c1c !important;border-color:#fecaca !important;background:#fee2e2 !important;}
   </style>
 
+  <?php if ($GLOBALS['bp_legacy_minimal_shell']) : ?>
+    <div class="bp-content">
+      <div class="wrap bp-legacy-admin">
+        <div class="bp-page-head">
+          <div>
+            <div class="bp-h1"><?php echo esc_html($title); ?></div>
+            <?php if ($subtitle) : ?><div class="bp-muted"><?php echo esc_html($subtitle); ?></div><?php endif; ?>
+          </div>
+          <?php if ($actions_html) : ?>
+            <div class="bp-head-actions"><?php echo $actions_html; ?></div>
+          <?php endif; ?>
+        </div>
+  <?php else : ?>
   <div class="bp-app">
     <div class="bp-shell">
       <aside class="bp-sidebar">
@@ -109,14 +123,14 @@ function bp_render_legacy_shell_start(string $title, string $subtitle = '', stri
         </nav>
 
         <div class="bp-sidebar-footer">
-          <a class="bp-top-btn" href="<?php echo esc_url(admin_url()); ?>">← Back to WordPress</a>
+          <a class="bp-top-btn" href="<?php echo esc_url(admin_url()); ?>">&lt; Back to WordPress</a>
         </div>
       </aside>
 
       <main class="bp-main">
         <header class="bp-topbar">
           <div class="bp-search">
-            <input placeholder="Search…">
+            <input placeholder="Search...">
           </div>
           <div class="bp-top-actions">
             <div class="bp-avatar">W</div>
@@ -135,14 +149,20 @@ function bp_render_legacy_shell_start(string $title, string $subtitle = '', stri
               <?php endif; ?>
             </div>
   <?php
+  endif;
 }
 
 function bp_render_legacy_shell_end(): void {
   ?>
+  <?php if (!isset($GLOBALS['bp_legacy_minimal_shell']) || !$GLOBALS['bp_legacy_minimal_shell']) : ?>
           </div>
         </div>
       </main>
     </div>
   </div>
+  <?php else : ?>
+      </div>
+    </div>
+  <?php endif; ?>
   <?php
 }

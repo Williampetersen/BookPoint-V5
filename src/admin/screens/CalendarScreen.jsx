@@ -5,32 +5,31 @@ import BookingDrawer from "../components/BookingDrawer";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import listPlugin from "@fullcalendar/list";
 
-function pad(n){ return String(n).padStart(2,'0'); }
+function pad(n){ return String(n).padStart(2, "0"); }
 function ymd(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
-function addDays(date, days){ const d=new Date(date); d.setDate(d.getDate()+days); return d; }
+function addDays(date, days){ const d = new Date(date); d.setDate(d.getDate()+days); return d; }
+function startOfWeek(date){
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day);
+  d.setHours(0,0,0,0);
+  return d;
+}
 function formatDateTime(d){ return `${ymd(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`; }
 
-function monthRange(date){
-  const first = new Date(date.getFullYear(), date.getMonth(), 1);
-  const start = addDays(first, -first.getDay()); // sunday start
-  const last = new Date(date.getFullYear(), date.getMonth()+1, 0);
-  const end = addDays(last, 6-last.getDay());
-  return { start, end };
-}
-
 export default function CalendarScreen(){
-  // Helper function to format Date to YYYY-MM-DD
   function fmtDate(d){
-    // FullCalendar gives Date object
     const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,'0');
-    const day = String(d.getDate()).padStart(2,'0');
+    const m = String(d.getMonth()+1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   }
 
-  const [view, setView] = useState("month"); // month | week | day
-  const [cursor, setCursor] = useState(()=> new Date());
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [view, setView] = useState(() => (window.innerWidth < 768 ? "day" : "week"));
+  const [cursor, setCursor] = useState(() => new Date());
   const [title, setTitle] = useState("");
   const calendarRef = useRef(null);
   const [events, setEvents] = useState([]);
@@ -45,7 +44,8 @@ export default function CalendarScreen(){
   const [currentRangeStart, setCurrentRangeStart] = useState(new Date());
   const [currentRangeEnd, setCurrentRangeEnd] = useState(addDays(new Date(), 30));
 
-  // Holiday modal state (C17.3)
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
   const [holidayOpen, setHolidayOpen] = useState(false);
   const [holidayForm, setHolidayForm] = useState({
     title: "",
@@ -77,7 +77,6 @@ export default function CalendarScreen(){
     }
   }
 
-
   useEffect(() => {
     if (currentRange?.start && currentRange?.end) {
       loadEvents(currentRange.start, currentRange.end);
@@ -86,7 +85,7 @@ export default function CalendarScreen(){
   }, [agentId, status, query]);
 
   useEffect(() => {
-    const unsubscribe = bpOn('booking_updated', (payload) => {
+    const unsubscribe = bpOn("booking_updated", () => {
       if (currentRange?.start && currentRange?.end) {
         loadEvents(currentRange.start, currentRange.end);
       }
@@ -97,7 +96,7 @@ export default function CalendarScreen(){
   useEffect(() => {
     (async () => {
       try {
-        const res = await bpFetch('/admin/agents');
+        const res = await bpFetch("/admin/agents");
         setAgents(res?.data || []);
       } catch (e) {
         setAgents([]);
@@ -105,8 +104,17 @@ export default function CalendarScreen(){
     })();
   }, []);
 
-  function titleText(){ return title || cursor.toLocaleDateString(); }
+  useEffect(() => {
+    const onResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile && view === "week") setView("day");
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [view]);
 
+  function titleText(){ return title || cursor.toLocaleDateString(); }
   function prev(){ calendarRef.current?.getApi().prev(); }
   function next(){ calendarRef.current?.getApi().next(); }
   function today(){ calendarRef.current?.getApi().today(); }
@@ -115,17 +123,17 @@ export default function CalendarScreen(){
     const q = query.trim().toLowerCase();
     if (!q) return events;
     return events.filter((ev) => {
-      const hay = `${ev.title || ''} ${ev.customer_name || ''} ${ev.customer_email || ''} ${ev.agent_name || ''}`.toLowerCase();
+      const hay = `${ev.title || ""} ${ev.customer_name || ""} ${ev.customer_email || ""} ${ev.agent_name || ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [events, query]);
 
   const calendarEvents = useMemo(() => {
     return filteredEvents.map((ev) => {
-      const status = (ev.status || 'pending').toLowerCase();
+      const status = (ev.status || "pending").toLowerCase();
       return {
         id: String(ev.id),
-        title: `${ev.service_name || 'Service'} • ${ev.customer_name || 'Customer'}`,
+        title: `${ev.service_name || "Service"} * ${ev.customer_name || "Customer"}`,
         start: ev.start,
         end: ev.end,
         classNames: [`bp-evt-${status}`],
@@ -138,6 +146,7 @@ export default function CalendarScreen(){
     month: "dayGridMonth",
     week: "timeGridWeek",
     day: "timeGridDay",
+    list: "listWeek",
   };
 
   useEffect(() => {
@@ -145,6 +154,12 @@ export default function CalendarScreen(){
     if (!api) return;
     api.changeView(viewMap[view]);
   }, [view]);
+
+  function handleEventClick(info){
+    const id = info?.event?.id;
+    if (!id) return;
+    setSelectedBookingId(id);
+  }
 
   async function handleEventDrop(info){
     const id = info.event.id;
@@ -160,18 +175,12 @@ export default function CalendarScreen(){
         method: "POST",
         body: { start_datetime: startStr, end_datetime: endStr },
       });
-      bpEmit('booking_updated', { id });
+      bpEmit("booking_updated", { id });
       await loadEvents(currentRange.start, currentRange.end);
     }catch(e){
       info.revert();
       setErr(e.message || "Reschedule failed");
     }
-  }
-
-  function handleEventClick(info){
-    const id = info?.event?.id;
-    if (!id) return;
-    setSelectedBookingId(id);
   }
 
   function handleDatesSet(info){
@@ -183,7 +192,6 @@ export default function CalendarScreen(){
     loadEvents(info.start, info.end);
   }
 
-  // Save Holiday from modal (C17.3.3)
   async function saveHolidayFromModal(){
     setHolidaySaving(true);
     setHolidayErr("");
@@ -205,8 +213,6 @@ export default function CalendarScreen(){
       });
 
       setHolidayOpen(false);
-
-      // refresh events to reflect closures if you show them later
       await loadEvents(currentRangeStart, currentRangeEnd);
 
     }catch(e){
@@ -216,66 +222,66 @@ export default function CalendarScreen(){
     }
   }
 
+  const weekStart = startOfWeek(cursor);
+  const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
+
   return (
-    <div>
-      <div className="bp-page-head">
-        <div>
-          <div className="bp-h1">Calendar</div>
-          <div className="bp-muted">{titleText()}</div>
+    <div className="bp-cal-wrap">
+      <div className="bp-cal-top">
+        <div className="bp-cal-title">
+          <div className="bp-cal-year">{cursor.getFullYear()}</div>
+          <div className="bp-cal-title-text">{titleText()}</div>
         </div>
 
-        <div className="bp-head-actions" style={{display:'flex', gap:10, alignItems:'center', flexWrap:'wrap', justifyContent:'space-between'}}>
-          <div style={{display:'flex', gap:10, alignItems:'center'}}>
-            <button className="bp-top-btn" onClick={today}>Today</button>
-            <button className="bp-top-btn" onClick={prev}>←</button>
-            <button className="bp-top-btn" onClick={next}>→</button>
-
-            <div className="bp-seg">
-              <button className={`bp-seg-btn ${view==="month"?"active":""}`} onClick={()=>setView("month")}>Month</button>
-              <button className={`bp-seg-btn ${view==="week"?"active":""}`} onClick={()=>setView("week")}>Week</button>
-              <button className={`bp-seg-btn ${view==="day"?"active":""}`} onClick={()=>setView("day")}>Day</button>
-            </div>
+        <div className="bp-cal-controls">
+          <div className="bp-cal-pill">
+            <button className={`bp-cal-tab ${view==="day"?"active":""}`} onClick={()=>setView("day")}>Day</button>
+            <button className={`bp-cal-tab ${view==="week"?"active":""}`} onClick={()=>setView("week")}>Week</button>
+            <button className={`bp-cal-tab ${view==="month"?"active":""}`} onClick={()=>setView("month")}>Month</button>
+            <button className={`bp-cal-tab ${view==="list"?"active":""}`} onClick={()=>setView("list")}>List</button>
           </div>
 
-          <div style={{display:'flex', gap:10, alignItems:'center', flex:1, justifyContent:'flex-end', minWidth:300}}>
-            <select className="bp-input" value={agentId} onChange={(e)=>setAgentId(parseInt(e.target.value,10)||0)}>
-              <option value={0}>All agents</option>
-              {agents.map(a => (
-                <option key={a.id} value={a.id}>{a.name || `${a.first_name || ''} ${a.last_name || ''}`.trim() || `#${a.id}`}</option>
-              ))}
-            </select>
-
-            <select className="bp-input" value={status} onChange={(e)=>setStatus(e.target.value)}>
-              <option value="all">All status</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="completed">Completed</option>
-            </select>
-
-            <input
-              className="bp-input"
-              style={{ minWidth: 200 }}
-              placeholder="Search…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-
-            <button className="bp-primary-btn" onClick={()=>alert("Next: open booking wizard")}>
-              + New booking
-            </button>
+          <div className="bp-cal-pill">
+            <button className="bp-cal-btn" onClick={today}>Today</button>
+            <button className="bp-cal-icon" onClick={prev} aria-label="Previous">&lt;</button>
+            <button className="bp-cal-icon" onClick={next} aria-label="Next">&gt;</button>
           </div>
+
+          <div className="bp-cal-pill">
+            <button className="bp-cal-btn" onClick={()=>setFiltersOpen(true)}>Filters</button>
+            <button className="bp-cal-icon" aria-label="More">...</button>
+          </div>
+
+          <button className="bp-primary-btn" onClick={()=>alert("Next: open booking wizard")}>+ Booking</button>
         </div>
       </div>
 
+      {isMobile && (
+        <div className="bp-cal-weekstrip">
+          {weekDays.map((d) => {
+            const isActive = ymd(d) === ymd(cursor);
+            return (
+              <button
+                key={ymd(d)}
+                className={`bp-cal-day ${isActive ? "active" : ""}`}
+                onClick={() => calendarRef.current?.getApi().gotoDate(d)}
+              >
+                <div className="bp-cal-day-dow">{d.toLocaleDateString(undefined, { weekday: "short" })}</div>
+                <div className="bp-cal-day-num">{d.getDate()}</div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {err ? <div className="bp-error">{err}</div> : null}
 
-      <div className="bp-card" style={{padding:0}}>
-        {loading ? <div style={{padding:14, fontWeight:900}}>Loading…</div> : null}
+      <div className="bp-card bp-cal-panel">
+        {loading ? <div className="bp-cal-loading">Loading...</div> : null}
         <FullCalendar
           ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin]}
-          initialView="dayGridMonth"
+          plugins={[dayGridPlugin, timeGridPlugin, listPlugin]}
+          initialView={viewMap[view]}
           headerToolbar={false}
           height="auto"
           editable={true}
@@ -288,7 +294,6 @@ export default function CalendarScreen(){
           selectMirror={true}
           unselectAuto={true}
           select={(info)=>{
-            // FullCalendar selection end is exclusive for all-day ranges
             const start = fmtDate(info.start);
             const endExclusive = info.end;
             const endDate = new Date(endExclusive.getTime() - 86400000);
@@ -297,10 +302,10 @@ export default function CalendarScreen(){
             setHolidayErr("");
             setHolidayForm(f => ({
               ...f,
-              title: `Holiday`,
+              title: "Holiday",
               start_date: start,
               end_date: end,
-              agent_id: agentId || 0, // default to current agent filter
+              agent_id: agentId || 0,
               is_recurring_yearly: false,
               is_enabled: true
             }));
@@ -309,13 +314,45 @@ export default function CalendarScreen(){
         />
       </div>
 
+      {filtersOpen && (
+        <div className="bp-cal-sheet" onMouseDown={(e)=>{ if(e.target.classList.contains("bp-cal-sheet")) setFiltersOpen(false); }}>
+          <div className="bp-cal-sheet-card">
+            <div className="bp-cal-sheet-head">
+              <div className="bp-h2">Filters</div>
+              <button className="bp-top-btn" onClick={()=>setFiltersOpen(false)}>Close</button>
+            </div>
+            <div className="bp-cal-sheet-body">
+              <select className="bp-input" value={agentId} onChange={(e)=>setAgentId(parseInt(e.target.value,10)||0)}>
+                <option value={0}>All agents</option>
+                {agents.map(a => (
+                  <option key={a.id} value={a.id}>{a.name || `${a.first_name || ""} ${a.last_name || ""}`.trim() || `#${a.id}`}</option>
+                ))}
+              </select>
+              <select className="bp-input" value={status} onChange={(e)=>setStatus(e.target.value)}>
+                <option value="all">All status</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="completed">Completed</option>
+              </select>
+              <input
+                className="bp-input"
+                placeholder="Search..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedBookingId ? (
         <DrawerErrorBoundary onClose={() => setSelectedBookingId(null)}>
           <BookingDrawer
             bookingId={selectedBookingId}
             onClose={() => setSelectedBookingId(null)}
-            onUpdated={(data) => {
-              bpEmit('booking_updated', { id: selectedBookingId });
+            onUpdated={() => {
+              bpEmit("booking_updated", { id: selectedBookingId });
               loadEvents(currentRange.start, currentRange.end);
             }}
           />
@@ -328,14 +365,14 @@ export default function CalendarScreen(){
             <div className="bp-modal-head">
               <div>
                 <div className="bp-modal-title">Add Holiday</div>
-                <div className="bp-muted">{holidayForm.start_date} → {holidayForm.end_date}</div>
+                <div className="bp-muted">{holidayForm.start_date} -> {holidayForm.end_date}</div>
               </div>
               <button className="bp-top-btn" onClick={()=>setHolidayOpen(false)}>Close</button>
             </div>
 
             {holidayErr ? <div className="bp-error" style={{marginTop:10}}>{holidayErr}</div> : null}
 
-            <div style={{ display:'grid', gap:10, marginTop:12 }}>
+            <div style={{ display:"grid", gap:10, marginTop:12 }}>
               <div>
                 <div className="bp-k" style={{ marginBottom: 6 }}>Title</div>
                 <input
@@ -346,7 +383,7 @@ export default function CalendarScreen(){
                 />
               </div>
 
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                 <div>
                   <div className="bp-k" style={{ marginBottom: 6 }}>Start date</div>
                   <input
@@ -367,7 +404,7 @@ export default function CalendarScreen(){
                 </div>
               </div>
 
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, alignItems:'end' }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, alignItems:"end" }}>
                 <div>
                   <div className="bp-k" style={{ marginBottom: 6 }}>Scope</div>
                   <select
@@ -390,7 +427,7 @@ export default function CalendarScreen(){
                 </label>
               </div>
 
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop: 6 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop: 6 }}>
                 <label className="bp-check">
                   <input
                     type="checkbox"
@@ -400,10 +437,10 @@ export default function CalendarScreen(){
                   <span>Enabled</span>
                 </label>
 
-                <div style={{ display:'flex', gap:10 }}>
+                <div style={{ display:"flex", gap:10 }}>
                   <button className="bp-btn bp-btn-ghost" onClick={()=>setHolidayOpen(false)}>Cancel</button>
                   <button className="bp-btn" disabled={holidaySaving} onClick={saveHolidayFromModal}>
-                    {holidaySaving ? "Saving…" : "Save Holiday"}
+                    {holidaySaving ? "Saving..." : "Save Holiday"}
                   </button>
                 </div>
               </div>
@@ -411,7 +448,6 @@ export default function CalendarScreen(){
           </div>
         </div>
       ) : null}
-
     </div>
   );
 }
