@@ -6,9 +6,11 @@ import PromoCodesScreen from "./PromoCodesScreen";
 import NotificationsScreen from "./NotificationsScreen";
 import AuditScreen from "./AuditScreen";
 import ToolsScreen from "./ToolsScreen";
+import PaymentsSettings from "./settings/PaymentsSettings";
 
 const SETTINGS_TABS = [
   { key: "general", label: "General" },
+  { key: "payments", label: "Payments" },
   { key: "schedule", label: "Schedule" },
   { key: "holidays", label: "Holidays" },
   { key: "form_fields", label: "Form Fields" },
@@ -323,32 +325,7 @@ export default function SettingsScreen() {
     }
   }
 
-  const advancedKeys = useMemo(() => {
-    const keys = Object.keys(settings || {});
-    return keys
-      .filter((k) => ![
-        "slot_interval_minutes",
-        "currency",
-        "currency_position",
-        "bp_open_time",
-        "bp_close_time",
-        "bp_future_days_limit",
-        "bp_breaks",
-        "bp_email_enabled",
-        "bp_admin_email",
-        "bp_email_from_name",
-        "bp_email_from_email",
-        "bp_default_booking_status",
-        "webhooks_enabled",
-        "webhooks_secret",
-        "webhooks_url_booking_created",
-        "webhooks_url_booking_status_changed",
-        "webhooks_url_booking_updated",
-        "webhooks_url_booking_cancelled",
-        "bp_remove_data_on_uninstall",
-      ].includes(k))
-      .sort();
-  }, [settings]);
+  // Advanced settings panel removed (keeps Settings clean and avoids accidental edits).
 
   function renderInput(key, value) {
     if (typeof value === "boolean") {
@@ -554,50 +531,28 @@ export default function SettingsScreen() {
                   </div>
                 </div>
 
-                <div className="bp-section-title" style={{ marginTop: 16 }}>Uninstall</div>
-                <label className="bp-check">
-                  <input
-                    type="checkbox"
-                    checked={toBool(getSetting("bp_remove_data_on_uninstall", 0))}
-                    onChange={(e) => updateSetting("bp_remove_data_on_uninstall", e.target.checked ? 1 : 0)}
-                  />
-                  Delete all BookPoint data when the plugin is uninstalled.
-                </label>
-
                 <div className="bp-settings-actions">
                   <button onClick={saveSettings} className="bp-btn bp-btn-primary">Save Settings</button>
                   {saved && <span className="bp-settings-saved">✓ Saved!</span>}
                 </div>
               </div>
-
-              <div className="bp-card">
-                <div className="bp-section-title">All Settings</div>
-                {advancedKeys.length === 0 ? (
-                  <div className="bp-muted">No additional settings found.</div>
-                ) : (
-                  <div className="bp-kv">
-                    {advancedKeys.map((key) => (
-                      <React.Fragment key={key}>
-                        <div className="bp-k">{key}</div>
-                        <div className="bp-v">{renderInput(key, settings[key])}</div>
-                      </React.Fragment>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           )}
 
           {activeTab === "schedule" && (
-            <ScheduleScreen />
+            <ScheduleScreen embedded />
+          )}
+
+          {activeTab === "payments" && (
+            <PaymentsSettings />
           )}
 
           {activeTab === "holidays" && (
-            <HolidaysScreen />
+            <HolidaysScreen embedded />
           )}
 
           {activeTab === "form_fields" && (
-            <FormFieldsScreen />
+            <FormFieldsScreen embedded />
           )}
 
           {activeTab === "promo_codes" && (

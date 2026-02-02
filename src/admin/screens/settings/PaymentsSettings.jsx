@@ -130,6 +130,40 @@ export default function PaymentsSettings() {
     });
   };
 
+  const paymentsOn = !!state.payments_enabled;
+  const enabledMethods = Array.isArray(state.enabled_methods) ? state.enabled_methods : [];
+  const methodOn = (k) => paymentsOn && enabledMethods.includes(k);
+
+  const stripeMode = (state.stripe?.mode || 'test') === 'live' ? 'live' : 'test';
+  const paypalMode = (state.paypal?.mode || 'test') === 'live' ? 'live' : 'test';
+
+  const stripeNeeds =
+    methodOn('stripe')
+      ? stripeMode === 'test'
+        ? {
+            secret: !(state.stripe?.test_secret_key || '').trim(),
+            pub: !(state.stripe?.test_publishable_key || '').trim(),
+          }
+        : {
+            secret: !(state.stripe?.live_secret_key || '').trim(),
+            pub: !(state.stripe?.live_publishable_key || '').trim(),
+          }
+      : { secret: false, pub: false };
+
+  const paypalNeeds =
+    methodOn('paypal')
+      ? {
+          client: !(state.paypal?.client_id || '').trim(),
+          secret: !(state.paypal?.secret || '').trim(),
+        }
+      : { client: false, secret: false };
+
+  const hasConfigErrors =
+    stripeNeeds.secret ||
+    stripeNeeds.pub ||
+    paypalNeeds.client ||
+    paypalNeeds.secret;
+
   const save = async () => {
     setSaving(true);
     try {
@@ -153,360 +187,350 @@ export default function PaymentsSettings() {
   if (loading) return <div className="bp-card bp-p-14">Loading…</div>;
 
   return (
-    <div className="bp-grid bp-grid-2 bp-gap-14">
+    <div className="bp-payments">
       {toast ? <div className="bp-toast bp-toast-success">{toast}</div> : null}
-      <div className="bp-card bp-p-14">
-        <div className="bp-font-900">Payment Methods</div>
-        <div className="bp-text-sm bp-muted bp-mt-6">
-          Enable the methods you want to show in the wizard.
-        </div>
 
-        <div className="bp-pay-header bp-mt-12">
-          <div className="bp-font-800">Payments active</div>
-          <label className="bp-switch">
-            <input
-              type="checkbox"
-              checked={!!state.payments_enabled}
-              onChange={(e) => setState({ ...state, payments_enabled: e.target.checked ? 1 : 0 })}
-            />
-            <span className="bp-slider" />
-          </label>
-          <div className="bp-pay-save">
-            <button
-              type="button"
-              className="bp-btn bp-btn-primary"
-              onClick={save}
-              disabled={saving}
-            >
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </div>
+      <div className="bp-payments__grid">
+        <div className="bp-card bp-p-14 bp-payments__overview">
+          <div className="bp-font-900">Payments</div>
+          <div className="bp-text-sm bp-muted bp-mt-6">Enable payments and choose which methods are available.</div>
 
-        <div className="bp-mt-12">
-          {METHODS.map((method) => (
-            <label key={method.key} className="bp-row">
+          <div className="bp-pay-header bp-mt-12">
+            <div className="bp-font-800">Payments active</div>
+            <label className="bp-switch">
               <input
                 type="checkbox"
-                checked={(state.enabled_methods || []).includes(method.key)}
-                onChange={() => toggleMethod(method.key)}
-                disabled={!state.payments_enabled}
+                checked={!!state.payments_enabled}
+                onChange={(e) => setState({ ...state, payments_enabled: e.target.checked ? 1 : 0 })}
               />
-              <span className="bp-pay-row">
-                <span className="bp-pay-icon">
-                  {METHOD_ICONS[method.key] ? (
-                    <img
-                      src={`${imagesBase}/${METHOD_ICONS[method.key]}`}
-                      alt=""
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                    />
-                  ) : null}
-                </span>
-                <span className="bp-pay-text">
-                  <span className="bp-font-700">{method.label}</span>
-                  <span className="bp-text-xs bp-muted">{METHOD_NOTES[method.key] || ''}</span>
-                </span>
-              </span>
+              <span className="bp-slider" />
             </label>
-          ))}
-        </div>
+          </div>
 
-        <div className="bp-mt-12">
-          <div className="bp-label">Default method</div>
-          <select
-            className="bp-select"
-            value={state.default_method}
-            onChange={(e) => setState({ ...state, default_method: e.target.value })}
-            disabled={!state.payments_enabled}
-          >
-            {METHODS.map((method) => (
-              <option key={method.key} value={method.key}>
-                {method.label}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="bp-mt-12">
+            <div className="bp-label">Default method</div>
+            <select
+              className="bp-select"
+              value={state.default_method}
+              onChange={(e) => setState({ ...state, default_method: e.target.value })}
+              disabled={!state.payments_enabled}
+            >
+              {METHODS.map((method) => (
+                <option key={method.key} value={method.key}>
+                  {method.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="bp-mt-12 bp-flex bp-items-center bp-justify-between">
-          <div>
-            <div className="bp-font-800">Require payment to confirm</div>
-            <div className="bp-text-sm bp-muted">
-              For Stripe / PayPal / WooCommerce, booking waits for payment.
+          <div className="bp-mt-12 bp-flex bp-items-center bp-justify-between">
+            <div>
+              <div className="bp-font-800">Require payment to confirm</div>
+              <div className="bp-text-sm bp-muted">For Stripe / PayPal / WooCommerce, booking waits for payment.</div>
             </div>
-          </div>
-          <input
-            type="checkbox"
-            checked={!!state.require_payment_to_confirm}
-            onChange={(e) =>
-              setState({ ...state, require_payment_to_confirm: e.target.checked ? 1 : 0 })
-            }
-            disabled={!state.payments_enabled}
-          />
-        </div>
-
-      </div>
-
-      <div className="bp-card bp-p-14">
-        <div className="bp-font-900">WooCommerce</div>
-        <div className="bp-text-sm bp-muted bp-mt-6">
-          Used only if WooCommerce is enabled.
-        </div>
-
-        <div className="bp-mt-12">
-          <div className="bp-label">Product ID</div>
-          <input
-            className="bp-input-field"
-            type="number"
-            value={state.woocommerce?.product_id || 0}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({
-                ...state,
-                woocommerce: {
-                  ...state.woocommerce,
-                  product_id: Number(e.target.value || 0),
-                },
-              })
-            }
-            placeholder="e.g. 123"
-          />
-          <div className="bp-text-xs bp-muted bp-mt-6">
-            This product is added to the cart when WooCommerce checkout runs.
-          </div>
-        </div>
-
-      </div>
-
-      <div className="bp-card bp-p-14">
-        <div className="bp-card-head">
-          <div className="bp-font-900">Stripe (Native)</div>
-          <div className="bp-card-logo">
-            <img
-              src={`${imagesBase}/processor-stripe.png`}
-              alt=""
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            <input
+              type="checkbox"
+              checked={!!state.require_payment_to_confirm}
+              onChange={(e) => setState({ ...state, require_payment_to_confirm: e.target.checked ? 1 : 0 })}
+              disabled={!state.payments_enabled}
             />
           </div>
+
+          {paymentsOn && enabledMethods.length === 0 ? (
+            <div className="bp-alert bp-alert-error bp-mt-12">Enable at least one payment method.</div>
+          ) : null}
+          {paymentsOn && hasConfigErrors ? (
+            <div className="bp-alert bp-alert-error bp-mt-12">
+              Some enabled providers are missing required keys (see highlighted fields).
+            </div>
+          ) : null}
         </div>
 
-        <div className="bp-mt-12">
-          <div className="bp-label">Mode</div>
-          <select
-            className="bp-select"
-            value={state.stripe?.mode || 'test'}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({ ...state, stripe: { ...state.stripe, mode: e.target.value } })
-            }
-          >
-            <option value="test">Test</option>
-            <option value="live">Live</option>
-          </select>
-        </div>
-
-        <div className="bp-mt-12">
-          <div className="bp-label">Test Secret Key</div>
-          <input
-            className="bp-input-field"
-            value={state.stripe?.test_secret_key || ''}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({
-                ...state,
-                stripe: { ...state.stripe, test_secret_key: e.target.value },
-              })
-            }
-            placeholder="sk_test_..."
-          />
-        </div>
-
-        <div className="bp-mt-12">
-          <div className="bp-label">Test Publishable Key</div>
-          <input
-            className="bp-input-field"
-            value={state.stripe?.test_publishable_key || ''}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({
-                ...state,
-                stripe: { ...state.stripe, test_publishable_key: e.target.value },
-              })
-            }
-            placeholder="pk_test_..."
-          />
-        </div>
-
-        <div className="bp-mt-12">
-          <div className="bp-label">Live Secret Key</div>
-          <input
-            className="bp-input-field"
-            value={state.stripe?.live_secret_key || ''}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({
-                ...state,
-                stripe: { ...state.stripe, live_secret_key: e.target.value },
-              })
-            }
-            placeholder="sk_live_..."
-          />
-        </div>
-
-        <div className="bp-mt-12">
-          <div className="bp-label">Live Publishable Key</div>
-          <input
-            className="bp-input-field"
-            value={state.stripe?.live_publishable_key || ''}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({
-                ...state,
-                stripe: { ...state.stripe, live_publishable_key: e.target.value },
-              })
-            }
-            placeholder="pk_live_..."
-          />
-        </div>
-
-        <div className="bp-mt-12">
-          <div className="bp-label">Webhook Secret</div>
-          <input
-            className="bp-input-field"
-            value={state.stripe?.webhook_secret || ''}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({
-                ...state,
-                stripe: { ...state.stripe, webhook_secret: e.target.value },
-              })
-            }
-            placeholder="whsec_..."
-          />
-          <div className="bp-text-xs bp-muted bp-mt-6">
-            Webhook URL: <strong>{window.location.origin}/wp-json/bp/v1/webhooks/stripe</strong>
+        <div className="bp-card bp-p-14 bp-payments__methods">
+          <div className="bp-font-900">Payment methods</div>
+          <div className="bp-text-sm bp-muted bp-mt-6">Shown in the booking wizard.</div>
+          <div className="bp-mt-12">
+            {METHODS.map((method) => (
+              <label key={method.key} className="bp-row">
+                <input
+                  type="checkbox"
+                  checked={(state.enabled_methods || []).includes(method.key)}
+                  onChange={() => toggleMethod(method.key)}
+                  disabled={!state.payments_enabled}
+                />
+                <span className="bp-pay-row">
+                  <span className="bp-pay-icon">
+                    {METHOD_ICONS[method.key] ? (
+                      <img
+                        src={`${imagesBase}/${METHOD_ICONS[method.key]}`}
+                        alt=""
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : null}
+                  </span>
+                  <span className="bp-pay-text">
+                    <span className="bp-font-700">{method.label}</span>
+                    <span className="bp-text-xs bp-muted">{METHOD_NOTES[method.key] || ''}</span>
+                  </span>
+                </span>
+              </label>
+            ))}
           </div>
         </div>
 
-        <div className="bp-mt-12">
-          <div className="bp-label">Success URL</div>
-          <input
-            className="bp-input-field"
-            value={state.stripe?.success_url || ''}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({
-                ...state,
-                stripe: { ...state.stripe, success_url: e.target.value },
-              })
-            }
-            placeholder="https://yoursite.com/booking-success"
-          />
-        </div>
+        <div className="bp-card bp-p-14 bp-payments__providers">
+          <div className="bp-font-900">Provider setup</div>
+          <div className="bp-text-sm bp-muted bp-mt-6">Configure only the providers you enabled.</div>
 
-        <div className="bp-mt-12">
-          <div className="bp-label">Cancel URL</div>
-          <input
-            className="bp-input-field"
-            value={state.stripe?.cancel_url || ''}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({
-                ...state,
-                stripe: { ...state.stripe, cancel_url: e.target.value },
-              })
-            }
-            placeholder="https://yoursite.com/booking-cancelled"
-          />
+          {!paymentsOn ? (
+            <div className="bp-muted bp-mt-12">Turn on Payments to configure providers.</div>
+          ) : null}
+
+          {methodOn('woocommerce') ? (
+            <details className="bp-acc bp-mt-12" open>
+              <summary className="bp-acc__sum">WooCommerce</summary>
+              <div className="bp-acc__body">
+                <div className="bp-label">Product ID</div>
+                <input
+                  className="bp-input-field"
+                  type="number"
+                  value={state.woocommerce?.product_id || 0}
+                  disabled={!paymentsOn}
+                  onChange={(e) =>
+                    setState({
+                      ...state,
+                      woocommerce: { ...state.woocommerce, product_id: Number(e.target.value || 0) },
+                    })
+                  }
+                  placeholder="e.g. 123"
+                />
+                <div className="bp-text-xs bp-muted bp-mt-6">
+                  This product is added to the cart when WooCommerce checkout runs.
+                </div>
+              </div>
+            </details>
+          ) : null}
+
+          {methodOn('stripe') ? (
+            <details className="bp-acc bp-mt-12" open>
+              <summary className="bp-acc__sum">Stripe (Native)</summary>
+              <div className="bp-acc__body">
+                <div className="bp-label">Mode</div>
+                <div className="bp-pay-seg bp-mt-10">
+                  <button
+                    type="button"
+                    className={`bp-pay-segbtn ${stripeMode === 'test' ? 'is-active' : ''}`}
+                    onClick={() => setState({ ...state, stripe: { ...state.stripe, mode: 'test' } })}
+                    disabled={!paymentsOn}
+                  >
+                    Test
+                  </button>
+                  <button
+                    type="button"
+                    className={`bp-pay-segbtn ${stripeMode === 'live' ? 'is-active' : ''}`}
+                    onClick={() => setState({ ...state, stripe: { ...state.stripe, mode: 'live' } })}
+                    disabled={!paymentsOn}
+                  >
+                    Live
+                  </button>
+                </div>
+
+                {stripeMode === 'test' ? (
+                  <div className="bp-grid bp-grid-2 bp-gap-10 bp-mt-12">
+                    <div>
+                      <div className="bp-label">Test Secret Key</div>
+                      <input
+                        className={`bp-input-field ${stripeNeeds.secret ? 'bp-field-error' : ''}`}
+                        value={state.stripe?.test_secret_key || ''}
+                        disabled={!paymentsOn}
+                        onChange={(e) =>
+                          setState({ ...state, stripe: { ...state.stripe, test_secret_key: e.target.value } })
+                        }
+                        placeholder="sk_test_..."
+                      />
+                    </div>
+                    <div>
+                      <div className="bp-label">Test Publishable Key</div>
+                      <input
+                        className={`bp-input-field ${stripeNeeds.pub ? 'bp-field-error' : ''}`}
+                        value={state.stripe?.test_publishable_key || ''}
+                        disabled={!paymentsOn}
+                        onChange={(e) =>
+                          setState({ ...state, stripe: { ...state.stripe, test_publishable_key: e.target.value } })
+                        }
+                        placeholder="pk_test_..."
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bp-grid bp-grid-2 bp-gap-10 bp-mt-12">
+                    <div>
+                      <div className="bp-label">Live Secret Key</div>
+                      <input
+                        className={`bp-input-field ${stripeNeeds.secret ? 'bp-field-error' : ''}`}
+                        value={state.stripe?.live_secret_key || ''}
+                        disabled={!paymentsOn}
+                        onChange={(e) =>
+                          setState({ ...state, stripe: { ...state.stripe, live_secret_key: e.target.value } })
+                        }
+                        placeholder="sk_live_..."
+                      />
+                    </div>
+                    <div>
+                      <div className="bp-label">Live Publishable Key</div>
+                      <input
+                        className={`bp-input-field ${stripeNeeds.pub ? 'bp-field-error' : ''}`}
+                        value={state.stripe?.live_publishable_key || ''}
+                        disabled={!paymentsOn}
+                        onChange={(e) =>
+                          setState({ ...state, stripe: { ...state.stripe, live_publishable_key: e.target.value } })
+                        }
+                        placeholder="pk_live_..."
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <details className="bp-acc bp-mt-12">
+                  <summary className="bp-acc__sum">Advanced</summary>
+                  <div className="bp-acc__body">
+                    <div className="bp-label">Webhook Secret</div>
+                    <input
+                      className="bp-input-field"
+                      value={state.stripe?.webhook_secret || ''}
+                      disabled={!paymentsOn}
+                      onChange={(e) =>
+                        setState({ ...state, stripe: { ...state.stripe, webhook_secret: e.target.value } })
+                      }
+                      placeholder="whsec_..."
+                    />
+                    <div className="bp-text-xs bp-muted bp-mt-6">
+                      Webhook URL: <strong>{window.location.origin}/wp-json/bp/v1/webhooks/stripe</strong>
+                    </div>
+
+                    <div className="bp-mt-12">
+                      <div className="bp-label">Success URL</div>
+                      <input
+                        className="bp-input-field"
+                        value={state.stripe?.success_url || ''}
+                        disabled={!paymentsOn}
+                        onChange={(e) =>
+                          setState({ ...state, stripe: { ...state.stripe, success_url: e.target.value } })
+                        }
+                        placeholder="https://yoursite.com/booking-success"
+                      />
+                    </div>
+
+                    <div className="bp-mt-12">
+                      <div className="bp-label">Cancel URL</div>
+                      <input
+                        className="bp-input-field"
+                        value={state.stripe?.cancel_url || ''}
+                        disabled={!paymentsOn}
+                        onChange={(e) =>
+                          setState({ ...state, stripe: { ...state.stripe, cancel_url: e.target.value } })
+                        }
+                        placeholder="https://yoursite.com/booking-cancelled"
+                      />
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </details>
+          ) : null}
+
+          {methodOn('paypal') ? (
+            <details className="bp-acc bp-mt-12" open>
+              <summary className="bp-acc__sum">PayPal (Native)</summary>
+              <div className="bp-acc__body">
+                <div className="bp-label">Mode</div>
+                <div className="bp-pay-seg bp-mt-10">
+                  <button
+                    type="button"
+                    className={`bp-pay-segbtn ${paypalMode === 'test' ? 'is-active' : ''}`}
+                    onClick={() => setState({ ...state, paypal: { ...state.paypal, mode: 'test' } })}
+                    disabled={!paymentsOn}
+                  >
+                    Sandbox
+                  </button>
+                  <button
+                    type="button"
+                    className={`bp-pay-segbtn ${paypalMode === 'live' ? 'is-active' : ''}`}
+                    onClick={() => setState({ ...state, paypal: { ...state.paypal, mode: 'live' } })}
+                    disabled={!paymentsOn}
+                  >
+                    Live
+                  </button>
+                </div>
+
+                <div className="bp-grid bp-grid-2 bp-gap-10 bp-mt-12">
+                  <div>
+                    <div className="bp-label">Client ID</div>
+                    <input
+                      className={`bp-input-field ${paypalNeeds.client ? 'bp-field-error' : ''}`}
+                      value={state.paypal?.client_id || ''}
+                      disabled={!paymentsOn}
+                      onChange={(e) => setState({ ...state, paypal: { ...state.paypal, client_id: e.target.value } })}
+                      placeholder="PayPal Client ID"
+                    />
+                  </div>
+                  <div>
+                    <div className="bp-label">Secret</div>
+                    <input
+                      className={`bp-input-field ${paypalNeeds.secret ? 'bp-field-error' : ''}`}
+                      value={state.paypal?.secret || ''}
+                      disabled={!paymentsOn}
+                      onChange={(e) => setState({ ...state, paypal: { ...state.paypal, secret: e.target.value } })}
+                      placeholder="PayPal Secret"
+                    />
+                  </div>
+                </div>
+
+                <details className="bp-acc bp-mt-12">
+                  <summary className="bp-acc__sum">Advanced</summary>
+                  <div className="bp-acc__body">
+                    <div className="bp-label">Return URL</div>
+                    <input
+                      className="bp-input-field"
+                      value={state.paypal?.return_url || ''}
+                      disabled={!paymentsOn}
+                      onChange={(e) => setState({ ...state, paypal: { ...state.paypal, return_url: e.target.value } })}
+                      placeholder="https://yoursite.com/paypal-return"
+                    />
+
+                    <div className="bp-mt-12">
+                      <div className="bp-label">Cancel URL</div>
+                      <input
+                        className="bp-input-field"
+                        value={state.paypal?.cancel_url || ''}
+                        disabled={!paymentsOn}
+                        onChange={(e) => setState({ ...state, paypal: { ...state.paypal, cancel_url: e.target.value } })}
+                        placeholder="https://yoursite.com/paypal-cancel"
+                      />
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </details>
+          ) : null}
+
+          {paymentsOn && !methodOn('woocommerce') && !methodOn('stripe') && !methodOn('paypal') ? (
+            <div className="bp-muted bp-mt-12">No provider setup required for the currently enabled methods.</div>
+          ) : null}
         </div>
       </div>
 
-      <div className="bp-card bp-p-14">
-        <div className="bp-card-head">
-          <div className="bp-font-900">PayPal (Native)</div>
-          <div className="bp-card-logo">
-            <img
-              src={`${imagesBase}/processor-paypal.png`}
-              alt=""
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            />
-          </div>
-        </div>
-
-        <div className="bp-mt-12">
-          <div className="bp-label">Mode</div>
-          <select
-            className="bp-select"
-            value={state.paypal?.mode || 'test'}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({ ...state, paypal: { ...state.paypal, mode: e.target.value } })
-            }
-          >
-            <option value="test">Sandbox</option>
-            <option value="live">Live</option>
-          </select>
-        </div>
-
-        <div className="bp-mt-12">
-          <div className="bp-label">Client ID</div>
-          <input
-            className="bp-input-field"
-            value={state.paypal?.client_id || ''}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({
-                ...state,
-                paypal: { ...state.paypal, client_id: e.target.value },
-              })
-            }
-            placeholder="PayPal Client ID"
-          />
-        </div>
-
-        <div className="bp-mt-12">
-          <div className="bp-label">Secret</div>
-          <input
-            className="bp-input-field"
-            value={state.paypal?.secret || ''}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({ ...state, paypal: { ...state.paypal, secret: e.target.value } })
-            }
-            placeholder="PayPal Secret"
-          />
-        </div>
-
-        <div className="bp-mt-12">
-          <div className="bp-label">Return URL</div>
-          <input
-            className="bp-input-field"
-            value={state.paypal?.return_url || ''}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({
-                ...state,
-                paypal: { ...state.paypal, return_url: e.target.value },
-              })
-            }
-            placeholder="https://yoursite.com/paypal-return"
-          />
-        </div>
-
-        <div className="bp-mt-12">
-          <div className="bp-label">Cancel URL</div>
-          <input
-            className="bp-input-field"
-            value={state.paypal?.cancel_url || ''}
-            disabled={!state.payments_enabled}
-            onChange={(e) =>
-              setState({
-                ...state,
-                paypal: { ...state.paypal, cancel_url: e.target.value },
-              })
-            }
-            placeholder="https://yoursite.com/paypal-cancel"
-          />
-        </div>
+      <div className="bp-payments-bar">
+        <button
+          type="button"
+          className="bp-btn bp-btn-primary"
+          onClick={save}
+          disabled={saving || (paymentsOn && hasConfigErrors)}
+        >
+          {saving ? 'Saving...' : 'Save payments'}
+        </button>
       </div>
     </div>
   );

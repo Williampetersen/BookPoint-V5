@@ -91,6 +91,10 @@ function bp_locations_decode_json($value) {
   return is_array($decoded) ? $decoded : null;
 }
 
+function bp_locations_bool01($v) {
+  return !empty($v) ? 1 : 0;
+}
+
 function bp_locations_require_tables() {
   if (class_exists('BP_Locations_Migrations_Helper')) {
     BP_Locations_Migrations_Helper::ensure_tables();
@@ -108,7 +112,6 @@ function bp_rest_admin_locations_list() {
     SELECT l.*, c.name AS category_name, c.image_id AS category_image_id
     FROM {$loc} l
     LEFT JOIN {$cat} c ON c.id = l.category_id
-    WHERE l.status = 'active'
     ORDER BY l.id DESC
   ", ARRAY_A) ?: [];
 
@@ -118,6 +121,8 @@ function bp_rest_admin_locations_list() {
     $r['category_id'] = (int)($r['category_id'] ?? 0);
     $r['category_image_id'] = (int)($r['category_image_id'] ?? 0);
     $r['category_image_url'] = bp_locations_img_url($r['category_image_id'], 'thumbnail');
+    $r['status'] = (string)($r['status'] ?? 'active');
+    $r['is_active'] = $r['status'] === 'active' ? 1 : 0;
   }
 
   return rest_ensure_response(['status' => 'success', 'data' => $rows]);
@@ -132,8 +137,16 @@ function bp_rest_admin_locations_create(WP_REST_Request $req) {
   if (!is_array($b)) $b = [];
 
   $now = current_time('mysql');
+  $status = 'active';
+  if (isset($b['status'])) {
+    $s = sanitize_text_field((string)$b['status']);
+    if ($s === 'inactive') $status = 'inactive';
+  } elseif (array_key_exists('is_active', $b)) {
+    $status = bp_locations_bool01($b['is_active']) ? 'active' : 'inactive';
+  }
+
   $payload = [
-    'status' => 'active',
+    'status' => $status,
     'name' => sanitize_text_field($b['name'] ?? 'New Location'),
     'address' => sanitize_text_field($b['address'] ?? ''),
     'category_id' => !empty($b['category_id']) ? (int)$b['category_id'] : null,
@@ -168,6 +181,8 @@ function bp_rest_admin_locations_get($req) {
   $row['image_url'] = bp_locations_img_url($row['image_id'], 'medium');
   $row['category_id'] = (int)($row['category_id'] ?? 0);
   $row['schedule'] = bp_locations_decode_json($row['schedule_json'] ?? null);
+  $row['status'] = (string)($row['status'] ?? 'active');
+  $row['is_active'] = $row['status'] === 'active' ? 1 : 0;
 
   return rest_ensure_response(['status' => 'success', 'data' => $row]);
 }
@@ -183,8 +198,16 @@ function bp_rest_admin_locations_update(WP_REST_Request $req) {
   $b = $req->get_json_params();
   if (!is_array($b)) $b = [];
 
+  $status = 'active';
+  if (isset($b['status'])) {
+    $s = sanitize_text_field((string)$b['status']);
+    if ($s === 'inactive') $status = 'inactive';
+  } elseif (array_key_exists('is_active', $b)) {
+    $status = bp_locations_bool01($b['is_active']) ? 'active' : 'inactive';
+  }
+
   $payload = [
-    'status' => 'active',
+    'status' => $status,
     'name' => sanitize_text_field($b['name'] ?? ''),
     'address' => sanitize_text_field($b['address'] ?? ''),
     'category_id' => !empty($b['category_id']) ? (int)$b['category_id'] : null,

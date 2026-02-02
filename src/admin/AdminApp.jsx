@@ -7,8 +7,11 @@ import BookingsScreen from "./screens/BookingsScreen";
 import BookingEditScreen from "./screens/BookingEditScreen";
 import FormFieldsScreen from "./screens/FormFieldsScreen";
 import ServicesScreen from "./screens/ServicesScreen";
+import ServicesEditScreen from "./screens/ServicesEditScreen";
 import CategoriesScreen from "./screens/CategoriesScreen";
+import CategoriesEditScreen from "./screens/CategoriesEditScreen";
 import ExtrasScreen from "./screens/ExtrasScreen";
+import ExtrasEditScreen from "./screens/ExtrasEditScreen";
 import PromoCodesScreen from "./screens/PromoCodesScreen";
 import CalendarScreen from "./screens/CalendarScreen";
 import ScheduleScreen from "./screens/ScheduleScreen";
@@ -17,7 +20,9 @@ import LocationsScreen from "./screens/LocationsScreen";
 import LocationsEditScreen from "./screens/LocationsEditScreen";
 import LocationCategoryEditScreen from "./screens/LocationCategoryEditScreen";
 import CustomersScreen from "./screens/CustomersScreen";
+import CustomersEditScreen from "./screens/CustomersEditScreen";
 import AgentsScreen from "./screens/AgentsScreen";
+import AgentsEditScreen from "./screens/AgentsEditScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import AuditScreen from "./screens/AuditScreen";
 import ToolsScreen from "./screens/ToolsScreen";
@@ -39,10 +44,13 @@ function resolveScreen(page) {
 
     case "bp-services": return "services";
     case "bp_services": return "services";
+    case "bp_services_edit": return "services-edit";
     case "bp-categories": return "categories";
     case "bp_categories": return "categories";
+    case "bp_categories_edit": return "categories-edit";
     case "bp-extras": return "extras";
     case "bp_extras": return "extras";
+    case "bp_extras_edit": return "extras-edit";
     case "bp-locations": return "locations";
     case "bp_locations": return "locations";
     case "bp-locations-edit": return "locations-edit";
@@ -55,8 +63,10 @@ function resolveScreen(page) {
     case "bp_form_fields": return "form-fields";
     case "bp-customers": return "customers";
     case "bp_customers": return "customers";
+    case "bp_customers_edit": return "customers-edit";
     case "bp-agents": return "agents";
     case "bp_agents": return "agents";
+    case "bp_agents_edit": return "agents-edit";
 
     case "bp-settings": return "settings";
     case "bp_settings": return "settings";
@@ -99,14 +109,19 @@ export default function AdminApp() {
       {screen === "bookings-edit" ? <BookingEditScreen /> : null}
       {screen === "form-fields" ? <FormFieldsScreen /> : null}
       {screen === "services" ? <ServicesScreen /> : null}
+      {screen === "services-edit" ? <ServicesEditScreen /> : null}
       {screen === "categories" ? <CategoriesScreen /> : null}
+      {screen === "categories-edit" ? <CategoriesEditScreen /> : null}
       {screen === "extras" ? <ExtrasScreen /> : null}
+      {screen === "extras-edit" ? <ExtrasEditScreen /> : null}
       {screen === "promo" ? <PromoCodesScreen /> : null}
       {screen === "locations" ? <LocationsScreen /> : null}
       {screen === "locations-edit" ? <LocationsEditScreen /> : null}
       {screen === "location-categories-edit" ? <LocationCategoryEditScreen /> : null}
       {screen === "customers" ? <CustomersScreen /> : null}
+      {screen === "customers-edit" ? <CustomersEditScreen /> : null}
       {screen === "agents" ? <AgentsScreen /> : null}
+      {screen === "agents-edit" ? <AgentsEditScreen /> : null}
       {screen === "settings" ? <SettingsScreen /> : null}
       {screen === "audit" ? <AuditScreen /> : null}
       {screen === "tools" ? <ToolsScreen /> : null}

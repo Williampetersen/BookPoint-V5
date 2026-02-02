@@ -226,7 +226,8 @@ export default function CalendarScreen(){
   const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
 
   return (
-    <div className="bp-cal-wrap">
+    <div className="myplugin-page bp-calendar">
+      <main className="myplugin-content">
       <div className="bp-cal-top">
         <div className="bp-cal-title">
           <div className="bp-cal-year">{cursor.getFullYear()}</div>
@@ -249,10 +250,9 @@ export default function CalendarScreen(){
 
           <div className="bp-cal-pill">
             <button className="bp-cal-btn" onClick={()=>setFiltersOpen(true)}>Filters</button>
-            <button className="bp-cal-icon" aria-label="More">...</button>
           </div>
 
-          <button className="bp-primary-btn" onClick={()=>alert("Next: open booking wizard")}>+ Booking</button>
+          <button className="bp-primary-btn bp-cal-cta" onClick={()=>alert("Next: open booking wizard")}>+ Booking</button>
         </div>
       </div>
 
@@ -448,6 +448,7 @@ export default function CalendarScreen(){
           </div>
         </div>
       ) : null}
+      </main>
     </div>
   );
 }

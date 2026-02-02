@@ -373,7 +373,8 @@ function bp_rest_admin_customer_update(WP_REST_Request $req) {
     'email'      => $email !== '' ? $email : null,
     'phone'      => $phone !== '' ? $phone : null,
     'custom_fields_json' => $custom_fields_json,
-    'updated_at' => BP_Model::now_mysql(),
+    // Use WP timezone timestamp. BP_Model::now_mysql() is protected (subclasses only).
+    'updated_at' => current_time('mysql'),
   ], ['id' => $id], ['%s','%s','%s','%s','%s','%s'], ['%d']);
 
   if ($updated === false) {
