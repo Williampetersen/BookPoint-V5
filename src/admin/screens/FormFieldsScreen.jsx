@@ -229,16 +229,18 @@ export default function FormFieldsScreen({ embedded = false }) {
       });
     }
 
-    if (sort === "label") {
-      list.sort((a, b) => String(a.label || "").localeCompare(String(b.label || "")));
-    } else if (sort === "type") {
-      list.sort((a, b) => String(a.type || "").localeCompare(String(b.type || "")));
-    } else {
-      list.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0));
+    if (!reorderMode || sort !== "order") {
+      if (sort === "label") {
+        list.sort((a, b) => String(a.label || "").localeCompare(String(b.label || "")));
+      } else if (sort === "type") {
+        list.sort((a, b) => String(a.type || "").localeCompare(String(b.type || "")));
+      } else {
+        list.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0));
+      }
     }
 
     return list;
-  }, [rows, q, statusFilter, sort]);
+  }, [rows, q, statusFilter, sort, reorderMode]);
 
   const selected = useMemo(() => {
     if (!selectedId) return null;
@@ -410,15 +412,34 @@ export default function FormFieldsScreen({ embedded = false }) {
     dragIdRef.current = null;
   };
 
+  const moveRow = (id, delta) => {
+    const rowId = Number(id) || 0;
+    const d = Number(delta) || 0;
+    if (!rowId || !d) return;
+
+    setRows((prev) => {
+      const list = [...(prev || [])];
+      const from = list.findIndex((r) => Number(r.id) === rowId);
+      if (from < 0) return prev;
+      const to = Math.max(0, Math.min(list.length - 1, from + d));
+      if (to === from) return prev;
+      const [moved] = list.splice(from, 1);
+      list.splice(to, 0, moved);
+      return list;
+    });
+    setDirtyOrder(true);
+  };
+
   const onDrop = (e, targetId) => {
     e.preventDefault();
-    const sourceId = dragIdRef.current;
+    const sourceId = Number(dragIdRef.current) || 0;
     dragIdRef.current = null;
-    if (!sourceId || sourceId === targetId) return;
+    const tid = Number(targetId) || 0;
+    if (!sourceId || !tid || sourceId === tid) return;
     setRows((prev) => {
       const list = [...prev];
-      const from = list.findIndex((r) => r.id === sourceId);
-      const to = list.findIndex((r) => r.id === targetId);
+      const from = list.findIndex((r) => Number(r.id) === sourceId);
+      const to = list.findIndex((r) => Number(r.id) === tid);
       if (from < 0 || to < 0) return prev;
       const [moved] = list.splice(from, 1);
       list.splice(to, 0, moved);
@@ -730,7 +751,13 @@ export default function FormFieldsScreen({ embedded = false }) {
                           {required ? <span className="bp-ff-pill bp-ff-pill--req">Required</span> : null}
                           {show ? null : <span className="bp-ff-pill bp-ff-pill--muted">Hidden</span>}
                         </div>
-                        {reorderMode ? <span className="bp-ff-drag" aria-hidden="true">⋮⋮</span> : null}
+                        {reorderMode ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }} onClick={(e) => e.stopPropagation()}>
+                            <button type="button" className="bp-btn-sm" onClick={() => moveRow(r.id, -1)}>Up</button>
+                            <button type="button" className="bp-btn-sm" onClick={() => moveRow(r.id, 1)}>Down</button>
+                            <span className="bp-ff-drag" aria-hidden="true">⋮⋮</span>
+                          </div>
+                        ) : null}
                       </div>
                       <div className="bp-ff-itemMeta">
                         <code className="bp-ff-code">{key}</code>

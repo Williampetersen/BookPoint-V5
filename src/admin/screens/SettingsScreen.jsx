@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import ScheduleScreen from "./ScheduleScreen";
 import HolidaysScreen from "./HolidaysScreen";
 import FormFieldsScreen from "./FormFieldsScreen";
@@ -38,9 +38,16 @@ export default function SettingsScreen() {
     status: "unset",
     checked_at: 0,
     last_error: "",
+    plan: "",
+    expires_at: "",
+    licensed_domain: "",
+    instance_id: "",
+    data: "",
   });
   const [licenseSaving, setLicenseSaving] = useState(false);
   const [licenseValidating, setLicenseValidating] = useState(false);
+  const [showLicenseKey, setShowLicenseKey] = useState(false);
+  const [showLicenseDetails, setShowLicenseDetails] = useState(false);
 
   const [activeTab, setActiveTab] = useState(() => {
     const tab = new URLSearchParams(window.location.search).get("tab");
@@ -79,7 +86,7 @@ export default function SettingsScreen() {
     { code: "CLP", name: "Chilean Peso" },
     { code: "CNY", name: "Chinese Yuan" },
     { code: "COP", name: "Colombian Peso" },
-    { code: "CRC", name: "Costa Rican Colón" },
+    { code: "CRC", name: "Costa Rican ColÃ³n" },
     { code: "CUC", name: "Cuban Convertible Peso" },
     { code: "CUP", name: "Cuban Peso" },
     { code: "CVE", name: "Cape Verdean Escudo" },
@@ -112,7 +119,7 @@ export default function SettingsScreen() {
     { code: "INR", name: "Indian Rupee" },
     { code: "IQD", name: "Iraqi Dinar" },
     { code: "IRR", name: "Iranian Rial" },
-    { code: "ISK", name: "Icelandic Króna" },
+    { code: "ISK", name: "Icelandic KrÃ³na" },
     { code: "JMD", name: "Jamaican Dollar" },
     { code: "JOD", name: "Jordanian Dinar" },
     { code: "JPY", name: "Japanese Yen" },
@@ -136,7 +143,7 @@ export default function SettingsScreen() {
     { code: "MGA", name: "Malagasy Ariary" },
     { code: "MKD", name: "Macedonian Denar" },
     { code: "MMK", name: "Myanmar Kyat" },
-    { code: "MNT", name: "Mongolian Tögrög" },
+    { code: "MNT", name: "Mongolian TÃ¶grÃ¶g" },
     { code: "MOP", name: "Macanese Pataca" },
     { code: "MRU", name: "Mauritanian Ouguiya" },
     { code: "MUR", name: "Mauritian Rupee" },
@@ -147,7 +154,7 @@ export default function SettingsScreen() {
     { code: "MZN", name: "Mozambican Metical" },
     { code: "NAD", name: "Namibian Dollar" },
     { code: "NGN", name: "Nigerian Naira" },
-    { code: "NIO", name: "Nicaraguan Córdoba" },
+    { code: "NIO", name: "Nicaraguan CÃ³rdoba" },
     { code: "NOK", name: "Norwegian Krone" },
     { code: "NPR", name: "Nepalese Rupee" },
     { code: "NZD", name: "New Zealand Dollar" },
@@ -157,8 +164,8 @@ export default function SettingsScreen() {
     { code: "PGK", name: "Papua New Guinean Kina" },
     { code: "PHP", name: "Philippine Peso" },
     { code: "PKR", name: "Pakistani Rupee" },
-    { code: "PLN", name: "Polish Złoty" },
-    { code: "PYG", name: "Paraguayan Guaraní" },
+    { code: "PLN", name: "Polish ZÅ‚oty" },
+    { code: "PYG", name: "Paraguayan GuaranÃ­" },
     { code: "QAR", name: "Qatari Riyal" },
     { code: "RON", name: "Romanian Leu" },
     { code: "RSD", name: "Serbian Dinar" },
@@ -175,14 +182,14 @@ export default function SettingsScreen() {
     { code: "SOS", name: "Somali Shilling" },
     { code: "SRD", name: "Surinamese Dollar" },
     { code: "SSP", name: "South Sudanese Pound" },
-    { code: "STN", name: "São Tomé and Príncipe Dobra" },
+    { code: "STN", name: "SÃ£o TomÃ© and PrÃ­ncipe Dobra" },
     { code: "SYP", name: "Syrian Pound" },
     { code: "SZL", name: "Swazi Lilangeni" },
     { code: "THB", name: "Thai Baht" },
     { code: "TJS", name: "Tajikistani Somoni" },
     { code: "TMT", name: "Turkmenistani Manat" },
     { code: "TND", name: "Tunisian Dinar" },
-    { code: "TOP", name: "Tongan Paʻanga" },
+    { code: "TOP", name: "Tongan PaÊ»anga" },
     { code: "TRY", name: "Turkish Lira" },
     { code: "TTD", name: "Trinidad and Tobago Dollar" },
     { code: "TWD", name: "New Taiwan Dollar" },
@@ -192,10 +199,10 @@ export default function SettingsScreen() {
     { code: "USD", name: "US Dollar" },
     { code: "UYU", name: "Uruguayan Peso" },
     { code: "UZS", name: "Uzbekistan Som" },
-    { code: "VES", name: "Venezuelan Bolívar" },
-    { code: "VND", name: "Vietnamese Đồng" },
+    { code: "VES", name: "Venezuelan BolÃ­var" },
+    { code: "VND", name: "Vietnamese Äá»“ng" },
     { code: "VUV", name: "Vanuatu Vatu" },
-    { code: "WST", name: "Samoan Tālā" },
+    { code: "WST", name: "Samoan TÄlÄ" },
     { code: "XAF", name: "Central African CFA Franc" },
     { code: "XCD", name: "East Caribbean Dollar" },
     { code: "XOF", name: "West African CFA Franc" },
@@ -288,13 +295,14 @@ export default function SettingsScreen() {
   async function saveLicense() {
     try {
       setLicenseSaving(true);
+      setShowLicenseDetails(false);
       const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license`, {
         method: "POST",
         headers: {
           "X-WP-Nonce": window.BP_ADMIN?.nonce,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ key: license.key || "" }),
+        body: JSON.stringify({ key: String(license.key || "").trim() }),
       });
       const json = await resp.json();
       if (json.status === "success") {
@@ -310,6 +318,7 @@ export default function SettingsScreen() {
   async function validateLicense() {
     try {
       setLicenseValidating(true);
+      setShowLicenseDetails(false);
       const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license/validate`, {
         method: "POST",
         headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce },
@@ -324,6 +333,50 @@ export default function SettingsScreen() {
       setLicenseValidating(false);
     }
   }
+
+  const licenseMeta = useMemo(() => {
+    try {
+      const raw = license?.data;
+      if (!raw) return null;
+      if (typeof raw === "object") return raw;
+      return JSON.parse(String(raw));
+    } catch {
+      return null;
+    }
+  }, [license]);
+
+  const copyText = async (text) => {
+    const v = String(text || "");
+    try {
+      await navigator.clipboard.writeText(v);
+      return true;
+    } catch (_) {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = v;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  };
+
+  const timeAgo = (unixSeconds) => {
+    const s = Number(unixSeconds) || 0;
+    if (!s) return "";
+    const diff = Math.max(0, Date.now() - s * 1000);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 48) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  };
 
   // Advanced settings panel removed (keeps Settings clean and avoids accidental edits).
 
@@ -533,7 +586,7 @@ export default function SettingsScreen() {
 
                 <div className="bp-settings-actions">
                   <button onClick={saveSettings} className="bp-btn bp-btn-primary">Save Settings</button>
-                  {saved && <span className="bp-settings-saved">✓ Saved!</span>}
+                  {saved && <span className="bp-settings-saved">âœ“ Saved!</span>}
                 </div>
               </div>
             </div>
@@ -572,65 +625,152 @@ export default function SettingsScreen() {
           )}
 
           {activeTab === "license" && (
-            <div className="bp-card">
-              <div className="bp-section-title">License</div>
-              <div className="bp-muted" style={{ marginTop: 6 }}>
-                Status:{" "}
-                <strong>
-                  {license.status === "valid"
-                    ? "✅ valid"
-                    : license.status === "expired"
-                      ? "⚠️ expired"
-                      : license.status === "invalid"
-                        ? "❌ invalid"
-                        : "— unset"}
-                </strong>
-              </div>
-              {license.checked_at ? (
-                <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                  Last checked: {new Date(license.checked_at * 1000).toLocaleString()}
-                </div>
-              ) : null}
-              {license.last_error ? (
-                <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                  Message: {license.last_error}
-                </div>
-              ) : null}
-
-              <div className="bp-settings-field" style={{ marginTop: 14 }}>
-                <label className="bp-label">License key</label>
-                <input
-                  type="text"
-                  value={license.key || ""}
-                  onChange={(e) => setLicense({ ...license, key: e.target.value })}
-                  className="bp-input"
-                />
-                <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                  Paste your license key and save.
-                </div>
-              </div>
-
-              <div className="bp-settings-actions">
-                <button
-                  onClick={saveLicense}
-                  className="bp-btn bp-btn-primary"
-                  disabled={licenseSaving}
-                >
-                  {licenseSaving ? "Saving..." : "Save License"}
-                </button>
-                <button
-                  onClick={validateLicense}
-                  className="bp-btn"
-                  disabled={licenseValidating}
-                >
-                  {licenseValidating ? "Validating..." : "Validate Now"}
-                </button>
-              </div>
-            </div>
-          )}
-
+  <div className="bp-license">
+    <div className="bp-license-grid">
+      <div className="bp-card bp-license-status">
+        <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
+          <div>
+            <div className="bp-section-title" style={{ margin: 0 }}>License Status</div>
+            <div className="bp-muted bp-text-xs">Validation, plan, and support info.</div>
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" onClick={validateLicense} className="bp-btn" disabled={licenseValidating}>
+              {licenseValidating ? "Validating..." : "Validate Now"}
+            </button>
+            <a className="bp-btn" href="admin.php?page=bp_settings&tab=tools">Diagnostics</a>
+          </div>
         </div>
+
+        <div className="bp-license-statusBody">
+          <div className={`bp-license-pill is-${license.status || "unset"}`}>
+            <span className="k">Status</span>
+            <span className="v">{license.status || "unset"}</span>
+          </div>
+
+          <div className="bp-license-kvGrid">
+            <div className="bp-license-kv">
+              <div className="k">Plan</div>
+              <div className="v">{license.plan || licenseMeta?.plan || "-"}</div>
+            </div>
+            <div className="bp-license-kv">
+              <div className="k">Expires</div>
+              <div className="v">{license.expires_at || licenseMeta?.expires_at || licenseMeta?.expires || "-"}</div>
+            </div>
+            <div className="bp-license-kv">
+              <div className="k">Licensed Domain</div>
+              <div className="v">{license.licensed_domain || licenseMeta?.licensed_domain || licenseMeta?.domain || "-"}</div>
+            </div>
+            <div className="bp-license-kv">
+              <div className="k">Instance ID</div>
+              <div className="v">{license.instance_id || licenseMeta?.instance_id || "-"}</div>
+            </div>
+          </div>
+
+          <div className="bp-license-kvRow">
+            <div className="k">Last checked</div>
+            <div className="v">
+              {license.checked_at ? (
+                <span>
+                  {new Date(license.checked_at * 1000).toLocaleString()} {" "}
+                  <span className="bp-muted">({timeAgo(license.checked_at)})</span>
+                </span>
+              ) : (
+                "-"
+              )}
+            </div>
+          </div>
+
+          {license.last_error ? (
+            <div className="bp-license-error">
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="bp-label" style={{ margin: 0 }}>Server message</div>
+                  <div className="bp-muted bp-text-xs" style={{ marginTop: 4 }}>{license.last_error}</div>
+                </div>
+                <button className="bp-btn" type="button" onClick={() => setShowLicenseDetails((v) => !v)}>
+                  {showLicenseDetails ? "Hide" : "Details"}
+                </button>
+              </div>
+              {showLicenseDetails && licenseMeta ? (
+                <pre className="bp-license-pre">{JSON.stringify(licenseMeta, null, 2)}</pre>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="bp-license-help">
+            <div className="bp-section-title" style={{ margin: 0, fontSize: 14 }}>Support</div>
+            <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
+              If validation fails, copy these and send to support:
+            </div>
+            <div className="bp-license-helpRow">
+              <code className="bp-license-code">{window.location.origin}</code>
+              <button className="bp-btn" type="button" onClick={async () => { await copyText(window.location.origin); }}>Copy</button>
+            </div>
+            <div className="bp-license-helpRow">
+              <code className="bp-license-code">{window.location.hostname}</code>
+              <button className="bp-btn" type="button" onClick={async () => { await copyText(window.location.hostname); }}>Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bp-card bp-license-manage">
+        <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
+          <div>
+            <div className="bp-section-title" style={{ margin: 0 }}>Manage License</div>
+            <div className="bp-muted bp-text-xs">Paste key, save, and validate.</div>
+          </div>
+        </div>
+
+        <div className="bp-license-manageBody">
+          <div className="bp-license-field">
+            <label className="bp-label">License key</label>
+            <div className="bp-license-keyRow">
+              <input
+                type={showLicenseKey ? "text" : "password"}
+                value={license.key || ""}
+                onChange={(e) => setLicense({ ...license, key: e.target.value })}
+                className="bp-input-field"
+                placeholder="Paste your license key..."
+                autoComplete="off"
+              />
+              <button type="button" className="bp-btn" onClick={() => setShowLicenseKey((v) => !v)}>
+                {showLicenseKey ? "Hide" : "Show"}
+              </button>
+            </div>
+            <div className="bp-muted bp-text-xs" style={{ marginTop: 8 }}>
+              Tip: whitespace is trimmed on save.
+            </div>
+          </div>
+
+          <div className="bp-license-actions">
+            <button type="button" onClick={saveLicense} className="bp-btn bp-btn-primary" disabled={licenseSaving}>
+              {licenseSaving ? "Saving..." : "Save Key"}
+            </button>
+            <button type="button" onClick={validateLicense} className="bp-btn" disabled={licenseValidating}>
+              {licenseValidating ? "Validating..." : "Validate Now"}
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!license.key) return;
+                if (!confirm("Remove license key from this site?")) return;
+                setLicense({ ...license, key: "" });
+                await saveLicense();
+              }}
+              className="bp-btn bp-btn-danger"
+              disabled={licenseSaving || !license.key}
+            >
+              Remove Key
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}</div>
       </div>
     </div>
   );
 }
+

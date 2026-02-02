@@ -8,7 +8,7 @@ function imgUrl(filename) {
   return `${base}/${filename}`;
 }
 
-export default function WizardPreview({ config, activeStepKey }) {
+export default function WizardPreview({ config, activeStepKey, device = "desktop" }) {
   const steps = config?.steps || [];
   const step =
     steps.find((s) => s.key === activeStepKey) ||
@@ -24,14 +24,16 @@ export default function WizardPreview({ config, activeStepKey }) {
   const nextLabel = step?.buttonNextLabel || config?.texts?.nextLabel || "Next ->";
   const backLabel = step?.buttonBackLabel || config?.texts?.backLabel || "<- Back";
 
-  const showLeft = step?.showLeftPanel !== false;
+  const isMobile = device === "mobile";
+  // On narrow layouts the actual wizard collapses; mimic that in preview by hiding the left panel.
+  const showLeft = !isMobile && step?.showLeftPanel !== false;
   const showHelp = step?.showHelpBox !== false;
 
   const fallback = imgUrl(step?.image || "location-image.png");
   const src = step?.imageUrl || fallback;
 
   return (
-    <div className="bp-preview-wrap">
+    <div className={`bp-preview-wrap ${isMobile ? "is-mobile" : ""}`}>
       <div className={`bp-preview ${rounded ? "bp-rounded" : "bp-flat"}`}>
         {showLeft && (
           <div className="bp-preview-left">

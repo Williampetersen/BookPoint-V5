@@ -1,2 +1,5 @@
 node_modules
 .vscode/sftp.json
+dist/
+scripts/.deploy.local.ps1
+scripts/.deploy.local.json
