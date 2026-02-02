@@ -79,9 +79,89 @@ add_action('rest_api_init', function () {
     },
   ]);
 
+  register_rest_route('bp/v1', '/admin/promo-codes', [
+    'methods'  => 'POST',
+    'callback' => 'bp_rest_admin_promo_codes_create',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_services')
+        || current_user_can('bp_manage_settings')
+        || current_user_can('manage_options');
+    },
+  ]);
+
+  register_rest_route('bp/v1', '/admin/promo-codes/(?P<id>\\d+)', [
+    'methods'  => 'GET',
+    'callback' => 'bp_rest_admin_promo_codes_get',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_services')
+        || current_user_can('bp_manage_settings')
+        || current_user_can('manage_options');
+    },
+  ]);
+
+  register_rest_route('bp/v1', '/admin/promo-codes/(?P<id>\\d+)', [
+    'methods'  => 'PATCH',
+    'callback' => 'bp_rest_admin_promo_codes_update',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_services')
+        || current_user_can('bp_manage_settings')
+        || current_user_can('manage_options');
+    },
+  ]);
+
+  register_rest_route('bp/v1', '/admin/promo-codes/(?P<id>\\d+)', [
+    'methods'  => 'DELETE',
+    'callback' => 'bp_rest_admin_promo_codes_delete',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_services')
+        || current_user_can('bp_manage_settings')
+        || current_user_can('manage_options');
+    },
+  ]);
+
+  register_rest_route('bp/v1', '/admin/promo-codes/(?P<id>\\d+)/duplicate', [
+    'methods'  => 'POST',
+    'callback' => 'bp_rest_admin_promo_codes_duplicate',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_services')
+        || current_user_can('bp_manage_settings')
+        || current_user_can('manage_options');
+    },
+  ]);
+
   register_rest_route('bp/v1', '/admin/audit-logs', [
     'methods'  => 'GET',
     'callback' => 'bp_rest_admin_audit_logs_list',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_settings')
+        || current_user_can('bp_manage_tools')
+        || current_user_can('manage_options');
+    },
+  ]);
+
+  register_rest_route('bp/v1', '/admin/audit-logs/meta', [
+    'methods'  => 'GET',
+    'callback' => 'bp_rest_admin_audit_logs_meta',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_settings')
+        || current_user_can('bp_manage_tools')
+        || current_user_can('manage_options');
+    },
+  ]);
+
+  register_rest_route('bp/v1', '/admin/audit-logs/clear', [
+    'methods'  => 'POST',
+    'callback' => 'bp_rest_admin_audit_logs_clear',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_settings')
+        || current_user_can('bp_manage_tools')
+        || current_user_can('manage_options');
+    },
+  ]);
+
+  register_rest_route('bp/v1', '/admin/audit-logs/export', [
+    'methods'  => 'GET',
+    'callback' => 'bp_rest_admin_audit_logs_export',
     'permission_callback' => function () {
       return current_user_can('bp_manage_settings')
         || current_user_can('bp_manage_tools')
@@ -102,6 +182,36 @@ add_action('rest_api_init', function () {
   register_rest_route('bp/v1', '/admin/tools/run/(?P<action>[a-z0-9_-]+)', [
     'methods'  => 'POST',
     'callback' => 'bp_rest_admin_tools_run',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_tools')
+        || current_user_can('bp_manage_settings')
+        || current_user_can('manage_options');
+    },
+  ]);
+
+  register_rest_route('bp/v1', '/admin/tools/report', [
+    'methods'  => 'GET',
+    'callback' => 'bp_rest_admin_tools_report',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_tools')
+        || current_user_can('bp_manage_settings')
+        || current_user_can('manage_options');
+    },
+  ]);
+
+  register_rest_route('bp/v1', '/admin/tools/export-settings', [
+    'methods'  => 'GET',
+    'callback' => 'bp_rest_admin_tools_export_settings',
+    'permission_callback' => function () {
+      return current_user_can('bp_manage_tools')
+        || current_user_can('bp_manage_settings')
+        || current_user_can('manage_options');
+    },
+  ]);
+
+  register_rest_route('bp/v1', '/admin/tools/import-settings', [
+    'methods'  => 'POST',
+    'callback' => 'bp_rest_admin_tools_import_settings',
     'permission_callback' => function () {
       return current_user_can('bp_manage_tools')
         || current_user_can('bp_manage_settings')
@@ -414,12 +524,122 @@ function bp_rest_admin_promo_codes_list(WP_REST_Request $req) {
   return new WP_REST_Response(['status' => 'success', 'data' => ($rows ?: [])], 200);
 }
 
+function bp_rest_admin_promo_codes_get(WP_REST_Request $req) {
+  $id = (int)$req['id'];
+  if ($id <= 0) return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid id'], 400);
+  $row = BP_PromoCodeModel::find($id);
+  if (!$row) return new WP_REST_Response(['status' => 'error', 'message' => 'Not found'], 404);
+  return new WP_REST_Response(['status' => 'success', 'data' => $row], 200);
+}
+
+function bp_rest_admin_promo_codes_create(WP_REST_Request $req) {
+  $p = $req->get_json_params();
+  if (!is_array($p)) $p = [];
+
+  $code = strtoupper(sanitize_text_field($p['code'] ?? ''));
+  if ($code === '') return new WP_REST_Response(['status' => 'error', 'message' => 'Code required'], 400);
+
+  $existing = BP_PromoCodeModel::find_by_code($code);
+  if ($existing) return new WP_REST_Response(['status' => 'error', 'message' => 'Code already exists'], 409);
+
+  $id = BP_PromoCodeModel::save([
+    'code' => $code,
+    'type' => sanitize_text_field($p['type'] ?? 'percent'),
+    'amount' => $p['amount'] ?? 0,
+    'starts_at' => sanitize_text_field($p['starts_at'] ?? ''),
+    'ends_at' => sanitize_text_field($p['ends_at'] ?? ''),
+    'max_uses' => array_key_exists('max_uses', $p) ? $p['max_uses'] : null,
+    'min_total' => array_key_exists('min_total', $p) ? $p['min_total'] : null,
+    'is_active' => array_key_exists('is_active', $p) ? (int)!empty($p['is_active']) : 1,
+  ]);
+
+  $row = $id ? BP_PromoCodeModel::find($id) : null;
+  if (!$row) return new WP_REST_Response(['status' => 'error', 'message' => 'Create failed'], 500);
+  return new WP_REST_Response(['status' => 'success', 'data' => $row], 201);
+}
+
+function bp_rest_admin_promo_codes_update(WP_REST_Request $req) {
+  $id = (int)$req['id'];
+  if ($id <= 0) return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid id'], 400);
+
+  $existing = BP_PromoCodeModel::find($id);
+  if (!$existing) return new WP_REST_Response(['status' => 'error', 'message' => 'Not found'], 404);
+
+  $p = $req->get_json_params();
+  if (!is_array($p)) $p = [];
+
+  $code = array_key_exists('code', $p) ? strtoupper(sanitize_text_field($p['code'] ?? '')) : null;
+  if ($code !== null && $code === '') return new WP_REST_Response(['status' => 'error', 'message' => 'Code required'], 400);
+  if ($code !== null && $code !== strtoupper((string)($existing['code'] ?? ''))) {
+    $dupe = BP_PromoCodeModel::find_by_code($code);
+    if ($dupe && (int)$dupe['id'] !== $id) {
+      return new WP_REST_Response(['status' => 'error', 'message' => 'Code already exists'], 409);
+    }
+  }
+
+  $payload = ['id' => $id];
+  if ($code !== null) $payload['code'] = $code;
+  if (array_key_exists('type', $p)) $payload['type'] = sanitize_text_field($p['type'] ?? 'percent');
+  if (array_key_exists('amount', $p)) $payload['amount'] = $p['amount'];
+  if (array_key_exists('starts_at', $p)) $payload['starts_at'] = sanitize_text_field($p['starts_at'] ?? '');
+  if (array_key_exists('ends_at', $p)) $payload['ends_at'] = sanitize_text_field($p['ends_at'] ?? '');
+  if (array_key_exists('max_uses', $p)) $payload['max_uses'] = $p['max_uses'];
+  if (array_key_exists('min_total', $p)) $payload['min_total'] = $p['min_total'];
+  if (array_key_exists('is_active', $p)) $payload['is_active'] = (int)!empty($p['is_active']);
+
+  BP_PromoCodeModel::save($payload);
+  $row = BP_PromoCodeModel::find($id);
+  return new WP_REST_Response(['status' => 'success', 'data' => $row], 200);
+}
+
+function bp_rest_admin_promo_codes_delete(WP_REST_Request $req) {
+  $id = (int)$req['id'];
+  if ($id <= 0) return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid id'], 400);
+  $ok = BP_PromoCodeModel::delete($id);
+  if (!$ok) return new WP_REST_Response(['status' => 'error', 'message' => 'Delete failed'], 500);
+  return new WP_REST_Response(['status' => 'success'], 200);
+}
+
+function bp_rest_admin_promo_codes_duplicate(WP_REST_Request $req) {
+  $id = (int)$req['id'];
+  if ($id <= 0) return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid id'], 400);
+  $row = BP_PromoCodeModel::find($id);
+  if (!$row) return new WP_REST_Response(['status' => 'error', 'message' => 'Not found'], 404);
+
+  $base = strtoupper((string)($row['code'] ?? ''));
+  if ($base === '') $base = 'PROMO';
+  $new = $base . '-COPY';
+  $i = 2;
+  while (BP_PromoCodeModel::find_by_code($new)) {
+    $new = $base . "-COPY{$i}";
+    $i++;
+    if ($i > 50) break;
+  }
+
+  $newId = BP_PromoCodeModel::save([
+    'code' => $new,
+    'type' => $row['type'] ?? 'percent',
+    'amount' => $row['amount'] ?? 0,
+    'starts_at' => $row['starts_at'] ?? null,
+    'ends_at' => $row['ends_at'] ?? null,
+    'max_uses' => $row['max_uses'] ?? null,
+    'min_total' => $row['min_total'] ?? null,
+    'is_active' => 1,
+  ]);
+
+  $created = $newId ? BP_PromoCodeModel::find($newId) : null;
+  if (!$created) return new WP_REST_Response(['status' => 'error', 'message' => 'Duplicate failed'], 500);
+  return new WP_REST_Response(['status' => 'success', 'data' => $created], 201);
+}
+
 function bp_rest_admin_audit_logs_list(WP_REST_Request $req) {
   $args = [
     'page' => absint($req->get_param('page') ?? 1),
     'per_page' => absint($req->get_param('per_page') ?? 50),
+    'q' => sanitize_text_field($req->get_param('q') ?? ''),
     'event' => sanitize_text_field($req->get_param('event') ?? ''),
     'actor_type' => sanitize_text_field($req->get_param('actor_type') ?? ''),
+    'actor_wp_user_id' => absint($req->get_param('actor_wp_user_id') ?? 0),
     'booking_id' => absint($req->get_param('booking_id') ?? 0),
     'customer_id' => absint($req->get_param('customer_id') ?? 0),
     'date_from' => sanitize_text_field($req->get_param('date_from') ?? ''),
@@ -428,6 +648,85 @@ function bp_rest_admin_audit_logs_list(WP_REST_Request $req) {
 
   $data = BP_AuditModel::list_paged($args);
   return new WP_REST_Response(['status' => 'success', 'data' => $data], 200);
+}
+
+function bp_rest_admin_audit_logs_meta(WP_REST_Request $req) {
+  $events = class_exists('BP_AuditModel') ? BP_AuditModel::distinct_events() : [];
+  return new WP_REST_Response([
+    'status' => 'success',
+    'data' => [
+      'events' => $events,
+      'actor_types' => ['admin', 'customer', 'system'],
+    ],
+  ], 200);
+}
+
+function bp_rest_admin_audit_logs_clear(WP_REST_Request $req) {
+  global $wpdb;
+  if (!class_exists('BP_AuditModel')) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Audit model missing'], 500);
+  }
+  $t = BP_AuditModel::table();
+  $ok = $wpdb->query("TRUNCATE TABLE {$t}");
+  if ($ok === false) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Clear failed'], 500);
+  }
+  return new WP_REST_Response(['status' => 'success'], 200);
+}
+
+function bp_rest_admin_audit_logs_export(WP_REST_Request $req) {
+  if (!class_exists('BP_AuditModel')) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Audit model missing'], 500);
+  }
+
+  $limit = max(1, min(5000, absint($req->get_param('limit') ?? 2000)));
+  $args = [
+    'limit' => $limit,
+    'q' => sanitize_text_field($req->get_param('q') ?? ''),
+    'event' => sanitize_text_field($req->get_param('event') ?? ''),
+    'actor_type' => sanitize_text_field($req->get_param('actor_type') ?? ''),
+    'actor_wp_user_id' => absint($req->get_param('actor_wp_user_id') ?? 0),
+    'booking_id' => absint($req->get_param('booking_id') ?? 0),
+    'customer_id' => absint($req->get_param('customer_id') ?? 0),
+    'date_from' => sanitize_text_field($req->get_param('date_from') ?? ''),
+    'date_to' => sanitize_text_field($req->get_param('date_to') ?? ''),
+  ];
+
+  $rows = BP_AuditModel::list($args);
+
+  $fh = fopen('php://temp', 'w+');
+  if (!$fh) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Export failed'], 500);
+  }
+
+  fputcsv($fh, ['id','created_at','event','actor_type','actor','actor_ip','booking_id','customer_id','meta']);
+  foreach ($rows as $r) {
+    $actor = $r['actor_wp_display_name']
+      ?: ($r['customer_first_name'] || $r['customer_last_name'] ? trim(($r['customer_first_name'] ?? '') . ' ' . ($r['customer_last_name'] ?? '')) : '')
+      ?: ($r['actor_type'] ?? '');
+
+    fputcsv($fh, [
+      (string)($r['id'] ?? ''),
+      (string)($r['created_at'] ?? ''),
+      (string)($r['event'] ?? ''),
+      (string)($r['actor_type'] ?? ''),
+      (string)$actor,
+      (string)($r['actor_ip'] ?? ''),
+      (string)($r['booking_id'] ?? ''),
+      (string)($r['customer_id'] ?? ''),
+      (string)($r['meta'] ?? ''),
+    ]);
+  }
+
+  rewind($fh);
+  $csv = stream_get_contents($fh);
+  fclose($fh);
+
+  $resp = new WP_REST_Response($csv, 200);
+  $filename = 'bookpoint-audit-log-' . gmdate('Ymd-His') . '.csv';
+  $resp->header('Content-Type', 'text/csv; charset=utf-8');
+  $resp->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+  return $resp;
 }
 
 function bp_rest_admin_tools_status(WP_REST_Request $req) {
@@ -478,6 +777,9 @@ function bp_rest_admin_tools_run(WP_REST_Request $req) {
       return new WP_REST_Response(['status' => 'error', 'message' => 'Relations helper missing'], 500);
     }
     $result = BP_RelationsHelper::sync_relations(true);
+    if (class_exists('BP_AuditHelper')) {
+      BP_AuditHelper::log('tools_sync_relations', ['actor_type' => 'admin', 'meta' => $result]);
+    }
     return new WP_REST_Response(['status' => 'success', 'message' => 'Relations synced', 'data' => $result], 200);
   }
 
@@ -486,11 +788,14 @@ function bp_rest_admin_tools_run(WP_REST_Request $req) {
       return new WP_REST_Response(['status' => 'error', 'message' => 'Demo helper missing'], 500);
     }
     $body = $req->get_json_params() ?: [];
-    $services = absint($body['services'] ?? 3);
-    $agents = absint($body['agents'] ?? 3);
-    $customers = absint($body['customers'] ?? 5);
-    $bookings = absint($body['bookings'] ?? 10);
+    $services = max(0, min(50, absint($body['services'] ?? 3)));
+    $agents = max(0, min(50, absint($body['agents'] ?? 3)));
+    $customers = max(0, min(200, absint($body['customers'] ?? 5)));
+    $bookings = max(0, min(500, absint($body['bookings'] ?? 10)));
     $result = BP_DemoHelper::generate($services, $agents, $customers, $bookings);
+    if (class_exists('BP_AuditHelper')) {
+      BP_AuditHelper::log('tools_demo_generated', ['actor_type' => 'admin', 'meta' => $result]);
+    }
     return new WP_REST_Response(['status' => 'success', 'message' => 'Demo data generated', 'data' => $result], 200);
   }
 
@@ -498,8 +803,185 @@ function bp_rest_admin_tools_run(WP_REST_Request $req) {
     if (function_exists('wp_cache_flush')) {
       wp_cache_flush();
     }
+    if (class_exists('BP_AuditHelper')) {
+      BP_AuditHelper::log('tools_cache_reset', ['actor_type' => 'admin']);
+    }
     return new WP_REST_Response(['status' => 'success', 'message' => 'Cache cleared'], 200);
   }
 
+  if ($action === 'run_migrations') {
+    if (!class_exists('BP_MigrationsHelper')) {
+      return new WP_REST_Response(['status' => 'error', 'message' => 'Migrations helper missing'], 500);
+    }
+    BP_MigrationsHelper::create_tables();
+    if (class_exists('BP_Locations_Migrations_Helper')) {
+      BP_Locations_Migrations_Helper::ensure_tables();
+    }
+    if (class_exists('BP_AuditHelper')) {
+      BP_AuditHelper::log('tools_migrations_run', ['actor_type' => 'admin']);
+    }
+    return new WP_REST_Response(['status' => 'success', 'message' => 'Migrations ran'], 200);
+  }
+
+  if ($action === 'email_test') {
+    $body = $req->get_json_params() ?: [];
+    $to = sanitize_email($body['to'] ?? get_option('admin_email'));
+    if (!$to || !is_email($to)) {
+      return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid email'], 400);
+    }
+
+    $ok = false;
+    if (class_exists('BP_EmailHelper')) {
+      $ok = BP_EmailHelper::send($to, 'BookPoint Test Email', '<p>This is a test email from BookPoint.</p>');
+    } else {
+      $ok = wp_mail($to, 'BookPoint Test Email', 'This is a test email from BookPoint.');
+    }
+
+    if (class_exists('BP_AuditHelper')) {
+      BP_AuditHelper::log('tools_email_test', ['actor_type' => 'admin', 'meta' => ['to' => $to, 'ok' => $ok]]);
+    }
+
+    return new WP_REST_Response(['status' => 'success', 'message' => ($ok ? 'Test email sent' : 'Test email failed'), 'data' => ['ok' => (bool)$ok, 'to' => $to]], 200);
+  }
+
+  if ($action === 'webhook_test') {
+    $body = $req->get_json_params() ?: [];
+    $event = sanitize_text_field($body['event'] ?? 'booking_created');
+
+    if (!class_exists('BP_WebhookHelper')) {
+      return new WP_REST_Response(['status' => 'error', 'message' => 'Webhook helper missing'], 500);
+    }
+
+    $payload = [
+      'booking_id' => 999999,
+      'status' => 'test',
+      'start_datetime' => current_time('mysql'),
+      'end_datetime' => current_time('mysql'),
+    ];
+
+    BP_WebhookHelper::fire($event, $payload);
+
+    if (class_exists('BP_AuditHelper')) {
+      BP_AuditHelper::log('tools_webhook_test', ['actor_type' => 'admin', 'meta' => ['event' => $event]]);
+    }
+
+    return new WP_REST_Response(['status' => 'success', 'message' => 'Webhook fired', 'data' => ['event' => $event]], 200);
+  }
+
   return new WP_REST_Response(['status' => 'error', 'message' => 'Unknown tool action'], 400);
+}
+
+function bp_rest_admin_tools_report(WP_REST_Request $req) {
+  global $wpdb;
+
+  $theme = wp_get_theme();
+  $env_type = function_exists('wp_get_environment_type') ? wp_get_environment_type() : '';
+
+  $data = [
+    'generated_at' => current_time('mysql'),
+    'site_url' => site_url(),
+    'home_url' => home_url(),
+    'wp_version' => get_bloginfo('version'),
+    'php_version' => PHP_VERSION,
+    'mysql_version' => method_exists($wpdb, 'db_version') ? $wpdb->db_version() : '',
+    'environment' => $env_type,
+    'timezone' => wp_timezone_string(),
+    'locale' => get_locale(),
+    'plugin_version' => class_exists('BP_Plugin') ? BP_Plugin::VERSION : '',
+    'db_version' => (string)get_option('BP_db_version', ''),
+    'theme' => [
+      'name' => $theme ? $theme->get('Name') : '',
+      'version' => $theme ? $theme->get('Version') : '',
+    ],
+    'rest_url' => esc_url_raw(rest_url('bp/v1')),
+  ];
+
+  // Inline table status (same as tools/status, but report should be self-contained)
+  $tables = [
+    'bp_services',
+    'bp_agents',
+    'bp_customers',
+    'bp_bookings',
+    'bp_settings',
+    'bp_audit_log',
+    'bp_service_agents',
+    'bp_service_categories',
+    'bp_service_extras',
+    'bp_promo_codes',
+  ];
+  $exists = [];
+  foreach ($tables as $t) {
+    $full = $wpdb->prefix . $t;
+    $exists[$t] = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $full)) === $full);
+  }
+  $data['tables'] = $exists;
+
+  return new WP_REST_Response(['status' => 'success', 'data' => $data], 200);
+}
+
+function bp_rest_admin_tools_export_settings(WP_REST_Request $req) {
+  global $wpdb;
+
+  $table = $wpdb->prefix . 'bp_settings';
+
+  $rows = $wpdb->get_results("SELECT setting_key, setting_value FROM {$table}", ARRAY_A) ?: [];
+  $settings = [];
+  foreach ($rows as $r) {
+    $settings[(string)$r['setting_key']] = maybe_unserialize($r['setting_value']);
+  }
+
+  $payload = [
+    'plugin' => 'bookpoint',
+    'exported_at' => current_time('mysql'),
+    'bp_settings' => $settings,
+    'options' => [
+      'bp_remove_data_on_uninstall' => (int)get_option('bp_remove_data_on_uninstall', 0),
+    ],
+  ];
+
+  $resp = new WP_REST_Response(wp_json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), 200);
+  $filename = 'bookpoint-settings-' . gmdate('Y-m-d') . '.json';
+  $resp->header('Content-Type', 'application/json; charset=UTF-8');
+  $resp->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+  return $resp;
+}
+
+function bp_rest_admin_tools_import_settings(WP_REST_Request $req) {
+  $data = $req->get_json_params();
+  if (!is_array($data) || ($data['plugin'] ?? '') !== 'bookpoint') {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid file'], 400);
+  }
+
+  $settings = $data['bp_settings'] ?? null;
+  if (!is_array($settings)) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Missing settings'], 400);
+  }
+
+  if (!class_exists('BP_SettingsHelper')) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Settings helper missing'], 500);
+  }
+
+  $allowed_prefixes = ['bp_', 'webhooks_'];
+  $applied = 0;
+  foreach ($settings as $k => $v) {
+    $k = (string)$k;
+    $ok = false;
+    foreach ($allowed_prefixes as $p) {
+      if (strpos($k, $p) === 0) { $ok = true; break; }
+    }
+    if (!$ok) continue;
+
+    BP_SettingsHelper::set($k, $v);
+    $applied++;
+  }
+
+  if (isset($data['options']['bp_remove_data_on_uninstall'])) {
+    update_option('bp_remove_data_on_uninstall', (int)$data['options']['bp_remove_data_on_uninstall'], false);
+  }
+
+  if (class_exists('BP_AuditHelper')) {
+    BP_AuditHelper::log('tools_settings_imported', ['actor_type' => 'admin', 'meta' => ['applied' => $applied]]);
+  }
+
+  return new WP_REST_Response(['status' => 'success', 'message' => 'Settings imported', 'data' => ['applied' => $applied]], 200);
 }

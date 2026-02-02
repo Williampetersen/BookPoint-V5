@@ -5,6 +5,12 @@ add_action('rest_api_init', function () {
   $namespace = 'bp/v1';
   $base = '/admin/notifications';
 
+  register_rest_route($namespace, $base . '/meta', [
+    'methods' => 'GET',
+    'callback' => 'bp_rest_admin_notifications_meta',
+    'permission_callback' => 'bp_rest_admin_notifications_can_manage',
+  ]);
+
   register_rest_route($namespace, $base . '/workflows', [
     'methods' => 'GET',
     'callback' => 'bp_rest_admin_notifications_workflows_list',
@@ -32,6 +38,12 @@ add_action('rest_api_init', function () {
   register_rest_route($namespace, $base . '/workflows/(?P<id>\d+)', [
     'methods' => 'DELETE',
     'callback' => 'bp_rest_admin_notifications_workflow_delete',
+    'permission_callback' => 'bp_rest_admin_notifications_can_manage',
+  ]);
+
+  register_rest_route($namespace, $base . '/workflows/(?P<id>\d+)/test', [
+    'methods' => 'POST',
+    'callback' => 'bp_rest_admin_notifications_workflow_test',
     'permission_callback' => 'bp_rest_admin_notifications_can_manage',
   ]);
 
@@ -68,6 +80,39 @@ add_action('rest_api_init', function () {
 
 function bp_rest_admin_notifications_can_manage(): bool {
   return current_user_can('bp_manage_settings') || current_user_can('manage_options');
+}
+
+function bp_rest_admin_notifications_meta(\WP_REST_Request $request) {
+  global $wpdb;
+  if (method_exists('BP_Notifications_Helper', 'ensure_tables')) {
+    BP_Notifications_Helper::ensure_tables();
+  }
+
+  $t = BP_Notifications_Helper::table('bp_workflows');
+  $rows = $wpdb->get_results("
+    SELECT event_key, status, COUNT(*) as c
+    FROM {$t}
+    GROUP BY event_key, status
+  ", ARRAY_A) ?: [];
+
+  $counts = [];
+  foreach ($rows as $r) {
+    $ev = (string)($r['event_key'] ?? '');
+    $st = (string)($r['status'] ?? '');
+    if ($ev === '' || $st === '') continue;
+    if (!isset($counts[$ev])) $counts[$ev] = ['active' => 0, 'disabled' => 0, 'total' => 0];
+    $c = (int)($r['c'] ?? 0);
+    if ($st === 'active') $counts[$ev]['active'] += $c;
+    if ($st === 'disabled') $counts[$ev]['disabled'] += $c;
+    $counts[$ev]['total'] += $c;
+  }
+
+  $out = [
+    'events' => method_exists('BP_Notifications_Helper', 'allowed_events') ? BP_Notifications_Helper::allowed_events() : [],
+    'counts' => $counts,
+  ];
+
+  return rest_ensure_response(['status' => 'success', 'data' => $out]);
 }
 
 function bp_rest_admin_notifications_workflows_list(\WP_REST_Request $request) {
@@ -146,6 +191,48 @@ function bp_rest_admin_notifications_workflow_delete(\WP_REST_Request $request) 
     return new \WP_Error('bp_notifications_delete_failed', __('Could not delete workflow.', 'bookpoint'), ['status' => 500]);
   }
   return rest_ensure_response(['status' => 'success']);
+}
+
+function bp_rest_admin_notifications_workflow_test(\WP_REST_Request $request) {
+  $id = (int)$request['id'];
+  $workflow = BP_Notifications_Helper::get_workflow($id);
+  if (!$workflow) {
+    return new \WP_Error('bp_notifications_not_found', __('Workflow not found.', 'bookpoint'), ['status' => 404]);
+  }
+
+  $booking_id = (int)($request->get_param('booking_id') ?? 0);
+  $booking = $booking_id > 0 ? BP_BookingModel::find($booking_id) : bp_rest_admin_notifications_latest_booking_row();
+  if (!$booking) {
+    return new \WP_Error('bp_notifications_booking_missing', __('Booking is required for a test.', 'bookpoint'), ['status' => 400]);
+  }
+
+  $payload = BP_Notifications_Helper::build_payload_from_booking($workflow['event_key'], $booking);
+  if (!$payload) {
+    return new \WP_Error('bp_notifications_payload', __('Could not build payload for booking.', 'bookpoint'), ['status' => 500]);
+  }
+
+  $actions = is_array($workflow['actions'] ?? null) ? $workflow['actions'] : [];
+  $results = [];
+  foreach ($actions as $a) {
+    $aid = (int)($a['id'] ?? 0);
+    if ($aid <= 0) continue;
+    if (($a['status'] ?? 'active') !== 'active') continue;
+    $sent = BP_Notifications_Helper::test_action($aid, $payload);
+    $results[] = [
+      'id' => $aid,
+      'type' => (string)($a['type'] ?? ''),
+      'sent' => (bool)$sent,
+    ];
+  }
+
+  return rest_ensure_response([
+    'status' => 'success',
+    'data' => [
+      'workflow_id' => $id,
+      'booking_id' => (int)($booking['id'] ?? 0),
+      'results' => $results,
+    ],
+  ]);
 }
 
 function bp_rest_admin_notifications_action_create(\WP_REST_Request $request) {

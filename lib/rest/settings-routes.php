@@ -14,6 +14,11 @@ add_action('rest_api_init', function(){
         'status' => BP_LicenseHelper::status(),
         'checked_at' => (int)get_option('bp_license_checked_at', 0),
         'last_error' => (string)get_option('bp_license_last_error', ''),
+        'plan' => (string)get_option('bp_license_plan', ''),
+        'expires_at' => (string)get_option('bp_license_expires_at', ''),
+        'licensed_domain' => (string)get_option('bp_license_licensed_domain', ''),
+        'instance_id' => (string)get_option('bp_license_instance_id', ''),
+        'data' => (string)get_option('bp_license_data_json', ''),
       ];
 
       return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
@@ -38,6 +43,11 @@ add_action('rest_api_init', function(){
         'status' => BP_LicenseHelper::status(),
         'checked_at' => (int)get_option('bp_license_checked_at', 0),
         'last_error' => (string)get_option('bp_license_last_error', ''),
+        'plan' => (string)get_option('bp_license_plan', ''),
+        'expires_at' => (string)get_option('bp_license_expires_at', ''),
+        'licensed_domain' => (string)get_option('bp_license_licensed_domain', ''),
+        'instance_id' => (string)get_option('bp_license_instance_id', ''),
+        'data' => (string)get_option('bp_license_data_json', ''),
       ];
 
       return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
@@ -59,6 +69,11 @@ add_action('rest_api_init', function(){
         'status' => BP_LicenseHelper::status(),
         'checked_at' => (int)get_option('bp_license_checked_at', 0),
         'last_error' => (string)get_option('bp_license_last_error', ''),
+        'plan' => (string)get_option('bp_license_plan', ''),
+        'expires_at' => (string)get_option('bp_license_expires_at', ''),
+        'licensed_domain' => (string)get_option('bp_license_licensed_domain', ''),
+        'instance_id' => (string)get_option('bp_license_instance_id', ''),
+        'data' => (string)get_option('bp_license_data_json', ''),
       ];
 
       return new WP_REST_Response(['status'=>'success','data'=>$data], 200);

@@ -73,6 +73,17 @@ final class BP_LicenseHelper {
     update_option('bp_license_status', $status, false);
     update_option('bp_license_checked_at', time(), false);
     update_option('bp_license_last_error', $message, false);
+    update_option('bp_license_data_json', wp_json_encode($data), false);
+
+    // Optional metadata if the license server provides it.
+    $plan = sanitize_text_field($data['plan'] ?? '');
+    $expires_at = sanitize_text_field($data['expires_at'] ?? ($data['expires'] ?? ''));
+    $licensed_domain = sanitize_text_field($data['licensed_domain'] ?? ($data['domain'] ?? ''));
+    $instance_id = sanitize_text_field($data['instance_id'] ?? '');
+    update_option('bp_license_plan', $plan, false);
+    update_option('bp_license_expires_at', $expires_at, false);
+    update_option('bp_license_licensed_domain', $licensed_domain, false);
+    update_option('bp_license_instance_id', $instance_id, false);
 
     $out = ['ok' => ($status === 'valid'), 'status' => $status, 'message' => $message, 'raw' => $data];
     set_transient('bp_license_check_cache', $out, 6 * HOUR_IN_SECONDS);

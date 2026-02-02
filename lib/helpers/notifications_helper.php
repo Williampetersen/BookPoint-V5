@@ -165,7 +165,16 @@ final class BP_Notifications_Helper {
     $total = (int)$wpdb->get_var($count_sql);
 
     $action_table = self::table(self::ACTION_TABLE);
-    $sql_items = "SELECT w.*, (\n      SELECT COUNT(*) FROM {$action_table} a WHERE a.workflow_id = w.id\n    ) as actions_count\n    FROM {$table} w\n    WHERE {$where_sql}\n    ORDER BY w.updated_at DESC, w.id DESC\n    LIMIT %d OFFSET %d";
+    $log_table = self::table(self::LOG_TABLE);
+
+    $sql_items = "SELECT w.*,
+      (\n        SELECT COUNT(*) FROM {$action_table} a WHERE a.workflow_id = w.id\n      ) as actions_count,
+      (\n        SELECT MAX(l.created_at) FROM {$log_table} l WHERE l.workflow_id = w.id\n      ) as last_run_at,
+      (\n        SELECT l.status FROM {$log_table} l WHERE l.workflow_id = w.id ORDER BY l.id DESC LIMIT 1\n      ) as last_run_status
+    FROM {$table} w
+    WHERE {$where_sql}
+    ORDER BY w.updated_at DESC, w.id DESC
+    LIMIT %d OFFSET %d";
 
     $items_params = array_merge($params, [$per, $offset]);
     $items_sql = self::prepare_sql($sql_items, $items_params);
@@ -539,6 +548,9 @@ final class BP_Notifications_Helper {
     $service_name = $service_name === '' ? __('Service', 'bookpoint') : $service_name;
 
     $context = [
+      'site_name' => (string)get_bloginfo('name'),
+      'site_url' => (string)home_url('/'),
+      'admin_email' => (string)get_option('admin_email'),
       'booking_id' => (int)($booking['id'] ?? 0),
       'booking_status' => (string)($booking['status'] ?? ''),
       'booking_notes' => (string)($booking['notes'] ?? ''),
@@ -581,6 +593,14 @@ final class BP_Notifications_Helper {
 
   private static function smart_variables_data(): array {
     $vars = [
+      [
+        'label' => __('Site', 'bookpoint'),
+        'variables' => [
+          ['key' => 'site_name', 'label' => __('Site name', 'bookpoint')],
+          ['key' => 'site_url', 'label' => __('Site URL', 'bookpoint')],
+          ['key' => 'admin_email', 'label' => __('Admin email', 'bookpoint')],
+        ],
+      ],
       [
         'label' => __('Appointment', 'bookpoint'),
         'variables' => [
