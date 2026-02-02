@@ -9,6 +9,7 @@ add_action('rest_api_init', function () {
     ['methods'=>'POST','callback'=>'bp_rest_admin_categories_create','permission_callback'=>'bp_rest_can_manage_catalog'],
   ]);
   register_rest_route('bp/v1', '/admin/categories/(?P<id>\d+)', [
+    ['methods'=>'GET',  'callback'=>'bp_rest_admin_categories_get',  'permission_callback'=>'bp_rest_can_manage_catalog'],
     ['methods'=>'PATCH','callback'=>'bp_rest_admin_categories_patch','permission_callback'=>'bp_rest_can_manage_catalog'],
     ['methods'=>'DELETE','callback'=>'bp_rest_admin_categories_delete','permission_callback'=>'bp_rest_can_manage_catalog'],
   ]);
@@ -28,6 +29,7 @@ add_action('rest_api_init', function () {
     ['methods'=>'POST','callback'=>'bp_rest_admin_extras_create','permission_callback'=>'bp_rest_can_manage_catalog'],
   ]);
   register_rest_route('bp/v1', '/admin/extras/(?P<id>\d+)', [
+    ['methods'=>'GET',  'callback'=>'bp_rest_admin_extras_get',  'permission_callback'=>'bp_rest_can_manage_catalog'],
     ['methods'=>'PATCH','callback'=>'bp_rest_admin_extras_patch','permission_callback'=>'bp_rest_can_manage_catalog'],
     ['methods'=>'DELETE','callback'=>'bp_rest_admin_extras_delete','permission_callback'=>'bp_rest_can_manage_catalog'],
   ]);
@@ -41,6 +43,7 @@ add_action('rest_api_init', function () {
     ['methods'=>'GET', 'callback'=>'bp_rest_admin_agents_list_full', 'permission_callback'=>'bp_rest_can_manage_catalog'],
   ]);
   register_rest_route('bp/v1', '/admin/agents/(?P<id>\d+)', [
+    ['methods'=>'GET','callback'=>'bp_rest_admin_agents_get', 'permission_callback'=>'bp_rest_can_manage_catalog'],
     ['methods'=>'PATCH','callback'=>'bp_rest_admin_agents_patch', 'permission_callback'=>'bp_rest_can_manage_catalog'],
     ['methods'=>'DELETE','callback'=>'bp_rest_admin_agents_delete','permission_callback'=>'bp_rest_can_manage_catalog'],
   ]);
@@ -92,6 +95,19 @@ function bp_bool01($v) {
   return !empty($v) ? 1 : 0;
 }
 
+function bp_table_has_col(string $table, string $col) : bool {
+  // Defensive: this plugin has had multiple schema iterations across installs.
+  // Only read/write optional columns if they exist.
+  static $cache = [];
+  $key = $table . '|' . $col;
+  if (array_key_exists($key, $cache)) return (bool)$cache[$key];
+
+  global $wpdb;
+  $exists = $wpdb->get_var($wpdb->prepare("SHOW COLUMNS FROM {$table} LIKE %s", $col));
+  $cache[$key] = !empty($exists);
+  return (bool)$cache[$key];
+}
+
 // ---------- CATEGORIES ----------
 function bp_rest_admin_categories_list(WP_REST_Request $req) {
   global $wpdb;
@@ -104,8 +120,43 @@ function bp_rest_admin_categories_list(WP_REST_Request $req) {
     $r['image_url'] = bp_img_url($r['image_id'], 'medium');
     $r['sort_order'] = (int)($r['sort_order'] ?? 0);
     $r['services_count'] = (int)($r['services_count'] ?? 0);
+    // Some installs have is_active/description columns (legacy screens rely on them).
+    $r['is_active'] = isset($r['is_active']) ? (int)$r['is_active'] : 1;
+    $r['description'] = (string)($r['description'] ?? '');
   }
   return new WP_REST_Response(['status'=>'success','data'=>$rows], 200);
+}
+
+function bp_rest_admin_categories_get(WP_REST_Request $req) {
+  global $wpdb;
+  $id = (int)$req['id'];
+  if ($id <= 0) return new WP_REST_Response(['status'=>'error','message'=>'Invalid id'], 400);
+
+  $t = $wpdb->prefix . 'bp_categories';
+  $t_rel = $wpdb->prefix . 'bp_service_categories';
+
+  $row = $wpdb->get_row(
+    $wpdb->prepare(
+      "SELECT c.*, COUNT(r.service_id) AS services_count
+       FROM {$t} c
+       LEFT JOIN {$t_rel} r ON r.category_id = c.id
+       WHERE c.id=%d
+       GROUP BY c.id",
+      $id
+    ),
+    ARRAY_A
+  );
+
+  if (!$row) return new WP_REST_Response(['status'=>'error','message'=>'Category not found'], 404);
+
+  $row['image_id'] = (int)($row['image_id'] ?? 0);
+  $row['image_url'] = bp_img_url($row['image_id'], 'medium');
+  $row['sort_order'] = (int)($row['sort_order'] ?? 0);
+  $row['services_count'] = (int)($row['services_count'] ?? 0);
+  $row['is_active'] = isset($row['is_active']) ? (int)$row['is_active'] : 1;
+  $row['description'] = (string)($row['description'] ?? '');
+
+  return new WP_REST_Response(['status'=>'success','data'=>$row], 200);
 }
 
 function bp_rest_admin_categories_create(WP_REST_Request $req) {
@@ -116,14 +167,18 @@ function bp_rest_admin_categories_create(WP_REST_Request $req) {
   $name = sanitize_text_field($b['name'] ?? '');
   if ($name === '') return new WP_REST_Response(['status'=>'error','message'=>'Name is required'], 400);
 
+  $description = sanitize_textarea_field($b['description'] ?? '');
   $image_id = (int)($b['image_id'] ?? 0);
   $sort_order = (int)($b['sort_order'] ?? 0);
+  $is_active = isset($b['is_active']) ? bp_bool01($b['is_active']) : 1;
 
   $ok = $wpdb->insert($t, [
     'name'=>$name,
+    'description'=>$description,
     'image_id'=>$image_id,
-    'sort_order'=>$sort_order
-  ], ['%s','%d','%d']);
+    'sort_order'=>$sort_order,
+    'is_active'=>$is_active,
+  ], ['%s','%s','%d','%d','%d']);
 
   if (!$ok) return new WP_REST_Response(['status'=>'error','message'=>'Insert failed'], 500);
   return new WP_REST_Response(['status'=>'success','data'=>['id'=>$wpdb->insert_id]], 200);
@@ -139,8 +194,10 @@ function bp_rest_admin_categories_patch(WP_REST_Request $req) {
 
   $u = []; $f = [];
   if (isset($b['name'])) { $u['name']=sanitize_text_field($b['name']); $f[]='%s'; }
+  if (isset($b['description'])) { $u['description']=sanitize_textarea_field($b['description']); $f[]='%s'; }
   if (isset($b['image_id'])) { $u['image_id']=(int)$b['image_id']; $f[]='%d'; }
   if (isset($b['sort_order'])) { $u['sort_order']=(int)$b['sort_order']; $f[]='%d'; }
+  if (isset($b['is_active'])) { $u['is_active']=bp_bool01($b['is_active']); $f[]='%d'; }
 
   if (!$u) return new WP_REST_Response(['status'=>'success','data'=>['updated'=>false]], 200);
   $ok = $wpdb->update($t, $u, ['id'=>$id], $f, ['%d']);
@@ -273,8 +330,29 @@ function bp_rest_admin_extras_list(WP_REST_Request $req) {
     $r['image_url'] = bp_img_url($r['image_id'], 'medium');
     $r['sort_order'] = (int)($r['sort_order'] ?? 0);
     $r['price'] = isset($r['price']) ? (float)$r['price'] : 0.0;
+    if (isset($r['is_active'])) $r['is_active'] = (int)$r['is_active'];
+    if (isset($r['description'])) $r['description'] = (string)($r['description'] ?? '');
   }
   return new WP_REST_Response(['status'=>'success','data'=>$rows], 200);
+}
+
+function bp_rest_admin_extras_get(WP_REST_Request $req) {
+  global $wpdb;
+  $id = (int)$req['id'];
+  if ($id<=0) return new WP_REST_Response(['status'=>'error','message'=>'Invalid id'], 400);
+
+  $t = $wpdb->prefix . bp_extras_table();
+  $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id=%d", $id), ARRAY_A);
+  if (!$row) return new WP_REST_Response(['status'=>'error','message'=>'Extra not found'], 404);
+
+  $row['image_id'] = (int)($row['image_id'] ?? 0);
+  $row['image_url'] = bp_img_url($row['image_id'], 'medium');
+  $row['sort_order'] = (int)($row['sort_order'] ?? 0);
+  $row['price'] = isset($row['price']) ? (float)$row['price'] : 0.0;
+  if (isset($row['is_active'])) $row['is_active'] = (int)$row['is_active'];
+  if (isset($row['description'])) $row['description'] = (string)($row['description'] ?? '');
+
+  return new WP_REST_Response(['status'=>'success','data'=>$row], 200);
 }
 
 function bp_rest_admin_extras_create(WP_REST_Request $req) {
@@ -289,12 +367,25 @@ function bp_rest_admin_extras_create(WP_REST_Request $req) {
   $image_id = (int)($b['image_id'] ?? 0);
   $sort_order = (int)($b['sort_order'] ?? 0);
 
-  $ok = $wpdb->insert($t, [
+  $data = [
     'name'=>$name,
     'price'=>$price,
     'image_id'=>$image_id,
     'sort_order'=>$sort_order,
-  ], ['%s','%f','%d','%d']);
+  ];
+  $formats = ['%s','%f','%d','%d'];
+
+  // Optional columns (vary by install)
+  if (bp_table_has_col($t, 'description')) {
+    $data['description'] = sanitize_textarea_field($b['description'] ?? '');
+    $formats[] = '%s';
+  }
+  if (bp_table_has_col($t, 'is_active') && isset($b['is_active'])) {
+    $data['is_active'] = bp_bool01($b['is_active']);
+    $formats[] = '%d';
+  }
+
+  $ok = $wpdb->insert($t, $data, $formats);
 
   if (!$ok) return new WP_REST_Response(['status'=>'error','message'=>'Insert failed'], 500);
   return new WP_REST_Response(['status'=>'success','data'=>['id'=>$wpdb->insert_id]], 200);
@@ -313,6 +404,8 @@ function bp_rest_admin_extras_patch(WP_REST_Request $req) {
   if (isset($b['price'])) { $u['price']=(float)$b['price']; $f[]='%f'; }
   if (isset($b['image_id'])) { $u['image_id']=(int)$b['image_id']; $f[]='%d'; }
   if (isset($b['sort_order'])) { $u['sort_order']=(int)$b['sort_order']; $f[]='%d'; }
+  if (bp_table_has_col($t, 'description') && isset($b['description'])) { $u['description']=sanitize_textarea_field($b['description']); $f[]='%s'; }
+  if (bp_table_has_col($t, 'is_active') && isset($b['is_active'])) { $u['is_active']=bp_bool01($b['is_active']); $f[]='%d'; }
 
   if (!$u) return new WP_REST_Response(['status'=>'success','data'=>['updated'=>false]], 200);
   $ok = $wpdb->update($t, $u, ['id'=>$id], $f, ['%d']);
@@ -342,8 +435,50 @@ function bp_rest_admin_agents_list_full(WP_REST_Request $req) {
     $r['image_id'] = (int)($r['image_id'] ?? 0);
     $r['image_url'] = bp_img_url($r['image_id'], 'medium');
     $r['services_count'] = (int)($r['services_count'] ?? 0);
+    $r['is_active'] = isset($r['is_active']) ? (int)$r['is_active'] : 1;
+    $r['schedule_json'] = (string)($r['schedule_json'] ?? '');
+    // Convenience display name for UI: keep legacy `name` if present, else use first/last.
+    $display = trim((string)($r['first_name'] ?? '') . ' ' . (string)($r['last_name'] ?? ''));
+    if ($display === '' && !empty($r['name'])) $display = (string)$r['name'];
+    $r['name'] = $display;
   }
   return new WP_REST_Response(['status'=>'success','data'=>$rows], 200);
+}
+
+function bp_rest_admin_agents_get(WP_REST_Request $req) {
+  global $wpdb;
+  $id = (int)$req['id'];
+  if ($id <= 0) return new WP_REST_Response(['status'=>'error','message'=>'Invalid id'], 400);
+
+  $t = $wpdb->prefix . 'bp_agents';
+  $t_rel = $wpdb->prefix . 'bp_agent_services';
+
+  $row = $wpdb->get_row(
+    $wpdb->prepare(
+      "SELECT a.*, COUNT(r.service_id) AS services_count
+       FROM {$t} a
+       LEFT JOIN {$t_rel} r ON r.agent_id = a.id
+       WHERE a.id=%d
+       GROUP BY a.id",
+      $id
+    ),
+    ARRAY_A
+  );
+
+  if (!$row) return new WP_REST_Response(['status'=>'error','message'=>'Agent not found'], 404);
+
+  $row['id'] = (int)($row['id'] ?? 0);
+  $row['image_id'] = (int)($row['image_id'] ?? 0);
+  $row['image_url'] = bp_img_url($row['image_id'], 'medium');
+  $row['services_count'] = (int)($row['services_count'] ?? 0);
+  $row['is_active'] = isset($row['is_active']) ? (int)$row['is_active'] : 1;
+  $row['schedule_json'] = (string)($row['schedule_json'] ?? '');
+
+  $display = trim((string)($row['first_name'] ?? '') . ' ' . (string)($row['last_name'] ?? ''));
+  if ($display === '' && !empty($row['name'])) $display = (string)$row['name'];
+  $row['name'] = $display;
+
+  return new WP_REST_Response(['status'=>'success','data'=>$row], 200);
 }
 
 function bp_rest_admin_agents_create(WP_REST_Request $req) {
@@ -351,17 +486,48 @@ function bp_rest_admin_agents_create(WP_REST_Request $req) {
   $t = $wpdb->prefix . 'bp_agents';
   $b = $req->get_json_params() ?: [];
 
-  $name = sanitize_text_field($b['name'] ?? '');
-  if ($name === '') return new WP_REST_Response(['status'=>'error','message'=>'Name is required'], 400);
+  $first_name = sanitize_text_field($b['first_name'] ?? '');
+  $last_name  = sanitize_text_field($b['last_name'] ?? '');
+  $legacy_name = sanitize_text_field($b['name'] ?? '');
+  if ($first_name === '' && $last_name === '' && $legacy_name === '') {
+    return new WP_REST_Response(['status'=>'error','message'=>'Name is required'], 400);
+  }
 
-  $image_id = (int)($b['image_id'] ?? 0);
+  $email = sanitize_email($b['email'] ?? '');
+  $phone = sanitize_text_field($b['phone'] ?? '');
+  $is_active = isset($b['is_active']) ? bp_bool01($b['is_active']) : 1;
+  $schedule_json = isset($b['schedule_json']) ? trim((string)$b['schedule_json']) : null;
+  if ($schedule_json === '') $schedule_json = null;
 
-  $ok = $wpdb->insert($t, [
-    'name'=>$name,
-    'image_id'=>$image_id
-  ], ['%s','%d']);
+  $now = current_time('mysql');
+
+  $data = [
+    'first_name' => $first_name !== '' ? $first_name : null,
+    'last_name'  => $last_name !== '' ? $last_name : null,
+    'email'      => $email !== '' ? $email : null,
+    'phone'      => $phone !== '' ? $phone : null,
+    'is_active'  => (int)$is_active,
+    'schedule_json' => $schedule_json,
+    'created_at' => $now,
+    'updated_at' => $now,
+  ];
+  $formats = ['%s','%s','%s','%s','%d','%s','%s','%s'];
+
+  // Some installs may have legacy columns.
+  if (bp_table_has_col($t, 'image_id')) {
+    $data['image_id'] = (int)($b['image_id'] ?? 0);
+    $formats[] = '%d';
+  }
+  if (bp_table_has_col($t, 'name') && $legacy_name !== '') {
+    $data['name'] = $legacy_name;
+    $formats[] = '%s';
+  }
+
+  $ok = $wpdb->insert($t, $data, $formats);
 
   if (!$ok) return new WP_REST_Response(['status'=>'error','message'=>'Insert failed'], 500);
+  delete_transient('bp_agents_all_all');
+  delete_transient('bp_agents_all_active');
   return new WP_REST_Response(['status'=>'success','data'=>['id'=>$wpdb->insert_id]], 200);
 }
 
@@ -374,13 +540,30 @@ function bp_rest_admin_agents_patch(WP_REST_Request $req) {
   $b = $req->get_json_params() ?: [];
 
   $u = []; $f = [];
-  if (isset($b['name'])) { $u['name']=sanitize_text_field($b['name']); $f[]='%s'; }
-  if (isset($b['image_id'])) { $u['image_id']=(int)$b['image_id']; $f[]='%d'; }
+  if (isset($b['first_name'])) { $u['first_name']=sanitize_text_field($b['first_name']); $f[]='%s'; }
+  if (isset($b['last_name'])) { $u['last_name']=sanitize_text_field($b['last_name']); $f[]='%s'; }
+  if (isset($b['email'])) { $u['email']=sanitize_email($b['email']); $f[]='%s'; }
+  if (isset($b['phone'])) { $u['phone']=sanitize_text_field($b['phone']); $f[]='%s'; }
+  if (isset($b['is_active'])) { $u['is_active']=bp_bool01($b['is_active']); $f[]='%d'; }
+  if (isset($b['schedule_json'])) {
+    $sj = trim((string)$b['schedule_json']);
+    $u['schedule_json'] = $sj === '' ? null : $sj;
+    $f[]='%s';
+  }
+  if (isset($b['image_id']) && bp_table_has_col($t, 'image_id')) { $u['image_id']=(int)$b['image_id']; $f[]='%d'; }
+  if (isset($b['name']) && bp_table_has_col($t, 'name')) { $u['name']=sanitize_text_field($b['name']); $f[]='%s'; }
+
+  if (bp_table_has_col($t, 'updated_at')) {
+    $u['updated_at'] = current_time('mysql');
+    $f[] = '%s';
+  }
 
   if (!$u) return new WP_REST_Response(['status'=>'success','data'=>['updated'=>false]], 200);
   $ok = $wpdb->update($t, $u, ['id'=>$id], $f, ['%d']);
   if ($ok === false) return new WP_REST_Response(['status'=>'error','message'=>'Update failed'], 500);
 
+  delete_transient('bp_agents_all_all');
+  delete_transient('bp_agents_all_active');
   return new WP_REST_Response(['status'=>'success','data'=>['updated'=>true]], 200);
 }
 
@@ -392,6 +575,8 @@ function bp_rest_admin_agents_delete(WP_REST_Request $req) {
   $wpdb->delete($wpdb->prefix.'bp_agent_services', ['agent_id'=>$id], ['%d']);
   $wpdb->delete($t, ['id'=>$id], ['%d']);
 
+  delete_transient('bp_agents_all_all');
+  delete_transient('bp_agents_all_active');
   return new WP_REST_Response(['status'=>'success','data'=>['deleted'=>true]], 200);
 }
 

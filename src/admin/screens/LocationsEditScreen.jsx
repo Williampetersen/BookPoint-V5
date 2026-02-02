@@ -19,448 +19,582 @@ function getQueryInt(key) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function normalizeLocation(raw, id) {
+  const isActive =
+    raw?.status !== undefined ? String(raw.status) === "active" : raw?.is_active !== undefined ? !!Number(raw.is_active) : true;
+
+  return {
+    id: raw?.id ? Number(raw.id) : Number(id || 0) || 0,
+    name: raw?.name || "",
+    address: raw?.address || "",
+    category_id: raw?.category_id ? Number(raw.category_id) : 0,
+    image_id: raw?.image_id ? Number(raw.image_id) : 0,
+    image_url: raw?.image_url || raw?.image || "",
+    is_active: isActive ? 1 : 0,
+    use_custom_schedule: raw?.use_custom_schedule ? 1 : 0,
+    schedule: Array.isArray(raw?.schedule) ? raw.schedule : [],
+  };
+}
+
 export default function LocationsEditScreen() {
   const initialId = getQueryInt("id");
   const [locationId, setLocationId] = useState(initialId);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [toast, setToast] = useState("");
+  const [dirty, setDirty] = useState(false);
 
-  const [edit, setEdit] = useState(null);
+  const [location, setLocation] = useState(() =>
+    normalizeLocation(
+      {
+        id: initialId,
+        name: "",
+        address: "",
+        category_id: 0,
+        image_id: 0,
+        is_active: 1,
+        use_custom_schedule: 0,
+        schedule: [],
+      },
+      initialId
+    )
+  );
+
   const [categories, setCategories] = useState([]);
   const [agents, setAgents] = useState([]);
   const [services, setServices] = useState([]);
+
+  const [agentSearch, setAgentSearch] = useState("");
+  const [serviceSearch, setServiceSearch] = useState("");
+
+  // agent_id -> { selected, customize, services: [serviceId] }
   const [agentMap, setAgentMap] = useState({});
-  const [useCustomSchedule, setUseCustomSchedule] = useState(false);
-  const [schedule, setSchedule] = useState([]);
+
+  const title = locationId ? "Edit Location" : "Add Location";
+  const statusLabel = Number(location.is_active) ? "Active" : "Inactive";
 
   useEffect(() => {
-    loadAll();
+    let alive = true;
+
+    async function load() {
+      setLoading(true);
+      setError("");
+      try {
+        const [catsResp, agentsResp, svcResp] = await Promise.all([
+          bpFetch("/admin/location-categories").catch((e) => ({ __error: e })),
+          bpFetch("/admin/agents").catch((e) => ({ __error: e })),
+          bpFetch("/admin/services").catch((e) => ({ __error: e })),
+        ]);
+
+        if (!alive) return;
+
+        setCategories(catsResp?.__error ? [] : catsResp?.data || []);
+        setAgents(agentsResp?.__error ? [] : agentsResp?.data || []);
+        setServices(svcResp?.__error ? [] : svcResp?.data || []);
+
+        if (locationId > 0) {
+          const locResp = await bpFetch(`/admin/locations/${locationId}`);
+          const raw = locResp?.data || locResp;
+          const next = normalizeLocation(raw, locationId);
+          setLocation(next);
+
+          const agentsRes = await bpFetch(`/admin/locations/${locationId}/agents`);
+          const rows = agentsRes?.data || [];
+          const map = {};
+          rows.forEach((r) => {
+            const svcIds = Array.isArray(r.services) ? r.services : [];
+            map[Number(r.agent_id)] = {
+              selected: true,
+              customize: svcIds.length > 0,
+              services: svcIds.map((x) => Number(x) || 0).filter(Boolean),
+            };
+          });
+          setAgentMap(map);
+        } else {
+          setAgentMap({});
+          setDirty(false);
+        }
+      } catch (e) {
+        console.error(e);
+        if (alive) setError(e?.message || "Failed to load location");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      alive = false;
+    };
   }, [locationId]);
 
-  async function loadAll() {
-    setLoading(true);
-    setError("");
-    setNotice("");
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      if (!dirty) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  function update(patch) {
+    setLocation((prev) => ({ ...prev, ...patch }));
+    setDirty(true);
+  }
+
+  function validate() {
+    if (!location.name.trim()) return "Location name is required.";
+    return "";
+  }
+
+  async function onPickImage() {
     try {
-      const [c, a, s] = await Promise.all([
-        bpFetch("/admin/location-categories"),
-        bpFetch("/admin/agents"),
-        bpFetch("/admin/services"),
-      ]);
-      setCategories(c?.data || []);
-      setAgents(a?.data || []);
-      setServices(s?.data || []);
-
-      if (locationId > 0) {
-        const loc = await bpFetch(`/admin/locations/${locationId}`);
-        const row = loc?.data || loc;
-        setEdit(row);
-        setUseCustomSchedule(!!row.use_custom_schedule);
-        setSchedule(Array.isArray(row.schedule) ? row.schedule : []);
-
-        const agentsRes = await bpFetch(`/admin/locations/${locationId}/agents`);
-        const rows = agentsRes?.data || [];
-        const map = {};
-        rows.forEach((r) => {
-          const services = Array.isArray(r.services) ? r.services : [];
-          map[r.agent_id] = {
-            selected: true,
-            customize: services.length > 0,
-            services,
-          };
-        });
-        setAgentMap(map);
-      } else {
-        setEdit({
-          name: "",
-          address: "",
-          category_id: null,
-          image_id: 0,
-          image_url: "",
-        });
-        setUseCustomSchedule(false);
-        setSchedule([]);
-        setAgentMap({});
-      }
+      const img = await pickImage({ title: "Select location image" });
+      update({ image_id: img.id, image_url: img.url });
     } catch (e) {
-      setError(e.message || "Failed to load location");
-    } finally {
-      setLoading(false);
+      setError(e?.message || "Image picker failed");
     }
   }
 
-  const activeCategoryOptions = useMemo(() => {
-    return (categories || []).map((c) => ({
-      id: c.id,
-      name: c.name,
-    }));
-  }, [categories]);
-
-  function toggleAgent(id) {
+  function toggleAgent(agentId) {
+    const id = Number(agentId) || 0;
+    if (!id) return;
     setAgentMap((prev) => {
       const entry = prev[id] || { selected: false, customize: false, services: [] };
       return { ...prev, [id]: { ...entry, selected: !entry.selected } };
     });
-  }
-
-  function toggleAllAgents() {
-    const allSelected = agents.length > 0 && agents.every((a) => agentMap[a.id]?.selected);
-    const next = {};
-    agents.forEach((a) => {
-      const entry = agentMap[a.id] || { selected: false, customize: false, services: [] };
-      next[a.id] = { ...entry, selected: !allSelected };
-    });
-    setAgentMap(next);
+    setDirty(true);
   }
 
   function toggleCustomize(agentId) {
+    const id = Number(agentId) || 0;
+    if (!id) return;
     setAgentMap((prev) => {
-      const entry = prev[agentId] || { selected: true, customize: false, services: [] };
-      return { ...prev, [agentId]: { ...entry, customize: !entry.customize } };
+      const entry = prev[id] || { selected: true, customize: false, services: [] };
+      return { ...prev, [id]: { ...entry, customize: !entry.customize } };
     });
+    setDirty(true);
   }
 
   function toggleService(agentId, serviceId) {
+    const aid = Number(agentId) || 0;
+    const sid = Number(serviceId) || 0;
+    if (!aid || !sid) return;
     setAgentMap((prev) => {
-      const entry = prev[agentId] || { selected: true, customize: true, services: [] };
-      const set = new Set(entry.services || []);
-      if (set.has(serviceId)) set.delete(serviceId);
-      else set.add(serviceId);
-      return { ...prev, [agentId]: { ...entry, services: Array.from(set) } };
+      const entry = prev[aid] || { selected: true, customize: true, services: [] };
+      const set = new Set((entry.services || []).map((x) => Number(x) || 0));
+      if (set.has(sid)) set.delete(sid);
+      else set.add(sid);
+      return { ...prev, [aid]: { ...entry, services: Array.from(set) } };
     });
+    setDirty(true);
   }
 
   function addScheduleDay() {
-    setSchedule((prev) => [
-      ...prev,
-      { day: 1, start: "09:00", end: "17:00" },
-    ]);
-  }
-
-  function updateScheduleDay(index, key, value) {
-    setSchedule((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [key]: value };
-      return next;
+    update({
+      schedule: [...(location.schedule || []), { day: 1, start: "09:00", end: "17:00" }],
+      use_custom_schedule: 1,
     });
   }
 
+  function updateScheduleDay(index, key, value) {
+    const next = [...(location.schedule || [])];
+    next[index] = { ...next[index], [key]: value };
+    update({ schedule: next });
+  }
+
   function removeScheduleDay(index) {
-    setSchedule((prev) => prev.filter((_, i) => i !== index));
+    update({ schedule: (location.schedule || []).filter((_, i) => i !== index) });
   }
 
-  async function pickLocationImage() {
-    try {
-      const img = await pickImage({ title: "Select location image" });
-      setEdit((p) => ({ ...p, image_id: img.id, image_url: img.url }));
-    } catch (e) {
-      setError(e.message || "Image picker failed");
+  async function onSave() {
+    const msg = validate();
+    if (msg) {
+      setError(msg);
+      return;
     }
-  }
 
-  async function saveLocation() {
-    if (!edit?.name) return;
     setSaving(true);
     setError("");
-    setNotice("");
     try {
       const payload = {
-        name: edit.name || "",
-        address: edit.address || "",
-        category_id: edit.category_id ? Number(edit.category_id) : null,
-        image_id: edit.image_id ? Number(edit.image_id) : null,
-        use_custom_schedule: useCustomSchedule ? 1 : 0,
-        schedule: useCustomSchedule ? schedule : [],
+        name: location.name,
+        address: location.address,
+        category_id: location.category_id ? Number(location.category_id) : null,
+        image_id: location.image_id ? Number(location.image_id) : null,
+        use_custom_schedule: Number(location.use_custom_schedule) ? 1 : 0,
+        schedule: Number(location.use_custom_schedule) ? location.schedule || [] : [],
+        is_active: Number(location.is_active) ? 1 : 0,
       };
 
       let id = locationId;
       if (id > 0) {
-        await bpFetch(`/admin/locations/${id}`, {
-          method: "PUT",
-          body: payload,
-        });
+        await bpFetch(`/admin/locations/${id}`, { method: "PUT", body: payload });
       } else {
-        const res = await bpFetch("/admin/locations", {
-          method: "POST",
-          body: payload,
-        });
+        const res = await bpFetch("/admin/locations", { method: "POST", body: payload });
         const row = res?.data || res;
-        id = row?.id || 0;
-        if (id > 0) {
-          setLocationId(id);
-        }
+        id = Number(row?.id || row?.data?.id || 0) || 0;
+        if (id) setLocationId(id);
       }
 
       if (id > 0) {
         const agentsPayload = agents
           .map((a) => {
-            const entry = agentMap[a.id];
+            const aid = Number(a.id) || 0;
+            const entry = agentMap[aid];
             if (!entry?.selected) return null;
             return {
-              agent_id: a.id,
-              services: entry.customize ? entry.services : null,
+              agent_id: aid,
+              services: entry.customize ? entry.services || [] : null,
             };
           })
           .filter(Boolean);
 
-        await bpFetch(`/admin/locations/${id}/agents`, {
-          method: "POST",
-          body: { agents: agentsPayload },
-        });
-
-        if (!locationId && id) {
-          window.history.replaceState(null, "", `admin.php?page=bp_locations_edit&id=${id}`);
-        }
-        setNotice("Saved changes.");
+        await bpFetch(`/admin/locations/${id}/agents`, { method: "POST", body: { agents: agentsPayload } });
       }
+
+      if (!locationId && id) {
+        window.history.replaceState(null, "", `admin.php?page=bp_locations_edit&id=${id}`);
+      }
+
+      setDirty(false);
+      setToast("Saved");
     } catch (e) {
-      setError(e.message || "Save failed");
+      console.error(e);
+      setError(e?.message || "Save failed");
     } finally {
       setSaving(false);
     }
   }
 
-  async function deleteLocation() {
+  async function onDelete() {
     if (!locationId) return;
-    if (!confirm("Delete this location?")) return;
+    if (!window.confirm("Delete this location? This cannot be undone.")) return;
     setSaving(true);
     setError("");
     try {
       await bpFetch(`/admin/locations/${locationId}`, { method: "DELETE" });
       window.location.href = "admin.php?page=bp_locations";
     } catch (e) {
-      setError(e.message || "Delete failed");
+      setError(e?.message || "Delete failed");
+    } finally {
       setSaving(false);
     }
   }
 
+  const filteredAgents = useMemo(() => {
+    const q = agentSearch.trim().toLowerCase();
+    if (!q) return agents;
+    return agents.filter((a) => `${a.name || ""} ${a.email || ""}`.toLowerCase().includes(q));
+  }, [agents, agentSearch]);
+
+  const filteredServices = useMemo(() => {
+    const q = serviceSearch.trim().toLowerCase();
+    if (!q) return services;
+    return services.filter((s) => `${s.name || ""} ${s.description || ""}`.toLowerCase().includes(q));
+  }, [services, serviceSearch]);
+
+  const servicesById = useMemo(() => {
+    const m = new Map();
+    for (const s of services) m.set(Number(s.id), s);
+    return m;
+  }, [services]);
+
   return (
-    <div className="bp-content">
-      <div className="bp-page-head">
-        <div>
-          <div className="bp-h1">{locationId ? "Edit Location" : "Add Location"}</div>
-          <div className="bp-muted">Manage location profile, photo, and assignments.</div>
-        </div>
-        <div className="bp-head-actions">
-          <a className="bp-top-btn" href="admin.php?page=bp_locations">Back to Locations</a>
-        </div>
-      </div>
+    <div className="myplugin-page bp-location-edit">
+      <main className="myplugin-content">
+        {toast ? <div className="bp-toast bp-toast-success">{toast}</div> : null}
 
-      {error ? <div className="bp-error">{error}</div> : null}
-      {notice ? <div className="bp-success">{notice}</div> : null}
+        <div className="bp-location-edit__head">
+          <div>
+            <div className="bp-muted bp-text-sm" style={{ fontWeight: 900 }}>
+              Locations / Edit
+            </div>
+            <div className="bp-h1">{title}</div>
+          </div>
+          <div className="bp-location-edit__pillwrap">
+            <span className={`bp-status-pill ${Number(location.is_active) ? "active" : "inactive"}`}>{statusLabel}</span>
+          </div>
+        </div>
 
-      {loading || !edit ? (
-        <div className="bp-card">Loading...</div>
-      ) : (
-        <div className="bp-card" style={{ padding: 18 }}>
-          <div className="bp-section" style={{ marginBottom: 16 }}>
-            <div className="bp-section-title">Basic information</div>
-            <table className="form-table" role="presentation">
-              <tbody>
-                <tr>
-                  <th><label>Name</label></th>
-                  <td>
+        {error ? <div className="bp-error">{error}</div> : null}
+
+        {loading ? (
+          <div className="bp-card">Loading...</div>
+        ) : (
+          <div className="bp-location-edit__grid">
+            <section className="bp-location-edit__main">
+              <div className="bp-card bp-location-edit__section">
+                <div className="bp-section-title">Basic info</div>
+                <div className="bp-grid-2">
+                  <div>
+                    <label className="bp-filter-label">Location name *</label>
                     <input
-                      className="regular-text"
-                      value={edit.name || ""}
-                      onChange={(e) => setEdit((p) => ({ ...p, name: e.target.value }))}
+                      className="bp-input"
+                      value={location.name}
+                      onChange={(e) => update({ name: e.target.value })}
+                      placeholder="e.g., Copenhagen"
                     />
-                  </td>
-                </tr>
-                <tr>
-                  <th><label>Address</label></th>
-                  <td>
-                    <input
-                      className="regular-text"
-                      value={edit.address || ""}
-                      onChange={(e) => setEdit((p) => ({ ...p, address: e.target.value }))}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <th><label>Category</label></th>
-                  <td>
+                  </div>
+                  <div>
+                    <label className="bp-filter-label">Category</label>
                     <select
-                      className="regular-text"
-                      value={edit.category_id || ""}
-                      onChange={(e) => setEdit((p) => ({ ...p, category_id: e.target.value ? Number(e.target.value) : null }))}
+                      className="bp-input"
+                      value={location.category_id || 0}
+                      onChange={(e) => update({ category_id: Number(e.target.value) || 0 })}
                     >
-                      <option value="">Uncategorized</option>
-                      {activeCategoryOptions.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                      <option value={0}>—</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name || `Category #${c.id}`}
+                        </option>
                       ))}
                     </select>
-                  </td>
-                </tr>
-                <tr>
-                  <th><label>Status</label></th>
-                  <td>
-                    <select className="regular-text" value="active" disabled>
-                      <option value="active">Active</option>
-                    </select>
-                  </td>
-                </tr>
-                <tr>
-                  <th><label>Location Image</label></th>
-                  <td>
-                    <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10 }}>
-                      <div className="bp-entity-thumb" style={{ width: 72, height: 72 }}>
-                        {edit.image_url ? <img src={edit.image_url} alt="" /> : <div className="bp-entity-initial">L</div>}
-                      </div>
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <button className="button" onClick={pickLocationImage}>Choose Image</button>
-                        {edit.image_id ? (
-                          <button
-                            className="button"
-                            onClick={() => setEdit((p) => ({ ...p, image_id: 0, image_url: "" }))}
+                  </div>
+                </div>
+                <div className="bp-mt-12">
+                  <label className="bp-filter-label">Address</label>
+                  <textarea
+                    className="bp-textarea"
+                    value={location.address}
+                    onChange={(e) => update({ address: e.target.value })}
+                    placeholder="Street, city, zip…"
+                  />
+                </div>
+              </div>
+
+              <div className="bp-card bp-location-edit__section">
+                <div className="bp-section-title">Availability</div>
+                <label className="bp-location-edit__toggle">
+                  <input
+                    type="checkbox"
+                    checked={!!Number(location.use_custom_schedule)}
+                    onChange={(e) => update({ use_custom_schedule: e.target.checked ? 1 : 0 })}
+                  />
+                  <span>Use custom schedule for this location</span>
+                </label>
+
+                {Number(location.use_custom_schedule) ? (
+                  <div className="bp-location-edit__schedule">
+                    {(location.schedule || []).length ? (
+                      (location.schedule || []).map((row, idx) => (
+                        <div key={idx} className="bp-location-edit__schedrow">
+                          <select
+                            className="bp-input"
+                            value={Number(row.day) || 0}
+                            onChange={(e) => updateScheduleDay(idx, "day", Number(e.target.value) || 0)}
                           >
+                            {DAYS.map((d) => (
+                              <option key={d.value} value={d.value}>
+                                {d.label}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            className="bp-input"
+                            type="time"
+                            value={row.start || "09:00"}
+                            onChange={(e) => updateScheduleDay(idx, "start", e.target.value)}
+                          />
+                          <input
+                            className="bp-input"
+                            type="time"
+                            value={row.end || "17:00"}
+                            onChange={(e) => updateScheduleDay(idx, "end", e.target.value)}
+                          />
+                          <button className="bp-top-btn" type="button" onClick={() => removeScheduleDay(idx)}>
                             Remove
                           </button>
-                        ) : null}
-                      </div>
-                    </div>
-                    <p className="description">Uses Media Library. Stores attachment ID.</p>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="bp-section" style={{ marginBottom: 16 }}>
-            <div className="bp-section-title">Agents</div>
-            <table className="form-table" role="presentation">
-              <tbody>
-                <tr>
-                  <th><label>Assignments</label></th>
-                  <td>
-                    <div style={{ marginBottom: 10 }}>
-                      <button className="button" onClick={toggleAllAgents}>
-                        {agents.length > 0 && agents.every((a) => agentMap[a.id]?.selected) ? "Unselect All" : "Select All"}
-                      </button>
-                    </div>
-                    {agents.length === 0 ? (
-                      <div className="bp-muted">No agents found.</div>
+                        </div>
+                      ))
                     ) : (
-                      <div style={{ display: "grid", gap: 10 }}>
-                        {agents.map((a) => {
-                          const entry = agentMap[a.id] || { selected: false, customize: false, services: [] };
-                          return (
-                            <div key={a.id} style={{ border: "1px solid var(--bp-border)", borderRadius: 12, padding: 10 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                                <label style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 900 }}>
-                                  <input type="checkbox" checked={!!entry.selected} onChange={() => toggleAgent(a.id)} />
-                                  <span>{a.name || `Agent #${a.id}`}</span>
-                                </label>
-                                <button
-                                  className="button"
-                                  onClick={() => toggleCustomize(a.id)}
-                                  disabled={!entry.selected}
-                                >
-                                  {entry.customize ? "All services" : "Customize services"}
-                                </button>
+                      <div className="bp-muted bp-text-sm" style={{ fontWeight: 850 }}>
+                        No custom schedule yet.
+                      </div>
+                    )}
+
+                    <button className="bp-top-btn" type="button" onClick={addScheduleDay} style={{ marginTop: 10 }}>
+                      + Add day
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bp-muted bp-text-sm" style={{ fontWeight: 850 }}>
+                    Uses default/global schedule.
+                  </div>
+                )}
+              </div>
+
+              <div className="bp-card bp-location-edit__section">
+                <div className="bp-section-title">Agents assigned</div>
+                <div className="bp-grid-2">
+                  <div>
+                    <label className="bp-filter-label">Search agents</label>
+                    <input
+                      className="bp-input"
+                      value={agentSearch}
+                      onChange={(e) => setAgentSearch(e.target.value)}
+                      placeholder="Search agents..."
+                    />
+                  </div>
+                  <div>
+                    <label className="bp-filter-label">Search services</label>
+                    <input
+                      className="bp-input"
+                      value={serviceSearch}
+                      onChange={(e) => setServiceSearch(e.target.value)}
+                      placeholder="Filter services list..."
+                    />
+                  </div>
+                </div>
+
+                <div className="bp-location-edit__agents">
+                  {filteredAgents.map((a) => {
+                    const aid = Number(a.id) || 0;
+                    const entry = agentMap[aid] || { selected: false, customize: false, services: [] };
+                    const name = a.name || `${a.first_name || ""} ${a.last_name || ""}`.trim() || `Agent #${aid}`;
+                    const selected = !!entry.selected;
+                    const customize = !!entry.customize;
+                    const selectedServiceLabels = (entry.services || [])
+                      .map((sid) => servicesById.get(Number(sid)))
+                      .filter(Boolean)
+                      .slice(0, 3)
+                      .map((s) => s.name || `#${s.id}`);
+
+                    return (
+                      <details key={aid} className={`bp-location-edit__agent ${selected ? "is-selected" : ""}`}>
+                        <summary className="bp-location-edit__agentrow">
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleAgent(aid)}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Assign ${name}`}
+                          />
+                          <span className="bp-location-edit__agentname">{name}</span>
+                          <span className="bp-location-edit__agentmeta">
+                            {selected ? (customize ? "Custom services" : "All services") : "Not assigned"}
+                          </span>
+                        </summary>
+
+                        {selected ? (
+                          <div className="bp-location-edit__agentbody">
+                            <label className="bp-location-edit__toggle">
+                              <input type="checkbox" checked={customize} onChange={() => toggleCustomize(aid)} />
+                              <span>Customize services for this agent at this location</span>
+                            </label>
+
+                            {customize ? (
+                              <div className="bp-location-edit__svcgrid">
+                                {filteredServices.map((s) => {
+                                  const sid = Number(s.id) || 0;
+                                  const checked = (entry.services || []).includes(sid);
+                                  return (
+                                    <label key={sid} className="bp-location-edit__svcitem">
+                                      <input type="checkbox" checked={checked} onChange={() => toggleService(aid, sid)} />
+                                      <span>{s.name || `Service #${sid}`}</span>
+                                    </label>
+                                  );
+                                })}
                               </div>
-                              {entry.selected && entry.customize ? (
-                                <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
-                                  {services.length === 0 ? (
-                                    <div className="bp-muted">No services found.</div>
-                                  ) : (
-                                    services.map((s) => (
-                                      <label key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 900 }}>
-                                        <input
-                                          type="checkbox"
-                                          checked={(entry.services || []).includes(s.id)}
-                                          onChange={() => toggleService(a.id, s.id)}
-                                        />
-                                        <span>{s.name || s.title || `Service #${s.id}`}</span>
-                                      </label>
-                                    ))
-                                  )}
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                            ) : selectedServiceLabels.length ? (
+                              <div className="bp-muted bp-text-sm" style={{ fontWeight: 850 }}>
+                                {selectedServiceLabels.join(", ")}
+                                {entry.services && entry.services.length > 3 ? "…" : ""}
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </details>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
 
-          <div className="bp-section">
-            <div className="bp-section-title">Location schedule</div>
-            <table className="form-table" role="presentation">
-              <tbody>
-                <tr>
-                  <th><label>Custom schedule</label></th>
-                  <td>
-                    <label className="bp-check" style={{ marginBottom: 10 }}>
-                      <input
-                        type="checkbox"
-                        checked={useCustomSchedule}
-                        onChange={(e) => setUseCustomSchedule(e.target.checked)}
-                      />
-                      Use custom schedule
-                    </label>
-                    {!useCustomSchedule ? (
-                      <div className="bp-muted">Using general schedule settings.</div>
-                    ) : (
-                      <div style={{ display: "grid", gap: 10 }}>
-                        {schedule.length === 0 ? (
-                          <div className="bp-muted">No custom days yet.</div>
-                        ) : (
-                          schedule.map((d, idx) => (
-                            <div key={`${idx}`} style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr auto", alignItems: "center" }}>
-                              <select
-                                className="regular-text"
-                                value={d.day}
-                                onChange={(e) => updateScheduleDay(idx, "day", parseInt(e.target.value, 10))}
-                              >
-                                {DAYS.map((day) => (
-                                  <option key={day.value} value={day.value}>{day.label}</option>
-                                ))}
-                              </select>
-                              <input
-                                className="regular-text"
-                                type="time"
-                                value={d.start || "09:00"}
-                                onChange={(e) => updateScheduleDay(idx, "start", e.target.value)}
-                              />
-                              <input
-                                className="regular-text"
-                                type="time"
-                                value={d.end || "17:00"}
-                                onChange={(e) => updateScheduleDay(idx, "end", e.target.value)}
-                              />
-                              <button className="button" onClick={() => removeScheduleDay(idx)}>Remove</button>
-                            </div>
-                          ))
-                        )}
-                        <button className="button" onClick={addScheduleDay}>Add Day</button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+            <aside className="bp-location-edit__side">
+              <div className="bp-card bp-location-edit__sidecard">
+                <div className="bp-section-title">Image</div>
+                <div className="bp-location-edit__avatar">
+                  {location.image_url ? <img src={location.image_url} alt={location.name || "Location"} /> : <div className="bp-muted">No image</div>}
+                </div>
+                <div className="bp-location-edit__side-actions">
+                  <button type="button" className="bp-top-btn" onClick={onPickImage}>
+                    Choose Image
+                  </button>
+                  <button
+                    type="button"
+                    className="bp-top-btn"
+                    onClick={() => update({ image_id: 0, image_url: "" })}
+                    disabled={!location.image_id && !location.image_url}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
 
-          <p className="submit" style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            {locationId ? (
-              <button className="button button-secondary" onClick={deleteLocation} disabled={saving}>
-                Delete
-              </button>
-            ) : null}
-            <a className="button" href="admin.php?page=bp_locations">Back</a>
-            <button className="button button-primary" onClick={saveLocation} disabled={saving || !edit.name}>
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
-          </p>
+              <div className="bp-card bp-location-edit__sidecard">
+                <div className="bp-section-title">Status</div>
+                <div className="bp-location-edit__seg">
+                  <button
+                    type="button"
+                    className={`bp-location-edit__segbtn ${Number(location.is_active) ? "is-active" : ""}`}
+                    onClick={() => update({ is_active: 1 })}
+                  >
+                    Active
+                  </button>
+                  <button
+                    type="button"
+                    className={`bp-location-edit__segbtn ${!Number(location.is_active) ? "is-active" : ""}`}
+                    onClick={() => update({ is_active: 0 })}
+                  >
+                    Inactive
+                  </button>
+                </div>
+              </div>
+
+              <div className="bp-card bp-location-edit__sidecard">
+                <div className="bp-section-title">Tools</div>
+                <a className="bp-top-btn" href="admin.php?page=bp_location_categories_edit">
+                  Manage categories
+                </a>
+
+                {locationId ? (
+                  <div className="bp-location-edit__danger">
+                    <button type="button" className="bp-location-edit__dangerbtn" onClick={onDelete} disabled={saving}>
+                      Delete location
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </aside>
+          </div>
+        )}
+
+        <div className="bp-location-edit__bar">
+          <a
+            className="bp-top-btn"
+            href="admin.php?page=bp_locations"
+            onClick={(e) => {
+              if (!dirty) return;
+              if (!window.confirm("You have unsaved changes. Leave anyway?")) e.preventDefault();
+            }}
+          >
+            Cancel
+          </a>
+          <button className="bp-primary-btn" type="button" onClick={onSave} disabled={saving || loading}>
+            {saving ? "Saving..." : "Save changes"}
+          </button>
         </div>
-      )}
+      </main>
     </div>
   );
 }

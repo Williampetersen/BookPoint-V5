@@ -23,8 +23,18 @@ function bp_render_legacy_shell_start(string $title, string $subtitle = '', stri
     .bp-legacy-admin .bp-h1{font-size:22px;font-weight:1100;margin:0 0 6px;}
     .bp-legacy-admin .bp-muted{color:var(--bp-muted);font-weight:850;}
     .bp-legacy-admin .bp-head-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-    .bp-legacy-admin .bp-top-btn{padding:10px 12px;border-radius:14px;border:1px solid var(--bp-border);background:var(--bp-card);color:var(--bp-text);font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;}
-    .bp-legacy-admin .bp-top-btn:hover{border-color:rgba(67,24,255,.35);} 
+	    .bp-legacy-admin .bp-top-btn{padding:10px 12px;border-radius:14px;border:1px solid var(--bp-border);background:var(--bp-card);color:var(--bp-text);font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;}
+	    .bp-legacy-admin .bp-top-btn:hover{border-color:rgba(67,24,255,.35);} 
+
+	    /* Legacy shell: icon-only WordPress back button (match React shell) */
+	    .bp-wp-link{
+	      width:44px;height:44px;border-radius:999px;
+	      display:flex;align-items:center;justify-content:center;
+	      background:#fff;border:1px solid rgba(15,23,42,.10);
+	      box-shadow:0 10px 26px rgba(15,23,42,.08);
+	      text-decoration:none;
+	    }
+	    .bp-wp-link img{width:22px;height:22px;object-fit:contain;display:block}
     .bp-legacy-admin .bp-card{background:var(--bp-card);border:1px solid var(--bp-border);border-radius:18px;padding:14px;box-shadow:0 10px 30px rgba(2,6,23,.04);} 
     .bp-legacy-admin .form-table{width:100%;border-collapse:separate;border-spacing:0 12px;}
     .bp-legacy-admin .form-table th{width:240px;text-align:left;font-weight:900;color:var(--bp-muted);vertical-align:top;padding:10px 12px;}
@@ -86,14 +96,14 @@ function bp_render_legacy_shell_start(string $title, string $subtitle = '', stri
         </div>
 
         <nav class="bp-nav">
-          <div class="bp-group-title">OVERVIEW</div>
+          <div class="bp-group-sep" aria-hidden="true"></div>
           <?php $nav('dashboard', 'Dashboard', admin_url('admin.php?page=bp_dashboard')); ?>
           <?php $nav('bookings', 'Bookings', admin_url('admin.php?page=bp_bookings')); ?>
           <?php $nav('calendar', 'Calendar', admin_url('admin.php?page=bp_calendar')); ?>
           <?php $nav('schedule', 'Schedule', admin_url('admin.php?page=bp_schedule')); ?>
           <?php $nav('holidays', 'Holidays', admin_url('admin.php?page=bp_holidays')); ?>
 
-          <div class="bp-group-title">RESOURCES</div>
+          <div class="bp-group-sep" aria-hidden="true"></div>
           <?php $nav('services', 'Services', admin_url('admin.php?page=bp_services')); ?>
           <?php $nav('categories', 'Categories', admin_url('admin.php?page=bp_categories')); ?>
           <?php $nav('extras', 'Service Extras', admin_url('admin.php?page=bp_extras')); ?>
@@ -102,22 +112,21 @@ function bp_render_legacy_shell_start(string $title, string $subtitle = '', stri
           <?php $nav('promo', 'Promo Codes', admin_url('admin.php?page=bp_promo_codes')); ?>
           <?php $nav('form-fields', 'Form Fields', admin_url('admin.php?page=bp_form_fields')); ?>
 
-          <div class="bp-group-title">SYSTEM</div>
+          <div class="bp-group-sep" aria-hidden="true"></div>
           <?php $nav('settings', 'Settings', admin_url('admin.php?page=bp_settings')); ?>
           <?php $nav('audit', 'Audit Log', admin_url('admin.php?page=bp_audit')); ?>
           <?php $nav('tools', 'Tools', admin_url('admin.php?page=bp_tools')); ?>
         </nav>
 
         <div class="bp-sidebar-footer">
-          <a class="bp-top-btn" href="<?php echo esc_url(admin_url()); ?>">← Back to WordPress</a>
+          <a class="bp-wp-link" href="<?php echo esc_url(admin_url()); ?>" aria-label="Back to WordPress">
+            <img src="<?php echo esc_url(BP_PLUGIN_URL . 'public/images/wordpress-logo.png'); ?>" alt="" aria-hidden="true">
+          </a>
         </div>
       </aside>
 
       <main class="bp-main">
         <header class="bp-topbar">
-          <div class="bp-search">
-            <input placeholder="Search…">
-          </div>
           <div class="bp-top-actions">
             <div class="bp-avatar">W</div>
           </div>

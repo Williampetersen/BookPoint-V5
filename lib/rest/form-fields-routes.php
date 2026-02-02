@@ -229,6 +229,42 @@ add_action('rest_api_init', function(){
     }
   ]);
 
+  // ADMIN reorder (per-scope reorder UI sends IDs in desired order)
+  register_rest_route('bp/v1', '/admin/form-fields/reorder', [
+    'methods' => 'POST',
+    'callback' => function(WP_REST_Request $req){
+      if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+      }
+
+      global $wpdb;
+      $t = $wpdb->prefix.'bp_form_fields';
+      $p = $req->get_json_params();
+      if (!is_array($p)) $p=[];
+      $ids = $p['ids'] ?? [];
+      if (!is_array($ids)) $ids = [];
+
+      $order = 10;
+      foreach($ids as $id){
+        $id = (int)$id;
+        if ($id <= 0) continue;
+        $wpdb->update(
+          $t,
+          ['sort_order'=>$order,'updated_at'=>current_time('mysql')],
+          ['id'=>$id],
+          ['%d','%s'],
+          ['%d']
+        );
+        $order += 10;
+      }
+
+      return new WP_REST_Response(['status'=>'success'], 200);
+    },
+    'permission_callback' => function() {
+      return current_user_can('bp_manage_settings') || current_user_can('administrator');
+    }
+  ]);
+
   // ADMIN reseed defaults
   register_rest_route('bp/v1', '/admin/form-fields/reseed', [
     'methods'=>'POST',

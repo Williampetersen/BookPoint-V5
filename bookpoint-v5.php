@@ -1399,6 +1399,16 @@ final class BP_Plugin {
       'bp_customers_view',
       [__CLASS__, 'render_customer_view']
     );
+
+    // Hidden page for internal use (React)
+    add_submenu_page(
+      null,
+      __('Edit Customer', 'bookpoint'),
+      __('Edit Customer', 'bookpoint'),
+      'bp_manage_customers',
+      'bp_customers_edit',
+      'bp_render_admin_app'
+    );
   }
 
   public static function enqueue_admin_assets(string $hook): void {
@@ -1430,9 +1440,11 @@ final class BP_Plugin {
     // React admin bundle (All admin pages)
         $admin_react_pages = [
           'bp_dashboard', 'bp_bookings', 'bp_bookings_edit', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog',
-          'bp-form-fields', 'bp_form_fields', 'bp_services', 'bp_categories', 'bp_extras', 'bp_locations', 'bp_promo_codes',
+          'bp-form-fields', 'bp_form_fields', 'bp_services', 'bp_services_edit', 'bp_categories', 'bp_categories_edit', 'bp_extras', 'bp_extras_edit', 'bp_locations', 'bp_promo_codes',
           'bp_customers', 'bp_settings', 'bp_notifications', 'bp_agents', 'bp_audit', 'bp_tools',
-          'bp_locations_edit', 'bp_location_categories_edit', 'bp_design_form'
+          'bp_locations_edit', 'bp_location_categories_edit', 'bp_design_form',
+          'bp_agents_edit',
+          'bp_customers_edit'
         ];
     
     if (in_array($page, $admin_react_pages, true)) {
@@ -1448,11 +1460,14 @@ final class BP_Plugin {
 
       self::ensure_react_scripts();
 
+      $admin_js_path = BP_PLUGIN_PATH . 'build/admin.js';
+      $admin_ver = file_exists($admin_js_path) ? (string)@filemtime($admin_js_path) : (string)($asset['version'] ?? self::VERSION);
+
       wp_enqueue_script(
         'bp-admin',
         BP_PLUGIN_URL . 'build/admin.js',
         $asset['dependencies'],
-        $asset['version'],
+        $admin_ver,
         true
       );
 
@@ -1462,7 +1477,7 @@ final class BP_Plugin {
             'bp-admin',
             BP_PLUGIN_URL . 'build/index.jsx.css',
             [],
-            $asset['version']
+            $admin_ver
           );
 
           if (function_exists('is_rtl') && is_rtl()) {
@@ -1472,31 +1487,31 @@ final class BP_Plugin {
                 'bp-admin-rtl',
                 BP_PLUGIN_URL . 'build/index.jsx-rtl.css',
                 ['bp-admin'],
-                $asset['version']
+                $admin_ver
               );
             }
           }
         }
 
-      add_filter('script_loader_src', function ($src, $handle) {
+      add_filter('script_loader_src', function ($src, $handle) use ($admin_ver) {
         if ($handle === 'bp-admin') {
-          return add_query_arg('v', time(), $src);
+          return add_query_arg('v', $admin_ver, $src);
         }
         return $src;
       }, 10, 2);
-      add_filter('style_loader_src', function ($src, $handle) {
+      add_filter('style_loader_src', function ($src, $handle) use ($admin_ver) {
         if ($handle === 'bp-admin') {
-          return add_query_arg('v', time(), $src);
+          return add_query_arg('v', $admin_ver, $src);
         }
         return $src;
       }, 10, 2);
 
       // Map page slug to route name
-          $route_map = [
-            'bp_dashboard' => 'dashboard',
-            'bp_bookings' => 'bookings',
-            'bp_bookings_edit' => 'bookings-edit',
-            'bp_calendar' => 'calendar',
+        $route_map = [
+          'bp_dashboard' => 'dashboard',
+          'bp_bookings' => 'bookings',
+          'bp_bookings_edit' => 'bookings-edit',
+          'bp_calendar' => 'calendar',
           'bp_schedule' => 'schedule',
           'bp_holidays' => 'holidays',
           'bp_catalog' => 'catalog',
@@ -1505,15 +1520,19 @@ final class BP_Plugin {
           'bp_design_form' => 'design-form',
           'bp_services' => 'services',
           'bp_categories' => 'categories',
+          'bp_categories_edit' => 'categories-edit',
           'bp_extras' => 'extras',
+          'bp_extras_edit' => 'extras-edit',
           'bp_locations' => 'locations',
           'bp_locations_edit' => 'locations-edit',
           'bp_location_categories_edit' => 'location-categories-edit',
           'bp_promo_codes' => 'promo-codes',
           'bp_customers' => 'customers',
+          'bp_customers_edit' => 'customers-edit',
         'bp_settings' => 'settings',
         'bp_notifications' => 'notifications',
         'bp_agents' => 'agents',
+        'bp_agents_edit' => 'agents-edit',
         'bp_audit' => 'audit',
         'bp_tools' => 'tools',
       ];
@@ -1556,13 +1575,13 @@ final class BP_Plugin {
 
     if ($page === 'bp_extras_edit' || ($page === 'bp_extras' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
       wp_enqueue_media();
-      wp_enqueue_script('bp-admin-extra-media', BP_PLUGIN_URL . 'public/admin-extra-media.js', ['jquery'], self::VERSION, true);
       return;
     }
 
     if ($page === 'bp_agents_edit' || ($page === 'bp_agents' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
       wp_enqueue_media();
-      wp_enqueue_script('bp-admin-agent-media', BP_PLUGIN_URL . 'public/admin-agent-media.js', ['jquery'], self::VERSION, true);
+      // React edit screens use window.wp.media directly; keep only the core media library enqueued.
+      return;
     }
   }
 
@@ -1575,11 +1594,11 @@ final class BP_Plugin {
   }
 
   public static function render_services_edit() : void {
-    (new BP_AdminServicesController())->edit();
+    echo '<div id="bp-admin-app" data-route="services-edit"></div>';
   }
 
   public static function render_extras_edit() : void {
-    (new BP_AdminExtrasController())->edit();
+    echo '<div id="bp-admin-app" data-route="extras-edit"></div>';
   }
 
   public static function render_extras_delete() : void {
@@ -1587,7 +1606,7 @@ final class BP_Plugin {
   }
 
   public static function render_categories_edit() : void {
-    (new BP_AdminCategoriesController())->edit();
+    echo '<div id="bp-admin-app" data-route="categories-edit"></div>';
   }
 
   public static function render_categories_delete() : void {
@@ -1841,7 +1860,7 @@ final class BP_Plugin {
   }
 
   public static function render_agents_edit() : void {
-    (new BP_AdminAgentsController())->edit();
+    echo '<div id="bp-admin-app" data-route="agents-edit"></div>';
   }
 
   public static function render_agents_delete() : void {
