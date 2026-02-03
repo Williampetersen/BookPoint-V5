@@ -232,14 +232,23 @@ bp_render_legacy_shell_start(esc_html__('BookPoint Settings', 'bookpoint'), esc_
           <?php if ($tab === 'license') : ?>
             <?php
               $badge = $license_status ?? 'unset';
-              if (($license_status ?? '') === 'valid') $badge = '✅ valid';
-              elseif (($license_status ?? '') === 'expired') $badge = '⚠️ expired';
-              elseif (($license_status ?? '') === 'invalid') $badge = '❌ invalid';
-              else $badge = '— unset';
+              if (($license_status ?? '') === 'valid') $badge = 'valid';
+              elseif (($license_status ?? '') === 'expired') $badge = 'expired';
+              elseif (($license_status ?? '') === 'invalid') $badge = 'invalid';
+              else $badge = 'unset';
             ?>
             <div style="max-width:900px;">
               <h2><?php esc_html_e('License', 'bookpoint'); ?></h2>
               <p><strong><?php esc_html_e('Status:', 'bookpoint'); ?></strong> <?php echo esc_html($badge); ?></p>
+              <?php if (!empty($license_licensed_domain)) : ?>
+                <p><strong><?php esc_html_e('Activated domain:', 'bookpoint'); ?></strong> <?php echo esc_html($license_licensed_domain); ?></p>
+              <?php endif; ?>
+              <?php if (!empty($license_expires_at)) : ?>
+                <p><strong><?php esc_html_e('Expires:', 'bookpoint'); ?></strong> <?php echo esc_html($license_expires_at); ?></p>
+              <?php endif; ?>
+              <?php if (!empty($license_instance_id)) : ?>
+                <p><strong><?php esc_html_e('Instance ID:', 'bookpoint'); ?></strong> <?php echo esc_html($license_instance_id); ?></p>
+              <?php endif; ?>
               <?php if (!empty($license_checked_at)) : ?>
                 <p class="description"><?php echo esc_html__('Last checked:', 'bookpoint') . ' ' . esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), (int)$license_checked_at)); ?></p>
               <?php endif; ?>
@@ -270,6 +279,20 @@ bp_render_legacy_shell_start(esc_html__('BookPoint Settings', 'bookpoint'), esc_
                 <button class="button" type="submit"><?php esc_html_e('Validate Now', 'bookpoint'); ?></button>
                 <p class="description"><?php esc_html_e('Forces a license check immediately.', 'bookpoint'); ?></p>
               </form>
+
+              <div style="display:flex;gap:10px;align-items:center;margin:12px 0 0;">
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin:0;">
+                  <?php wp_nonce_field('bp_admin'); ?>
+                  <input type="hidden" name="action" value="bp_admin_settings_activate_license">
+                  <button class="button button-primary" type="submit"><?php esc_html_e('Activate License (this site)', 'bookpoint'); ?></button>
+                </form>
+
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin:0;">
+                  <?php wp_nonce_field('bp_admin'); ?>
+                  <input type="hidden" name="action" value="bp_admin_settings_deactivate_license">
+                  <button class="button" type="submit" onclick="return confirm('<?php echo esc_js(__('Deactivate license for this site?', 'bookpoint')); ?>');"><?php esc_html_e('Deactivate', 'bookpoint'); ?></button>
+                </form>
+              </div>
 
               <hr>
               <h3><?php esc_html_e('Updates', 'bookpoint'); ?></h3>

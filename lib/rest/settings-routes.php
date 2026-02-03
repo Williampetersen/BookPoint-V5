@@ -12,6 +12,7 @@ add_action('rest_api_init', function(){
       $data = [
         'key' => BP_LicenseHelper::get_key(),
         'status' => BP_LicenseHelper::status(),
+        'last_request_url' => (string)get_option('bp_license_last_request_url', ''),
         'checked_at' => (int)get_option('bp_license_checked_at', 0),
         'last_error' => (string)get_option('bp_license_last_error', ''),
         'plan' => (string)get_option('bp_license_plan', ''),
@@ -37,10 +38,14 @@ add_action('rest_api_init', function(){
       if (!is_array($p)) $p = [];
       $key = sanitize_text_field($p['key'] ?? '');
       BP_LicenseHelper::set_key($key);
+      if ($key !== '') {
+        BP_LicenseHelper::validate(true);
+      }
 
       $data = [
         'key' => BP_LicenseHelper::get_key(),
         'status' => BP_LicenseHelper::status(),
+        'last_request_url' => (string)get_option('bp_license_last_request_url', ''),
         'checked_at' => (int)get_option('bp_license_checked_at', 0),
         'last_error' => (string)get_option('bp_license_last_error', ''),
         'plan' => (string)get_option('bp_license_plan', ''),
@@ -67,6 +72,7 @@ add_action('rest_api_init', function(){
       $data = [
         'key' => BP_LicenseHelper::get_key(),
         'status' => BP_LicenseHelper::status(),
+        'last_request_url' => (string)get_option('bp_license_last_request_url', ''),
         'checked_at' => (int)get_option('bp_license_checked_at', 0),
         'last_error' => (string)get_option('bp_license_last_error', ''),
         'plan' => (string)get_option('bp_license_plan', ''),

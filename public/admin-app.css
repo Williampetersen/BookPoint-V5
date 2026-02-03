@@ -1,0 +1,21 @@
+html.bp-app-mode,
+body.bp-app-mode,
+body.bp-app-mode #wpwrap,
+body.bp-app-mode #wpcontent,
+body.bp-app-mode #wpbody,
+body.bp-app-mode #wpbody-content {
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+body.bp-app-mode {
+  overflow: hidden;
+}
+
+body.bp-app-mode #bp-admin-app {
+  height: 100vh;
+}
+
+body.bp-app-mode #wpbody-content {
+  padding-bottom: 0 !important;
+}

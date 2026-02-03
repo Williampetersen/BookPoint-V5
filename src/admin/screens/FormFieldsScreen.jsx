@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { bpFetch } from "../api/client";
+import { iconDataUri } from "../icons/iconData";
 
 const SCOPES = [
   { key: "form", label: "Form", icon: "designer" },
@@ -168,13 +169,7 @@ export default function FormFieldsScreen({ embedded = false }) {
     setTimeout(() => setToast(""), 2500);
   };
 
-  const iconsBase = useMemo(() => {
-    const fromCfg = (window.bpAdmin?.iconsUrl || window.BP_ADMIN?.publicIconsUrl || "").toString().replace(/\/$/, "");
-    if (fromCfg) return fromCfg;
-    const pluginUrl = (window.BP_ADMIN?.pluginUrl || "").toString().replace(/\/$/, "");
-    if (pluginUrl) return `${pluginUrl}/public/icons`;
-    return `${window.location.origin}/wp-content/plugins/bookpoint-v5/public/icons`;
-  }, []);
+  const theme = document.documentElement.classList.contains("bp-dark") ? "dark" : "light";
 
   async function load() {
     setLoading(true);
@@ -664,7 +659,7 @@ export default function FormFieldsScreen({ embedded = false }) {
                 >
                   <img
                     className="bp-ff-scopeIcon"
-                    src={`${iconsBase}/${s.icon}${scope === s.key ? "-active" : ""}.svg`}
+                    src={iconDataUri(s.icon, { active: scope === s.key, theme })}
                     alt=""
                     aria-hidden="true"
                   />

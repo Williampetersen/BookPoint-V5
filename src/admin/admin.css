@@ -15,9 +15,9 @@
 
 /* App shell layout */
 .bp-app{min-height:100vh;background:#f4f6fb}
-.bp-shell{display:flex;min-height:100vh;align-items:stretch}
-.bp-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
-.bp-content{flex:1 1 auto;min-width:0}
+.bp-shell{display:flex;min-height:100vh;height:100vh;align-items:stretch}
+.bp-main{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column}
+.bp-content{flex:1 1 auto;min-width:0;min-height:0;overflow:auto}
 
 /* Page container (dashboard + other screens that use myplugin-*) */
 .myplugin-page{min-height:100%}

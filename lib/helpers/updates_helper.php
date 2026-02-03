@@ -18,7 +18,7 @@ final class BP_UpdatesHelper {
     $current = defined('BP_Plugin::VERSION') ? BP_Plugin::VERSION : '0.0.0';
     $key = BP_LicenseHelper::get_key();
 
-    $res = wp_remote_get(BP_LicenseHelper::API_UPDATES . '?' . http_build_query([
+    $res = wp_remote_get(BP_LicenseHelper::api_updates_url() . '?' . http_build_query([
       'plugin' => 'bookpoint',
       'version' => $current,
       'site' => home_url(),
@@ -55,7 +55,7 @@ final class BP_UpdatesHelper {
     $current = defined('BP_Plugin::VERSION') ? BP_Plugin::VERSION : '0.0.0';
     $key = BP_LicenseHelper::get_key();
 
-    $res = wp_remote_get(BP_LicenseHelper::API_UPDATES . '?' . http_build_query([
+    $res = wp_remote_get(BP_LicenseHelper::api_updates_url() . '?' . http_build_query([
       'info' => 1,
       'plugin' => 'bookpoint',
       'version' => $current,
