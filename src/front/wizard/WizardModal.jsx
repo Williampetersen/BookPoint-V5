@@ -484,6 +484,7 @@ export default function WizardModal({ open, onClose, brand }) {
         booking_fields[k.slice(8)] = v;
       }
     });
+    const settingsCurrency = bpSettings?.currency || window.BP_FRONT?.currency || 'USD';
 
     return {
       location_id: locationId,
@@ -499,7 +500,7 @@ export default function WizardModal({ open, onClose, brand }) {
       booking_fields,
       extras: extraIds,
       total_price: totalAmount,
-      currency: bpSettings?.currency || 'USD',
+      currency: settingsCurrency,
     };
   };
 

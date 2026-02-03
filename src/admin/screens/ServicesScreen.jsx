@@ -5,6 +5,7 @@ export default function ServicesScreen() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const defaultCurrency = (window.BP_ADMIN?.currency || "USD").toUpperCase();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -159,7 +160,7 @@ export default function ServicesScreen() {
               const priceCents =
                 s.price_cents ??
                 (s.price !== undefined && s.price !== null ? Math.round(parseFloat(s.price) * 100) : null);
-              const currency = (s.currency || "USD").toUpperCase();
+              const currency = (s.currency || defaultCurrency || "USD").toUpperCase();
               const priceDisplay = priceCents !== null ? `${currency} ${(priceCents / 100).toFixed(2)}` : "???";
               const isActive =
                 s.is_active !== undefined ? !!Number(s.is_active) : s.is_enabled !== undefined ? !!Number(s.is_enabled) : true;
@@ -270,4 +271,3 @@ export default function ServicesScreen() {
     </div>
   );
 }
-

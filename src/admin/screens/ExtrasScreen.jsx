@@ -5,6 +5,7 @@ export default function ExtrasScreen() {
   const [extras, setExtras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const defaultCurrency = (window.BP_ADMIN?.currency || "USD").toUpperCase();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -154,7 +155,7 @@ export default function ExtrasScreen() {
               const priceCents =
                 x.price_cents ??
                 (x.price !== undefined && x.price !== null ? Math.round(parseFloat(x.price) * 100) : null);
-              const currency = (x.currency || "USD").toUpperCase();
+              const currency = (x.currency || defaultCurrency || "USD").toUpperCase();
               const priceDisplay = priceCents !== null ? `${currency} ${(priceCents / 100).toFixed(2)}` : "???";
               const typeDisplay = x.type || (x.duration_min ? `Duration ${x.duration_min} min` : "");
               const editHref = `admin.php?page=bp_extras_edit&id=${x.id}`;
@@ -263,4 +264,3 @@ export default function ExtrasScreen() {
     </div>
   );
 }
-

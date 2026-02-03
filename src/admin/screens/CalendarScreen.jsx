@@ -6,6 +6,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
+import interactionPlugin from "@fullcalendar/interaction";
 
 function pad(n){ return String(n).padStart(2, "0"); }
 function ymd(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
@@ -133,7 +134,7 @@ export default function CalendarScreen(){
       const status = (ev.status || "pending").toLowerCase();
       return {
         id: String(ev.id),
-        title: `${ev.service_name || "Service"} * ${ev.customer_name || "Customer"}`,
+        title: `${ev.service_name || "Service"} • ${ev.customer_name || "Customer"}`,
         start: ev.start,
         end: ev.end,
         classNames: [`bp-evt-${status}`],
@@ -228,33 +229,93 @@ export default function CalendarScreen(){
   return (
     <div className="myplugin-page bp-calendar">
       <main className="myplugin-content">
-      <div className="bp-cal-top">
-        <div className="bp-cal-title">
-          <div className="bp-cal-year">{cursor.getFullYear()}</div>
-          <div className="bp-cal-title-text">{titleText()}</div>
-        </div>
+      <div className="bp-cal-layout is-side-collapsed">
+        {false ? (
+          <aside className="bp-cal-side">
+            <div className="bp-cal-side__head">
+              <div style={{ fontWeight: 1000 }}>Filters</div>
+              <button className="bp-top-btn" type="button" onClick={() => setSideCollapsed(true)}>
+                Hide
+              </button>
+            </div>
+            <div className="bp-cal-side__body">
+              <div className="bp-filter-group">
+                <label className="bp-filter-label">Agent</label>
+                <select className="bp-input" value={agentId} onChange={(e)=>setAgentId(parseInt(e.target.value,10)||0)}>
+                  <option value={0}>All agents</option>
+                  {agents.map(a => (
+                    <option key={a.id} value={a.id}>{a.name || `${a.first_name || ""} ${a.last_name || ""}`.trim() || `#${a.id}`}</option>
+                  ))}
+                </select>
+              </div>
 
-        <div className="bp-cal-controls">
-          <div className="bp-cal-pill">
-            <button className={`bp-cal-tab ${view==="day"?"active":""}`} onClick={()=>setView("day")}>Day</button>
-            <button className={`bp-cal-tab ${view==="week"?"active":""}`} onClick={()=>setView("week")}>Week</button>
-            <button className={`bp-cal-tab ${view==="month"?"active":""}`} onClick={()=>setView("month")}>Month</button>
-            <button className={`bp-cal-tab ${view==="list"?"active":""}`} onClick={()=>setView("list")}>List</button>
+              <div className="bp-filter-group">
+                <label className="bp-filter-label">Status</label>
+                <select className="bp-input" value={status} onChange={(e)=>setStatus(e.target.value)}>
+                  <option value="all">All status</option>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              <div className="bp-filter-group">
+                <label className="bp-filter-label">Search</label>
+                <input
+                  className="bp-input"
+                  placeholder="Customer, email, agent…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="bp-cal-legend">
+                <div className="bp-filter-label" style={{ marginBottom: 8 }}>Legend</div>
+                <div className="bp-cal-legend__grid">
+                  <span className="bp-cal-legend__item bp-evt-confirmed">Confirmed</span>
+                  <span className="bp-cal-legend__item bp-evt-pending">Pending</span>
+                  <span className="bp-cal-legend__item bp-evt-cancelled">Cancelled</span>
+                  <span className="bp-cal-legend__item bp-evt-completed">Completed</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+        ) : null}
+
+        <section className="bp-cal-main">
+          <div className="bp-cal-top">
+            <div className="bp-cal-title">
+              <div className="bp-cal-year">{cursor.getFullYear()}</div>
+              <div className="bp-cal-title-text">{titleText()}</div>
+            </div>
+
+            <div className="bp-cal-controls">
+              <div className="bp-cal-pill">
+                <button className={`bp-cal-tab ${view==="day"?"active":""}`} onClick={()=>setView("day")}>Day</button>
+                <button className={`bp-cal-tab ${view==="week"?"active":""}`} onClick={()=>setView("week")}>Week</button>
+                <button className={`bp-cal-tab ${view==="month"?"active":""}`} onClick={()=>setView("month")}>Month</button>
+                <button className={`bp-cal-tab ${view==="list"?"active":""}`} onClick={()=>setView("list")}>List</button>
+              </div>
+
+              <div className="bp-cal-pill">
+                <button className="bp-cal-btn" onClick={today}>Today</button>
+                <button className="bp-cal-icon" onClick={prev} aria-label="Previous">&lt;</button>
+                <button className="bp-cal-icon" onClick={next} aria-label="Next">&gt;</button>
+              </div>
+
+              <div className="bp-cal-pill">
+                <button
+                  className="bp-cal-btn"
+                  onClick={() => setFiltersOpen(true)}
+                >
+                  Filters
+                </button>
+              </div>
+
+              <a className="bp-primary-btn bp-cal-cta" href="admin.php?page=bp_bookings_edit">+ Booking</a>
+            </div>
           </div>
-
-          <div className="bp-cal-pill">
-            <button className="bp-cal-btn" onClick={today}>Today</button>
-            <button className="bp-cal-icon" onClick={prev} aria-label="Previous">&lt;</button>
-            <button className="bp-cal-icon" onClick={next} aria-label="Next">&gt;</button>
-          </div>
-
-          <div className="bp-cal-pill">
-            <button className="bp-cal-btn" onClick={()=>setFiltersOpen(true)}>Filters</button>
-          </div>
-
-          <button className="bp-primary-btn bp-cal-cta" onClick={()=>alert("Next: open booking wizard")}>+ Booking</button>
-        </div>
-      </div>
 
       {isMobile && (
         <div className="bp-cal-weekstrip">
@@ -280,7 +341,7 @@ export default function CalendarScreen(){
         {loading ? <div className="bp-cal-loading">Loading...</div> : null}
         <FullCalendar
           ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, listPlugin]}
+          plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
           initialView={viewMap[view]}
           headerToolbar={false}
           height="auto"
@@ -341,6 +402,16 @@ export default function CalendarScreen(){
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
+
+              <div className="bp-cal-legend">
+                <div className="bp-filter-label" style={{ marginBottom: 8 }}>Legend</div>
+                <div className="bp-cal-legend__grid">
+                  <span className="bp-cal-legend__item bp-evt-confirmed">Confirmed</span>
+                  <span className="bp-cal-legend__item bp-evt-pending">Pending</span>
+                  <span className="bp-cal-legend__item bp-evt-cancelled">Cancelled</span>
+                  <span className="bp-cal-legend__item bp-evt-completed">Completed</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -448,6 +519,8 @@ export default function CalendarScreen(){
           </div>
         </div>
       ) : null}
+        </section>
+      </div>
       </main>
     </div>
   );

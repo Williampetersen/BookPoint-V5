@@ -20,13 +20,8 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
   const ICON_DARK = (name) => `${iconBase}/${name}-dark.svg`;
   const ICON_ACTIVE_DARK = (name) => `${iconBase}/${name}-active-dark.svg`;
 
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      return window.localStorage.getItem("bp_sidebar_collapsed") === "1";
-    } catch (e) {
-      return false;
-    }
-  });
+  // Keep sidebar "standard" (expanded) by default.
+  const [collapsed, setCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isDark = theme === "dark";
@@ -55,11 +50,17 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
   }, [collapsed]);
 
   useEffect(() => {
+    if (window.innerWidth >= 640) {
+      setCollapsed(false);
+    }
     const onKey = (e) => {
       if (e.key === "Escape") setSidebarOpen(false);
     };
     const onResize = () => {
-      if (window.innerWidth >= 1024) setSidebarOpen(false);
+      if (window.innerWidth >= 640) {
+        setSidebarOpen(false);
+        setCollapsed(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("resize", onResize);
@@ -201,7 +202,7 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
                 type="button"
                 className="bp-topbar__menu"
                 onClick={() => {
-                  if (window.innerWidth >= 1024) {
+                  if (window.innerWidth >= 640) {
                     setCollapsed((v) => !v);
                   } else {
                     setSidebarOpen((v) => !v);

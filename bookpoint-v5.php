@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BookPoint
  * Description: Professional appointment booking system (MVC + Router + Blocks).
- * Version: 6.0.4
+ * Version: 6.0.5
  * Author: William
  * Text Domain: bookpoint
  * Domain Path: /languages
@@ -19,7 +19,7 @@ add_filter('admin_body_class', function($classes){
 
 final class BP_Plugin {
 
-  const VERSION    = '6.0.4';
+  const VERSION    = '6.0.5';
   const DB_VERSION = '5.0.0';
 
   public static function init() : void {
@@ -1562,6 +1562,8 @@ final class BP_Plugin {
           'page'    => $page,
           'build'   => (file_exists(BP_PLUGIN_PATH . 'build/admin.js') ? (string)@filemtime(BP_PLUGIN_PATH . 'build/admin.js') : ''),
           'timezone'=> wp_timezone_string(),
+          'currency'=> (string)BP_SettingsHelper::get('currency', 'USD'),
+          'currency_position'=> (string)BP_SettingsHelper::get('currency_position', 'before'),
         ]);
 
         wp_localize_script('bp-admin', 'bpAdmin', [
@@ -1787,9 +1789,12 @@ final class BP_Plugin {
 
   private static function front_localized_data(): array {
     $stripe_pk = self::front_stripe_publishable_key();
-    $currency = get_option('bp_currency', '');
+    $currency = BP_SettingsHelper::get('currency', '');
     if ($currency === '') {
-      $currency = BP_SettingsHelper::get('currency', 'USD');
+      $currency = get_option('bp_currency', '');
+    }
+    if ($currency === '') {
+      $currency = 'USD';
     }
     return [
       'rest' => esc_url_raw(rest_url()),

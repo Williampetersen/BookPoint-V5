@@ -17,6 +17,23 @@ function fmtBool(ok) {
   return ok ? "OK" : "Missing";
 }
 
+function prettyTableName(raw) {
+  const overrides = {
+    bp_audit_log: "Audit Log",
+    bp_service_agents: "Service Agents",
+    bp_service_categories: "Service Categories",
+    bp_service_extras: "Service Extras",
+    bp_promo_codes: "Promo Codes",
+  };
+
+  const name = String(raw || "").trim();
+  if (!name) return "—";
+  if (overrides[name]) return overrides[name];
+
+  const cleaned = name.replace(/^bp_/, "").replace(/_/g, " ").trim();
+  return cleaned.replace(/\b([a-z])/g, (m) => m.toUpperCase());
+}
+
 function nowLabel() {
   return new Date().toLocaleString();
 }
@@ -242,7 +259,7 @@ export default function ToolsScreen() {
           ) : (
             Object.entries(tables).map(([name, ok]) => (
               <div key={name} className={`bp-tools-tablePill ${ok ? "is-ok" : "is-bad"}`}>
-                <span className="n">{name}</span>
+                <span className="n">{prettyTableName(name)}</span>
                 <span className="s">{fmtBool(!!ok)}</span>
               </div>
             ))

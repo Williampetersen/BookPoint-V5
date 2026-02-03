@@ -1,14 +1,34 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
+import BookingDrawer from "../components/BookingDrawer";
 
 function Badge({ status }) {
   const s = (status || "pending").toLowerCase();
-  return <span className={`bp-badge ${s}`}>{s}</span>;
+  const labels = {
+    pending: "pending",
+    confirmed: "confirmed",
+    cancelled: "cancelled",
+    completed: "completed",
+    pending_payment: "pending payment",
+    paid: "paid",
+    refunded: "refunded",
+    no_show: "no-show",
+  };
+  return <span className={`bp-badge ${s}`}>{labels[s] || s}</span>;
+}
+
+function fmtWhen(start) {
+  if (!start) return "-";
+  const s = String(start).replace("T", " ").slice(0, 19);
+  const date = s.slice(0, 10);
+  const time = s.slice(11, 16);
+  return time ? `${date} • ${time}` : date;
 }
 
 export default function BookingsScreen() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
 
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
@@ -32,23 +52,33 @@ export default function BookingsScreen() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  async function load() {
+  async function load(opts = {}) {
     setLoading(true);
     setErr("");
     try {
+      const nextQ = opts.q ?? q;
+      const nextStatus = opts.status ?? status;
+      const nextSort = opts.sort ?? sort;
+      const nextDateFrom = opts.dateFrom ?? dateFrom;
+      const nextDateTo = opts.dateTo ?? dateTo;
+      const nextPage = opts.page ?? page;
+
       const url =
         `/admin/bookings?` +
-        `q=${encodeURIComponent(q)}` +
-        `&status=${encodeURIComponent(status)}` +
-        `&sort=${encodeURIComponent(sort)}` +
-        `&date_from=${encodeURIComponent(dateFrom)}` +
-        `&date_to=${encodeURIComponent(dateTo)}` +
-        `&page=${page}&per=${per}`;
+        `q=${encodeURIComponent(nextQ)}` +
+        `&status=${encodeURIComponent(nextStatus)}` +
+        `&sort=${encodeURIComponent(nextSort)}` +
+        `&date_from=${encodeURIComponent(nextDateFrom)}` +
+        `&date_to=${encodeURIComponent(nextDateTo)}` +
+        `&page=${nextPage}&per=${per}`;
 
       const res = await bpFetch(url);
       const list = res?.data?.items || [];
-      // Always show newest first in UI
-      const sorted = [...list].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+      const sorted = [...list].sort((a, b) => {
+        const ai = Number(a.id) || 0;
+        const bi = Number(b.id) || 0;
+        return nextSort === "asc" ? ai - bi : bi - ai;
+      });
       setItems(sorted);
       setTotal(res?.data?.total || 0);
 
@@ -72,6 +102,14 @@ export default function BookingsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
+  useEffect(() => {
+    const view = new URLSearchParams(window.location.search).get("view");
+    if (!view) return;
+    const id = Number(view);
+    if (!Number.isFinite(id) || id <= 0) return;
+    setSelectedId(id);
+  }, []);
+
   function goEdit(id) {
     window.location.href = `admin.php?page=bp_bookings_edit&id=${id}`;
   }
@@ -79,7 +117,7 @@ export default function BookingsScreen() {
   function onSearchSubmit(e) {
     e.preventDefault();
     setPage(1);
-    load();
+    load({ page: 1 });
     setFiltersOpen(false);
   }
 
@@ -90,7 +128,7 @@ export default function BookingsScreen() {
     setDateTo("");
     setSortState("desc");
     setPage(1);
-    load();
+    load({ q: "", status: "all", dateFrom: "", dateTo: "", sort: "desc", page: 1 });
     setFiltersOpen(false);
   }
 
@@ -102,6 +140,11 @@ export default function BookingsScreen() {
     if (q.trim()) parts.push(`Search: ${q.trim()}`);
     return parts.length ? parts.join(" | ") : "All bookings";
   }, [status, dateFrom, dateTo, q]);
+
+  const hasActiveFilters = !!(q.trim() || (status && status !== "all") || dateFrom || dateTo || sort !== "desc");
+
+  const showingFrom = total === 0 ? 0 : (page - 1) * per + 1;
+  const showingTo = Math.min(total, (page - 1) * per + (items?.length || 0));
 
   return (
     <div className="myplugin-page bp-bookings">
@@ -126,15 +169,15 @@ export default function BookingsScreen() {
             <div className="bp-card-value">{loading ? "..." : stats.total}</div>
           </div>
           <div className="bp-card">
-            <div className="bp-card-label">Pending</div>
+            <div className="bp-card-label">Pending (page)</div>
             <div className="bp-card-value">{loading ? "..." : stats.pending}</div>
           </div>
           <div className="bp-card">
-            <div className="bp-card-label">Confirmed</div>
+            <div className="bp-card-label">Confirmed (page)</div>
             <div className="bp-card-value">{loading ? "..." : stats.confirmed}</div>
           </div>
           <div className="bp-card">
-            <div className="bp-card-label">Cancelled</div>
+            <div className="bp-card-label">Cancelled (page)</div>
             <div className="bp-card-value">{loading ? "..." : stats.cancelled}</div>
           </div>
         </div>
@@ -182,11 +225,46 @@ export default function BookingsScreen() {
 
               <div className="bp-filter-group">
                 <label className="bp-filter-label">&nbsp;</label>
-                <button className="bp-primary-btn" type="submit">
-                  Apply
-                </button>
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button className="bp-btn" type="button" onClick={resetFilters} disabled={!hasActiveFilters}>
+                    Clear
+                  </button>
+                  <button className="bp-primary-btn" type="submit">
+                    Apply
+                  </button>
+                </div>
               </div>
             </form>
+
+            {hasActiveFilters ? (
+              <div className="bp-bookings__chips" style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 12 }}>
+                {status && status !== "all" ? (
+                  <button className="bp-chip-btn" type="button" onClick={() => { setStatus("all"); setPage(1); load({ status: "all", page: 1 }); }}>
+                    Status: {status} ×
+                  </button>
+                ) : null}
+                {dateFrom ? (
+                  <button className="bp-chip-btn" type="button" onClick={() => { setDateFrom(""); setPage(1); load({ dateFrom: "", page: 1 }); }}>
+                    From: {dateFrom} ×
+                  </button>
+                ) : null}
+                {dateTo ? (
+                  <button className="bp-chip-btn" type="button" onClick={() => { setDateTo(""); setPage(1); load({ dateTo: "", page: 1 }); }}>
+                    To: {dateTo} ×
+                  </button>
+                ) : null}
+                {q.trim() ? (
+                  <button className="bp-chip-btn" type="button" onClick={() => { setQ(""); setPage(1); load({ q: "", page: 1 }); }}>
+                    Search ×
+                  </button>
+                ) : null}
+                {sort !== "desc" ? (
+                  <button className="bp-chip-btn" type="button" onClick={() => { setSortState("desc"); setPage(1); load({ sort: "desc", page: 1 }); }}>
+                    Sort: oldest ×
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="bp-card bp-bookings__toolbar">
@@ -201,14 +279,15 @@ export default function BookingsScreen() {
 
         <div className="bp-card bp-bookings__list">
           {!isMobile ? (
-            <div className="bp-table">
+            <div className="bp-table-scroll">
+              <div className="bp-table bp-bookings-table">
               <div className="bp-tr bp-th">
                 <div>ID</div>
                 <div>When</div>
                 <div>Service</div>
-                <div>Agent</div>
                 <div>Customer</div>
                 <div>Status</div>
+                <div style={{ justifySelf: "end" }}>Actions</div>
               </div>
 
               {loading ? <div className="bp-muted" style={{ padding: 10 }}>Loading...</div> : null}
@@ -220,25 +299,40 @@ export default function BookingsScreen() {
                     className="bp-tr bp-tr-btn"
                     role="button"
                     tabIndex={0}
-                    onClick={() => goEdit(b.id)}
+                    onClick={() => setSelectedId(Number(b.id))}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") goEdit(b.id);
+                      if (e.key === "Enter" || e.key === " ") setSelectedId(Number(b.id));
                     }}
                   >
-                    <div>#{b.id}</div>
-                    <div className="bp-muted">{b.start_datetime}</div>
-                    <div>{b.service_name || "-"}</div>
-                    <div>{b.agent_name || "-"}</div>
+                    <div className="bp-bookings-cell-id">#{b.id}</div>
+                    <div className="bp-muted bp-bookings-cell-when">{fmtWhen(b.start_datetime || b.start)}</div>
+                    <div className="bp-bookings-cell-service">
+                      <div style={{ fontWeight: 900 }}>{b.service_name || "-"}</div>
+                      <div className="bp-muted bp-bookings-sub">{b.agent_name || "-"}</div>
+                    </div>
                     <div>
                       <div style={{ fontWeight: 1100 }}>{b.customer_name || "-"}</div>
-                      <div className="bp-muted" style={{ fontSize: 12 }}>
+                      <div className="bp-muted bp-bookings-sub">
                         {b.customer_email || "-"}
                       </div>
                     </div>
-                    <div className="bp-row-actions">
+                    <div>
                       <Badge status={b.status} />
+                    </div>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", justifySelf: "end", flexWrap: "wrap" }}>
                       <button
-                        className="bp-chip"
+                        className="bp-btn"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedId(Number(b.id));
+                        }}
+                      >
+                        View
+                      </button>
+                      <button
+                        className="bp-btn"
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           goEdit(b.id);
@@ -255,6 +349,7 @@ export default function BookingsScreen() {
                   No bookings found.
                 </div>
               ) : null}
+              </div>
             </div>
           ) : (
             <div className="bp-bookings__cards">
@@ -262,7 +357,7 @@ export default function BookingsScreen() {
 
               {!loading &&
                 items.map((b) => (
-                  <button key={b.id} type="button" className="bp-booking-card" onClick={() => goEdit(b.id)}>
+                  <button key={b.id} type="button" className="bp-booking-card" onClick={() => setSelectedId(Number(b.id))}>
                     <div className="bp-booking-card__top">
                       <div className="bp-booking-card__id">#{b.id}</div>
                       <Badge status={b.status} />
@@ -291,14 +386,25 @@ export default function BookingsScreen() {
             <button className="bp-top-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
               Prev
             </button>
-            <div className="bp-muted" style={{ fontWeight: 1000 }}>
+            <div className="bp-muted" style={{ fontWeight: 1000, textAlign: "center" }}>
               Page {page} / {pages}
+              <div style={{ fontSize: 12, fontWeight: 850, marginTop: 2 }}>
+                Showing {showingFrom}–{showingTo} of {total}
+              </div>
             </div>
             <button className="bp-top-btn" disabled={page >= pages} onClick={() => setPage((p) => Math.min(pages, p + 1))}>
               Next
             </button>
           </div>
         </div>
+
+        {selectedId ? (
+          <BookingDrawer
+            bookingId={selectedId}
+            onClose={() => setSelectedId(null)}
+            onUpdated={() => load()}
+          />
+        ) : null}
 
         {isMobile && filtersOpen ? (
           <div className="bp-sheet" onMouseDown={(e) => { if (e.target.classList.contains("bp-sheet")) setFiltersOpen(false); }}>
@@ -346,4 +452,3 @@ export default function BookingsScreen() {
     </div>
   );
 }
-

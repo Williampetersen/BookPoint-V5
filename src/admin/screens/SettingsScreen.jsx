@@ -29,6 +29,27 @@ const BOOKING_STATUS_OPTIONS = [
   { value: "completed", label: "Completed" },
 ];
 
+function currencyPreview(code, position) {
+  const currency = String(code || "USD").toUpperCase();
+  const pos = position === "after" ? "after" : "before";
+  const amount = 12.5;
+  let symbol = currency;
+  try {
+    const parts = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      currencyDisplay: "narrowSymbol",
+    }).formatToParts(0);
+    const part = parts.find((p) => p.type === "currency");
+    if (part?.value) symbol = part.value;
+  } catch {}
+  const formatted = amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const needsSpace = /^[A-Z]{2,5}$/.test(symbol);
+  return pos === "after"
+    ? (needsSpace ? `${formatted} ${symbol}` : `${formatted}${symbol}`)
+    : (needsSpace ? `${symbol} ${formatted}` : `${symbol}${formatted}`);
+}
+
 export default function SettingsScreen() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
@@ -463,7 +484,8 @@ export default function SettingsScreen() {
                   <div className="bp-settings-field">
                     <label className="bp-label">Open time</label>
                     <input
-                      type="text"
+                      type="time"
+                      step={300}
                       placeholder="09:00"
                       value={getSetting("bp_open_time", "09:00")}
                       onChange={(e) => updateSetting("bp_open_time", e.target.value)}
@@ -473,7 +495,8 @@ export default function SettingsScreen() {
                   <div className="bp-settings-field">
                     <label className="bp-label">Close time</label>
                     <input
-                      type="text"
+                      type="time"
+                      step={300}
                       placeholder="17:00"
                       value={getSetting("bp_close_time", "17:00")}
                       onChange={(e) => updateSetting("bp_close_time", e.target.value)}
@@ -486,6 +509,7 @@ export default function SettingsScreen() {
                       type="number"
                       min={5}
                       max={120}
+                      step={5}
                       value={getSetting("slot_interval_minutes", 15)}
                       onChange={(e) => updateSetting("slot_interval_minutes", parseInt(e.target.value || 15, 10))}
                       className="bp-input"
@@ -522,6 +546,9 @@ export default function SettingsScreen() {
                         </option>
                       ))}
                     </select>
+                    <div className="bp-muted bp-settings-help">
+                      Preview: {currencyPreview(getSetting(["currency", "bp_default_currency"], "USD"), getSetting(["currency_position", "bp_currency_position"], "before"))}
+                    </div>
                   </div>
                   <div className="bp-settings-field">
                     <label className="bp-label">Currency Position</label>
@@ -533,6 +560,9 @@ export default function SettingsScreen() {
                       <option value="before">Before amount (e.g., $10)</option>
                       <option value="after">After amount (e.g., 10$)</option>
                     </select>
+                    <div className="bp-muted bp-settings-help">
+                      Applies across booking form, services, and invoices.
+                    </div>
                   </div>
                   <div className="bp-settings-field" style={{ gridColumn: "1 / -1" }}>
                     <label className="bp-label">Daily breaks</label>

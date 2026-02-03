@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
 
+const defaultCurrency = (window.BP_ADMIN?.currency || "USD").toUpperCase();
+
 function toMoneyNumber(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -15,7 +17,7 @@ function normalizeService(raw) {
       : raw?.price_cents !== undefined && raw?.price_cents !== null
         ? toMoneyNumber(raw.price_cents) / 100
         : 0;
-  const currency = (raw?.currency || "USD").toUpperCase();
+  const currency = (raw?.currency || defaultCurrency || "USD").toUpperCase();
   const isActive =
     raw?.is_active !== undefined
       ? !!Number(raw.is_active)
@@ -62,7 +64,7 @@ export default function ServicesEditScreen() {
       description: "",
       duration: 30,
       price: 0,
-      currency: "USD",
+      currency: defaultCurrency || "USD",
       capacity: 1,
       is_active: 1,
     })
