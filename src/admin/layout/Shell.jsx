@@ -1,4 +1,5 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { iconDataUri } from "../icons/iconData";
 
 export default function Shell({ theme, onToggleTheme, active, children }) {
   const page = window.BP_ADMIN?.page || "bp_dashboard";
@@ -11,24 +12,13 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
     ? pluginUrl.replace(/\/$/, "") + "/public/images/wordpress-logo.png"
     : `${window.location.origin}/wp-content/plugins/bookpoint-v5/public/images/wordpress-logo.png`;
   const wpLogoUrl = `${wpLogoBase}?v=${encodeURIComponent(window.BP_ADMIN?.build || Date.now())}`;
-  const iconBase = (window.bpAdmin?.iconsUrl || window.BP_ADMIN?.publicIconsUrl || "")
-    .replace(/\/$/, "") || (pluginUrl
-      ? pluginUrl.replace(/\/$/, "") + "/public/icons"
-      : `${window.location.origin}/wp-content/plugins/bookpoint-v5/public/icons`);
-  const ICON = (name) => `${iconBase}/${name}.svg`;
-  const ICON_ACTIVE = (name) => `${iconBase}/${name}-active.svg`;
-  const ICON_DARK = (name) => `${iconBase}/${name}-dark.svg`;
-  const ICON_ACTIVE_DARK = (name) => `${iconBase}/${name}-active-dark.svg`;
+  const ICON = (name, isActive = false) => iconDataUri(name, { active: isActive, theme });
 
   // Keep sidebar "standard" (expanded) by default.
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isDark = theme === "dark";
-  const pickIcon = (name, isActive) => {
-    if (isDark) return isActive ? ICON_ACTIVE_DARK(name) : ICON_DARK(name);
-    return isActive ? ICON_ACTIVE(name) : ICON(name);
-  };
+  const pickIcon = (name, isActive) => ICON(name, isActive);
   const is = (p) => {
     if (page === p) return true;
     if (p === "bp_locations" && (page === "bp_locations_edit" || page === "bp_location_categories_edit")) return true;
@@ -70,7 +60,7 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
     };
   }, []);
 
-  const iconMenu = `${iconBase}/menu.svg`;
+  const iconMenu = ICON("menu", false);
   const iconCalendar = pickIcon("calendar", is("bp_calendar"));
   const iconSettings = pickIcon("settings", is("bp_settings"));
   const iconAdmin = pickIcon("customers", is("bp_customers"));

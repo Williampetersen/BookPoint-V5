@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: BookPoint
+ * Plugin Name: BookPoint Pro
  * Description: Professional appointment booking system (MVC + Router + Blocks).
  * Version: 6.0.5
  * Author: William
@@ -39,6 +39,9 @@ final class BP_Plugin {
     if (!defined('BP_PUBLIC_PATH')) define('BP_PUBLIC_PATH', BP_PLUGIN_PATH . 'public/');
     if (!defined('BP_VIEWS_PATH'))  define('BP_VIEWS_PATH', BP_LIB_PATH . 'views/');
     if (!defined('BP_BLOCKS_PATH')) define('BP_BLOCKS_PATH', BP_PLUGIN_PATH . 'blocks/');
+
+    // Pro builds should define this as true (e.g. in the Pro distribution).
+    if (!defined('BP_IS_PRO')) define('BP_IS_PRO', false);
   }
 
   private static function load_textdomain() : void {
@@ -114,6 +117,7 @@ final class BP_Plugin {
 
     // Helpers (License + Updates)
     require_once BP_LIB_PATH . 'helpers/license_helper.php';
+    require_once BP_LIB_PATH . 'helpers/license_gate_helper.php';
     require_once BP_LIB_PATH . 'helpers/updates_helper.php';
 
     // Integrations
@@ -190,11 +194,23 @@ final class BP_Plugin {
     register_activation_hook(BP_PLUGIN_FILE, [__CLASS__, 'on_activate']);
     register_deactivation_hook(BP_PLUGIN_FILE, [__CLASS__, 'on_deactivate']);
     register_activation_hook(BP_PLUGIN_FILE, function () {
-      BP_MigrationsHelper::run();
+      $level = ob_get_level();
+      ob_start();
+      try {
+        BP_MigrationsHelper::run();
+      } finally {
+        while (ob_get_level() > $level) {
+          ob_end_clean();
+        }
+      }
     });
 
     // Admin menu
     add_action('admin_menu', [__CLASS__, 'register_admin_menu']);
+
+    // Pro gating (disable REST features when not licensed)
+    add_filter('rest_pre_dispatch', ['BP_LicenseGateHelper', 'maybe_block_rest'], 10, 3);
+    add_action('admin_notices', ['BP_LicenseGateHelper', 'admin_notice']);
 
     // Hide WP admin bar for BookPoint admin pages to remove top gap
     add_action('admin_head', function () {
@@ -249,6 +265,8 @@ final class BP_Plugin {
     add_action('admin_post_bp_admin_settings_save', [__CLASS__, 'handle_settings_save']);
     add_action('admin_post_bp_admin_settings_save_license', [__CLASS__, 'handle_settings_save_license']);
     add_action('admin_post_bp_admin_settings_validate_license', [__CLASS__, 'handle_settings_validate_license']);
+    add_action('admin_post_bp_admin_settings_activate_license', [__CLASS__, 'handle_settings_activate_license']);
+    add_action('admin_post_bp_admin_settings_deactivate_license', [__CLASS__, 'handle_settings_deactivate_license']);
     add_action('admin_post_bp_admin_settings_export_json', [__CLASS__, 'handle_settings_export_json']);
     add_action('admin_post_bp_admin_settings_import_json', [__CLASS__, 'handle_settings_import_json']);
 
@@ -353,35 +371,77 @@ final class BP_Plugin {
   }
 
   public static function on_activate() : void {
-    self::includes();
+    $level = ob_get_level();
+    ob_start();
+    try {
+      if (self::has_conflicting_bookpoint_plugins()) {
+        if (!function_exists('deactivate_plugins')) {
+          require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+        deactivate_plugins(plugin_basename(BP_PLUGIN_FILE));
+        wp_die(
+          esc_html__(
+            'BookPoint Pro cannot be activated while another BookPoint plugin is installed. Please deactivate/remove the other BookPoint plugin first.',
+            'bookpoint'
+          )
+        );
+      }
 
-    BP_RolesHelper::add_capabilities();
-    BP_DatabaseHelper::install_or_update(self::DB_VERSION);
-    self::install_or_upgrade_schedule_tables();
-    self::seed_default_agent_hours();
-    bp_install_form_fields_table();
-    bp_seed_default_form_fields();
-    if (class_exists('BP_FormFieldsSeedHelper')) {
-      BP_FormFieldsSeedHelper::ensure_defaults();
-    }
-    bp_install_field_values_table();
-    if (class_exists('BP_Locations_Migrations_Helper')) {
-      BP_Locations_Migrations_Helper::ensure_tables();
-    }
+      self::includes();
 
-    // Seed default settings/design on fresh installs (do not overwrite existing).
-    if (class_exists('BP_SettingsHelper')) {
-      $existing = get_option('bp_settings', null);
-      if (!is_array($existing)) {
-        BP_SettingsHelper::set_all(BP_SettingsHelper::defaults());
+      BP_RolesHelper::add_capabilities();
+      BP_DatabaseHelper::install_or_update(self::DB_VERSION);
+      self::install_or_upgrade_schedule_tables();
+      self::seed_default_agent_hours();
+      bp_install_form_fields_table();
+      bp_seed_default_form_fields();
+      if (class_exists('BP_FormFieldsSeedHelper')) {
+        BP_FormFieldsSeedHelper::ensure_defaults();
+      }
+      bp_install_field_values_table();
+      if (class_exists('BP_Locations_Migrations_Helper')) {
+        BP_Locations_Migrations_Helper::ensure_tables();
+      }
+
+      // Seed default settings/design on fresh installs (do not overwrite existing).
+      if (class_exists('BP_SettingsHelper')) {
+        $existing = get_option('bp_settings', null);
+        if (!is_array($existing)) {
+          BP_SettingsHelper::set_all(BP_SettingsHelper::defaults());
+        }
+      }
+      if (get_option('bp_booking_form_design', null) === null && function_exists('bp_booking_form_design_default')) {
+        update_option('bp_booking_form_design', bp_booking_form_design_default(), false);
+      }
+
+      // Store plugin version too (optional but helpful)
+      update_option('BP_version', self::VERSION, false);
+    } finally {
+      while (ob_get_level() > $level) {
+        ob_end_clean();
       }
     }
-    if (get_option('bp_booking_form_design', null) === null && function_exists('bp_booking_form_design_default')) {
-      update_option('bp_booking_form_design', bp_booking_form_design_default(), false);
-    }
+  }
 
-    // Store plugin version too (optional but helpful)
-    update_option('BP_version', self::VERSION, false);
+  private static function has_conflicting_bookpoint_plugins() : bool {
+    if (!function_exists('get_plugins')) {
+      require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+    $plugins = get_plugins();
+    $current = plugin_basename(BP_PLUGIN_FILE);
+
+    foreach ($plugins as $file => $data) {
+      if ($file === $current) continue;
+      // Allow the license server plugin to coexist.
+      if (stripos($file, 'bookpoint-license-server') !== false) continue;
+      $name = strtolower((string)($data['Name'] ?? ''));
+      $textdomain = strtolower((string)($data['TextDomain'] ?? ''));
+      if (strpos($name, 'license server') !== false) continue;
+      if (strpos($name, 'bookpoint') !== false || $textdomain === 'bookpoint') {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static function install_or_upgrade_schedule_tables() : void {
@@ -1558,6 +1618,7 @@ final class BP_Plugin {
           'pluginUrl' => BP_PLUGIN_URL,
           'publicImagesUrl' => BP_PLUGIN_URL . 'public/images',
           'publicIconsUrl' => BP_PLUGIN_URL . 'public/icons',
+          'iconsProxyUrl' => BP_PLUGIN_URL . 'public/icon.php?file=',
           'route'   => $route,
           'page'    => $page,
           'build'   => (file_exists(BP_PLUGIN_PATH . 'build/admin.js') ? (string)@filemtime(BP_PLUGIN_PATH . 'build/admin.js') : ''),
@@ -1568,6 +1629,7 @@ final class BP_Plugin {
 
         wp_localize_script('bp-admin', 'bpAdmin', [
           'iconsUrl' => BP_PLUGIN_URL . 'public/icons',
+          'iconsProxyUrl' => BP_PLUGIN_URL . 'public/icon.php?file=',
         ]);
 
       wp_enqueue_media();
@@ -1658,6 +1720,14 @@ final class BP_Plugin {
 
   public static function handle_settings_validate_license(): void {
     (new BP_AdminSettingsController())->validate_license();
+  }
+
+  public static function handle_settings_activate_license(): void {
+    (new BP_AdminSettingsController())->activate_license();
+  }
+
+  public static function handle_settings_deactivate_license(): void {
+    (new BP_AdminSettingsController())->deactivate_license();
   }
 
   public static function handle_settings_export_json(): void {

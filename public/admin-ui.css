@@ -1,0 +1,25 @@
+.bp-app-mode #wpcontent {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+.bp-app-mode #wpbody-content {
+  padding-bottom: 0 !important;
+}
+
+.bp-app-mode #wpfooter {
+  display: none !important;
+}
+
+.bp-app-mode #adminmenumain,
+.bp-app-mode #adminmenuwrap,
+.bp-app-mode #adminmenu {
+  display: none !important;
+}
+
+.bp-app-mode .notice,
+.bp-app-mode .updated,
+.bp-app-mode .update-nag {
+  display: none !important;
+}
+

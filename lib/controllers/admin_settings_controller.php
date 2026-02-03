@@ -20,6 +20,9 @@ final class BP_AdminSettingsController extends BP_Controller {
     $license_status = BP_LicenseHelper::status();
     $license_checked_at = (int) get_option('bp_license_checked_at', 0);
     $license_last_error = (string) get_option('bp_license_last_error', '');
+    $license_expires_at = (string) get_option('bp_license_expires_at', '');
+    $license_licensed_domain = (string) get_option('bp_license_licensed_domain', '');
+    $license_instance_id = (string) get_option('bp_license_instance_id', '');
     $webhooks_enabled = (int)BP_SettingsHelper::get_with_default('webhooks_enabled');
     $webhooks_secret = BP_SettingsHelper::get_with_default('webhooks_secret');
     $webhooks_url_booking_created = BP_SettingsHelper::get_with_default('webhooks_url_booking_created');
@@ -50,6 +53,9 @@ final class BP_AdminSettingsController extends BP_Controller {
       'license_status' => $license_status,
       'license_checked_at' => $license_checked_at,
       'license_last_error' => $license_last_error,
+      'license_expires_at' => $license_expires_at,
+      'license_licensed_domain' => $license_licensed_domain,
+      'license_instance_id' => $license_instance_id,
       'webhooks_enabled' => $webhooks_enabled,
       'webhooks_secret' => $webhooks_secret,
       'webhooks_url_booking_created' => $webhooks_url_booking_created,
@@ -206,6 +212,32 @@ final class BP_AdminSettingsController extends BP_Controller {
     BP_LicenseHelper::validate(true);
 
     wp_safe_redirect(admin_url('admin.php?page=bp_settings&tab=license&validated=1'));
+    exit;
+  }
+
+  public function activate_license(): void {
+    $this->require_cap('bp_manage_settings');
+    check_admin_referer('bp_admin');
+
+    $res = BP_LicenseHelper::activate();
+    if (is_array($res) && isset($res['message'])) {
+      update_option('bp_license_last_error', (string) $res['message'], false);
+    }
+
+    wp_safe_redirect(admin_url('admin.php?page=bp_settings&tab=license&activated=1'));
+    exit;
+  }
+
+  public function deactivate_license(): void {
+    $this->require_cap('bp_manage_settings');
+    check_admin_referer('bp_admin');
+
+    $res = BP_LicenseHelper::deactivate();
+    if (is_array($res) && isset($res['message'])) {
+      update_option('bp_license_last_error', (string) $res['message'], false);
+    }
+
+    wp_safe_redirect(admin_url('admin.php?page=bp_settings&tab=license&deactivated=1'));
     exit;
   }
 
