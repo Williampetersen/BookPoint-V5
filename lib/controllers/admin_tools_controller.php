@@ -113,6 +113,10 @@ final class BP_AdminToolsController extends BP_Controller {
       'plugin' => 'bookpoint',
       'exported_at' => current_time('mysql'),
       'bp_settings' => $settings,
+      'wp_options' => [
+        'bp_settings' => get_option('bp_settings', []),
+        'bp_booking_form_design' => get_option('bp_booking_form_design', null),
+      ],
       'options' => [
         'bp_remove_data_on_uninstall' => (int)get_option('bp_remove_data_on_uninstall', 0),
       ],
@@ -147,7 +151,7 @@ final class BP_AdminToolsController extends BP_Controller {
       exit;
     }
 
-    $allowed_prefixes = ['bp_', 'webhooks_'];
+    $allowed_prefixes = ['bp_', 'payments_', 'stripe_', 'webhooks_', 'emails_', 'tpl_', 'booking_', 'portal_'];
     foreach ($settings as $k => $v) {
       $k = (string)$k;
       $ok = false;
@@ -157,6 +161,16 @@ final class BP_AdminToolsController extends BP_Controller {
       if (!$ok) continue;
 
       BP_SettingsHelper::set($k, $v);
+    }
+
+    $wp_options = $data['wp_options'] ?? null;
+    if (is_array($wp_options)) {
+      if (isset($wp_options['bp_settings']) && is_array($wp_options['bp_settings'])) {
+        BP_SettingsHelper::set_all($wp_options['bp_settings']);
+      }
+      if (array_key_exists('bp_booking_form_design', $wp_options) && is_array($wp_options['bp_booking_form_design'])) {
+        update_option('bp_booking_form_design', $wp_options['bp_booking_form_design'], false);
+      }
     }
 
     if (isset($data['options']['bp_remove_data_on_uninstall'])) {

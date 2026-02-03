@@ -17,13 +17,16 @@ export default function useBpFrontSettings(open) {
     let alive = true;
     setLoading(true);
 
-    fetch(`/wp-json/bp/v1/front/settings?_t=${Date.now()}`, { credentials: 'same-origin' })
+    const base = (typeof window !== 'undefined' ? window.BP_FRONT?.restUrl : '') || '/wp-json/bp/v1';
+    const url = `${String(base).replace(/\/$/, '')}/public/settings?_t=${Date.now()}`;
+
+    fetch(url, { credentials: 'same-origin' })
       .then((res) => res.json())
       .then((json) => {
         if (!alive) return;
-        const payload = json?.settings || null;
-        cache = payload;
-        setSettings(payload);
+        const payload = json?.data || json?.settings || null;
+        cache = payload || null;
+        setSettings(cache);
       })
       .catch(() => {
         if (!alive) return;

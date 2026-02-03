@@ -934,6 +934,10 @@ function bp_rest_admin_tools_export_settings(WP_REST_Request $req) {
     'plugin' => 'bookpoint',
     'exported_at' => current_time('mysql'),
     'bp_settings' => $settings,
+    'wp_options' => [
+      'bp_settings' => get_option('bp_settings', []),
+      'bp_booking_form_design' => get_option('bp_booking_form_design', null),
+    ],
     'options' => [
       'bp_remove_data_on_uninstall' => (int)get_option('bp_remove_data_on_uninstall', 0),
     ],
@@ -961,7 +965,7 @@ function bp_rest_admin_tools_import_settings(WP_REST_Request $req) {
     return new WP_REST_Response(['status' => 'error', 'message' => 'Settings helper missing'], 500);
   }
 
-  $allowed_prefixes = ['bp_', 'webhooks_'];
+  $allowed_prefixes = ['bp_', 'payments_', 'stripe_', 'webhooks_', 'emails_', 'tpl_', 'booking_', 'portal_'];
   $applied = 0;
   foreach ($settings as $k => $v) {
     $k = (string)$k;
@@ -973,6 +977,16 @@ function bp_rest_admin_tools_import_settings(WP_REST_Request $req) {
 
     BP_SettingsHelper::set($k, $v);
     $applied++;
+  }
+
+  $wp_options = $data['wp_options'] ?? null;
+  if (is_array($wp_options)) {
+    if (isset($wp_options['bp_settings']) && is_array($wp_options['bp_settings'])) {
+      BP_SettingsHelper::set_all($wp_options['bp_settings']);
+    }
+    if (array_key_exists('bp_booking_form_design', $wp_options) && is_array($wp_options['bp_booking_form_design'])) {
+      update_option('bp_booking_form_design', $wp_options['bp_booking_form_design'], false);
+    }
   }
 
   if (isset($data['options']['bp_remove_data_on_uninstall'])) {

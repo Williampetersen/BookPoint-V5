@@ -1,7 +1,8 @@
 import React from 'react';
 import { imgOf } from '../ui';
+import { formatMoney } from '../money';
 
-export default function StepService({ services, value, onChange, onBack, onNext, backLabel = '<- Back', nextLabel = 'Next ->' }) {
+export default function StepService({ services, value, onChange, onBack, onNext, settings, backLabel = '<- Back', nextLabel = 'Next ->' }) {
   const filtered = services || [];
 
   const canNext = !!value;
@@ -40,7 +41,7 @@ export default function StepService({ services, value, onChange, onBack, onNext,
                 <div className="bp-price">
                   {svc.price != null ? (
                     <span className="bp-price-line">
-                      {Number(svc.price).toFixed(0)} Kr
+                      {formatMoney(svc.price, settings)}
                     </span>
                   ) : (
                     <span className="bp-price-cur">Select</span>

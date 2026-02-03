@@ -2,8 +2,8 @@
 /**
  * Plugin Name: BookPoint
  * Description: Professional appointment booking system (MVC + Router + Blocks).
- * Version: 5.0.0
- * Author: Your Name
+ * Version: 6.0.4
+ * Author: William
  * Text Domain: bookpoint
  * Domain Path: /languages
  */
@@ -19,7 +19,7 @@ add_filter('admin_body_class', function($classes){
 
 final class BP_Plugin {
 
-  const VERSION    = '5.0.0';
+  const VERSION    = '6.0.4';
   const DB_VERSION = '5.0.0';
 
   public static function init() : void {
@@ -367,6 +367,17 @@ final class BP_Plugin {
     bp_install_field_values_table();
     if (class_exists('BP_Locations_Migrations_Helper')) {
       BP_Locations_Migrations_Helper::ensure_tables();
+    }
+
+    // Seed default settings/design on fresh installs (do not overwrite existing).
+    if (class_exists('BP_SettingsHelper')) {
+      $existing = get_option('bp_settings', null);
+      if (!is_array($existing)) {
+        BP_SettingsHelper::set_all(BP_SettingsHelper::defaults());
+      }
+    }
+    if (get_option('bp_booking_form_design', null) === null && function_exists('bp_booking_form_design_default')) {
+      update_option('bp_booking_form_design', bp_booking_form_design_default(), false);
     }
 
     // Store plugin version too (optional but helpful)
@@ -1420,7 +1431,7 @@ final class BP_Plugin {
       'bp-admin-ui',
       plugins_url('public/admin-ui.css', BP_PLUGIN_FILE),
       [],
-      '1.0.0'
+      (file_exists(BP_PLUGIN_PATH . 'public/admin-ui.css') ? (string)@filemtime(BP_PLUGIN_PATH . 'public/admin-ui.css') : self::VERSION)
     );
 
     if (strpos($page, 'bp') === 0) {
@@ -1590,7 +1601,8 @@ final class BP_Plugin {
   }
 
   public static function render_services_index() : void {
-    (new BP_AdminServicesController())->index();
+    // React admin screen (keeps UI consistent + full-width layout)
+    bp_render_admin_app();
   }
 
   public static function render_services_edit() : void {
@@ -1630,7 +1642,8 @@ final class BP_Plugin {
   }
 
   public static function render_settings() : void {
-    (new BP_AdminSettingsController())->index();
+    // Render React admin app so the Settings UI matches other screens (full-width + modern buttons).
+    bp_render_admin_app();
   }
 
   public static function handle_settings_save() : void {
@@ -1654,7 +1667,8 @@ final class BP_Plugin {
   }
 
   public static function render_bookings() : void {
-    (new BP_AdminBookingsController())->index();
+    // React admin screen (keeps UI consistent + full-width layout)
+    bp_render_admin_app();
   }
 
   public static function render_calendar() : void {
@@ -1690,7 +1704,8 @@ final class BP_Plugin {
   }
 
   public static function render_customers() : void {
-    (new BP_AdminCustomersController())->index();
+    // React admin screen (keeps UI consistent + full-width layout)
+    bp_render_admin_app();
   }
 
   public static function render_customer_view() : void {
@@ -1744,6 +1759,17 @@ final class BP_Plugin {
       );
     }
 
+    $front_css_overrides = BP_PLUGIN_PATH . 'public/front-overrides.css';
+    if (file_exists($front_css_overrides)) {
+      $css_overrides_ver = @filemtime($front_css_overrides) ?: self::VERSION;
+      wp_enqueue_style(
+        'bp-front-overrides',
+        BP_PLUGIN_URL . 'public/front-overrides.css',
+        ['bp-front'],
+        $css_overrides_ver
+      );
+    }
+
     self::ensure_react_scripts();
 
     $front_js = BP_PLUGIN_PATH . 'public/front.js';
@@ -1763,7 +1789,7 @@ final class BP_Plugin {
     $stripe_pk = self::front_stripe_publishable_key();
     $currency = get_option('bp_currency', '');
     if ($currency === '') {
-      $currency = BP_SettingsHelper::get_with_default('bp_default_currency');
+      $currency = BP_SettingsHelper::get('currency', 'USD');
     }
     return [
       'rest' => esc_url_raw(rest_url()),
@@ -1774,7 +1800,7 @@ final class BP_Plugin {
       'images' => BP_PLUGIN_URL . 'public/images/',
       'tz' => wp_timezone_string(),
       'stripe_pk' => $stripe_pk,
-      'currency' => $currency ?: 'DKK',
+      'currency' => $currency ?: 'USD',
       'settings' => self::front_settings_payload(),
     ];
   }
@@ -1798,8 +1824,8 @@ final class BP_Plugin {
     }
 
     return [
-      'currency' => BP_SettingsHelper::get_with_default('bp_default_currency'),
-      'currency_position' => BP_SettingsHelper::get_with_default('bp_currency_position'),
+      'currency' => (string)BP_SettingsHelper::get('currency', 'USD'),
+      'currency_position' => (string)BP_SettingsHelper::get('currency_position', 'before'),
       'payments_enabled_methods' => $enabled,
       'payments_default_method' => BP_SettingsHelper::get_with_default('payments_default_method'),
       'payments_require_payment_to_confirm' => BP_SettingsHelper::get_with_default('payments_require_payment_to_confirm'),
@@ -1872,11 +1898,13 @@ final class BP_Plugin {
   }
 
   public static function render_audit_log() : void {
-    (new BP_AdminAuditController())->index();
+    // React admin screen (keeps UI consistent + full-width layout)
+    bp_render_admin_app();
   }
 
   public static function render_tools() : void {
-    (new BP_AdminToolsController())->index();
+    // React admin screen (keeps UI consistent + full-width layout)
+    bp_render_admin_app();
   }
 
   public static function handle_tools_email_test() : void {
