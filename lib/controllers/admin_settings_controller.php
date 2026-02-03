@@ -215,17 +215,21 @@ final class BP_AdminSettingsController extends BP_Controller {
 
     global $wpdb;
     $table = $wpdb->prefix . 'bp_settings';
-    $rows = $wpdb->get_results("SELECT name, value FROM {$table}", ARRAY_A) ?: [];
+    $rows = $wpdb->get_results("SELECT setting_key, setting_value FROM {$table}", ARRAY_A) ?: [];
 
     $settings = [];
     foreach ($rows as $r) {
-      $settings[(string)$r['name']] = maybe_unserialize($r['value']);
+      $settings[(string)$r['setting_key']] = maybe_unserialize($r['setting_value']);
     }
 
     $payload = [
       'plugin' => 'bookpoint',
       'exported_at' => current_time('mysql'),
       'bp_settings' => $settings,
+      'wp_options' => [
+        'bp_settings' => get_option('bp_settings', []),
+        'bp_booking_form_design' => get_option('bp_booking_form_design', null),
+      ],
       'options' => [
         'bp_remove_data_on_uninstall' => (int)get_option('bp_remove_data_on_uninstall', 0),
       ],
@@ -260,7 +264,7 @@ final class BP_AdminSettingsController extends BP_Controller {
       exit;
     }
 
-    $allowed_prefixes = ['emails_', 'tpl_', 'webhooks_', 'booking_', 'portal_'];
+    $allowed_prefixes = ['bp_', 'payments_', 'stripe_', 'webhooks_', 'emails_', 'tpl_', 'booking_', 'portal_'];
 
     foreach ($settings as $k => $v) {
       $k = (string)$k;
@@ -272,6 +276,16 @@ final class BP_AdminSettingsController extends BP_Controller {
       if (!$ok) continue;
 
       BP_SettingsHelper::set($k, $v);
+    }
+
+    $wp_options = $data['wp_options'] ?? null;
+    if (is_array($wp_options)) {
+      if (isset($wp_options['bp_settings']) && is_array($wp_options['bp_settings'])) {
+        BP_SettingsHelper::set_all($wp_options['bp_settings']);
+      }
+      if (array_key_exists('bp_booking_form_design', $wp_options) && is_array($wp_options['bp_booking_form_design'])) {
+        update_option('bp_booking_form_design', $wp_options['bp_booking_form_design'], false);
+      }
     }
 
     if (isset($data['options']['bp_remove_data_on_uninstall'])) {

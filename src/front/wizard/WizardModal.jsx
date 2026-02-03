@@ -23,6 +23,7 @@ import StepPayment from './steps/StepPayment';
 import StepReview from './steps/StepReview';
 import StepConfirmation from './steps/StepConfirmation';
 import useBpFrontSettings from '../hooks/useBpFrontSettings';
+import { formatMoney } from './money';
 
 const REQUIRED_STEP_ORDER = [
   'location',
@@ -672,6 +673,7 @@ export default function WizardModal({ open, onClose, brand }) {
                 onChange={setServiceId}
                 onBack={back}
                 onNext={next}
+                settings={bpSettings}
               />
             )}
 
@@ -682,6 +684,7 @@ export default function WizardModal({ open, onClose, brand }) {
                 onChange={setExtraIds}
                 onBack={back}
                 onNext={next}
+                settings={bpSettings}
               />
             )}
 
@@ -782,6 +785,7 @@ export default function WizardModal({ open, onClose, brand }) {
             <div className="bp-summary-title">Summary</div>
             <div className="bp-summary-box">
               <SummaryBlock
+                settings={bpSettings}
                 locations={locations}
                 categories={categories}
                 services={services}
@@ -803,23 +807,9 @@ export default function WizardModal({ open, onClose, brand }) {
   );
 }
 
-function formatMoney(amount, settings = {}) {
-  if (amount == null) return '-';
-  const value = Number(amount);
-  if (!Number.isFinite(value)) return '-';
-
-  const currency = settings.currency || 'USD';
-  const position = settings.currency_position === 'after' ? 'after' : 'before';
-  const formatted = value.toLocaleString(undefined, {
-    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  });
-
-  return position === 'after' ? `${formatted} ${currency}` : `${currency} ${formatted}`;
-}
-
 function SummaryBlock(props) {
   const {
+    settings,
     locations, categories, services, extras, agents,
     locationId, categoryIds, serviceId, extraIds, agentId, date, slot,
   } = props;
@@ -832,11 +822,6 @@ function SummaryBlock(props) {
   const svcPrice = svc?.price != null ? Number(svc.price) : 0;
   const extrasPrice = ex.reduce((sum, item) => sum + (item?.price != null ? Number(item.price) : 0), 0);
   const totalPrice = svcPrice + extrasPrice;
-
-  function formatPrice(val) {
-    if (!val && val !== 0) return '-';
-    return `${Number(val).toFixed(0)} Kr`;
-  }
 
   return (
     <div className="bp-summary-items">
@@ -854,7 +839,7 @@ function SummaryBlock(props) {
       </div>
       <div className="bp-summary-row">
         <div className="k">Service Price</div>
-        <div className="v">{svc?.price != null ? formatPrice(svcPrice) : '-'}</div>
+        <div className="v">{svc?.price != null ? formatMoney(svcPrice, settings) : '-'}</div>
       </div>
       <div className="bp-summary-row">
         <div className="k">Agent</div>
@@ -874,11 +859,11 @@ function SummaryBlock(props) {
       </div>
       <div className="bp-summary-row">
         <div className="k">Extras Price</div>
-        <div className="v">{ex.length ? formatPrice(extrasPrice) : '-'}</div>
+        <div className="v">{ex.length ? formatMoney(extrasPrice, settings) : '-'}</div>
       </div>
       <div className="bp-summary-row">
         <div className="k">Total</div>
-        <div className="v">{svc?.price != null || ex.length ? formatPrice(totalPrice) : '-'}</div>
+        <div className="v">{svc?.price != null || ex.length ? formatMoney(totalPrice, settings) : '-'}</div>
       </div>
     </div>
   );

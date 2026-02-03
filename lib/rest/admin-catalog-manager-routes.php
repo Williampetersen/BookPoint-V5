@@ -80,6 +80,50 @@ function bp_img_url($image_id, $size = 'thumbnail') {
   return $url ? $url : '';
 }
 
+function bp_table_columns(string $table): array {
+  static $cache = [];
+  if (isset($cache[$table])) return $cache[$table];
+
+  global $wpdb;
+  $cols = $wpdb->get_col("DESC {$table}", 0);
+  if (!is_array($cols)) $cols = [];
+  $cache[$table] = $cols;
+  return $cols;
+}
+
+function bp_services_schema(): array {
+  static $schema = null;
+  if (is_array($schema)) return $schema;
+
+  global $wpdb;
+  $t = $wpdb->prefix . 'bp_services';
+  $cols = bp_table_columns($t);
+  $has = function (string $col) use ($cols): bool {
+    return in_array($col, $cols, true);
+  };
+
+  $schema = [
+    'duration_minutes' => $has('duration_minutes'),
+    'duration' => $has('duration'),
+    'price_cents' => $has('price_cents'),
+    'price' => $has('price'),
+    'currency' => $has('currency'),
+    'is_active' => $has('is_active'),
+    'created_at' => $has('created_at'),
+    'updated_at' => $has('updated_at'),
+    'description' => $has('description'),
+    'image_id' => $has('image_id'),
+    'sort_order' => $has('sort_order'),
+    'buffer_before' => $has('buffer_before'),
+    'buffer_after' => $has('buffer_after'),
+    'buffer_before_minutes' => $has('buffer_before_minutes'),
+    'buffer_after_minutes' => $has('buffer_after_minutes'),
+    'capacity' => $has('capacity'),
+  ];
+
+  return $schema;
+}
+
 function bp_clean_int_array($arr) {
   if (!is_array($arr)) return [];
   $out = [];
@@ -225,17 +269,41 @@ function bp_rest_admin_services_get(WP_REST_Request $req) {
   if ($id <= 0) return new WP_REST_Response(['status'=>'error','message'=>'Invalid id'], 400);
 
   $t = $wpdb->prefix . 'bp_services';
+  $schema = bp_services_schema();
   $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id=%d", $id), ARRAY_A);
 
   if (!$row) return new WP_REST_Response(['status'=>'error','message'=>'Service not found'], 404);
 
+  $duration = 30;
+  if ($schema['duration_minutes']) {
+    $duration = (int)($row['duration_minutes'] ?? 30);
+  } elseif ($schema['duration']) {
+    $duration = (int)($row['duration'] ?? 30);
+  }
+
+  $priceCents = 0;
+  if ($schema['price_cents']) {
+    $priceCents = (int)($row['price_cents'] ?? 0);
+  } elseif ($schema['price']) {
+    $priceCents = (int)round(((float)($row['price'] ?? 0)) * 100);
+  }
+
+  $bufferBefore = 0;
+  $bufferAfter = 0;
+  if ($schema['buffer_before_minutes']) $bufferBefore = (int)($row['buffer_before_minutes'] ?? 0);
+  elseif ($schema['buffer_before']) $bufferBefore = (int)($row['buffer_before'] ?? 0);
+  if ($schema['buffer_after_minutes']) $bufferAfter = (int)($row['buffer_after_minutes'] ?? 0);
+  elseif ($schema['buffer_after']) $bufferAfter = (int)($row['buffer_after'] ?? 0);
+
   $row['image_id'] = (int)($row['image_id'] ?? 0);
   $row['image_url'] = bp_img_url($row['image_id'], 'medium');
   $row['sort_order'] = (int)($row['sort_order'] ?? 0);
-  $row['duration_minutes'] = (int)($row['duration'] ?? 30);
-  $row['price_cents'] = isset($row['price']) ? (int)(floatval($row['price']) * 100) : 0;
-  $row['buffer_before'] = (int)($row['buffer_before'] ?? 0);
-  $row['buffer_after'] = (int)($row['buffer_after'] ?? 0);
+  $row['duration_minutes'] = $duration;
+  $row['duration'] = $duration;
+  $row['price_cents'] = $priceCents;
+  $row['price'] = $priceCents / 100;
+  $row['buffer_before'] = $bufferBefore;
+  $row['buffer_after'] = $bufferAfter;
   $row['capacity'] = (int)($row['capacity'] ?? 1);
 
   return new WP_REST_Response(['status'=>'success','data'=>$row], 200);
@@ -244,30 +312,57 @@ function bp_rest_admin_services_get(WP_REST_Request $req) {
 function bp_rest_admin_services_create(WP_REST_Request $req) {
   global $wpdb;
   $t = $wpdb->prefix . 'bp_services';
+  $schema = bp_services_schema();
   $b = $req->get_json_params() ?: [];
 
   $name = sanitize_text_field($b['name'] ?? '');
   if ($name === '') return new WP_REST_Response(['status'=>'error','message'=>'Name is required'], 400);
 
-  $duration = max(5, (int)($b['duration'] ?? 30));
-  $price = (float)($b['price'] ?? 0);
+  $duration = (int)($b['duration_minutes'] ?? ($b['duration'] ?? 30));
+  $duration = max(5, $duration);
+
+  $priceCents = 0;
+  if (isset($b['price_cents'])) {
+    $priceCents = (int)$b['price_cents'];
+  } elseif (isset($b['price'])) {
+    $priceCents = (int)round(((float)$b['price']) * 100);
+  }
+  $priceCents = max(0, $priceCents);
+
   $image_id = (int)($b['image_id'] ?? 0);
   $sort_order = (int)($b['sort_order'] ?? 0);
 
-  $buffer_before = max(0, (int)($b['buffer_before'] ?? 0));
-  $buffer_after  = max(0, (int)($b['buffer_after'] ?? 0));
+  $buffer_before = max(0, (int)($b['buffer_before_minutes'] ?? ($b['buffer_before'] ?? 0)));
+  $buffer_after  = max(0, (int)($b['buffer_after_minutes'] ?? ($b['buffer_after'] ?? 0)));
   $capacity      = max(1, (int)($b['capacity'] ?? 1));
 
-  $ok = $wpdb->insert($t, [
-    'name'=>$name,
-    'duration'=>$duration,
-    'price'=>$price,
-    'image_id'=>$image_id,
-    'sort_order'=>$sort_order,
-    'buffer_before'=>$buffer_before,
-    'buffer_after'=>$buffer_after,
-    'capacity'=>$capacity,
-  ], ['%s','%d','%f','%d','%d','%d','%d','%d']);
+  $now = current_time('mysql');
+  $insert = ['name' => $name];
+  $formats = ['%s'];
+
+  if ($schema['duration_minutes']) { $insert['duration_minutes'] = $duration; $formats[] = '%d'; }
+  elseif ($schema['duration']) { $insert['duration'] = $duration; $formats[] = '%d'; }
+
+  if ($schema['price_cents']) { $insert['price_cents'] = $priceCents; $formats[] = '%d'; }
+  elseif ($schema['price']) { $insert['price'] = $priceCents / 100; $formats[] = '%f'; }
+
+  if ($schema['currency'] && isset($b['currency'])) { $insert['currency'] = sanitize_key((string)$b['currency']); $formats[] = '%s'; }
+  if ($schema['description'] && isset($b['description'])) { $insert['description'] = wp_kses_post((string)$b['description']); $formats[] = '%s'; }
+  if ($schema['is_active'] && isset($b['is_active'])) { $insert['is_active'] = (int)$b['is_active']; $formats[] = '%d'; }
+
+  if ($schema['image_id']) { $insert['image_id'] = $image_id; $formats[] = '%d'; }
+  if ($schema['sort_order']) { $insert['sort_order'] = $sort_order; $formats[] = '%d'; }
+
+  if ($schema['buffer_before_minutes']) { $insert['buffer_before_minutes'] = $buffer_before; $formats[] = '%d'; }
+  elseif ($schema['buffer_before']) { $insert['buffer_before'] = $buffer_before; $formats[] = '%d'; }
+  if ($schema['buffer_after_minutes']) { $insert['buffer_after_minutes'] = $buffer_after; $formats[] = '%d'; }
+  elseif ($schema['buffer_after']) { $insert['buffer_after'] = $buffer_after; $formats[] = '%d'; }
+  if ($schema['capacity']) { $insert['capacity'] = $capacity; $formats[] = '%d'; }
+
+  if ($schema['created_at']) { $insert['created_at'] = $now; $formats[] = '%s'; }
+  if ($schema['updated_at']) { $insert['updated_at'] = $now; $formats[] = '%s'; }
+
+  $ok = $wpdb->insert($t, $insert, $formats);
 
   if (!$ok) return new WP_REST_Response(['status'=>'error','message'=>'Insert failed'], 500);
   return new WP_REST_Response(['status'=>'success','data'=>['id'=>$wpdb->insert_id]], 200);
@@ -279,21 +374,47 @@ function bp_rest_admin_services_patch(WP_REST_Request $req) {
   if ($id<=0) return new WP_REST_Response(['status'=>'error','message'=>'Invalid id'], 400);
 
   $t = $wpdb->prefix . 'bp_services';
+  $schema = bp_services_schema();
   $b = $req->get_json_params() ?: [];
 
   $u = []; $f = [];
   if (isset($b['name'])) { $u['name']=sanitize_text_field($b['name']); $f[]='%s'; }
-  if (isset($b['duration_minutes'])) { $u['duration']=max(5,(int)$b['duration_minutes']); $f[]='%d'; }
-  if (isset($b['duration'])) { $u['duration']=max(5,(int)$b['duration']); $f[]='%d'; }
-  if (isset($b['price_cents'])) { $u['price']=floatval($b['price_cents']) / 100; $f[]='%f'; }
-  if (isset($b['price'])) { $u['price']=(float)$b['price']; $f[]='%f'; }
-  if (isset($b['image_id'])) { $u['image_id']=(int)$b['image_id']; $f[]='%d'; }
-  if (isset($b['sort_order'])) { $u['sort_order']=(int)$b['sort_order']; $f[]='%d'; }
-  if (isset($b['is_active'])) { $u['is_active']=(int)$b['is_active']; $f[]='%d'; }
 
-  if (isset($b['buffer_before'])) { $u['buffer_before']=max(0,(int)$b['buffer_before']); $f[]='%d'; }
-  if (isset($b['buffer_after']))  { $u['buffer_after']=max(0,(int)$b['buffer_after']); $f[]='%d'; }
-  if (isset($b['capacity']))      { $u['capacity']=max(1,(int)$b['capacity']); $f[]='%d'; }
+  if (isset($b['duration_minutes']) || isset($b['duration'])) {
+    $dur = isset($b['duration_minutes']) ? (int)$b['duration_minutes'] : (int)$b['duration'];
+    $dur = max(5, $dur);
+    if ($schema['duration_minutes']) { $u['duration_minutes'] = $dur; $f[] = '%d'; }
+    elseif ($schema['duration']) { $u['duration'] = $dur; $f[] = '%d'; }
+  }
+
+  if (isset($b['price_cents']) || isset($b['price'])) {
+    $pc = isset($b['price_cents']) ? (int)$b['price_cents'] : (int)round(((float)$b['price']) * 100);
+    $pc = max(0, $pc);
+    if ($schema['price_cents']) { $u['price_cents'] = $pc; $f[] = '%d'; }
+    elseif ($schema['price']) { $u['price'] = $pc / 100; $f[] = '%f'; }
+  }
+
+  if (isset($b['description']) && $schema['description']) { $u['description'] = wp_kses_post((string)$b['description']); $f[] = '%s'; }
+  if (isset($b['currency']) && $schema['currency']) { $u['currency'] = sanitize_key((string)$b['currency']); $f[] = '%s'; }
+  if (isset($b['image_id']) && $schema['image_id']) { $u['image_id']=(int)$b['image_id']; $f[]='%d'; }
+  if (isset($b['sort_order']) && $schema['sort_order']) { $u['sort_order']=(int)$b['sort_order']; $f[]='%d'; }
+  if (isset($b['is_active']) && $schema['is_active']) { $u['is_active']=(int)$b['is_active']; $f[]='%d'; }
+
+  if (isset($b['buffer_before_minutes']) || isset($b['buffer_before'])) {
+    $bb = isset($b['buffer_before_minutes']) ? (int)$b['buffer_before_minutes'] : (int)$b['buffer_before'];
+    $bb = max(0, $bb);
+    if ($schema['buffer_before_minutes']) { $u['buffer_before_minutes'] = $bb; $f[] = '%d'; }
+    elseif ($schema['buffer_before']) { $u['buffer_before'] = $bb; $f[] = '%d'; }
+  }
+  if (isset($b['buffer_after_minutes']) || isset($b['buffer_after'])) {
+    $ba = isset($b['buffer_after_minutes']) ? (int)$b['buffer_after_minutes'] : (int)$b['buffer_after'];
+    $ba = max(0, $ba);
+    if ($schema['buffer_after_minutes']) { $u['buffer_after_minutes'] = $ba; $f[] = '%d'; }
+    elseif ($schema['buffer_after']) { $u['buffer_after'] = $ba; $f[] = '%d'; }
+  }
+  if (isset($b['capacity']) && $schema['capacity']) { $u['capacity']=max(1,(int)$b['capacity']); $f[]='%d'; }
+
+  if ($schema['updated_at']) { $u['updated_at'] = current_time('mysql'); $f[] = '%s'; }
 
   if (!$u) return new WP_REST_Response(['status'=>'success','data'=>['updated'=>false]], 200);
   $ok = $wpdb->update($t, $u, ['id'=>$id], $f, ['%d']);

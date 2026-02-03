@@ -1,7 +1,8 @@
 import React from 'react';
 import { imgOf } from '../ui';
+import { formatMoney } from '../money';
 
-export default function StepExtras({ extras, value, onChange, onBack, onNext, backLabel = '<- Back', nextLabel = 'Next ->' }) {
+export default function StepExtras({ extras, value, onChange, onBack, onNext, settings, backLabel = '<- Back', nextLabel = 'Next ->' }) {
   const filtered = extras || [];
 
   function toggle(id) {
@@ -43,7 +44,7 @@ export default function StepExtras({ extras, value, onChange, onBack, onNext, ba
                 <div className="bp-price">
                   {ex.price != null ? (
                     <span className="bp-price-line">
-                      {Number(ex.price).toFixed(0)} Kr
+                      {formatMoney(ex.price, settings)}
                     </span>
                   ) : (
                     <span className="bp-price-cur">Extra</span>
