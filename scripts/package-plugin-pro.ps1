@@ -32,6 +32,21 @@ foreach ($file in $includeFiles) {
   }
 }
 
+# Sanity checks: ensure required static assets are included in releases.
+$requiredPaths = @(
+  (Join-Path $stagingPluginDir 'build/admin.js'),
+  (Join-Path $stagingPluginDir 'build/admin.asset.php'),
+  (Join-Path $stagingPluginDir 'public/icons/menu.svg'),
+  (Join-Path $stagingPluginDir 'public/images/service-image.png'),
+  (Join-Path $stagingPluginDir 'public/images/intl-tel-input/flags.png')
+)
+
+foreach ($p in $requiredPaths) {
+  if (!(Test-Path $p)) {
+    throw "Packaging failed: missing required file in staging: $p"
+  }
+}
+
 if (Test-Path $outZip) { Remove-Item -Force $outZip }
 
 $maxAttempts = 5
@@ -49,4 +64,3 @@ try { Remove-Item -Recurse -Force $stagingRoot } catch { }
 
 $zipInfo = Get-Item $outZip
 Write-Host ("Created: {0} ({1} MB)" -f $zipInfo.FullName, ([math]::Round($zipInfo.Length / 1MB, 2)))
-

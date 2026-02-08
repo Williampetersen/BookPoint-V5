@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BookPoint Pro
  * Description: Professional appointment booking system (MVC + Router + Blocks).
- * Version: 6.1.3
+ * Version: 6.1.8
  * Author: William
  * Text Domain: bookpoint
  * Domain Path: /languages
@@ -25,8 +25,10 @@ add_filter('admin_body_class', function($classes){
 
 final class BP_Plugin {
 
-  const VERSION    = '6.1.3';
+  // NOTE: Keep plugin header Version in sync with this.
+  const VERSION    = '6.1.8';
   const DB_VERSION = '5.0.0';
+  const SETUP_WIZARD_REDIRECT_TRANSIENT = 'bp_setup_wizard_redirect';
 
   public static function init() : void {
     self::define_constants();
@@ -124,6 +126,7 @@ final class BP_Plugin {
 
     // Helpers (License + Updates)
     require_once BP_LIB_PATH . 'helpers/license_helper.php';
+    require_once BP_LIB_PATH . 'helpers/trial_helper.php';
     require_once BP_LIB_PATH . 'helpers/license_gate_helper.php';
     require_once BP_LIB_PATH . 'helpers/updates_helper.php';
 
@@ -214,6 +217,10 @@ final class BP_Plugin {
 
     // Admin menu
     add_action('admin_menu', [__CLASS__, 'register_admin_menu']);
+
+    // First-run setup wizard redirect + actions
+    add_action('admin_init', [__CLASS__, 'maybe_redirect_to_setup_wizard']);
+    add_action('admin_post_bp_setup_wizard_start_trial', [__CLASS__, 'handle_setup_wizard_start_trial']);
 
     // Pro gating (disable REST features when not licensed)
     add_filter('rest_pre_dispatch', ['BP_LicenseGateHelper', 'maybe_block_rest'], 10, 3);
@@ -423,11 +430,54 @@ final class BP_Plugin {
 
       // Store plugin version too (optional but helpful)
       update_option('BP_version', self::VERSION, false);
+
+      // First-run setup wizard (shown after activation).
+      if (class_exists('BP_TrialHelper') && !BP_TrialHelper::is_wizard_done()) {
+        set_transient(self::SETUP_WIZARD_REDIRECT_TRANSIENT, 1, 5 * MINUTE_IN_SECONDS);
+      }
     } finally {
       while (ob_get_level() > $level) {
         ob_end_clean();
       }
     }
+  }
+
+  public static function maybe_redirect_to_setup_wizard(): void {
+    if (!is_admin()) return;
+    if (defined('DOING_AJAX') && DOING_AJAX) return;
+    if (!current_user_can('administrator') && !current_user_can('bp_manage_settings') && !current_user_can('manage_options')) return;
+    if (!class_exists('BP_TrialHelper')) return;
+    if (BP_TrialHelper::is_wizard_done()) return;
+
+    $flag = get_transient(self::SETUP_WIZARD_REDIRECT_TRANSIENT);
+    if (!$flag) return;
+    delete_transient(self::SETUP_WIZARD_REDIRECT_TRANSIENT);
+
+    $page = isset($_GET['page']) ? sanitize_text_field((string) $_GET['page']) : '';
+    if ($page === 'bp_setup_wizard') return;
+
+    wp_safe_redirect(admin_url('admin.php?page=bp_setup_wizard'));
+    exit;
+  }
+
+  public static function handle_setup_wizard_start_trial(): void {
+    if (!current_user_can('administrator') && !current_user_can('bp_manage_settings') && !current_user_can('manage_options')) {
+      wp_die('Forbidden');
+    }
+    check_admin_referer('bp_setup_wizard_trial');
+
+    $accepted = !empty($_POST['accept_terms']);
+    if (!$accepted) {
+      wp_safe_redirect(admin_url('admin.php?page=bp_setup_wizard&step=trial_terms&err=1'));
+      exit;
+    }
+
+    if (class_exists('BP_TrialHelper')) {
+      BP_TrialHelper::start_trial();
+    }
+
+    wp_safe_redirect(admin_url('admin.php?page=bp_settings&tab=license&trial=1'));
+    exit;
   }
 
   private static function has_conflicting_bookpoint_plugins() : bool {
@@ -1496,6 +1546,16 @@ final class BP_Plugin {
       'bp_customers_edit',
       'bp_render_admin_app'
     );
+
+    // Hidden setup wizard (first-run)
+    add_submenu_page(
+      null,
+      __('BookPoint Setup', 'bookpoint'),
+      __('BookPoint Setup', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_setup_wizard',
+      [__CLASS__, 'render_setup_wizard']
+    );
   }
 
   public static function enqueue_admin_assets(string $hook): void {
@@ -1644,6 +1704,22 @@ final class BP_Plugin {
           'timezone'=> wp_timezone_string(),
           'currency'=> (string)BP_SettingsHelper::get('currency', 'USD'),
           'currency_position'=> (string)BP_SettingsHelper::get('currency_position', 'before'),
+          'isPro' => (defined('BP_IS_PRO') && BP_IS_PRO) ? 1 : 0,
+          'licenseStatus' => class_exists('BP_LicenseHelper') ? (string)BP_LicenseHelper::status() : 'unset',
+          'licenseIsValid' => class_exists('BP_LicenseHelper') ? (BP_LicenseHelper::is_valid() ? 1 : 0) : 0,
+          'trial' => class_exists('BP_TrialHelper') ? [
+            'accepted' => BP_TrialHelper::is_trial_accepted() ? 1 : 0,
+            'active' => BP_TrialHelper::is_trial_active() ? 1 : 0,
+            'startedAt' => (int) BP_TrialHelper::trial_started_at(),
+            'endsAt' => (int) BP_TrialHelper::trial_ends_at(),
+            'daysLeft' => (int) BP_TrialHelper::days_left(),
+          ] : [
+            'accepted' => 0,
+            'active' => 0,
+            'startedAt' => 0,
+            'endsAt' => 0,
+            'daysLeft' => 0,
+          ],
         ]);
 
         wp_localize_script('bp-admin', 'bpAdmin', [
@@ -1735,6 +1811,114 @@ final class BP_Plugin {
 
   public static function handle_settings_save_license(): void {
     (new BP_AdminSettingsController())->save_license();
+  }
+
+  public static function render_setup_wizard(): void {
+    if (!current_user_can('administrator') && !current_user_can('bp_manage_settings') && !current_user_can('manage_options')) {
+      echo '<div class="wrap"><h1>' . esc_html__('BookPoint Setup', 'bookpoint') . '</h1><p>' . esc_html__('You do not have permission to access this page.', 'bookpoint') . '</p></div>';
+      return;
+    }
+
+    $pricingUrl = 'https://wpbookpoint.com/pricing/';
+    $step = isset($_GET['step']) ? sanitize_key((string) $_GET['step']) : '';
+    $hasErr = !empty($_GET['err']);
+    $trialActive = class_exists('BP_TrialHelper') ? BP_TrialHelper::is_trial_active() : false;
+
+    echo '<div class="wrap bp-setup-wrap">';
+    echo '<style>
+      .bp-setup-wrap{max-width:980px}
+      .bp-setup-hero{margin:18px 0 14px;padding:18px;border-radius:18px;border:1px solid rgba(15,23,42,.10);background:linear-gradient(180deg, rgba(37,99,235,.10), rgba(37,99,235,.03))}
+      .bp-setup-hero h1{margin:0 0 6px;font-size:26px}
+      .bp-setup-hero p{margin:0;color:#334155;font-size:13px}
+      .bp-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+      .bp-setup-card{background:#fff;border:1px solid rgba(15,23,42,.10);border-radius:18px;padding:16px}
+      .bp-setup-card h2{margin:0 0 8px;font-size:16px}
+      .bp-setup-card p{margin:0 0 12px;color:#334155;font-size:13px;line-height:1.55}
+      .bp-setup-actions{display:flex;gap:10px;flex-wrap:wrap}
+      .bp-setup-btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:12px;text-decoration:none;border:1px solid rgba(15,23,42,.14);font-weight:700}
+      .bp-setup-btn.primary{background:#2563eb;border-color:#1d4ed8;color:#fff}
+      .bp-setup-btn.primary:hover{background:#1d4ed8;color:#fff}
+      .bp-setup-btn.ghost{background:#fff;color:#0f172a}
+      .bp-setup-btn.ghost:hover{background:#f8fafc}
+      .bp-setup-note{margin-top:12px;color:#64748b;font-size:12px}
+      .bp-setup-terms{background:#f8fafc;border:1px solid rgba(15,23,42,.10);border-radius:14px;padding:12px;color:#0f172a;font-size:13px;line-height:1.6}
+      .bp-setup-warn{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(239,68,68,.22);background:rgba(239,68,68,.06);color:#7f1d1d}
+      @media (max-width: 780px){.bp-setup-grid{grid-template-columns:1fr}}
+    </style>';
+
+    echo '<div class="bp-setup-hero">';
+    echo '<h1>' . esc_html__('Welcome to BookPoint', 'bookpoint') . '</h1>';
+    echo '<p>' . esc_html__('Let\'s get you set up. Choose a 14-day free trial or purchase a license to unlock everything.', 'bookpoint') . '</p>';
+    echo '</div>';
+
+    if ($trialActive) {
+      $daysLeft = class_exists('BP_TrialHelper') ? BP_TrialHelper::days_left() : 0;
+      $endAt = class_exists('BP_TrialHelper') ? BP_TrialHelper::trial_ends_at() : 0;
+      $endStr = $endAt > 0 ? gmdate('Y-m-d', $endAt) : '';
+      echo '<div class="bp-setup-card">';
+      echo '<h2>' . esc_html__('Trial is active', 'bookpoint') . '</h2>';
+      echo '<p>' . esc_html(sprintf('Your trial is running. Days left: %d. Trial ends on: %s (UTC).', (int) $daysLeft, $endStr !== '' ? $endStr : '-')) . '</p>';
+      echo '<div class="bp-setup-actions">';
+      echo '<a class="bp-setup-btn primary" href="' . esc_url(admin_url('admin.php?page=bp_settings&tab=license')) . '">' . esc_html__('Open License settings', 'bookpoint') . '</a>';
+      echo '<a class="bp-setup-btn ghost" href="' . esc_url($pricingUrl) . '" target="_blank" rel="noreferrer noopener">' . esc_html__('Buy a license', 'bookpoint') . '</a>';
+      echo '</div></div>';
+      return;
+    }
+
+    if ($step === 'trial_terms') {
+      echo '<div class="bp-setup-card">';
+      echo '<h2>' . esc_html__('14-day Free Trial - Terms', 'bookpoint') . '</h2>';
+      echo '<p>' . esc_html__('Please read and accept the terms to start your trial.', 'bookpoint') . '</p>';
+      echo '<div class="bp-setup-terms">';
+      echo esc_html__('By starting the trial, you get full access to BookPoint Pro for 14 days. After the trial ends, BookPoint Pro features will lock until you activate a license.', 'bookpoint');
+      echo '<br><br>';
+      echo esc_html__('Important: After 14 days (if you do not activate a license), the plugin will be locked and you may not be able to view bookings content and other Pro features in the admin.', 'bookpoint');
+      echo '</div>';
+
+      if ($hasErr) {
+        echo '<div class="bp-setup-warn">' . esc_html__('You must accept the terms to start the trial.', 'bookpoint') . '</div>';
+      }
+
+      echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:14px;">';
+      echo '<input type="hidden" name="action" value="bp_setup_wizard_start_trial">';
+      wp_nonce_field('bp_setup_wizard_trial');
+      echo '<label style="display:flex;gap:10px;align-items:flex-start;font-weight:700;">';
+      echo '<input type="checkbox" name="accept_terms" value="1" style="margin-top:3px;">';
+      echo '<span>' . esc_html__('I accept the terms and want to start my 14-day free trial.', 'bookpoint') . '</span>';
+      echo '</label>';
+      echo '<div class="bp-setup-actions" style="margin-top:14px;">';
+      echo '<button type="submit" class="bp-setup-btn primary">' . esc_html__('Start Trial', 'bookpoint') . '</button>';
+      echo '<a class="bp-setup-btn ghost" href="' . esc_url(admin_url('admin.php?page=bp_setup_wizard')) . '">' . esc_html__('Back', 'bookpoint') . '</a>';
+      echo '</div>';
+      echo '<div class="bp-setup-note">' . esc_html__('Tip: You can activate a license at any time from BookPoint → Settings → License.', 'bookpoint') . '</div>';
+      echo '</form>';
+      echo '</div></div>';
+      return;
+    }
+
+    $trialUrl = admin_url('admin.php?page=bp_setup_wizard&step=trial_terms');
+
+    echo '<div class="bp-setup-grid">';
+    echo '<div class="bp-setup-card">';
+    echo '<h2>' . esc_html__('Try 14 days free', 'bookpoint') . '</h2>';
+    echo '<p>' . esc_html__('Get instant access to all Pro features. No license needed during the trial. You can upgrade anytime.', 'bookpoint') . '</p>';
+    echo '<div class="bp-setup-actions">';
+    echo '<a class="bp-setup-btn primary" href="' . esc_url($trialUrl) . '">' . esc_html__('Start 14-day trial', 'bookpoint') . '</a>';
+    echo '</div>';
+    echo '</div>';
+
+    echo '<div class="bp-setup-card">';
+    echo '<h2>' . esc_html__('Buy a license now', 'bookpoint') . '</h2>';
+    echo '<p>' . esc_html__('Unlock everything permanently: best performance, future updates, and priority support.', 'bookpoint') . '</p>';
+    echo '<div class="bp-setup-actions">';
+    echo '<a class="bp-setup-btn primary" href="' . esc_url($pricingUrl) . '" target="_blank" rel="noreferrer noopener">' . esc_html__('View plans & pricing', 'bookpoint') . '</a>';
+    echo '<a class="bp-setup-btn ghost" href="' . esc_url(admin_url('admin.php?page=bp_settings&tab=license')) . '">' . esc_html__('I already have a license', 'bookpoint') . '</a>';
+    echo '</div>';
+    echo '<div class="bp-setup-note">' . esc_html__('If you already purchased a license, you can enter it now.', 'bookpoint') . '</div>';
+    echo '</div>';
+    echo '</div>';
+
+    echo '</div>';
   }
 
   public static function handle_settings_validate_license(): void {

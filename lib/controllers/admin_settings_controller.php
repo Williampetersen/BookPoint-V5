@@ -18,7 +18,6 @@ final class BP_AdminSettingsController extends BP_Controller {
     $remove_data_on_uninstall = (int) get_option('bp_remove_data_on_uninstall', 0);
     $license_key = BP_LicenseHelper::get_key();
     $license_status = BP_LicenseHelper::status();
-    $license_server_base_url = BP_LicenseHelper::get_saved_api_base();
     $license_server_base_effective = BP_LicenseHelper::api_base();
     $license_checked_at = (int) get_option('bp_license_checked_at', 0);
     $license_last_error = (string) get_option('bp_license_last_error', '');
@@ -53,7 +52,6 @@ final class BP_AdminSettingsController extends BP_Controller {
       'remove_data_on_uninstall' => $remove_data_on_uninstall,
       'license_key' => $license_key,
       'license_status' => $license_status,
-      'license_server_base_url' => $license_server_base_url,
       'license_server_base_effective' => $license_server_base_effective,
       'license_checked_at' => $license_checked_at,
       'license_last_error' => $license_last_error,
@@ -202,8 +200,8 @@ final class BP_AdminSettingsController extends BP_Controller {
     $this->require_cap('bp_manage_settings');
     check_admin_referer('bp_admin');
 
-    $server = sanitize_text_field(wp_unslash($_POST['bp_license_server_base_url'] ?? ''));
-    BP_LicenseHelper::set_saved_api_base($server);
+    // License server URL is locked to BP_LicenseHelper::API_BASE_DEFAULT.
+    BP_LicenseHelper::set_saved_api_base('');
 
     $key = sanitize_text_field(wp_unslash($_POST['bp_license_key'] ?? ''));
     BP_LicenseHelper::set_key($key);

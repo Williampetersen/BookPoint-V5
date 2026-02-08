@@ -4,9 +4,9 @@ defined('ABSPATH') || exit;
 final class BP_LicenseHelper {
 
   // Default license server used in your distributed plugin build.
-  // Override for development by defining BP_LICENSE_SERVER_BASE in wp-config.php
-  // or using the `bp_license_server_base_url` filter.
+  // Locked to the official license server (not user-configurable).
   const API_BASE_DEFAULT = 'https://wpbookpoint.com';
+  // Legacy (previously user-configurable) override option. Kept only to clear old values.
   const OPTION_API_BASE = 'bp_license_server_base_url';
 
   private static function body_snippet(string $body, int $limit = 600): string {
@@ -291,41 +291,18 @@ final class BP_LicenseHelper {
   }
 
   public static function get_saved_api_base() : string {
-    return (string) get_option(self::OPTION_API_BASE, '');
+    // No longer user-configurable; always use API_BASE_DEFAULT.
+    return '';
   }
 
   public static function set_saved_api_base(string $base) : void {
-    $base = trim($base);
-    if ($base === '') {
-      delete_option(self::OPTION_API_BASE);
-      delete_transient('bp_license_check_cache');
-      return;
-    }
-    update_option(self::OPTION_API_BASE, $base, false);
+    // No longer user-configurable; always clear any previously saved override.
+    delete_option(self::OPTION_API_BASE);
     delete_transient('bp_license_check_cache');
   }
 
   public static function api_base() : string {
-    $base = self::API_BASE_DEFAULT;
-
-    $saved = self::get_saved_api_base();
-    if (is_string($saved) && $saved !== '') {
-      $base = $saved;
-    }
-
-    if (defined('BP_LICENSE_SERVER_BASE') && is_string(BP_LICENSE_SERVER_BASE) && BP_LICENSE_SERVER_BASE !== '') {
-      $base = BP_LICENSE_SERVER_BASE;
-    }
-    $base = apply_filters('bp_license_server_base_url', $base);
-    $base = untrailingslashit((string) $base);
-
-    // If the license server plugin is installed on the same site, auto-target it.
-    // This avoids the default placeholder host causing confusing "could not resolve host" errors.
-    if ($base === untrailingslashit(self::API_BASE_DEFAULT) && class_exists('BP_License_Server')) {
-      $base = untrailingslashit(home_url());
-    }
-
-    return $base;
+    return untrailingslashit(self::API_BASE_DEFAULT);
   }
 
   public static function api_validate_url() : string {

@@ -50,8 +50,8 @@ add_action('rest_api_init', function(){
       $p = $req->get_json_params();
       if (!is_array($p)) $p = [];
       $key = sanitize_text_field($p['key'] ?? '');
-      $serverBase = sanitize_text_field($p['server_base_url'] ?? '');
-      BP_LicenseHelper::set_saved_api_base($serverBase);
+      // License server URL is locked to BP_LicenseHelper::API_BASE_DEFAULT.
+      BP_LicenseHelper::set_saved_api_base('');
       BP_LicenseHelper::set_key($key);
       if ($key !== '') {
         BP_LicenseHelper::validate(true);
@@ -73,9 +73,7 @@ add_action('rest_api_init', function(){
 
       $p = $req->get_json_params();
       if (!is_array($p)) $p = [];
-      if (isset($p['server_base_url'])) {
-        BP_LicenseHelper::set_saved_api_base(sanitize_text_field($p['server_base_url']));
-      }
+      BP_LicenseHelper::set_saved_api_base('');
       if (isset($p['key'])) {
         BP_LicenseHelper::set_key(sanitize_text_field($p['key']));
       }
@@ -98,9 +96,7 @@ add_action('rest_api_init', function(){
 
       $p = $req->get_json_params();
       if (!is_array($p)) $p = [];
-      if (isset($p['server_base_url'])) {
-        BP_LicenseHelper::set_saved_api_base(sanitize_text_field($p['server_base_url']));
-      }
+      BP_LicenseHelper::set_saved_api_base('');
       if (isset($p['key'])) {
         BP_LicenseHelper::set_key(sanitize_text_field($p['key']));
       }
@@ -121,9 +117,7 @@ add_action('rest_api_init', function(){
 
       $p = $req->get_json_params();
       if (!is_array($p)) $p = [];
-      if (isset($p['server_base_url'])) {
-        BP_LicenseHelper::set_saved_api_base(sanitize_text_field($p['server_base_url']));
-      }
+      BP_LicenseHelper::set_saved_api_base('');
       if (isset($p['key'])) {
         BP_LicenseHelper::set_key(sanitize_text_field($p['key']));
       }

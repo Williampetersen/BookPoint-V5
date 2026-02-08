@@ -264,13 +264,6 @@ bp_render_legacy_shell_start(esc_html__('BookPoint Settings', 'bookpoint'), esc_
                 <input type="hidden" name="action" value="bp_admin_settings_save_license">
                 <table class="form-table">
                   <tr>
-                    <th scope="row"><?php esc_html_e('License server URL', 'bookpoint'); ?></th>
-                    <td>
-                      <input type="url" class="regular-text" name="bp_license_server_base_url" value="<?php echo esc_attr($license_server_base_url ?? ''); ?>" placeholder="https://yourdomain.com">
-                      <p class="description"><?php esc_html_e('Optional: override the license server used for validation/updates.', 'bookpoint'); ?></p>
-                    </td>
-                  </tr>
-                  <tr>
                     <th scope="row"><?php esc_html_e('License key', 'bookpoint'); ?></th>
                     <td>
                       <input type="text" class="regular-text" name="bp_license_key" value="<?php echo esc_attr($license_key ?? ''); ?>">
