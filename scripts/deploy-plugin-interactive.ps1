@@ -58,6 +58,8 @@ password $plainPass
   if ($Fast) {
     $fastFiles = @(
       "bookpoint-v5.php",
+      "bookpoint-pro.php",
+      "readme.txt",
       "uninstall.php",
       "build/admin.js",
       "build/admin.asset.php",
@@ -79,6 +81,8 @@ password $plainPass
   } else {
     $rootFiles = @(
       "bookpoint-v5.php",
+      "bookpoint-pro.php",
+      "readme.txt",
       "uninstall.php"
     )
 

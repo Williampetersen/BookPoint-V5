@@ -87,7 +87,8 @@ export default function CustomersScreen() {
   };
 
   return (
-    <div>
+    <div className="myplugin-page bp-customers">
+      <main className="myplugin-content">
       <div className="bp-page-head">
         <div>
           <div className="bp-h1">Customers</div>
@@ -264,6 +265,7 @@ export default function CustomersScreen() {
           </div>
         </form>
       </Drawer>
+      </main>
     </div>
   );
 }

@@ -328,8 +328,10 @@ export default function BookingFormDesignerScreen() {
   if (!config) return <div className="bp-card bp-p-24">No config. {error}</div>;
 
   return (
-    <div className="bp-designer">
-      {toast ? <div className="bp-toast bp-toast-success">{toast}</div> : null}
+    <div className="myplugin-page bp-design-form">
+      <main className="myplugin-content">
+        <div className="bp-designer">
+          {toast ? <div className="bp-toast bp-toast-success">{toast}</div> : null}
 
       <div className="bp-designer-head">
         <div>
@@ -754,14 +756,16 @@ export default function BookingFormDesignerScreen() {
         </div>
       </div>
 
-      <StepsReorderModal
-        open={reorderOpen}
-        onClose={() => setReorderOpen(false)}
-        steps={steps}
-        onChange={(newSteps) => {
-          patchConfig((prev) => ({ ...prev, steps: newSteps }));
-        }}
-      />
+          <StepsReorderModal
+            open={reorderOpen}
+            onClose={() => setReorderOpen(false)}
+            steps={steps}
+            onChange={(newSteps) => {
+              patchConfig((prev) => ({ ...prev, steps: newSteps }));
+            }}
+          />
+        </div>
+      </main>
     </div>
   );
 }

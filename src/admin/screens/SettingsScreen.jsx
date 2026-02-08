@@ -54,6 +54,11 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const pricingUrl = "https://wpbookpoint.com/pricing/";
+  const trial = window.BP_ADMIN?.trial || {};
+  const trialActive = Boolean(Number(trial?.active || 0));
+  const trialDaysLeft = Number(trial?.daysLeft || 0);
+  const trialEndsAt = Number(trial?.endsAt || 0);
   const [license, setLicense] = useState({
     key: "",
     status: "unset",
@@ -74,6 +79,7 @@ export default function SettingsScreen() {
   const [showLicenseKey, setShowLicenseKey] = useState(false);
   const [showLicenseDetails, setShowLicenseDetails] = useState(false);
   const licenseStatusKey = String(license.status || "unset").toLowerCase();
+  const isLicenseValid = licenseStatusKey === "valid";
 
   const [activeTab, setActiveTab] = useState(() => {
     const tab = new URLSearchParams(window.location.search).get("tab");
@@ -330,7 +336,6 @@ export default function SettingsScreen() {
         },
         body: JSON.stringify({
           key: String(license.key || "").trim(),
-          server_base_url: String(license.server_base_url || "").trim(),
         }),
       });
       const json = await resp.json();
@@ -351,7 +356,7 @@ export default function SettingsScreen() {
       const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license/validate`, {
         method: "POST",
         headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce, "Content-Type": "application/json" },
-        body: JSON.stringify({ key: license?.key || "", server_base_url: license?.server_base_url || "" }),
+        body: JSON.stringify({ key: license?.key || "" }),
       });
       const json = await resp.json();
       if (json.status === "success") {
@@ -371,7 +376,7 @@ export default function SettingsScreen() {
       const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license/activate`, {
         method: "POST",
         headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce, "Content-Type": "application/json" },
-        body: JSON.stringify({ key: license?.key || "", server_base_url: license?.server_base_url || "" }),
+        body: JSON.stringify({ key: license?.key || "" }),
       });
       const json = await resp.json();
       if (json.status === "success") {
@@ -391,7 +396,7 @@ export default function SettingsScreen() {
       const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license/deactivate`, {
         method: "POST",
         headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce, "Content-Type": "application/json" },
-        body: JSON.stringify({ key: license?.key || "", server_base_url: license?.server_base_url || "" }),
+        body: JSON.stringify({ key: license?.key || "" }),
       });
       const json = await resp.json();
       if (json.status === "success") {
@@ -705,6 +710,59 @@ export default function SettingsScreen() {
 
           {activeTab === "license" && (
   <div className="bp-license">
+    <div className={`bp-card bp-license-proBanner ${isLicenseValid ? "is-valid" : "is-invalid"}`}>
+      <div className="bp-license-proBannerBody">
+        <div className={`bp-license-proDot ${isLicenseValid ? "is-valid" : "is-invalid"}`} aria-hidden="true" />
+        <div style={{ minWidth: 0 }}>
+          {isLicenseValid ? (
+            <>
+              <div className="bp-section-title" style={{ margin: 0 }}>BookPoint Pro is active</div>
+              <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
+                You’re running the Pro version with an active license. All premium features are unlocked.
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="bp-section-title" style={{ margin: 0 }}>Unlock BookPoint Pro</div>
+              <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
+                {trialActive ? (
+                  <>
+                    You’re currently on a free trial.{" "}
+                    <strong>{Number.isFinite(trialDaysLeft) ? Math.max(0, trialDaysLeft) : 0}</strong>{" "}
+                    day{trialDaysLeft === 1 ? "" : "s"} left
+                    {trialEndsAt ? (
+                      <>
+                        {" "}
+                        (ends {new Date(trialEndsAt * 1000).toLocaleDateString()})
+                      </>
+                    ) : null}
+                    . Activate your license now to keep all features unlocked after the trial.
+                  </>
+                ) : (
+                  <>
+                    Activate your license to unlock all Pro features, get the best performance, and receive priority updates and support.
+                    Don’t have a license yet? Choose a plan and upgrade in minutes.
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+        {!isLicenseValid ? (
+          <div className="bp-license-proBannerActions">
+            <a className="bp-btn bp-btn-primary" href={pricingUrl} target="_blank" rel="noreferrer noopener">
+              View plans & pricing
+            </a>
+          </div>
+        ) : (
+          <div className="bp-license-proBannerActions">
+            <a className="bp-btn" href={pricingUrl} target="_blank" rel="noreferrer noopener">
+              Manage / renew
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
     <div className="bp-license-grid">
       <div className="bp-card bp-license-status">
         <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
@@ -803,26 +861,11 @@ export default function SettingsScreen() {
         <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
           <div>
             <div className="bp-section-title" style={{ margin: 0 }}>Manage License</div>
-            <div className="bp-muted bp-text-xs">Set server URL, paste key, then activate.</div>
+            <div className="bp-muted bp-text-xs">Paste key, then activate.</div>
           </div>
         </div>
 
           <div className="bp-license-manageBody">
-            <div className="bp-license-field">
-              <label className="bp-label">License server URL</label>
-              <input
-                type="text"
-                value={license.server_base_url || ""}
-                onChange={(e) => setLicense({ ...license, server_base_url: e.target.value })}
-                className="bp-input-field"
-                placeholder="https://wpbookpoint.com"
-                autoComplete="off"
-              />
-            <div className="bp-muted bp-text-xs" style={{ marginTop: 8 }}>
-              This must be the store domain that runs the BookPoint License Server plugin. Leave empty to use the default server.
-            </div>
-          </div>
-
           <div className="bp-license-field">
             <label className="bp-label">License key</label>
             <div className="bp-license-keyRow">

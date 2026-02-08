@@ -82,7 +82,8 @@ export default function AgentsScreen() {
   }, [agents, search, status, sort]);
 
   return (
-    <div className="bp-content">
+    <div className="myplugin-page bp-agents">
+      <main className="myplugin-content">
       <div className="bp-page-head">
         <div>
           <div className="bp-h1">Agents</div>
@@ -260,6 +261,7 @@ export default function AgentsScreen() {
           })}
         </div>
       )}
+      </main>
     </div>
   );
 }

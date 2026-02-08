@@ -35,6 +35,7 @@ function Item({ title, children }) {
 export default function HowToUseScreen() {
   return (
     <div className="myplugin-page bp-howto">
+      <main className="myplugin-content">
       <div className="bp-page-head">
         <div>
           <div className="bp-title">How to Use BookPoint</div>
@@ -129,6 +130,7 @@ export default function HowToUseScreen() {
           </ul>
         </Item>
       </div>
+      </main>
     </div>
   );
 }
