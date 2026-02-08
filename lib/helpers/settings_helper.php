@@ -119,7 +119,7 @@ final class BP_SettingsHelper {
   }
 
   public static function defaults() : array {
-    return [
+    $defaults = [
       'bp_open_time' => '09:00',
       'bp_close_time' => '17:00',
       'bp_slot_interval_minutes' => 15,
@@ -165,6 +165,15 @@ final class BP_SettingsHelper {
       'webhooks_url_booking_updated' => '',
       'webhooks_url_booking_cancelled' => '',
     ];
+
+    if (function_exists('bp_default_settings_from_file')) {
+      $file_defaults = bp_default_settings_from_file();
+      if (is_array($file_defaults)) {
+        $defaults = array_merge($defaults, $file_defaults);
+      }
+    }
+
+    return $defaults;
   }
 
   public static function get_with_default(string $key) {

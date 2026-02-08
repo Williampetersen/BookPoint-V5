@@ -384,16 +384,16 @@ export default function BookingsScreen() {
 
           <div className="bp-pager">
             <button className="bp-top-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-              Prev
+              ← Previous
             </button>
-            <div className="bp-muted" style={{ fontWeight: 1000, textAlign: "center" }}>
+            <div className="bp-pager-info bp-muted">
               Page {page} / {pages}
-              <div style={{ fontSize: 12, fontWeight: 850, marginTop: 2 }}>
+              <div className="bp-pager-sub">
                 Showing {showingFrom}–{showingTo} of {total}
               </div>
             </div>
             <button className="bp-top-btn" disabled={page >= pages} onClick={() => setPage((p) => Math.min(pages, p + 1))}>
-              Next
+              Next →
             </button>
           </div>
         </div>

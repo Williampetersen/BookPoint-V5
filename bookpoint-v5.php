@@ -2,13 +2,19 @@
 /**
  * Plugin Name: BookPoint Pro
  * Description: Professional appointment booking system (MVC + Router + Blocks).
- * Version: 6.0.5
+ * Version: 6.1.3
  * Author: William
  * Text Domain: bookpoint
  * Domain Path: /languages
  */
 
 defined('ABSPATH') || exit;
+
+// Pro build bootstrap (only present in the Pro distribution ZIP).
+$bpProBootstrap = __DIR__ . '/bookpoint-pro.php';
+if (file_exists($bpProBootstrap)) {
+  require_once $bpProBootstrap;
+}
 
 add_filter('admin_body_class', function($classes){
   if (!isset($_GET['page'])) return $classes;
@@ -19,7 +25,7 @@ add_filter('admin_body_class', function($classes){
 
 final class BP_Plugin {
 
-  const VERSION    = '6.0.5';
+  const VERSION    = '6.1.3';
   const DB_VERSION = '5.0.0';
 
   public static function init() : void {
@@ -62,6 +68,7 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'helpers/form_fields_seed_helper.php';
     require_once BP_LIB_PATH . 'helpers/field_values_helper.php';
     require_once BP_LIB_PATH . 'helpers/database_helper.php';
+    require_once BP_LIB_PATH . 'helpers/defaults_helper.php';
 
     // Helpers (Step 5)
     require_once BP_LIB_PATH . 'helpers/availability_helper.php';
@@ -1138,6 +1145,15 @@ final class BP_Plugin {
     );
 
     add_submenu_page(
+      'bp_dashboard',
+      __('How to Use', 'bookpoint'),
+      __('How to Use', 'bookpoint'),
+      'bp_manage_settings',
+      'bp_how_to_use',
+      'bp_render_admin_app'
+    );
+
+    add_submenu_page(
       'bp',
       __('Bookings', 'bookpoint'),
       __('Bookings', 'bookpoint'),
@@ -1514,6 +1530,7 @@ final class BP_Plugin {
           'bp-form-fields', 'bp_form_fields', 'bp_services', 'bp_services_edit', 'bp_categories', 'bp_categories_edit', 'bp_extras', 'bp_extras_edit', 'bp_locations', 'bp_promo_codes',
           'bp_customers', 'bp_settings', 'bp_notifications', 'bp_agents', 'bp_audit', 'bp_tools',
           'bp_locations_edit', 'bp_location_categories_edit', 'bp_design_form',
+          'bp_how_to_use',
           'bp_agents_edit',
           'bp_customers_edit'
         ];
@@ -1532,23 +1549,24 @@ final class BP_Plugin {
       self::ensure_react_scripts();
 
       $admin_js_path = BP_PLUGIN_PATH . 'build/admin.js';
-      $admin_ver = file_exists($admin_js_path) ? (string)@filemtime($admin_js_path) : (string)($asset['version'] ?? self::VERSION);
+      $admin_js_ver = file_exists($admin_js_path) ? (string)@filemtime($admin_js_path) : (string)($asset['version'] ?? self::VERSION);
 
       wp_enqueue_script(
         'bp-admin',
         BP_PLUGIN_URL . 'build/admin.js',
         $asset['dependencies'],
-        $admin_ver,
+        $admin_js_ver,
         true
       );
 
         $admin_css = BP_PLUGIN_PATH . 'build/index.jsx.css';
+        $admin_css_ver = file_exists($admin_css) ? (string)@filemtime($admin_css) : $admin_js_ver;
         if (file_exists($admin_css)) {
           wp_enqueue_style(
             'bp-admin',
             BP_PLUGIN_URL . 'build/index.jsx.css',
             [],
-            $admin_ver
+            $admin_css_ver
           );
 
           if (function_exists('is_rtl') && is_rtl()) {
@@ -1558,21 +1576,21 @@ final class BP_Plugin {
                 'bp-admin-rtl',
                 BP_PLUGIN_URL . 'build/index.jsx-rtl.css',
                 ['bp-admin'],
-                $admin_ver
+                $admin_css_ver
               );
             }
           }
         }
 
-      add_filter('script_loader_src', function ($src, $handle) use ($admin_ver) {
+      add_filter('script_loader_src', function ($src, $handle) use ($admin_js_ver) {
         if ($handle === 'bp-admin') {
-          return add_query_arg('v', $admin_ver, $src);
+          return add_query_arg('v', $admin_js_ver, $src);
         }
         return $src;
       }, 10, 2);
-      add_filter('style_loader_src', function ($src, $handle) use ($admin_ver) {
-        if ($handle === 'bp-admin') {
-          return add_query_arg('v', $admin_ver, $src);
+      add_filter('style_loader_src', function ($src, $handle) use ($admin_css_ver) {
+        if ($handle === 'bp-admin' || $handle === 'bp-admin-rtl') {
+          return add_query_arg('v', $admin_css_ver, $src);
         }
         return $src;
       }, 10, 2);
@@ -1589,6 +1607,7 @@ final class BP_Plugin {
           'bp-form-fields' => 'form-fields',
           'bp_form_fields' => 'form-fields',
           'bp_design_form' => 'design-form',
+          'bp_how_to_use' => 'how-to',
           'bp_services' => 'services',
           'bp_categories' => 'categories',
           'bp_categories_edit' => 'categories-edit',

@@ -240,6 +240,9 @@ bp_render_legacy_shell_start(esc_html__('BookPoint Settings', 'bookpoint'), esc_
             <div style="max-width:900px;">
               <h2><?php esc_html_e('License', 'bookpoint'); ?></h2>
               <p><strong><?php esc_html_e('Status:', 'bookpoint'); ?></strong> <?php echo esc_html($badge); ?></p>
+              <?php if (!empty($license_server_base_effective)) : ?>
+                <p class="description"><?php echo esc_html__('License server:', 'bookpoint') . ' ' . esc_html($license_server_base_effective); ?></p>
+              <?php endif; ?>
               <?php if (!empty($license_licensed_domain)) : ?>
                 <p><strong><?php esc_html_e('Activated domain:', 'bookpoint'); ?></strong> <?php echo esc_html($license_licensed_domain); ?></p>
               <?php endif; ?>
@@ -260,6 +263,13 @@ bp_render_legacy_shell_start(esc_html__('BookPoint Settings', 'bookpoint'), esc_
                 <?php wp_nonce_field('bp_admin'); ?>
                 <input type="hidden" name="action" value="bp_admin_settings_save_license">
                 <table class="form-table">
+                  <tr>
+                    <th scope="row"><?php esc_html_e('License server URL', 'bookpoint'); ?></th>
+                    <td>
+                      <input type="url" class="regular-text" name="bp_license_server_base_url" value="<?php echo esc_attr($license_server_base_url ?? ''); ?>" placeholder="https://yourdomain.com">
+                      <p class="description"><?php esc_html_e('Optional: override the license server used for validation/updates.', 'bookpoint'); ?></p>
+                    </td>
+                  </tr>
                   <tr>
                     <th scope="row"><?php esc_html_e('License key', 'bookpoint'); ?></th>
                     <td>

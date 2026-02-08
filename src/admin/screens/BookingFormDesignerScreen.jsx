@@ -17,6 +17,15 @@ const DESIGN_STEP_ORDER = [
   "confirm",
 ];
 
+const REQUIRED_STEP_KEYS = new Set([
+  "service",
+  "agents",
+  "datetime",
+  "customer",
+  "review",
+  "confirm",
+]);
+
 const STEP_DEFAULTS = {
   payment: {
     key: "payment",
@@ -48,6 +57,14 @@ function normalizeDesignSteps(steps = []) {
 
   if (!map.has("payment")) {
     map.set("payment", { ...STEP_DEFAULTS.payment });
+  }
+
+  // Some steps are required for creating a booking; keep them enabled.
+  for (const k of REQUIRED_STEP_KEYS) {
+    if (map.has(k)) {
+      const step = map.get(k);
+      map.set(k, { ...step, enabled: true });
+    }
   }
 
   return DESIGN_STEP_ORDER.filter((k) => map.has(k)).map((k) => map.get(k));
@@ -449,6 +466,8 @@ export default function BookingFormDesignerScreen() {
             <div className="bp-designer-stepsList">
               {(steps || []).map((s) => {
                 const active = s.key === activeStepKey;
+                const required = REQUIRED_STEP_KEYS.has(s.key);
+                const checked = required ? true : !!s.enabled;
                 return (
                   <button
                     key={s.key}
@@ -463,10 +482,11 @@ export default function BookingFormDesignerScreen() {
                     <label className="bp-designer-stepToggle" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
-                        checked={!!s.enabled}
+                        checked={checked}
+                        disabled={required}
                         onChange={(e) => updateStep(s.key, { enabled: e.target.checked })}
                       />
-                      <span className="bp-muted bp-text-xs">{s.enabled ? "On" : "Off"}</span>
+                      <span className="bp-muted bp-text-xs">{checked ? "On" : "Off"}</span>
                     </label>
                   </button>
                 );
@@ -520,9 +540,13 @@ export default function BookingFormDesignerScreen() {
             <div className="bp-designer-panelBody">
               <div className="bp-flex bp-items-center bp-justify-between">
                 <div className="bp-font-700">Enable this step</div>
+                {REQUIRED_STEP_KEYS.has(activeStepKey) ? (
+                  <span className="bp-muted bp-text-xs">Required</span>
+                ) : null}
                 <input
                   type="checkbox"
-                  checked={!!activeStep?.enabled}
+                  checked={REQUIRED_STEP_KEYS.has(activeStepKey) ? true : !!activeStep?.enabled}
+                  disabled={REQUIRED_STEP_KEYS.has(activeStepKey)}
                   onChange={(e) => updateStep(activeStepKey, { enabled: e.target.checked })}
                 />
               </div>

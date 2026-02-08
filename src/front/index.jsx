@@ -10,7 +10,7 @@ function BookPointWidget({ label, mountEl }) {
   const imagesBase = (window.BP_FRONT?.images || '').replace(/\/$/, '') + '/';
   const brand = useMemo(() => ({
     imagesBase,
-    helpPhone: '+45 91 67 14 52',
+    helpPhone: '+1 234 567 89',
   }), [imagesBase]);
 
   useEffect(() => attachOpenHandler(mountEl, setOpen), [mountEl]);
@@ -48,7 +48,7 @@ function getBrand() {
   const imagesBase = (window.BP_FRONT?.images || '').replace(/\/$/, '') + '/';
   return {
     imagesBase,
-    helpPhone: '+45 91 67 14 52',
+    helpPhone: '+1 234 567 89',
   };
 }
 

@@ -77,6 +77,8 @@ export default function CustomersScreen() {
   const exportUrl = `${adminPostUrl}?action=bp_admin_customers_export_csv&_wpnonce=${encodeURIComponent(adminNonce)}`;
 
   const pages = Math.max(1, Math.ceil(total / per));
+  const showingFrom = total ? (page - 1) * per + 1 : 0;
+  const showingTo = Math.min(total, page * per);
   const rowStyle = {
     display: "grid",
     gridTemplateColumns: "80px 1.4fr 1.2fr 1fr 90px 170px 240px",
@@ -199,13 +201,16 @@ export default function CustomersScreen() {
 
         <div className="bp-pager">
           <button className="bp-top-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-            Prev
+            ← Previous
           </button>
-          <div className="bp-muted" style={{ fontWeight: 1000 }}>
+          <div className="bp-pager-info bp-muted">
             Page {page} / {pages}
+            <div className="bp-pager-sub">
+              Showing {showingFrom}–{showingTo} of {total}
+            </div>
           </div>
           <button className="bp-top-btn" disabled={page >= pages} onClick={() => setPage((p) => Math.min(pages, p + 1))}>
-            Next
+            Next →
           </button>
         </div>
       </div>
@@ -262,4 +267,3 @@ export default function CustomersScreen() {
     </div>
   );
 }
-

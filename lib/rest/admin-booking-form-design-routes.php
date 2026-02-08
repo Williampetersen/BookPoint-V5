@@ -40,6 +40,12 @@ function bp_admin_can_manage() {
 }
 
 function bp_booking_form_design_default() {
+  if (function_exists('bp_default_design_from_file')) {
+    $file_design = bp_default_design_from_file();
+    if (is_array($file_design)) {
+      return $file_design;
+    }
+  }
   return [
     'version' => 1,
     'appearance' => [
@@ -61,7 +67,7 @@ function bp_booking_form_design_default() {
     ],
     'texts' => [
       'helpTitle' => 'Need help?',
-      'helpPhone' => '+45 91 67 14 52',
+      'helpPhone' => '+1 234 567 89',
       'nextLabel' => 'Next ->',
       'backLabel' => '<- Back',
     ],

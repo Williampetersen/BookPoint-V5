@@ -51,16 +51,20 @@ const DEFAULT_STEPS = [
   { key: 'confirmation', title: 'Confirm', icon: 'logo.png' },
 ];
 
-function normalizeStepKeys(stepKeys = []) {
-  const allowed = new Set(REQUIRED_STEP_ORDER);
-  const uniq = [];
-  for (const k of stepKeys) {
-    if (allowed.has(k) && !uniq.includes(k)) uniq.push(k);
-  }
-  for (const k of REQUIRED_STEP_ORDER) {
-    if (!uniq.includes(k)) uniq.push(k);
-  }
-  return REQUIRED_STEP_ORDER.filter((k) => uniq.includes(k));
+const CANONICAL_ORDER = REQUIRED_STEP_ORDER.slice();
+const REQUIRED_KEYS = new Set(['service', 'agent', 'datetime', 'customer', 'review', 'confirmation']);
+
+function normalizeKey(k) {
+  if (!k) return '';
+  if (k === 'agents') return 'agent';
+  if (k === 'agent') return 'agent';
+  if (k === 'done' || k === 'confirm') return 'confirmation';
+  if (k === 'confirmation') return 'confirmation';
+  return k;
+}
+
+function toBoolEnabled(v) {
+  return v !== false && v !== 0 && v !== '0';
 }
 
 function getRestBase() {
@@ -110,41 +114,62 @@ function clearPaymentQuery() {
 }
 
 function buildSteps(designConfig) {
-  const raw = Array.isArray(designConfig?.steps) ? designConfig.steps : [];
-  const enabled = raw.filter((s) => s && s.key && s.enabled !== false);
   const baseMap = new Map(DEFAULT_STEPS.map((s) => [s.key, s]));
-  const normalizeKey = (k) => {
-    if (k === 'agents') return 'agent';
-    if (k === 'agent') return 'agent';
-    if (k === 'done' || k === 'confirm') return 'confirmation';
-    if (k === 'confirmation') return 'confirmation';
-    return k;
-  };
+  const raw = Array.isArray(designConfig?.steps) ? designConfig.steps : [];
 
-  const rawKeys = enabled.length
-    ? enabled
-        .map((s) => normalizeKey(s.key))
-        .filter(Boolean)
-    : DEFAULT_STEPS.map((s) => s.key);
-  const stepKeys = normalizeStepKeys(rawKeys);
-
-  const list = stepKeys.length
-    ? normalizeStepKeys(
-        stepKeys
-      ).map((key) => ({
-        ...(baseMap.get(key) || { key, title: key, icon: 'service-image.png' }),
-        key,
-        title: baseMap.get(key)?.title || key,
-        subtitle: baseMap.get(key)?.subtitle || '',
-      }))
-    : DEFAULT_STEPS.slice();
-
+  const ordered = [];
   const seen = new Set();
-  return list.filter((s) => {
-    if (seen.has(s.key)) return false;
-    seen.add(s.key);
-    return true;
-  });
+
+  for (const s of raw) {
+    const key = normalizeKey(s?.key);
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    ordered.push({
+      key,
+      enabled: toBoolEnabled(s?.enabled),
+      title: s?.title,
+      subtitle: s?.subtitle,
+      image: s?.image,
+      buttonBackLabel: s?.buttonBackLabel,
+      buttonNextLabel: s?.buttonNextLabel,
+      accentOverride: s?.accentOverride,
+      showLeftPanel: s?.showLeftPanel,
+      showHelpBox: s?.showHelpBox,
+    });
+  }
+
+  for (const d of DEFAULT_STEPS) {
+    if (!seen.has(d.key)) {
+      ordered.push({ key: d.key, enabled: true });
+    }
+  }
+
+  const byKey = new Map(ordered.map((s) => [s.key, s]));
+
+  const list = CANONICAL_ORDER
+    .filter((k) => byKey.has(k))
+    .map((key) => {
+      const cfg = byKey.get(key) || {};
+      const base = baseMap.get(key) || { key, title: key, icon: 'service-image.png' };
+      return {
+        ...base,
+        key,
+        enabled: REQUIRED_KEYS.has(key) ? true : toBoolEnabled(cfg.enabled),
+        title: (cfg.title != null && String(cfg.title).trim() !== '') ? String(cfg.title) : base.title,
+        subtitle: (cfg.subtitle != null) ? String(cfg.subtitle) : '',
+        icon: cfg.image || base.icon,
+        image: cfg.image || base.icon,
+        buttonBackLabel: cfg.buttonBackLabel,
+        buttonNextLabel: cfg.buttonNextLabel,
+        accentOverride: cfg.accentOverride,
+        showLeftPanel: cfg.showLeftPanel,
+        showHelpBox: cfg.showHelpBox,
+      };
+    })
+    .filter((s) => !!s && (s.enabled !== false));
+
+  return list;
 }
 
 export default function WizardModal({ open, onClose, brand }) {
@@ -195,7 +220,23 @@ export default function WizardModal({ open, onClose, brand }) {
     }
     return baseSteps;
   }, [baseSteps, paymentsActive]);
+  const hasPaymentStep = useMemo(() => steps.some((s) => s.key === 'payment'), [steps]);
+  const hasServiceStep = useMemo(() => steps.some((s) => s.key === 'service'), [steps]);
+  const hasAgentStep = useMemo(() => steps.some((s) => s.key === 'agent'), [steps]);
   const step = steps[stepIndex] || steps[0] || DEFAULT_STEPS[0];
+
+  const themePrimary = designConfig?.appearance?.primaryColor || '';
+  const accent = (step?.accentOverride && String(step.accentOverride).trim() !== '')
+    ? String(step.accentOverride).trim()
+    : (themePrimary && String(themePrimary).trim() !== '' ? String(themePrimary).trim() : '');
+  const modalStyle = useMemo(() => {
+    const style = {};
+    if (accent) style['--bp-accent'] = accent;
+    const borderStyle = String(designConfig?.appearance?.borderStyle || '').toLowerCase();
+    if (borderStyle === 'square') style.borderRadius = 0;
+    return style;
+  }, [accent, designConfig?.appearance?.borderStyle]);
+
   const iconUrl = useMemo(() => {
     if (step?.imageUrl) return step.imageUrl;
     const file = step?.icon || step?.image || 'service-image.png';
@@ -205,6 +246,12 @@ export default function WizardModal({ open, onClose, brand }) {
   const helpPhone = designConfig?.texts?.helpPhone || designConfig?.layout?.helpPhone || brand?.helpPhone || '';
   const showLeft = step?.showLeftPanel !== false;
   const showHelp = step?.showHelpBox !== false;
+  const globalNextLabel = designConfig?.texts?.nextLabel || 'Next ->';
+  const globalBackLabel = designConfig?.texts?.backLabel || '<- Back';
+  const labels = useMemo(() => ({
+    next: (step?.buttonNextLabel != null && String(step.buttonNextLabel).trim() !== '') ? String(step.buttonNextLabel) : globalNextLabel,
+    back: (step?.buttonBackLabel != null && String(step.buttonBackLabel).trim() !== '') ? String(step.buttonBackLabel) : globalBackLabel,
+  }), [step?.buttonNextLabel, step?.buttonBackLabel, globalNextLabel, globalBackLabel]);
   const paymentLabelMap = {
     free: 'Free (no payment)',
     cash: 'Pay at location (Cash)',
@@ -252,6 +299,20 @@ export default function WizardModal({ open, onClose, brand }) {
     setConfirmData(null);
     setAnswers({});
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!hasServiceStep && !serviceId && services.length === 1) {
+      setServiceId(services[0].id);
+    }
+  }, [open, hasServiceStep, serviceId, services]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!hasAgentStep && !agentId && agents.length === 1) {
+      setAgentId(agents[0].id);
+    }
+  }, [open, hasAgentStep, agentId, agents]);
 
   useEffect(() => {
     if (!open) return;
@@ -612,7 +673,7 @@ export default function WizardModal({ open, onClose, brand }) {
 
   return (
     <div className="bp-modal-overlay" role="dialog" aria-modal="true">
-      <div className="bp-modal">
+      <div className="bp-modal" style={modalStyle}>
         <button className="bp-modal-close" onClick={onClose} aria-label="Close">x</button>
 
         <div className="bp-modal-grid">
@@ -654,6 +715,7 @@ export default function WizardModal({ open, onClose, brand }) {
                 value={locationId}
                 onChange={setLocationId}
                 onNext={next}
+                nextLabel={labels.next}
               />
             )}
 
@@ -664,6 +726,8 @@ export default function WizardModal({ open, onClose, brand }) {
                 onChange={setCategoryIds}
                 onBack={back}
                 onNext={next}
+                backLabel={labels.back}
+                nextLabel={labels.next}
               />
             )}
 
@@ -675,6 +739,8 @@ export default function WizardModal({ open, onClose, brand }) {
                 onBack={back}
                 onNext={next}
                 settings={bpSettings}
+                backLabel={labels.back}
+                nextLabel={labels.next}
               />
             )}
 
@@ -686,6 +752,8 @@ export default function WizardModal({ open, onClose, brand }) {
                 onBack={back}
                 onNext={next}
                 settings={bpSettings}
+                backLabel={labels.back}
+                nextLabel={labels.next}
               />
             )}
 
@@ -696,6 +764,8 @@ export default function WizardModal({ open, onClose, brand }) {
                 onChange={setAgentId}
                 onBack={back}
                 onNext={next}
+                backLabel={labels.back}
+                nextLabel={labels.next}
               />
             )}
 
@@ -714,6 +784,8 @@ export default function WizardModal({ open, onClose, brand }) {
                 onChangeSlot={setSlot}
                 onBack={back}
                 onNext={next}
+                backLabel={labels.back}
+                nextLabel={labels.next}
               />
             )}
 
@@ -726,6 +798,8 @@ export default function WizardModal({ open, onClose, brand }) {
                 onNext={next}
                 onError={setError}
                 layout={designConfig?.fieldsLayout}
+                backLabel={labels.back}
+                nextLabel={labels.next}
               />
             )}
 
@@ -760,12 +834,18 @@ export default function WizardModal({ open, onClose, brand }) {
                 totalLabel={formatMoney(totalAmount, bpSettings)}
                 onBack={back}
                 onNext={async () => {
-                  await createBookingIfNeeded();
-                  goToStepKey('payment');
+                  if (paymentsActive && hasPaymentStep) {
+                    await createBookingIfNeeded();
+                    goToStepKey('payment');
+                    return;
+                  }
+                  await submitBooking();
                 }}
                 isCreatingBooking={isCreatingBooking}
                 createError={createError}
                 loading={loading}
+                backLabel={labels.back}
+                nextLabel={labels.next}
               />
             )}
 
