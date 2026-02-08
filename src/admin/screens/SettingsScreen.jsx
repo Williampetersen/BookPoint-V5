@@ -57,6 +57,8 @@ export default function SettingsScreen() {
   const [license, setLicense] = useState({
     key: "",
     status: "unset",
+    server_base_url: "",
+    server_base_effective: "",
     checked_at: 0,
     last_error: "",
     plan: "",
@@ -67,8 +69,11 @@ export default function SettingsScreen() {
   });
   const [licenseSaving, setLicenseSaving] = useState(false);
   const [licenseValidating, setLicenseValidating] = useState(false);
+  const [licenseActivating, setLicenseActivating] = useState(false);
+  const [licenseDeactivating, setLicenseDeactivating] = useState(false);
   const [showLicenseKey, setShowLicenseKey] = useState(false);
   const [showLicenseDetails, setShowLicenseDetails] = useState(false);
+  const licenseStatusKey = String(license.status || "unset").toLowerCase();
 
   const [activeTab, setActiveTab] = useState(() => {
     const tab = new URLSearchParams(window.location.search).get("tab");
@@ -323,7 +328,10 @@ export default function SettingsScreen() {
           "X-WP-Nonce": window.BP_ADMIN?.nonce,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ key: String(license.key || "").trim() }),
+        body: JSON.stringify({
+          key: String(license.key || "").trim(),
+          server_base_url: String(license.server_base_url || "").trim(),
+        }),
       });
       const json = await resp.json();
       if (json.status === "success") {
@@ -342,7 +350,8 @@ export default function SettingsScreen() {
       setShowLicenseDetails(false);
       const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license/validate`, {
         method: "POST",
-        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce },
+        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce, "Content-Type": "application/json" },
+        body: JSON.stringify({ key: license?.key || "", server_base_url: license?.server_base_url || "" }),
       });
       const json = await resp.json();
       if (json.status === "success") {
@@ -352,6 +361,46 @@ export default function SettingsScreen() {
       console.error(e);
     } finally {
       setLicenseValidating(false);
+    }
+  }
+
+  async function activateLicense() {
+    try {
+      setLicenseActivating(true);
+      setShowLicenseDetails(false);
+      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license/activate`, {
+        method: "POST",
+        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce, "Content-Type": "application/json" },
+        body: JSON.stringify({ key: license?.key || "", server_base_url: license?.server_base_url || "" }),
+      });
+      const json = await resp.json();
+      if (json.status === "success") {
+        setLicense(json.data || {});
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLicenseActivating(false);
+    }
+  }
+
+  async function deactivateLicense() {
+    try {
+      setLicenseDeactivating(true);
+      setShowLicenseDetails(false);
+      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license/deactivate`, {
+        method: "POST",
+        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce, "Content-Type": "application/json" },
+        body: JSON.stringify({ key: license?.key || "", server_base_url: license?.server_base_url || "" }),
+      });
+      const json = await resp.json();
+      if (json.status === "success") {
+        setLicense(json.data || {});
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLicenseDeactivating(false);
     }
   }
 
@@ -671,11 +720,11 @@ export default function SettingsScreen() {
           </div>
         </div>
 
-        <div className="bp-license-statusBody">
-          <div className={`bp-license-pill is-${license.status || "unset"}`}>
-            <span className="k">Status</span>
-            <span className="v">{license.status || "unset"}</span>
-          </div>
+          <div className="bp-license-statusBody">
+            <div className={`bp-license-pill is-${licenseStatusKey}`}>
+              <span className="k">Status</span>
+              <span className="v">{licenseStatusKey}</span>
+            </div>
 
           <div className="bp-license-kvGrid">
             <div className="bp-license-kv">
@@ -711,7 +760,7 @@ export default function SettingsScreen() {
           </div>
 
           {license.last_error ? (
-            <div className="bp-license-error">
+            <div className={`bp-license-error is-${licenseStatusKey}`}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
                 <div style={{ minWidth: 0 }}>
                   <div className="bp-label" style={{ margin: 0 }}>Server message</div>
@@ -733,6 +782,12 @@ export default function SettingsScreen() {
               If validation fails, copy these and send to support:
             </div>
             <div className="bp-license-helpRow">
+              <code className="bp-license-code">{license.server_base_effective || "-"}</code>
+              <button className="bp-btn" type="button" onClick={async () => { await copyText(license.server_base_effective || ""); }}>
+                Copy Server
+              </button>
+            </div>
+            <div className="bp-license-helpRow">
               <code className="bp-license-code">{window.location.origin}</code>
               <button className="bp-btn" type="button" onClick={async () => { await copyText(window.location.origin); }}>Copy</button>
             </div>
@@ -748,11 +803,26 @@ export default function SettingsScreen() {
         <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
           <div>
             <div className="bp-section-title" style={{ margin: 0 }}>Manage License</div>
-            <div className="bp-muted bp-text-xs">Paste key, save, and validate.</div>
+            <div className="bp-muted bp-text-xs">Set server URL, paste key, then activate.</div>
           </div>
         </div>
 
-        <div className="bp-license-manageBody">
+          <div className="bp-license-manageBody">
+            <div className="bp-license-field">
+              <label className="bp-label">License server URL</label>
+              <input
+                type="text"
+                value={license.server_base_url || ""}
+                onChange={(e) => setLicense({ ...license, server_base_url: e.target.value })}
+                className="bp-input-field"
+                placeholder="https://wpbookpoint.com"
+                autoComplete="off"
+              />
+            <div className="bp-muted bp-text-xs" style={{ marginTop: 8 }}>
+              This must be the store domain that runs the BookPoint License Server plugin. Leave empty to use the default server.
+            </div>
+          </div>
+
           <div className="bp-license-field">
             <label className="bp-label">License key</label>
             <div className="bp-license-keyRow">
@@ -776,6 +846,22 @@ export default function SettingsScreen() {
           <div className="bp-license-actions">
             <button type="button" onClick={saveLicense} className="bp-btn bp-btn-primary" disabled={licenseSaving}>
               {licenseSaving ? "Saving..." : "Save Key"}
+            </button>
+            <button
+              type="button"
+              onClick={activateLicense}
+              className="bp-btn"
+              disabled={licenseActivating || licenseSaving || !license.key}
+            >
+              {licenseActivating ? "Activating..." : "Activate"}
+            </button>
+            <button
+              type="button"
+              onClick={deactivateLicense}
+              className="bp-btn"
+              disabled={licenseDeactivating || licenseSaving || !license.key}
+            >
+              {licenseDeactivating ? "Deactivating..." : "Deactivate"}
             </button>
             <button type="button" onClick={validateLicense} className="bp-btn" disabled={licenseValidating}>
               {licenseValidating ? "Validating..." : "Validate Now"}

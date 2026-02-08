@@ -4,7 +4,8 @@ param(
   [string]$FtpUser = $env:BP_FTP_USER,
   [string]$FtpPassword = $env:BP_FTP_PASS,
   [string]$RemotePluginDir = $env:BP_FTP_REMOTE_PLUGIN_DIR,
-  [switch]$DryRun
+  [switch]$DryRun,
+  [switch]$Fast
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,15 +50,38 @@ $rootDirs = @(
 
 $filesToUpload = New-Object System.Collections.Generic.List[string]
 
-foreach ($f in $rootFiles) {
-  $p = Join-Path $basePath $f
-  if (Test-Path $p) { $filesToUpload.Add($p) }
-}
+if ($Fast) {
+  $fastFiles = @(
+    "bookpoint-v5.php",
+    "uninstall.php",
+    "build/admin.js",
+    "build/admin.asset.php",
+    "build/index.jsx.css",
+    "build/index.jsx-rtl.css",
+    "public/front.js",
+    "public/front.asset.php",
+    "public/index.jsx.css",
+    "public/index.jsx-rtl.css",
+    "lib/rest/admin-booking-form-design-routes.php",
+    "public/admin-ui.css",
+    "public/admin-app.css"
+  )
 
-foreach ($d in $rootDirs) {
-  $p = Join-Path $basePath $d
-  if (!(Test-Path $p)) { continue }
-  Get-ChildItem -Path $p -Recurse -File | ForEach-Object { $filesToUpload.Add($_.FullName) }
+  foreach ($f in $fastFiles) {
+    $p = Join-Path $basePath $f
+    if (Test-Path $p) { $filesToUpload.Add($p) }
+  }
+} else {
+  foreach ($f in $rootFiles) {
+    $p = Join-Path $basePath $f
+    if (Test-Path $p) { $filesToUpload.Add($p) }
+  }
+
+  foreach ($d in $rootDirs) {
+    $p = Join-Path $basePath $d
+    if (!(Test-Path $p)) { continue }
+    Get-ChildItem -Path $p -Recurse -File | ForEach-Object { $filesToUpload.Add($_.FullName) }
+  }
 }
 
 $filesToUpload = $filesToUpload | Sort-Object

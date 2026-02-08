@@ -1,6 +1,30 @@
 <?php
 defined('ABSPATH') || exit;
 
+function bp_rest_admin_license_payload(): array {
+  return [
+    'key' => BP_LicenseHelper::get_key(),
+    'status' => BP_LicenseHelper::status(),
+    'server_base_url' => BP_LicenseHelper::get_saved_api_base(),
+    'server_base_effective' => BP_LicenseHelper::api_base(),
+    'validate_url' => BP_LicenseHelper::api_validate_url(),
+    'deactivate_url' => BP_LicenseHelper::api_deactivate_url(),
+    'updates_url' => BP_LicenseHelper::api_updates_url(),
+    'ajax_validate_url' => BP_LicenseHelper::api_ajax_validate_url(),
+    'ajax_deactivate_url' => BP_LicenseHelper::api_ajax_deactivate_url(),
+    'public_validate_urls' => BP_LicenseHelper::api_public_validate_urls(),
+    'public_deactivate_urls' => BP_LicenseHelper::api_public_deactivate_urls(),
+    'last_request_url' => (string)get_option('bp_license_last_request_url', ''),
+    'checked_at' => (int)get_option('bp_license_checked_at', 0),
+    'last_error' => (string)get_option('bp_license_last_error', ''),
+    'plan' => (string)get_option('bp_license_plan', ''),
+    'expires_at' => (string)get_option('bp_license_expires_at', ''),
+    'licensed_domain' => (string)get_option('bp_license_licensed_domain', ''),
+    'instance_id' => (string)get_option('bp_license_instance_id', ''),
+    'data' => (string)get_option('bp_license_data_json', ''),
+  ];
+}
+
 add_action('rest_api_init', function(){
   register_rest_route('bp/v1', '/admin/license', [
     'methods' => 'GET',
@@ -9,18 +33,7 @@ add_action('rest_api_init', function(){
         return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
       }
 
-      $data = [
-        'key' => BP_LicenseHelper::get_key(),
-        'status' => BP_LicenseHelper::status(),
-        'last_request_url' => (string)get_option('bp_license_last_request_url', ''),
-        'checked_at' => (int)get_option('bp_license_checked_at', 0),
-        'last_error' => (string)get_option('bp_license_last_error', ''),
-        'plan' => (string)get_option('bp_license_plan', ''),
-        'expires_at' => (string)get_option('bp_license_expires_at', ''),
-        'licensed_domain' => (string)get_option('bp_license_licensed_domain', ''),
-        'instance_id' => (string)get_option('bp_license_instance_id', ''),
-        'data' => (string)get_option('bp_license_data_json', ''),
-      ];
+      $data = bp_rest_admin_license_payload();
 
       return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
     },
@@ -37,23 +50,14 @@ add_action('rest_api_init', function(){
       $p = $req->get_json_params();
       if (!is_array($p)) $p = [];
       $key = sanitize_text_field($p['key'] ?? '');
+      $serverBase = sanitize_text_field($p['server_base_url'] ?? '');
+      BP_LicenseHelper::set_saved_api_base($serverBase);
       BP_LicenseHelper::set_key($key);
       if ($key !== '') {
         BP_LicenseHelper::validate(true);
       }
 
-      $data = [
-        'key' => BP_LicenseHelper::get_key(),
-        'status' => BP_LicenseHelper::status(),
-        'last_request_url' => (string)get_option('bp_license_last_request_url', ''),
-        'checked_at' => (int)get_option('bp_license_checked_at', 0),
-        'last_error' => (string)get_option('bp_license_last_error', ''),
-        'plan' => (string)get_option('bp_license_plan', ''),
-        'expires_at' => (string)get_option('bp_license_expires_at', ''),
-        'licensed_domain' => (string)get_option('bp_license_licensed_domain', ''),
-        'instance_id' => (string)get_option('bp_license_instance_id', ''),
-        'data' => (string)get_option('bp_license_data_json', ''),
-      ];
+      $data = bp_rest_admin_license_payload();
 
       return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
     },
@@ -62,26 +66,70 @@ add_action('rest_api_init', function(){
 
   register_rest_route('bp/v1', '/admin/license/validate', [
     'methods' => 'POST',
-    'callback' => function(){
+    'callback' => function(WP_REST_Request $req){
       if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
         return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
       }
 
+      $p = $req->get_json_params();
+      if (!is_array($p)) $p = [];
+      if (isset($p['server_base_url'])) {
+        BP_LicenseHelper::set_saved_api_base(sanitize_text_field($p['server_base_url']));
+      }
+      if (isset($p['key'])) {
+        BP_LicenseHelper::set_key(sanitize_text_field($p['key']));
+      }
+
       BP_LicenseHelper::validate(true);
 
-      $data = [
-        'key' => BP_LicenseHelper::get_key(),
-        'status' => BP_LicenseHelper::status(),
-        'last_request_url' => (string)get_option('bp_license_last_request_url', ''),
-        'checked_at' => (int)get_option('bp_license_checked_at', 0),
-        'last_error' => (string)get_option('bp_license_last_error', ''),
-        'plan' => (string)get_option('bp_license_plan', ''),
-        'expires_at' => (string)get_option('bp_license_expires_at', ''),
-        'licensed_domain' => (string)get_option('bp_license_licensed_domain', ''),
-        'instance_id' => (string)get_option('bp_license_instance_id', ''),
-        'data' => (string)get_option('bp_license_data_json', ''),
-      ];
+      $data = bp_rest_admin_license_payload();
 
+      return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
+    },
+    'permission_callback' => '__return_true',
+  ]);
+
+  register_rest_route('bp/v1', '/admin/license/activate', [
+    'methods' => 'POST',
+    'callback' => function(WP_REST_Request $req){
+      if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+      }
+
+      $p = $req->get_json_params();
+      if (!is_array($p)) $p = [];
+      if (isset($p['server_base_url'])) {
+        BP_LicenseHelper::set_saved_api_base(sanitize_text_field($p['server_base_url']));
+      }
+      if (isset($p['key'])) {
+        BP_LicenseHelper::set_key(sanitize_text_field($p['key']));
+      }
+
+      BP_LicenseHelper::activate();
+      $data = bp_rest_admin_license_payload();
+      return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
+    },
+    'permission_callback' => '__return_true',
+  ]);
+
+  register_rest_route('bp/v1', '/admin/license/deactivate', [
+    'methods' => 'POST',
+    'callback' => function(WP_REST_Request $req){
+      if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+      }
+
+      $p = $req->get_json_params();
+      if (!is_array($p)) $p = [];
+      if (isset($p['server_base_url'])) {
+        BP_LicenseHelper::set_saved_api_base(sanitize_text_field($p['server_base_url']));
+      }
+      if (isset($p['key'])) {
+        BP_LicenseHelper::set_key(sanitize_text_field($p['key']));
+      }
+
+      BP_LicenseHelper::deactivate();
+      $data = bp_rest_admin_license_payload();
       return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
     },
     'permission_callback' => '__return_true',

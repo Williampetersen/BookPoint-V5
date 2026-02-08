@@ -19,9 +19,12 @@ final class BP_LicenseGateHelper {
     $route = (string) $request->get_route();
     if (strpos($route, '/bp/v1') !== 0) return $result;
 
+    // Allow license management endpoints so the admin can activate the plugin.
+    if (strpos($route, '/bp/v1/admin/license') === 0) return $result;
+
     return new WP_Error(
       'bp_license_required',
-      __('BookPoint Pro requires an active license. Go to BookPoint → Settings → License.', 'bookpoint'),
+      __('BookPoint Pro requires an active license. Go to BookPoint -> Settings -> License.', 'bookpoint'),
       ['status' => 403]
     );
   }
@@ -36,4 +39,3 @@ final class BP_LicenseGateHelper {
     echo '</p></div>';
   }
 }
-

@@ -169,6 +169,12 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
                   <span className="bp-sidebar-text">Booking Form Designer</span>
                 </span>
               </a>
+              <a className={`bp-nav-item ${is("bp_how_to_use") ? "active" : ""}`} href="admin.php?page=bp_how_to_use">
+                <span className="bp-sidebar-item" title={collapsed ? "How to Use" : ""}>
+                  <img className="bp-sidebar-icon" src={pickIcon("settings", is("bp_how_to_use"))} alt="" aria-hidden="true" />
+                  <span className="bp-sidebar-text">How to Use</span>
+                </span>
+              </a>
             </nav>
           </div>
 

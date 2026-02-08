@@ -28,6 +28,7 @@ import AuditScreen from "./screens/AuditScreen";
 import ToolsScreen from "./screens/ToolsScreen";
 import NotificationsScreen from "./screens/NotificationsScreen";
 import BookingFormDesignerScreen from "./screens/BookingFormDesignerScreen";
+import HowToUseScreen from "./screens/HowToUseScreen";
 
 function resolveScreen(page) {
   switch(page){
@@ -77,6 +78,7 @@ function resolveScreen(page) {
     case "bp-tools": return "tools";
     case "bp_tools": return "tools";
     case "bp_design_form": return "design-form";
+    case "bp_how_to_use": return "how-to";
 
     default: return "dashboard";
   }
@@ -130,6 +132,7 @@ export default function AdminApp() {
       {screen === "schedule" ? <ScheduleScreen /> : null}
       {screen === "holidays" ? <HolidaysScreen /> : null}
       {screen === "design-form" ? <BookingFormDesignerScreen /> : null}
+      {screen === "how-to" ? <HowToUseScreen /> : null}
     </Shell>
   );
 }
