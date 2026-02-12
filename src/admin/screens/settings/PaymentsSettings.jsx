@@ -1,5 +1,20 @@
 import React, { useEffect, useState } from 'react';
 
+function UpgradeNotice() {
+  const pricingUrl = 'https://wpbookpoint.com/pricing/';
+  return (
+    <div className="bp-card" style={{ padding: 18 }}>
+      <h2 style={{ marginTop: 0 }}>Payments require BookPoint Pro</h2>
+      <p className="bp-muted" style={{ marginBottom: 14 }}>
+        Payments (including cash) are disabled in the free version. Upgrade to BookPoint Pro to enable payment methods.
+      </p>
+      <a className="bp-btn bp-btn--primary" href={pricingUrl} target="_blank" rel="noreferrer noopener">
+        View plans & pricing
+      </a>
+    </div>
+  );
+}
+
 const METHODS = [
   { key: 'free', label: 'Free (No payment)' },
   { key: 'cash', label: 'Cash / Pay at location' },
@@ -61,7 +76,7 @@ async function api(path, opts = {}) {
   return json;
 }
 
-export default function PaymentsSettings() {
+function PaymentsSettingsPro() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
@@ -534,4 +549,10 @@ export default function PaymentsSettings() {
       </div>
     </div>
   );
+}
+
+export default function PaymentsSettings() {
+  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
+  if (!isPro) return <UpgradeNotice />;
+  return <PaymentsSettingsPro />;
 }

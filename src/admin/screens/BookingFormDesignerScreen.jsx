@@ -32,7 +32,7 @@ const STEP_DEFAULTS = {
     enabled: true,
     title: "Payment",
     subtitle: "Choose a payment method",
-    image: "service-image.png",
+    image: "payment.svg",
     buttonBackLabel: "<- Back",
     buttonNextLabel: "Next ->",
     accentOverride: "",
@@ -40,6 +40,29 @@ const STEP_DEFAULTS = {
     showHelpBox: true,
   },
 };
+
+const DEFAULT_STEP_IMAGES = {
+  location: "locations.svg",
+  category: "categories.svg",
+  service: "services.svg",
+  extras: "service-extras.svg",
+  agents: "agents.svg",
+  datetime: "calendar.svg",
+  customer: "customers.svg",
+  payment: "payment.svg",
+  review: "bookings.svg",
+  confirm: "logo.png",
+};
+
+const LEGACY_DEFAULT_IMAGES = new Set([
+  "location-image.png",
+  "service-image.png",
+  "default-avatar.jpg",
+  "blue-dot.png",
+  "white-curve.png",
+  "payment_now.png",
+  "payment_now_w_paypal.png",
+]);
 
 function normalizeStepKey(key) {
   if (key === "agent") return "agents";
@@ -64,6 +87,20 @@ function normalizeDesignSteps(steps = []) {
     if (map.has(k)) {
       const step = map.get(k);
       map.set(k, { ...step, enabled: true });
+    }
+  }
+
+  // Ensure each step has the correct default image (and upgrade legacy defaults).
+  for (const [k, step] of map.entries()) {
+    const def = DEFAULT_STEP_IMAGES[k];
+    if (!def) continue;
+
+    const hasCustomMedia = Boolean(step?.imageUrl || step?.imageId);
+    if (hasCustomMedia) continue;
+
+    const img = String(step?.image || "").trim();
+    if (!img || LEGACY_DEFAULT_IMAGES.has(img)) {
+      map.set(k, { ...step, image: def });
     }
   }
 

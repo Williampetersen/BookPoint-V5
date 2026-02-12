@@ -54,15 +54,15 @@ function bp_booking_form_design_default() {
       'darkModeDefault' => false,
     ],
     'steps' => [
-      ['key'=>'location', 'enabled'=>true, 'title'=>'Select Location', 'subtitle'=>'Please select a location', 'image'=>'location-image.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
-      ['key'=>'category', 'enabled'=>true, 'title'=>'Choose Category', 'subtitle'=>'Select a category', 'image'=>'service-image.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
-      ['key'=>'service', 'enabled'=>true, 'title'=>'Choose Service', 'subtitle'=>'Select a service', 'image'=>'service-image.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
-      ['key'=>'extras', 'enabled'=>true, 'title'=>'Service Extras', 'subtitle'=>'Pick extras', 'image'=>'service-image.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
-      ['key'=>'agents', 'enabled'=>true, 'title'=>'Choose Agent', 'subtitle'=>'Pick your agent', 'image'=>'default-avatar.jpg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
-      ['key'=>'datetime', 'enabled'=>true, 'title'=>'Date & Time', 'subtitle'=>'Pick an available slot', 'image'=>'blue-dot.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
-      ['key'=>'customer', 'enabled'=>true, 'title'=>'Customer Info', 'subtitle'=>'Enter your details', 'image'=>'default-avatar.jpg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
-      ['key'=>'payment', 'enabled'=>true, 'title'=>'Payment', 'subtitle'=>'Choose a payment method', 'image'=>'service-image.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
-      ['key'=>'review', 'enabled'=>true, 'title'=>'Review Order', 'subtitle'=>'Confirm everything', 'image'=>'white-curve.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
+      ['key'=>'location', 'enabled'=>true, 'title'=>'Select Location', 'subtitle'=>'Please select a location', 'image'=>'locations.svg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
+      ['key'=>'category', 'enabled'=>true, 'title'=>'Choose Category', 'subtitle'=>'Select a category', 'image'=>'categories.svg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
+      ['key'=>'service', 'enabled'=>true, 'title'=>'Choose Service', 'subtitle'=>'Select a service', 'image'=>'services.svg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
+      ['key'=>'extras', 'enabled'=>true, 'title'=>'Service Extras', 'subtitle'=>'Pick extras', 'image'=>'service-extras.svg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
+      ['key'=>'agents', 'enabled'=>true, 'title'=>'Choose Agent', 'subtitle'=>'Pick your agent', 'image'=>'agents.svg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
+      ['key'=>'datetime', 'enabled'=>true, 'title'=>'Date & Time', 'subtitle'=>'Pick an available slot', 'image'=>'calendar.svg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
+      ['key'=>'customer', 'enabled'=>true, 'title'=>'Customer Info', 'subtitle'=>'Enter your details', 'image'=>'customers.svg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
+      ['key'=>'payment', 'enabled'=>true, 'title'=>'Payment', 'subtitle'=>'Choose a payment method', 'image'=>'payment.svg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
+      ['key'=>'review', 'enabled'=>true, 'title'=>'Review Order', 'subtitle'=>'Confirm everything', 'image'=>'bookings.svg', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
       ['key'=>'confirm', 'enabled'=>true, 'title'=>'Confirmation', 'subtitle'=>'Done', 'image'=>'logo.png', 'buttonBackLabel'=>'<- Back', 'buttonNextLabel'=>'Next ->', 'accentOverride'=>'', 'showLeftPanel'=>true, 'showHelpBox'=>true],
     ],
     'texts' => [
@@ -89,11 +89,69 @@ function bp_booking_form_design_default() {
   ];
 }
 
+function bp_booking_form_design_step_image_defaults(): array {
+  return [
+    'location' => 'locations.svg',
+    'category' => 'categories.svg',
+    'service' => 'services.svg',
+    'extras' => 'service-extras.svg',
+    'agents' => 'agents.svg',
+    'datetime' => 'calendar.svg',
+    'customer' => 'customers.svg',
+    'payment' => 'payment.svg',
+    'review' => 'bookings.svg',
+    'confirm' => 'logo.png',
+  ];
+}
+
+function bp_booking_form_design_upgrade_step_images(array $config): array {
+  $changed = false;
+  $defaults = bp_booking_form_design_step_image_defaults();
+  $legacy = [
+    'location-image.png' => true,
+    'service-image.png' => true,
+    'default-avatar.jpg' => true,
+    'blue-dot.png' => true,
+    'white-curve.png' => true,
+    'payment_now.png' => true,
+    'payment_now_w_paypal.png' => true,
+  ];
+
+  if (!isset($config['steps']) || !is_array($config['steps'])) return $config;
+
+  foreach ($config['steps'] as $idx => $step) {
+    if (!is_array($step)) continue;
+    $key = isset($step['key']) ? (string)$step['key'] : '';
+    if ($key === '' || !isset($defaults[$key])) continue;
+
+    $hasCustomMedia = !empty($step['imageUrl']) || !empty($step['imageId']);
+    if ($hasCustomMedia) continue;
+
+    $img = isset($step['image']) ? trim((string)$step['image']) : '';
+    if ($img === '' || isset($legacy[$img])) {
+      $config['steps'][$idx]['image'] = $defaults[$key];
+      $changed = true;
+    }
+  }
+
+  if ($changed) {
+    $config['version'] = isset($config['version']) ? (int)$config['version'] : 1;
+  }
+
+  return $config;
+}
+
 function bp_admin_get_booking_form_design(\WP_REST_Request $req) {
   $config = get_option('bp_booking_form_design', null);
   if (!$config || !is_array($config)) {
     $config = bp_booking_form_design_default();
     update_option('bp_booking_form_design', $config, false);
+  } else {
+    $upgraded = bp_booking_form_design_upgrade_step_images($config);
+    if ($upgraded !== $config) {
+      $config = $upgraded;
+      update_option('bp_booking_form_design', $config, false);
+    }
   }
   return rest_ensure_response([
     'success' => true,

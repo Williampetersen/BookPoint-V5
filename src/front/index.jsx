@@ -8,10 +8,12 @@ function BookPointWidget({ label, mountEl }) {
   const hideButton = mountEl?.getAttribute('data-bp-fallback') === '1';
 
   const imagesBase = (window.BP_FRONT?.images || '').replace(/\/$/, '') + '/';
+  const iconsBase = (window.BP_FRONT?.icons || '').replace(/\/$/, '') + '/';
   const brand = useMemo(() => ({
     imagesBase,
+    iconsBase,
     helpPhone: '+1 234 567 89',
-  }), [imagesBase]);
+  }), [imagesBase, iconsBase]);
 
   useEffect(() => attachOpenHandler(mountEl, setOpen), [mountEl]);
 
@@ -46,8 +48,10 @@ function attachOpenHandler(mountEl, setOpen) {
 
 function getBrand() {
   const imagesBase = (window.BP_FRONT?.images || '').replace(/\/$/, '') + '/';
+  const iconsBase = (window.BP_FRONT?.icons || '').replace(/\/$/, '') + '/';
   return {
     imagesBase,
+    iconsBase,
     helpPhone: '+1 234 567 89',
   };
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
+import UpgradeToPro from "../components/UpgradeToPro";
 
 const monthName = (yyyyMmDd) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(yyyyMmDd || "").slice(0, 10));
@@ -164,6 +165,7 @@ function HolidayModal({ agents, row, onClose, onSaved }) {
 }
 
 export default function HolidaysScreen({ embedded = false }) {
+  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const [rows, setRows] = useState([]);
   const [agents, setAgents] = useState([]);
 
@@ -187,6 +189,7 @@ export default function HolidaysScreen({ embedded = false }) {
   const pushToast = (type, msg) => setToast({ type, msg });
 
   const load = async () => {
+    if (!isPro) return;
     setLoading(true);
     try {
       const agentParam = filterAgentId ? `&agent_id=${encodeURIComponent(filterAgentId)}` : "";
@@ -199,10 +202,15 @@ export default function HolidaysScreen({ embedded = false }) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [year, filterAgentId]);
+  useEffect(() => {
+    if (!isPro) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, filterAgentId, isPro]);
 
   useEffect(() => {
     (async () => {
+      if (!isPro) return;
       try {
         const res = await bpFetch("/admin/agents");
         setAgents(res?.data || []);
@@ -210,7 +218,7 @@ export default function HolidaysScreen({ embedded = false }) {
         setAgents([]);
       }
     })();
-  }, []);
+  }, [isPro]);
 
   const agentNameMap = useMemo(() => {
     const map = new Map();
@@ -327,6 +335,10 @@ export default function HolidaysScreen({ embedded = false }) {
   };
 
   const wrapClass = embedded ? "bp-holidays bp-holidays--embedded" : "bp-content bp-holidays";
+
+  if (!isPro) {
+    return <UpgradeToPro feature="Holidays" />;
+  }
 
   return (
     <div className={wrapClass}>
@@ -527,4 +539,3 @@ export default function HolidaysScreen({ embedded = false }) {
     </div>
   );
 }
-

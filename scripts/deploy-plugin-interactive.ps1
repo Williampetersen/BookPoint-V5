@@ -65,10 +65,10 @@ password $plainPass
       "build/admin.asset.php",
       "build/index.jsx.css",
       "build/index.jsx-rtl.css",
-      "public/front.js",
-      "public/front.asset.php",
-      "public/index.jsx.css",
-      "public/index.jsx-rtl.css",
+      "public/build/front.js",
+      "public/build/front.asset.php",
+      "public/build/index.jsx.css",
+      "public/build/index.jsx-rtl.css",
       "lib/rest/admin-booking-form-design-routes.php",
       "public/admin-ui.css",
       "public/admin-app.css"
@@ -77,6 +77,17 @@ password $plainPass
     foreach ($f in $fastFiles) {
       $p = Join-Path $basePath $f
       if (Test-Path $p) { $filesToUpload.Add($p) }
+    }
+
+    # Always include icons + images in FAST mode (branding hotfixes).
+    $iconsDir = Join-Path $basePath "public/icons"
+    if (Test-Path $iconsDir) {
+      Get-ChildItem -Path $iconsDir -Filter *.svg -File | ForEach-Object { $filesToUpload.Add($_.FullName) }
+    }
+
+    $imagesDir = Join-Path $basePath "public/images"
+    if (Test-Path $imagesDir) {
+      Get-ChildItem -Path $imagesDir -Recurse -File | ForEach-Object { $filesToUpload.Add($_.FullName) }
     }
   } else {
     $rootFiles = @(

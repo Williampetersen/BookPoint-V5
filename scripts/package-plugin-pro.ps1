@@ -10,6 +10,35 @@ $stagingPluginDir = Join-Path $stagingRoot $pluginDirName
 New-Item -ItemType Directory -Force $distDir | Out-Null
 New-Item -ItemType Directory -Force $stagingPluginDir | Out-Null
 
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.IO.Compression
+
+function New-ZipFromDirectory([string]$SourceDir, [string]$ZipPath) {
+  if (Test-Path $ZipPath) { Remove-Item -Force $ZipPath }
+
+  $source = (Resolve-Path $SourceDir).Path.TrimEnd('\', '/')
+  $fs = [System.IO.File]::Open($ZipPath, [System.IO.FileMode]::CreateNew)
+  $zip = New-Object System.IO.Compression.ZipArchive($fs, [System.IO.Compression.ZipArchiveMode]::Create, $false)
+
+  try {
+    Get-ChildItem -Path $source -Recurse -File | ForEach-Object {
+      $full = $_.FullName
+      $rel = $full.Substring($source.Length).TrimStart('\', '/')
+      $rel = $rel -replace '\\', '/'
+
+      $entry = $zip.CreateEntry($rel, [System.IO.Compression.CompressionLevel]::Optimal)
+      $entry.LastWriteTime = $_.LastWriteTime
+
+      $in = [System.IO.File]::OpenRead($full)
+      $out = $entry.Open()
+      try { $in.CopyTo($out) } finally { $out.Dispose(); $in.Dispose() }
+    }
+  } finally {
+    $zip.Dispose()
+    $fs.Dispose()
+  }
+}
+
 $includeDirs = @('lib', 'public', 'build', 'blocks')
 $includeFiles = @(
   'bookpoint-v5.php',
@@ -32,6 +61,30 @@ foreach ($file in $includeFiles) {
   }
 }
 
+# Pro package: adjust plugin header so it is clearly distinguishable in WP Admin.
+$mainPluginFile = Join-Path $stagingPluginDir 'bookpoint-v5.php'
+if (Test-Path $mainPluginFile) {
+  $content = Get-Content -Raw -Encoding UTF8 $mainPluginFile
+  $content = $content -replace '(?m)^\s*\*\s*Plugin Name:\s*BookPoint\s*$', ' * Plugin Name: BookPoint Pro'
+  $content = $content -replace '(?m)^\s*\*\s*Description:\s*Appointment booking system \(with optional Pro add-on\)\.\s*$', ' * Description: Professional appointment booking system (Pro version).'
+  # Write without BOM to avoid "headers already sent" during activation.
+  [System.IO.File]::WriteAllText($mainPluginFile, $content, (New-Object System.Text.UTF8Encoding($false)))
+}
+
+# Strip UTF-8 BOM from PHP files to prevent "headers already sent" during activation.
+Get-ChildItem -Path $stagingPluginDir -Recurse -File -Filter *.php | ForEach-Object {
+  try {
+    $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+      $newBytes = New-Object byte[] ($bytes.Length - 3)
+      [System.Array]::Copy($bytes, 3, $newBytes, 0, $bytes.Length - 3)
+      [System.IO.File]::WriteAllBytes($_.FullName, $newBytes)
+    }
+  } catch {
+    throw "Packaging failed while stripping BOM from: $($_.FullName) - $($_.Exception.Message)"
+  }
+}
+
 # Sanity checks: ensure required static assets are included in releases.
 $requiredPaths = @(
   (Join-Path $stagingPluginDir 'build/admin.js'),
@@ -49,16 +102,7 @@ foreach ($p in $requiredPaths) {
 
 if (Test-Path $outZip) { Remove-Item -Force $outZip }
 
-$maxAttempts = 5
-for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
-  try {
-    Compress-Archive -Path (Join-Path $stagingRoot '*') -DestinationPath $outZip -CompressionLevel Optimal -Force
-    break
-  } catch {
-    if ($attempt -ge $maxAttempts) { throw }
-    Start-Sleep -Seconds 1
-  }
-}
+New-ZipFromDirectory -SourceDir $stagingRoot -ZipPath $outZip
 
 try { Remove-Item -Recurse -Force $stagingRoot } catch { }
 

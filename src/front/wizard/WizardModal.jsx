@@ -39,15 +39,15 @@ const REQUIRED_STEP_ORDER = [
 ];
 
 const DEFAULT_STEPS = [
-  { key: 'location', title: 'Location Selection', icon: 'location-image.png' },
-  { key: 'category', title: 'Choose Category', icon: 'service-image.png' },
-  { key: 'service', title: 'Choose Service', icon: 'service-image.png' },
-  { key: 'extras', title: 'Service Extras', icon: 'service-image.png' },
-  { key: 'agent', title: 'Choose Agent', icon: 'default-avatar.jpg' },
-  { key: 'datetime', title: 'Choose Date & Time', icon: 'blue-dot.png' },
-  { key: 'customer', title: 'Customer Information', icon: 'default-avatar.jpg' },
-  { key: 'review', title: 'Review Order', icon: 'white-curve.png' },
-  { key: 'payment', title: 'Payment', icon: 'payment_now.png' },
+  { key: 'location', title: 'Location Selection', icon: 'locations.svg' },
+  { key: 'category', title: 'Choose Category', icon: 'categories.svg' },
+  { key: 'service', title: 'Choose Service', icon: 'services.svg' },
+  { key: 'extras', title: 'Service Extras', icon: 'service-extras.svg' },
+  { key: 'agent', title: 'Choose Agent', icon: 'agents.svg' },
+  { key: 'datetime', title: 'Choose Date & Time', icon: 'calendar.svg' },
+  { key: 'customer', title: 'Customer Information', icon: 'customers.svg' },
+  { key: 'review', title: 'Review Order', icon: 'bookings.svg' },
+  { key: 'payment', title: 'Payment', icon: 'payment.svg' },
   { key: 'confirmation', title: 'Confirm', icon: 'logo.png' },
 ];
 
@@ -151,7 +151,7 @@ function buildSteps(designConfig) {
     .filter((k) => byKey.has(k))
     .map((key) => {
       const cfg = byKey.get(key) || {};
-      const base = baseMap.get(key) || { key, title: key, icon: 'service-image.png' };
+      const base = baseMap.get(key) || { key, title: key, icon: 'services.svg' };
       return {
         ...base,
         key,
@@ -210,17 +210,28 @@ export default function WizardModal({ open, onClose, brand }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const isPro = Boolean(Number(window.BP_FRONT?.isPro || 0));
   const paymentEnabledMethods = Array.isArray(bpSettings?.payments_enabled_methods) && bpSettings.payments_enabled_methods.length
     ? bpSettings.payments_enabled_methods
-    : ['cash'];
-  const paymentsActive = bpSettings?.payments_enabled !== 0;
+    : ['free'];
+  const paymentsActive = bpSettings ? bpSettings.payments_enabled !== 0 : false;
   const steps = useMemo(() => {
-    if (!paymentsActive) {
-      return baseSteps.filter((s) => s.key !== 'payment');
+    let nextSteps = baseSteps;
+
+    // Free build: hide Pro-only steps entirely (Locations, Extras, Payments).
+    if (!isPro) {
+      nextSteps = nextSteps.filter((s) => !['location', 'extras', 'payment'].includes(s.key));
     }
-    return baseSteps;
-  }, [baseSteps, paymentsActive]);
+
+    if (!paymentsActive) {
+      nextSteps = nextSteps.filter((s) => s.key !== 'payment');
+    }
+
+    return nextSteps;
+  }, [baseSteps, isPro, paymentsActive]);
   const hasPaymentStep = useMemo(() => steps.some((s) => s.key === 'payment'), [steps]);
+  const hasLocationStep = useMemo(() => steps.some((s) => s.key === 'location'), [steps]);
+  const hasExtrasStep = useMemo(() => steps.some((s) => s.key === 'extras'), [steps]);
   const hasServiceStep = useMemo(() => steps.some((s) => s.key === 'service'), [steps]);
   const hasAgentStep = useMemo(() => steps.some((s) => s.key === 'agent'), [steps]);
   const step = steps[stepIndex] || steps[0] || DEFAULT_STEPS[0];
@@ -239,8 +250,17 @@ export default function WizardModal({ open, onClose, brand }) {
 
   const iconUrl = useMemo(() => {
     if (step?.imageUrl) return step.imageUrl;
-    const file = step?.icon || step?.image || 'service-image.png';
-    return brand?.imagesBase ? brand.imagesBase + file : '';
+    const file = String(step?.icon || step?.image || 'services.svg').trim();
+    if (!file) return '';
+    const isSvg = file.toLowerCase().endsWith('.svg');
+    const base = isSvg ? (brand?.iconsBase || '') : (brand?.imagesBase || '');
+    if (!base) return '';
+
+    const url = base + file;
+    const v = String(isSvg ? window.BP_FRONT?.iconsBuild : window.BP_FRONT?.imagesBuild || '').trim();
+    if (!v) return url;
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}v=${encodeURIComponent(v)}`;
   }, [brand, step]);
   const helpTitle = designConfig?.texts?.helpTitle || 'Need help?';
   const helpPhone = designConfig?.texts?.helpPhone || designConfig?.layout?.helpPhone || brand?.helpPhone || '';
@@ -434,7 +454,7 @@ export default function WizardModal({ open, onClose, brand }) {
       try {
         setLoading(true);
         const [locs, cats, fields] = await Promise.all([
-          fetchLocations(),
+          (isPro && hasLocationStep) ? fetchLocations() : Promise.resolve([]),
           fetchCategories(),
           fetchFormFields(),
         ]);
@@ -447,7 +467,7 @@ export default function WizardModal({ open, onClose, brand }) {
         setLoading(false);
       }
     })();
-  }, [open]);
+  }, [open, isPro, hasLocationStep]);
 
   useEffect(() => {
     if (!open) return;
@@ -504,7 +524,7 @@ export default function WizardModal({ open, onClose, brand }) {
       try {
         if (!serviceId) return;
         const [ex, ag] = await Promise.all([
-          fetchExtras({ service_id: serviceId }),
+          (isPro && hasExtrasStep) ? fetchExtras({ service_id: serviceId }) : Promise.resolve([]),
           fetchAgents({ service_id: serviceId, location_id: locationId }),
         ]);
         setExtras(ex);
@@ -514,7 +534,7 @@ export default function WizardModal({ open, onClose, brand }) {
         setAgents([]);
       }
     })();
-  }, [open, serviceId, locationId]);
+  }, [open, serviceId, locationId, isPro, hasExtrasStep]);
 
   function next() {
     setError('');
@@ -548,10 +568,10 @@ export default function WizardModal({ open, onClose, brand }) {
     const settingsCurrency = bpSettings?.currency || window.BP_FRONT?.currency || 'USD';
 
     return {
-      location_id: locationId,
+      location_id: isPro ? locationId : null,
       category_ids: categoryIds,
       service_id: serviceId,
-      extra_ids: extraIds,
+      extra_ids: (isPro && hasExtrasStep) ? extraIds : [],
       agent_id: agentId,
       date,
       start_time: slot?.start_time || slot?.start || '',
@@ -559,7 +579,7 @@ export default function WizardModal({ open, onClose, brand }) {
       field_values: answers,
       customer_fields,
       booking_fields,
-      extras: extraIds,
+      extras: (isPro && hasExtrasStep) ? extraIds : [],
       total_price: totalAmount,
       currency: settingsCurrency,
     };
@@ -573,7 +593,7 @@ export default function WizardModal({ open, onClose, brand }) {
 
     try {
       const payload = buildPayload();
-      payload.payment_method = paymentMethod || 'cash';
+      payload.payment_method = paymentsActive ? (paymentMethod || 'cash') : 'free';
 
       const res = await fetch(`${getRestBase()}/front/booking/create`, {
         method: 'POST',
@@ -607,7 +627,7 @@ export default function WizardModal({ open, onClose, brand }) {
       const payload = buildPayload();
 
       const method = !paymentsActive
-        ? 'cash'
+        ? 'free'
         : (paymentMethod || bpSettings?.payments_default_method || 'cash');
       payload.payment_method = method;
 
@@ -830,7 +850,11 @@ export default function WizardModal({ open, onClose, brand }) {
                 formFields={formFields}
                 answers={answers}
                 bookingId={bookingId}
-                paymentMethodLabel={paymentLabelMap[paymentMethod] || paymentMethod || '-'}
+                showLocation={isPro && hasLocationStep}
+                showExtras={isPro && hasExtrasStep}
+                showPayment={paymentsActive && hasPaymentStep}
+                hasPayment={paymentsActive && hasPaymentStep}
+                paymentMethodLabel={(paymentsActive && hasPaymentStep) ? (paymentLabelMap[paymentMethod] || paymentMethod || '-') : ''}
                 totalLabel={formatMoney(totalAmount, bpSettings)}
                 onBack={back}
                 onNext={async () => {
@@ -879,6 +903,8 @@ export default function WizardModal({ open, onClose, brand }) {
                 agentId={agentId}
                 date={date}
                 slot={slot}
+                showLocation={isPro && hasLocationStep}
+                showExtras={isPro && hasExtrasStep}
               />
             </div>
           </aside>
@@ -893,6 +919,8 @@ function SummaryBlock(props) {
     settings,
     locations, categories, services, extras, agents,
     locationId, categoryIds, serviceId, extraIds, agentId, date, slot,
+    showLocation = true,
+    showExtras = true,
   } = props;
 
   const loc = locations.find((x) => String(x.id) === String(locationId));
@@ -906,10 +934,12 @@ function SummaryBlock(props) {
 
   return (
     <div className="bp-summary-items">
-      <div className="bp-summary-row">
-        <div className="k">Location</div>
-        <div className="v">{loc?.name || '-'}</div>
-      </div>
+      {showLocation ? (
+        <div className="bp-summary-row">
+          <div className="k">Location</div>
+          <div className="v">{loc?.name || '-'}</div>
+        </div>
+      ) : null}
       <div className="bp-summary-row">
         <div className="k">Category</div>
         <div className="v">{cats.length ? cats.map((c) => c.name).join(', ') : '-'}</div>
@@ -934,17 +964,21 @@ function SummaryBlock(props) {
         <div className="k">Time</div>
         <div className="v">{slot?.start_time ? `${slot.start_time} - ${slot.end_time}` : '-'}</div>
       </div>
-      <div className="bp-summary-row">
-        <div className="k">Extras</div>
-        <div className="v">{ex.length ? ex.map((e) => e.name).join(', ') : '-'}</div>
-      </div>
-      <div className="bp-summary-row">
-        <div className="k">Extras Price</div>
-        <div className="v">{ex.length ? formatMoney(extrasPrice, settings) : '-'}</div>
-      </div>
+      {showExtras ? (
+        <>
+          <div className="bp-summary-row">
+            <div className="k">Extras</div>
+            <div className="v">{ex.length ? ex.map((e) => e.name).join(', ') : '-'}</div>
+          </div>
+          <div className="bp-summary-row">
+            <div className="k">Extras Price</div>
+            <div className="v">{ex.length ? formatMoney(extrasPrice, settings) : '-'}</div>
+          </div>
+        </>
+      ) : null}
       <div className="bp-summary-row">
         <div className="k">Total</div>
-        <div className="v">{svc?.price != null || ex.length ? formatMoney(totalPrice, settings) : '-'}</div>
+        <div className="v">{svc?.price != null || (showExtras && ex.length) ? formatMoney(totalPrice, settings) : '-'}</div>
       </div>
     </div>
   );

@@ -17,6 +17,10 @@ export default function StepReview({
   answers,
   paymentMethodLabel,
   totalLabel,
+  showLocation = true,
+  showExtras = true,
+  showPayment = true,
+  hasPayment = false,
   onBack,
   onNext,
   isCreatingBooking,
@@ -40,14 +44,14 @@ export default function StepReview({
   return (
     <div className="bp-step">
       <div className="bp-review">
-        <ReviewRow label="Location" value={loc?.name} />
+        {showLocation ? <ReviewRow label="Location" value={loc?.name} /> : null}
         <ReviewRow label="Categories" value={cats.length ? cats.map((c) => c.name).join(', ') : '-'} />
         <ReviewRow label="Service" value={svc?.name} />
         <ReviewRow label="Agent" value={ag?.name} />
         <ReviewRow label="Date" value={date} />
         <ReviewRow label="Time" value={slot?.start_time ? `${slot.start_time} - ${slot.end_time}` : '-'} />
-        <ReviewRow label="Extras" value={ex.length ? ex.map((e) => e.name).join(', ') : '-'} />
-        {paymentMethodLabel ? <ReviewRow label="Payment Method" value={paymentMethodLabel} /> : null}
+        {showExtras ? <ReviewRow label="Extras" value={ex.length ? ex.map((e) => e.name).join(', ') : '-'} /> : null}
+        {showPayment && paymentMethodLabel ? <ReviewRow label="Payment Method" value={paymentMethodLabel} /> : null}
         {totalLabel ? <ReviewRow label="Total" value={totalLabel} /> : null}
 
         <div className="bp-review-section">Customer Information</div>
@@ -69,7 +73,7 @@ export default function StepReview({
       <div className="bp-step-footer">
         <button type="button" className="bp-back" onClick={onBack}>{backLabel}</button>
         <button type="button" className="bp-next" disabled={!!isCreatingBooking} onClick={onNext}>
-          {isCreatingBooking ? 'Preparing payment...' : nextLabel}
+          {isCreatingBooking ? (hasPayment ? 'Preparing payment...' : 'Booking...') : nextLabel}
         </button>
       </div>
     </div>

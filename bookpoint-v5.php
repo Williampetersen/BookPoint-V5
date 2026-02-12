@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: BookPoint Pro
- * Description: Professional appointment booking system (MVC + Router + Blocks).
+ * Plugin Name: BookPoint
+ * Description: Appointment booking system (with optional Pro add-on).
  * Version: 6.1.8
  * Author: William
  * Text Domain: bookpoint
@@ -10,10 +10,93 @@
 
 defined('ABSPATH') || exit;
 
+// Emergency runtime probe (temporary): does not depend on BookPoint class boot.
+if (is_admin() && isset($_GET['bp_probe']) && sanitize_text_field((string) $_GET['bp_probe']) === '1') {
+  $GLOBALS['bp_probe_menu_has_dashboard'] = null;
+
+  add_action('admin_menu', function () {
+    global $menu;
+    $has = false;
+    if (is_array($menu)) {
+      foreach ($menu as $item) {
+        if (is_array($item) && (($item[2] ?? '') === 'bp_dashboard')) {
+          $has = true;
+          break;
+        }
+      }
+    }
+    $GLOBALS['bp_probe_menu_has_dashboard'] = $has ? 1 : 0;
+  }, PHP_INT_MAX);
+
+  add_action('admin_notices', function () {
+    if (!current_user_can('activate_plugins') && !current_user_can('manage_options')) return;
+
+    $didPluginsLoaded = did_action('plugins_loaded') ? 'yes' : 'no';
+    $didAdminMenu = did_action('admin_menu') ? 'yes' : 'no';
+    $hasBookPointClass = class_exists('BPV5_BookPoint_Core_Plugin', false) ? 'yes' : 'no';
+    $hasBPClass = class_exists('BP_Plugin', false) ? 'yes' : 'no';
+    $hasConst = defined('BP_PLUGIN_FILE') ? 'yes' : 'no';
+    $menuState = $GLOBALS['bp_probe_menu_has_dashboard'];
+    $menuText = ($menuState === null) ? 'unknown' : (($menuState === 1) ? 'yes' : 'no');
+
+    echo '<div class="notice notice-info"><p><strong>BookPoint probe</strong> (remove <code>bp_probe=1</code> to hide).</p>';
+    echo '<p>plugins_loaded: <strong>' . esc_html($didPluginsLoaded) . '</strong> | admin_menu fired: <strong>' . esc_html($didAdminMenu) . '</strong></p>';
+    echo '<p>BPV5_BookPoint_Core_Plugin class loaded: <strong>' . esc_html($hasBookPointClass) . '</strong> | BP_Plugin class loaded: <strong>' . esc_html($hasBPClass) . '</strong></p>';
+    echo '<p>BP_PLUGIN_FILE defined: <strong>' . esc_html($hasConst) . '</strong> | bp_dashboard in $menu: <strong>' . esc_html($menuText) . '</strong></p>';
+
+    if (defined('BP_PLUGIN_FILE')) {
+      echo '<p>BP_PLUGIN_FILE: <code>' . esc_html((string) BP_PLUGIN_FILE) . '</code></p>';
+    }
+    echo '</div>';
+  }, 1);
+}
+
 // Pro build bootstrap (only present in the Pro distribution ZIP).
 $bpProBootstrap = __DIR__ . '/bookpoint-pro.php';
 if (file_exists($bpProBootstrap)) {
   require_once $bpProBootstrap;
+}
+
+// Guard against true class collisions, but allow same-file preload/duplicate includes.
+if (class_exists('BPV5_BookPoint_Core_Plugin', false)) {
+  $product = file_exists($bpProBootstrap) ? 'BookPoint Pro' : 'BookPoint';
+  $existing_file = '';
+  try {
+    $ref = new ReflectionClass('BPV5_BookPoint_Core_Plugin');
+    $existing_file = (string) ($ref->getFileName() ?: '');
+  } catch (\Throwable $e) {
+    $existing_file = '';
+  }
+
+  $same_file = false;
+  if ($existing_file !== '') {
+    $same_file = (wp_normalize_path($existing_file) === wp_normalize_path(__FILE__));
+  }
+
+  if (!$same_file) {
+    $details = '';
+    if ($existing_file !== '') {
+      $existing_display = $existing_file;
+      $base = defined('ABSPATH') ? wp_normalize_path(ABSPATH) : '';
+      if ($base !== '' && strpos(wp_normalize_path($existing_file), $base) === 0) {
+        $existing_display = substr(wp_normalize_path($existing_file), strlen($base));
+        $existing_display = ltrim((string) $existing_display, '/\\');
+      }
+      $details = "\n\n" . sprintf(__('Loaded from: %s', 'bookpoint'), $existing_display);
+    }
+
+    add_action('admin_notices', function () use ($product, $details) {
+      if (!current_user_can('activate_plugins')) return;
+      $message = sprintf(
+        __('%s could not be loaded because another copy of BookPoint is already active. Please deactivate the other BookPoint plugin first, then activate %s.%s', 'bookpoint'),
+        $product,
+        $product,
+        $details
+      );
+      echo '<div class="notice notice-error"><p>' . esc_html($message) . '</p></div>';
+    });
+    return;
+  }
 }
 
 add_filter('admin_body_class', function($classes){
@@ -23,19 +106,165 @@ add_filter('admin_body_class', function($classes){
   return $classes . ' bp-app-mode';
 });
 
-final class BP_Plugin {
+if (!class_exists('BPV5_BookPoint_Core_Plugin', false)) {
+final class BPV5_BookPoint_Core_Plugin {
 
   // NOTE: Keep plugin header Version in sync with this.
   const VERSION    = '6.1.8';
   const DB_VERSION = '5.0.0';
-  const SETUP_WIZARD_REDIRECT_TRANSIENT = 'bp_setup_wizard_redirect';
+  const PRICING_URL = 'https://wpbookpoint.com/pricing/';
+  const CAPS_SEEDED_OPTION = 'bp_caps_seeded';
+  private static $booted = false;
+
+  public static function is_pro_enabled(): bool {
+    return defined('BP_IS_PRO') && BP_IS_PRO;
+  }
+
+  /**
+   * Pages that are only available in BookPoint Pro (shown as upgrade screens in Free).
+   * Key: admin.php?page=... slug
+   * Value: Human label shown in the upgrade screen.
+   */
+  private static function pro_only_pages(): array {
+    return [
+      'bp_locations' => __('Locations', 'bookpoint'),
+      'bp_locations_edit' => __('Locations', 'bookpoint'),
+      'bp_location_categories_edit' => __('Locations', 'bookpoint'),
+      'bp_extras' => __('Service Extras', 'bookpoint'),
+      'bp_extras_edit' => __('Service Extras', 'bookpoint'),
+      'bp_extras_delete' => __('Service Extras', 'bookpoint'),
+      'bp_promo_codes' => __('Promo Codes', 'bookpoint'),
+      'bp_promo_codes_edit' => __('Promo Codes', 'bookpoint'),
+      'bp_promo_codes_delete' => __('Promo Codes', 'bookpoint'),
+      'bp_holidays' => __('Holidays', 'bookpoint'),
+    ];
+  }
+
+  private static function is_pro_only_page(string $page): bool {
+    $map = self::pro_only_pages();
+    return isset($map[$page]);
+  }
+
+  private static function pro_feature_label_for_page(string $page): string {
+    $map = self::pro_only_pages();
+    return $map[$page] ?? __('This feature', 'bookpoint');
+  }
+
+  private static function render_upgrade_screen(string $feature_label): void {
+    $pricing = esc_url(self::PRICING_URL);
+    $back = esc_url(admin_url('admin.php?page=bp_dashboard'));
+    $license = esc_url(admin_url('admin.php?page=bp_settings&tab=license'));
+    echo '<div class="wrap bp-upgrade-wrap">';
+    echo '<style>
+      .bp-upgrade-wrap{max-width:1200px}
+      .bp-upgrade-hero{margin:16px 0 14px;padding:18px;border-radius:18px;border:1px solid rgba(30,64,175,.16);background:linear-gradient(180deg, rgba(37,99,235,.10), rgba(37,99,235,.03))}
+      .bp-upgrade-hero-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+      .bp-upgrade-hero h1{margin:0 0 6px;font-size:24px;line-height:1.2}
+      .bp-upgrade-hero p{margin:0;color:#334155;font-size:13px;line-height:1.6}
+      .bp-upgrade-actions{display:flex;gap:10px;flex-wrap:wrap}
+      .bp-upgrade-btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 14px;border-radius:12px;text-decoration:none;font-weight:700;border:1px solid rgba(15,23,42,.14)}
+      .bp-upgrade-btn.primary{background:#2563eb;border-color:#1d4ed8;color:#fff}
+      .bp-upgrade-btn.primary:hover{background:#1d4ed8;color:#fff}
+      .bp-upgrade-btn.ghost{background:#fff;color:#0f172a}
+      .bp-upgrade-btn.ghost:hover{background:#f8fafc}
+      .bp-upgrade-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+      .bp-pill{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#fff;border:1px solid rgba(15,23,42,.10);font-size:12px;color:#334155}
+      .bp-upgrade-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+      .bp-upgrade-card{background:#fff;border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:16px 18px}
+      .bp-upgrade-card h2{margin:0 0 8px;font-size:16px}
+      .bp-upgrade-card p,.bp-upgrade-card li{color:#475569;font-size:13px;line-height:1.65}
+      .bp-upgrade-card ul,.bp-upgrade-card ol{margin:8px 0 0 18px}
+      .bp-upgrade-note{margin-top:10px;color:#64748b;font-size:12px}
+      @media (max-width: 900px){
+        .bp-upgrade-hero-head{flex-direction:column}
+        .bp-upgrade-grid{grid-template-columns:1fr}
+      }
+    </style>';
+    echo '<div class="bp-upgrade-hero">';
+    echo '<div class="bp-upgrade-hero-head">';
+    echo '<div>';
+    echo '<h1>' . esc_html__('Upgrade to BookPoint Pro', 'bookpoint') . '</h1>';
+    echo '<p>' . esc_html(sprintf(__('%s is available in Pro. Upgrade to unlock it and keep your workflow in one place.', 'bookpoint'), $feature_label)) . '</p>';
+    echo '</div>';
+    echo '<div class="bp-upgrade-actions">';
+    echo '<a class="bp-upgrade-btn primary" href="' . $pricing . '" target="_blank" rel="noopener noreferrer">' . esc_html__('View plans & pricing', 'bookpoint') . '</a>';
+    echo '<a class="bp-upgrade-btn ghost" href="' . $license . '">' . esc_html__('Open License settings', 'bookpoint') . '</a>';
+    echo '<a class="bp-upgrade-btn ghost" href="' . $back . '">' . esc_html__('Back to Dashboard', 'bookpoint') . '</a>';
+    echo '</div>';
+    echo '</div>';
+    echo '<div class="bp-upgrade-pills">';
+    echo '<span class="bp-pill">' . esc_html__('Locations', 'bookpoint') . '</span>';
+    echo '<span class="bp-pill">' . esc_html__('Service Extras', 'bookpoint') . '</span>';
+    echo '<span class="bp-pill">' . esc_html__('Promo Codes', 'bookpoint') . '</span>';
+    echo '<span class="bp-pill">' . esc_html__('Holidays', 'bookpoint') . '</span>';
+    echo '<span class="bp-pill">' . esc_html__('Payments', 'bookpoint') . '</span>';
+    echo '</div>';
+    echo '</div>';
+    echo '<div class="bp-upgrade-grid">';
+    echo '<div class="bp-upgrade-card">';
+    echo '<h2>' . esc_html__('What you unlock in Pro', 'bookpoint') . '</h2>';
+    echo '<ul>';
+    echo '<li>' . esc_html__('Multi-location setup and location categories.', 'bookpoint') . '</li>';
+    echo '<li>' . esc_html__('Service extras and advanced pricing options.', 'bookpoint') . '</li>';
+    echo '<li>' . esc_html__('Promo codes, holidays, and payment integrations.', 'bookpoint') . '</li>';
+    echo '<li>' . esc_html__('License-based updates and premium support.', 'bookpoint') . '</li>';
+    echo '</ul>';
+    echo '<div class="bp-upgrade-note">' . esc_html__('Free version stays active and keeps core booking features.', 'bookpoint') . '</div>';
+    echo '</div>';
+    echo '<div class="bp-upgrade-card">';
+    echo '<h2>' . esc_html__('How to upgrade', 'bookpoint') . '</h2>';
+    echo '<p>' . esc_html__('Install Pro, then activate your license key.', 'bookpoint') . '</p>';
+    echo '<ol>';
+    echo '<li>' . esc_html__('Purchase a plan from wpbookpoint.com.', 'bookpoint') . '</li>';
+    echo '<li>' . esc_html__('Download the BookPoint Pro ZIP from your account.', 'bookpoint') . '</li>';
+    echo '<li>' . esc_html__('In WordPress: Plugins -> Add New -> Upload Plugin -> choose the ZIP -> Install Now -> Activate.', 'bookpoint') . '</li>';
+    echo '<li>' . esc_html__('Open BookPoint -> Settings -> License to paste and activate your license key.', 'bookpoint') . '</li>';
+    echo '</ol>';
+    echo '</div>';
+    echo '</div>';
+    echo '</div>';
+  }
+  public static function render_upgrade_page(): void {
+    $page = isset($_GET['page']) ? sanitize_text_field((string) $_GET['page']) : '';
+    self::render_upgrade_screen(self::pro_feature_label_for_page($page));
+  }
+
+  public static function render_upgrade_for_feature(string $feature_label): void {
+    self::render_upgrade_screen($feature_label);
+  }
 
   public static function init() : void {
+    if (self::$booted) return;
+    self::$booted = true;
+
     self::define_constants();
     self::includes();
+    self::maybe_seed_capabilities();
     self::load_textdomain();
     self::register_hooks();
-    BP_UpdatesHelper::init();
+    // Only Pro builds should use the external update + licensing system.
+    if (self::is_pro_enabled() && class_exists('BP_UpdatesHelper')) {
+      BP_UpdatesHelper::init();
+    }
+  }
+
+  private static function maybe_seed_capabilities(): void {
+    // Ensure roles/caps exist even if the plugin was deployed without running activation hooks (FTP/migrations).
+    // This runs once per site.
+    $seeded = (string) get_option(self::CAPS_SEEDED_OPTION, '');
+    if ($seeded === '1') return;
+    if (!class_exists('BP_RolesHelper')) return;
+
+    BP_RolesHelper::add_capabilities();
+    update_option(self::CAPS_SEEDED_OPTION, '1', false);
+
+    // Refresh current user caps for the current request so admin menus can render immediately.
+    if (function_exists('wp_get_current_user')) {
+      $u = wp_get_current_user();
+      if ($u && is_object($u) && method_exists($u, 'get_role_caps')) {
+        $u->get_role_caps();
+      }
+    }
   }
 
   private static function define_constants() : void {
@@ -48,8 +277,8 @@ final class BP_Plugin {
     if (!defined('BP_VIEWS_PATH'))  define('BP_VIEWS_PATH', BP_LIB_PATH . 'views/');
     if (!defined('BP_BLOCKS_PATH')) define('BP_BLOCKS_PATH', BP_PLUGIN_PATH . 'blocks/');
 
-    // Pro builds should define this as true (e.g. in the Pro distribution).
-    if (!defined('BP_IS_PRO')) define('BP_IS_PRO', false);
+    // NOTE: BP_IS_PRO is defined by the Pro add-on (or Pro distribution). Free must not define it,
+    // so the add-on can enable Pro mode regardless of plugin load order.
   }
 
   private static function load_textdomain() : void {
@@ -60,6 +289,12 @@ final class BP_Plugin {
         dirname(plugin_basename(BP_PLUGIN_FILE)) . '/languages'
       );
     });
+  }
+
+  private static function public_icons_dir_rel(): string {
+    // Prefer the canonical icons folder if present; fallback for older builds.
+    if (is_dir(BP_PLUGIN_PATH . 'public/icons')) return 'public/icons';
+    return 'public/images/icons';
   }
 
   private static function includes() : void {
@@ -110,7 +345,9 @@ final class BP_Plugin {
     // Helpers (Portal + Webhooks)
     require_once BP_LIB_PATH . 'helpers/portal_helper.php';
     require_once BP_LIB_PATH . 'helpers/webhook_helper.php';
-    require_once BP_LIB_PATH . 'helpers/payments_booking_bridge.php';
+    if (self::is_pro_enabled()) {
+      require_once BP_LIB_PATH . 'helpers/payments_booking_bridge.php';
+    }
 
     // Helpers (Audit)
     require_once BP_LIB_PATH . 'helpers/audit_helper.php';
@@ -124,14 +361,12 @@ final class BP_Plugin {
     // Helpers (Demo)
     require_once BP_LIB_PATH . 'helpers/demo_helper.php';
 
-    // Helpers (License + Updates)
-    require_once BP_LIB_PATH . 'helpers/license_helper.php';
-    require_once BP_LIB_PATH . 'helpers/trial_helper.php';
-    require_once BP_LIB_PATH . 'helpers/license_gate_helper.php';
-    require_once BP_LIB_PATH . 'helpers/updates_helper.php';
+    // Helpers (License + Updates) live in the Pro add-on plugin (Free must not require them).
 
     // Integrations
-    require_once BP_LIB_PATH . 'integrations/woocommerce-hooks.php';
+    if (self::is_pro_enabled()) {
+      require_once BP_LIB_PATH . 'integrations/woocommerce-hooks.php';
+    }
 
     // Controllers (Step 3)
     require_once BP_LIB_PATH . 'controllers/controller.php';
@@ -162,7 +397,9 @@ final class BP_Plugin {
     // Controllers (Audit + Tools)
     require_once BP_LIB_PATH . 'controllers/admin_audit_controller.php';
     require_once BP_LIB_PATH . 'controllers/admin_tools_controller.php';
-    require_once BP_LIB_PATH . 'admin/admin-payments-settings-routes.php';
+    if (self::is_pro_enabled()) {
+      require_once BP_LIB_PATH . 'admin/admin-payments-settings-routes.php';
+    }
 
     // REST routes (Admin)
     require_once BP_LIB_PATH . 'rest/admin-calendar-routes.php';
@@ -189,10 +426,12 @@ final class BP_Plugin {
     require_once BP_LIB_PATH . 'rest/front-settings.php';
     require_once BP_LIB_PATH . 'rest/front-booking-create.php';
     require_once BP_LIB_PATH . 'rest/front-booking-status.php';
-    require_once BP_LIB_PATH . 'rest/front-payments-woocommerce.php';
-    require_once BP_LIB_PATH . 'rest/front-payments-stripe.php';
-    require_once BP_LIB_PATH . 'rest/front-payments-paypal.php';
-    require_once BP_LIB_PATH . 'front/front-stripe-routes.php';
+    if (self::is_pro_enabled()) {
+      require_once BP_LIB_PATH . 'rest/front-payments-woocommerce.php';
+      require_once BP_LIB_PATH . 'rest/front-payments-stripe.php';
+      require_once BP_LIB_PATH . 'rest/front-payments-paypal.php';
+      require_once BP_LIB_PATH . 'front/front-stripe-routes.php';
+    }
     require_once BP_LIB_PATH . 'routes/front-availability-routes.php';
     require_once BP_LIB_PATH . 'routes/front-availability-month-slots.php';
     require_once BP_LIB_PATH . 'rest/form-fields-routes.php';
@@ -200,31 +439,27 @@ final class BP_Plugin {
 
   private static function register_hooks() : void {
 
-    // Activation / Deactivation
-    register_activation_hook(BP_PLUGIN_FILE, [__CLASS__, 'on_activate']);
-    register_deactivation_hook(BP_PLUGIN_FILE, [__CLASS__, 'on_deactivate']);
-    register_activation_hook(BP_PLUGIN_FILE, function () {
-      $level = ob_get_level();
-      ob_start();
-      try {
-        BP_MigrationsHelper::run();
-      } finally {
-        while (ob_get_level() > $level) {
-          ob_end_clean();
-        }
-      }
-    });
-
     // Admin menu
-    add_action('admin_menu', [__CLASS__, 'register_admin_menu']);
+    // Register both early and very late for compatibility with menu editor/hardening plugins.
+    add_action('admin_menu', [__CLASS__, 'register_admin_menu'], 9);
+    add_action('admin_menu', [__CLASS__, 'register_admin_menu'], 100000);
+    // Final fallback: if another plugin removes/hides our menu slug, add it back for admins.
+    add_action('admin_menu', [__CLASS__, 'ensure_admin_menu_visible'], PHP_INT_MAX);
+    add_action('network_admin_menu', [__CLASS__, 'register_admin_menu'], 9);
+    add_action('network_admin_menu', [__CLASS__, 'register_admin_menu'], 100000);
 
-    // First-run setup wizard redirect + actions
-    add_action('admin_init', [__CLASS__, 'maybe_redirect_to_setup_wizard']);
-    add_action('admin_post_bp_setup_wizard_start_trial', [__CLASS__, 'handle_setup_wizard_start_trial']);
+    // Plugins screen quick links
+    add_filter('plugin_action_links_' . plugin_basename(BP_PLUGIN_FILE), [__CLASS__, 'plugin_action_links']);
+    add_action('admin_notices', [__CLASS__, 'debug_admin_menu_notice']);
 
-    // Pro gating (disable REST features when not licensed)
-    add_filter('rest_pre_dispatch', ['BP_LicenseGateHelper', 'maybe_block_rest'], 10, 3);
-    add_action('admin_notices', ['BP_LicenseGateHelper', 'admin_notice']);
+    // Free build: block Pro-only REST endpoints (keeps upgrade screens visible but prevents API usage).
+    add_filter('rest_pre_dispatch', [__CLASS__, 'maybe_block_pro_rest_in_free'], 9, 3);
+
+    // Pro gating (only when the Pro add-on is present)
+    if (self::is_pro_enabled() && class_exists('BP_LicenseGateHelper')) {
+      add_filter('rest_pre_dispatch', ['BP_LicenseGateHelper', 'maybe_block_rest'], 10, 3);
+      add_action('admin_notices', ['BP_LicenseGateHelper', 'admin_notice']);
+    }
 
     // Hide WP admin bar for BookPoint admin pages to remove top gap
     add_action('admin_head', function () {
@@ -251,6 +486,29 @@ final class BP_Plugin {
       if (!is_admin()) return;
       if (!isset($_GET['page'])) return;
 
+      $page = sanitize_text_field($_GET['page']);
+
+      // Free build: keep Pro-locked pages inside the app shell by redirecting to Settings -> License.
+      if (!self::is_pro_enabled()) {
+        $pro_locked_redirects = [
+          'bp_locations' => 'locations',
+          'bp_locations_edit' => 'locations',
+          'bp_location_categories_edit' => 'locations',
+          'bp_extras' => 'service_extras',
+          'bp_extras_edit' => 'service_extras',
+          'bp_extras_delete' => 'service_extras',
+        ];
+        if (isset($pro_locked_redirects[$page])) {
+          $url = add_query_arg([
+            'page' => 'bp_settings',
+            'tab' => 'license',
+            'feature' => $pro_locked_redirects[$page],
+          ], admin_url('admin.php'));
+          wp_safe_redirect($url);
+          exit;
+        }
+      }
+
       $map = [
         'bp_schedule' => 'schedule',
         'bp_holidays' => 'holidays',
@@ -263,7 +521,6 @@ final class BP_Plugin {
         'bp_tools' => 'tools',
       ];
 
-      $page = sanitize_text_field($_GET['page']);
       if (!isset($map[$page])) return;
 
       wp_safe_redirect(admin_url('admin.php?page=bp_settings&tab=' . $map[$page]));
@@ -277,22 +534,34 @@ final class BP_Plugin {
 
     // Settings admin-post action
     add_action('admin_post_bp_admin_settings_save', [__CLASS__, 'handle_settings_save']);
-    add_action('admin_post_bp_admin_settings_save_license', [__CLASS__, 'handle_settings_save_license']);
-    add_action('admin_post_bp_admin_settings_validate_license', [__CLASS__, 'handle_settings_validate_license']);
-    add_action('admin_post_bp_admin_settings_activate_license', [__CLASS__, 'handle_settings_activate_license']);
-    add_action('admin_post_bp_admin_settings_deactivate_license', [__CLASS__, 'handle_settings_deactivate_license']);
     add_action('admin_post_bp_admin_settings_export_json', [__CLASS__, 'handle_settings_export_json']);
     add_action('admin_post_bp_admin_settings_import_json', [__CLASS__, 'handle_settings_import_json']);
+
+    // License-related settings actions are Pro-only.
+    if (self::is_pro_enabled()) {
+      add_action('admin_post_bp_admin_settings_save_license', [__CLASS__, 'handle_settings_save_license']);
+      add_action('admin_post_bp_admin_settings_validate_license', [__CLASS__, 'handle_settings_validate_license']);
+      add_action('admin_post_bp_admin_settings_activate_license', [__CLASS__, 'handle_settings_activate_license']);
+      add_action('admin_post_bp_admin_settings_deactivate_license', [__CLASS__, 'handle_settings_deactivate_license']);
+    }
 
     add_action('admin_post_bp_admin_categories_save', function () {
       (new BP_AdminCategoriesController())->save();
     });
 
     add_action('admin_post_bp_admin_extras_save', function () {
+      if (!BPV5_BookPoint_Core_Plugin::is_pro_enabled()) {
+        BPV5_BookPoint_Core_Plugin::render_upgrade_for_feature(__('Service Extras', 'bookpoint'));
+        exit;
+      }
       (new BP_AdminExtrasController())->save();
     });
 
     add_action('admin_post_bp_admin_promo_codes_save', function () {
+      if (!BPV5_BookPoint_Core_Plugin::is_pro_enabled()) {
+        BPV5_BookPoint_Core_Plugin::render_upgrade_for_feature(__('Promo Codes', 'bookpoint'));
+        exit;
+      }
       (new BP_AdminPromoCodesController())->save();
     });
 
@@ -342,9 +611,11 @@ final class BP_Plugin {
     add_action('admin_post_bp_admin_tools_webhook_test', [__CLASS__, 'handle_tools_webhook_test']);
     add_action('admin_post_bp_admin_tools_generate_demo', [__CLASS__, 'handle_tools_generate_demo']);
 
-    // License actions
-    add_action('admin_post_bp_admin_license_save', [__CLASS__, 'handle_license_save']);
-    add_action('admin_post_bp_admin_license_validate', [__CLASS__, 'handle_license_validate']);
+    // License actions (Pro-only)
+    if (self::is_pro_enabled()) {
+      add_action('admin_post_bp_admin_license_save', [__CLASS__, 'handle_license_save']);
+      add_action('admin_post_bp_admin_license_validate', [__CLASS__, 'handle_license_validate']);
+    }
 
     // Tools settings import/export
     add_action('admin_post_bp_admin_tools_export_settings', [__CLASS__, 'handle_tools_export_settings']);
@@ -361,10 +632,12 @@ final class BP_Plugin {
 
     add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_public_assets']);
 
-    // License cron
-    add_action('bp_daily_license_check', ['BP_LicenseHelper', 'maybe_cron_validate']);
-    if (!wp_next_scheduled('bp_daily_license_check')) {
-      wp_schedule_event(time() + 300, 'daily', 'bp_daily_license_check');
+    // License cron (only for Pro builds)
+    if (self::is_pro_enabled()) {
+      add_action('bp_daily_license_check', ['BP_LicenseHelper', 'maybe_cron_validate']);
+      if (!wp_next_scheduled('bp_daily_license_check')) {
+        wp_schedule_event(time() + 300, 'daily', 'bp_daily_license_check');
+      }
     }
 
     // Gutenberg blocks (Step 11)
@@ -384,24 +657,108 @@ final class BP_Plugin {
     add_filter('query_vars', [__CLASS__, 'register_query_vars']);
   }
 
+  public static function plugin_action_links(array $links): array {
+    if (!is_admin()) return $links;
+    if (!current_user_can('manage_options') && !current_user_can('bp_manage_bookings')) return $links;
+
+    $dash = admin_url('admin.php?page=bp_dashboard');
+    $settings = admin_url('admin.php?page=bp_settings');
+
+    $custom = [
+      '<a href="' . esc_url($dash) . '">' . esc_html__('Open BookPoint', 'bookpoint') . '</a>',
+      '<a href="' . esc_url($settings) . '">' . esc_html__('Settings', 'bookpoint') . '</a>',
+    ];
+
+    return array_merge($custom, $links);
+  }
+
+  public static function maybe_block_pro_rest_in_free($result, $server, $request) {
+    if (self::is_pro_enabled()) return $result;
+    if (!$request instanceof \WP_REST_Request) return $result;
+
+    $route = (string) $request->get_route();
+    if (strpos($route, '/bp/v1') !== 0) return $result;
+    $method = strtoupper((string) $request->get_method());
+
+    // Form Fields must remain visible in Free, but creation / edits / deletes are Pro-only.
+    if (strpos($route, '/bp/v1/admin/form-fields') === 0) {
+      if ($method === 'GET') return $result;
+      return new \WP_Error(
+        'bp_pro_required',
+        __('You can view form fields in the free version, but adding or modifying fields requires BookPoint Pro.', 'bookpoint'),
+        ['status' => 403]
+      );
+    }
+
+    // Endpoints that should behave as "feature not available" (empty list) in Free.
+    $empty_ok_prefixes = [
+      '/bp/v1/front/locations',
+      '/bp/v1/front/extras',
+      '/bp/v1/public/extras',
+      '/bp/v1/extras',
+    ];
+    foreach ($empty_ok_prefixes as $prefix) {
+      if (strpos($route, $prefix) === 0) {
+        return rest_ensure_response(['status' => 'success', 'data' => []]);
+      }
+    }
+
+    // Endpoints that must be blocked entirely in Free.
+    $blocked_prefixes = [
+      '/bp/v1/admin/locations',
+      '/bp/v1/admin/location-categories',
+      '/bp/v1/admin/extras',
+      '/bp/v1/admin/holidays',
+      '/bp/v1/admin/promo-codes',
+      '/bp/v1/promo/validate',
+    ];
+    foreach ($blocked_prefixes as $prefix) {
+      if (strpos($route, $prefix) === 0) {
+        return new \WP_Error(
+          'bp_pro_required',
+          __('This feature requires BookPoint Pro. Please upgrade to unlock it.', 'bookpoint'),
+          ['status' => 403]
+        );
+      }
+    }
+
+    return $result;
+  }
+
   public static function on_activate() : void {
     $level = ob_get_level();
     ob_start();
     try {
+      self::define_constants();
       if (self::has_conflicting_bookpoint_plugins()) {
         if (!function_exists('deactivate_plugins')) {
           require_once ABSPATH . 'wp-admin/includes/plugin.php';
         }
         deactivate_plugins(plugin_basename(BP_PLUGIN_FILE));
-        wp_die(
-          esc_html__(
-            'BookPoint Pro cannot be activated while another BookPoint plugin is installed. Please deactivate/remove the other BookPoint plugin first.',
+        $product = self::is_pro_enabled() ? 'BookPoint Pro' : 'BookPoint';
+        wp_die(esc_html(sprintf(
+          __(
+            '%s cannot be activated while another BookPoint plugin is installed. Please deactivate/remove the other BookPoint plugin first.',
             'bookpoint'
-          )
-        );
+          ),
+          $product
+        )));
       }
 
       self::includes();
+
+      // Run migrations quietly during activation.
+      if (class_exists('BP_MigrationsHelper')) {
+        $mLevel = ob_get_level();
+        ob_start();
+        try {
+          BP_MigrationsHelper::run();
+        } finally {
+          while (ob_get_level() > $mLevel) {
+            ob_end_clean();
+          }
+        }
+      }
 
       BP_RolesHelper::add_capabilities();
       BP_DatabaseHelper::install_or_update(self::DB_VERSION);
@@ -430,54 +787,11 @@ final class BP_Plugin {
 
       // Store plugin version too (optional but helpful)
       update_option('BP_version', self::VERSION, false);
-
-      // First-run setup wizard (shown after activation).
-      if (class_exists('BP_TrialHelper') && !BP_TrialHelper::is_wizard_done()) {
-        set_transient(self::SETUP_WIZARD_REDIRECT_TRANSIENT, 1, 5 * MINUTE_IN_SECONDS);
-      }
     } finally {
       while (ob_get_level() > $level) {
         ob_end_clean();
       }
     }
-  }
-
-  public static function maybe_redirect_to_setup_wizard(): void {
-    if (!is_admin()) return;
-    if (defined('DOING_AJAX') && DOING_AJAX) return;
-    if (!current_user_can('administrator') && !current_user_can('bp_manage_settings') && !current_user_can('manage_options')) return;
-    if (!class_exists('BP_TrialHelper')) return;
-    if (BP_TrialHelper::is_wizard_done()) return;
-
-    $flag = get_transient(self::SETUP_WIZARD_REDIRECT_TRANSIENT);
-    if (!$flag) return;
-    delete_transient(self::SETUP_WIZARD_REDIRECT_TRANSIENT);
-
-    $page = isset($_GET['page']) ? sanitize_text_field((string) $_GET['page']) : '';
-    if ($page === 'bp_setup_wizard') return;
-
-    wp_safe_redirect(admin_url('admin.php?page=bp_setup_wizard'));
-    exit;
-  }
-
-  public static function handle_setup_wizard_start_trial(): void {
-    if (!current_user_can('administrator') && !current_user_can('bp_manage_settings') && !current_user_can('manage_options')) {
-      wp_die('Forbidden');
-    }
-    check_admin_referer('bp_setup_wizard_trial');
-
-    $accepted = !empty($_POST['accept_terms']);
-    if (!$accepted) {
-      wp_safe_redirect(admin_url('admin.php?page=bp_setup_wizard&step=trial_terms&err=1'));
-      exit;
-    }
-
-    if (class_exists('BP_TrialHelper')) {
-      BP_TrialHelper::start_trial();
-    }
-
-    wp_safe_redirect(admin_url('admin.php?page=bp_settings&tab=license&trial=1'));
-    exit;
   }
 
   private static function has_conflicting_bookpoint_plugins() : bool {
@@ -487,13 +801,24 @@ final class BP_Plugin {
     $plugins = get_plugins();
     $current = plugin_basename(BP_PLUGIN_FILE);
 
+    $is_active = function (string $file): bool {
+      if (function_exists('is_plugin_active') && is_plugin_active($file)) return true;
+      if (function_exists('is_plugin_active_for_network') && is_multisite() && is_plugin_active_for_network($file)) return true;
+      return false;
+    };
+
     foreach ($plugins as $file => $data) {
       if ($file === $current) continue;
+      if (!$is_active($file)) continue;
       // Allow the license server plugin to coexist.
       if (stripos($file, 'bookpoint-license-server') !== false) continue;
+      // Allow the licenses admin plugin and the Pro add-on to coexist.
+      if (stripos($file, 'licenses-admin') !== false) continue;
+      if (stripos($file, 'bookpoint-pro-addon') !== false) continue;
       $name = strtolower((string)($data['Name'] ?? ''));
       $textdomain = strtolower((string)($data['TextDomain'] ?? ''));
-      if (strpos($name, 'license server') !== false) continue;
+      // Allow license-related companion plugins.
+      if (strpos($name, 'license') !== false) continue;
       if (strpos($name, 'bookpoint') !== false || $textdomain === 'bookpoint') {
         return true;
       }
@@ -678,6 +1003,7 @@ final class BP_Plugin {
   }
 
   public static function on_deactivate() : void {
+    self::define_constants();
     self::includes();
     // Usually we do not remove caps on deactivate (optional).
     // BP_RolesHelper::remove_capabilities();
@@ -1164,31 +1490,91 @@ final class BP_Plugin {
   }
 
   public static function register_admin_menu() : void {
-    if (!current_user_can('bp_manage_bookings') &&
-        !current_user_can('bp_manage_services') &&
-        !current_user_can('bp_manage_customers') &&
-        !current_user_can('bp_manage_agents') &&
-        !current_user_can('bp_manage_settings') &&
-        !current_user_can('bp_manage_tools') &&
-        !current_user_can('manage_options')) {
+    static $did_register = false;
+    if ($did_register) return;
+    $did_register = true;
+
+    $cap = function (string $bp_cap): string {
+      // If the user has the plugin cap, use it. Otherwise fall back to admin capability so admins always see the menu.
+      if (current_user_can($bp_cap)) return $bp_cap;
+      if (current_user_can('manage_options')) return 'manage_options';
+      if (current_user_can('activate_plugins')) return 'activate_plugins';
+      if (function_exists('is_network_admin') && is_network_admin() && current_user_can('manage_network_options')) return 'manage_network_options';
+      return $bp_cap;
+    };
+
+    if (
+      !current_user_can('bp_manage_bookings') &&
+      !current_user_can('bp_manage_services') &&
+      !current_user_can('bp_manage_customers') &&
+      !current_user_can('bp_manage_agents') &&
+      !current_user_can('bp_manage_settings') &&
+      !current_user_can('bp_manage_tools') &&
+      !current_user_can('manage_options') &&
+      !current_user_can('activate_plugins') &&
+      !(function_exists('is_network_admin') && is_network_admin() && current_user_can('manage_network_options'))
+    ) {
       return;
     }
+
+    // Pro-only pages: in Free show upgrade screen; in Pro render the React admin app.
+    $pro_only_cb = self::is_pro_enabled() ? 'bp_render_admin_app' : [__CLASS__, 'render_upgrade_page'];
 
     add_menu_page(
       __('BookPoint', 'bookpoint'),
       __('BookPoint', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_bookings'),
       'bp_dashboard',
       'bp_render_admin_app',
       'dashicons-calendar-alt',
       56
     );
 
+    // Fallback access point: if a theme/plugin hides custom top-level menus, keep an entry under Settings for admins.
+    // This does not replace the main BookPoint menu.
+    if (current_user_can('manage_options')) {
+      add_submenu_page(
+        'options-general.php',
+        __('BookPoint', 'bookpoint'),
+        __('BookPoint', 'bookpoint'),
+        'manage_options',
+        'bp_dashboard',
+        'bp_render_admin_app'
+      );
+      // Guaranteed fallback access from Plugins screen in restrictive admin-menu environments.
+      add_submenu_page(
+        'plugins.php',
+        __('BookPoint', 'bookpoint'),
+        __('BookPoint', 'bookpoint'),
+        'manage_options',
+        'bp_dashboard',
+        'bp_render_admin_app'
+      );
+    }
+    if (function_exists('is_network_admin') && is_network_admin() && current_user_can('manage_network_options')) {
+      add_submenu_page(
+        'settings.php',
+        __('BookPoint', 'bookpoint'),
+        __('BookPoint', 'bookpoint'),
+        'manage_network_options',
+        'bp_dashboard',
+        'bp_render_admin_app'
+      );
+      add_submenu_page(
+        'plugins.php',
+        __('BookPoint', 'bookpoint'),
+        __('BookPoint', 'bookpoint'),
+        'manage_network_options',
+        'bp_dashboard',
+        'bp_render_admin_app'
+      );
+    }
+
     add_submenu_page(
       'bp_dashboard',
       __('Dashboard', 'bookpoint'),
       __('Dashboard', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_bookings'),
       'bp_dashboard',
       'bp_render_admin_app',
       0
@@ -1198,16 +1584,16 @@ final class BP_Plugin {
       'bp_dashboard',
       __('How to Use', 'bookpoint'),
       __('How to Use', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_bookings'),
       'bp_how_to_use',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Bookings', 'bookpoint'),
       __('Bookings', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_bookings'),
       'bp_bookings',
       'bp_render_admin_app'
     );
@@ -1216,36 +1602,36 @@ final class BP_Plugin {
       null,
       __('Booking Edit', 'bookpoint'),
       __('Booking Edit', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_bookings'),
       'bp_bookings_edit',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Calendar', 'bookpoint'),
       __('Calendar', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_bookings'),
       'bp_calendar',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Schedule', 'bookpoint'),
       __('Schedule', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_settings'),
       'bp_schedule',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Holidays', 'bookpoint'),
       __('Holidays', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_settings'),
       'bp_holidays',
-      'bp_render_admin_app'
+      $pro_only_cb
     );
 
 
@@ -1253,132 +1639,132 @@ final class BP_Plugin {
       'bp_dashboard',
       __('Catalog', 'bookpoint'),
       __('Catalog', 'bookpoint'),
-      'bp_manage_services',
+      $cap('bp_manage_services'),
       'bp_catalog',
       'bp_render_admin_app_catalog'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Services', 'bookpoint'),
       __('Services', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_services'),
       'bp_services',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Categories', 'bookpoint'),
       __('Categories', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_services'),
       'bp_categories',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Service Extras', 'bookpoint'),
       __('Service Extras', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_services'),
       'bp_extras',
-      'bp_render_admin_app'
+      $pro_only_cb
     );
 
     add_submenu_page(
       'bp_dashboard',
       __('Locations', 'bookpoint'),
       __('Locations', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_settings'),
       'bp_locations',
-      'bp_render_admin_app'
+      $pro_only_cb
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Promo Codes', 'bookpoint'),
       __('Promo Codes', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_settings'),
       'bp_promo_codes',
-      'bp_render_admin_app'
+      $pro_only_cb
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Form Fields', 'bookpoint'),
       __('Form Fields', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_settings'),
       'bp-form-fields',
       'bp_render_admin_app'
     );
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Form Fields', 'bookpoint'),
       __('Form Fields', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_settings'),
       'bp_form_fields',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Booking Form Designer', 'bookpoint'),
       __('Booking Form Designer', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_settings'),
       'bp_design_form',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Form Fields', 'bookpoint'),
       __('Form Fields', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_settings'),
       'bp_form_fields_edit',
       [__CLASS__, 'render_form_fields_edit']
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Customers', 'bookpoint'),
       __('Customers', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_customers'),
       'bp_customers',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Settings', 'bookpoint'),
       __('Settings', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_settings'),
       'bp_settings',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Notifications', 'bookpoint'),
       __('Notifications', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_settings'),
       'bp_notifications',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Audit Log', 'bookpoint'),
       __('Audit Log', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_tools'),
       'bp_audit',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Tools', 'bookpoint'),
       __('Tools', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_tools'),
       'bp_tools',
       'bp_render_admin_app'
     );
@@ -1387,16 +1773,16 @@ final class BP_Plugin {
       'tools.php',
       __('BookPoint Tools', 'bookpoint'),
       __('BookPoint Tools', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_tools'),
       'bp_tools',
       'bp_render_admin_app'
     );
 
     add_submenu_page(
-      'bp',
+      'bp_dashboard',
       __('Agents', 'bookpoint'),
       __('Agents', 'bookpoint'),
-      'bp_manage_settings',
+      $cap('bp_manage_agents'),
       'bp_agents',
       'bp_render_admin_app'
     );
@@ -1417,7 +1803,7 @@ final class BP_Plugin {
         __('Edit Location', 'bookpoint'),
         'bp_manage_settings',
         'bp_locations_edit',
-        'bp_render_admin_app'
+        $pro_only_cb
       );
 
       add_submenu_page(
@@ -1426,7 +1812,7 @@ final class BP_Plugin {
         __('Edit Location Category', 'bookpoint'),
         'bp_manage_settings',
         'bp_location_categories_edit',
-        'bp_render_admin_app'
+        $pro_only_cb
       );
 
     add_submenu_page(
@@ -1453,7 +1839,7 @@ final class BP_Plugin {
       __('Edit Extra', 'bookpoint'),
       'bp_manage_services',
       'bp_extras_edit',
-      [__CLASS__, 'render_extras_edit']
+      $pro_only_cb
     );
 
     add_submenu_page(
@@ -1462,7 +1848,7 @@ final class BP_Plugin {
       __('Delete Extra', 'bookpoint'),
       'bp_manage_services',
       'bp_extras_delete',
-      [__CLASS__, 'render_extras_delete']
+      self::is_pro_enabled() ? [__CLASS__, 'render_extras_delete'] : $pro_only_cb
     );
 
     add_submenu_page(
@@ -1498,7 +1884,7 @@ final class BP_Plugin {
       __('Edit Promo Code', 'bookpoint'),
       'bp_manage_settings',
       'bp_promo_codes_edit',
-      [__CLASS__, 'render_promo_codes_edit']
+      self::is_pro_enabled() ? [__CLASS__, 'render_promo_codes_edit'] : $pro_only_cb
     );
 
     add_submenu_page(
@@ -1507,7 +1893,7 @@ final class BP_Plugin {
       __('Delete Promo Code', 'bookpoint'),
       'bp_manage_settings',
       'bp_promo_codes_delete',
-      [__CLASS__, 'render_promo_codes_delete']
+      self::is_pro_enabled() ? [__CLASS__, 'render_promo_codes_delete'] : $pro_only_cb
     );
 
     add_submenu_page(
@@ -1547,15 +1933,199 @@ final class BP_Plugin {
       'bp_render_admin_app'
     );
 
-    // Hidden setup wizard (first-run)
-    add_submenu_page(
-      null,
-      __('BookPoint Setup', 'bookpoint'),
-      __('BookPoint Setup', 'bookpoint'),
-      'bp_manage_settings',
-      'bp_setup_wizard',
-      [__CLASS__, 'render_setup_wizard']
+  }
+
+  public static function ensure_admin_menu_visible(): void {
+    if (!current_user_can('manage_options') && !current_user_can('activate_plugins')) return;
+
+    global $menu;
+    if (is_array($menu)) {
+      foreach ($menu as $item) {
+        if (!is_array($item)) continue;
+        if (($item[2] ?? '') === 'bp_dashboard') {
+          return;
+        }
+      }
+    }
+
+    // Re-add the top-level entry if a plugin/theme removed it.
+    add_menu_page(
+      __('BookPoint', 'bookpoint'),
+      __('BookPoint', 'bookpoint'),
+      current_user_can('manage_options') ? 'manage_options' : 'activate_plugins',
+      'bp_dashboard',
+      'bp_render_admin_app',
+      'dashicons-calendar-alt',
+      56
     );
+  }
+
+  private static function is_menu_debug_enabled(): bool {
+    if (!is_admin()) return false;
+    if (!current_user_can('manage_options') && !current_user_can('activate_plugins')) return false;
+    return isset($_GET['bp_menu_debug']) && sanitize_text_field((string) $_GET['bp_menu_debug']) === '1';
+  }
+
+  private static function menu_has_slug(string $slug): bool {
+    global $menu;
+    if (!is_array($menu)) return false;
+    foreach ($menu as $item) {
+      if (!is_array($item)) continue;
+      if (($item[2] ?? '') === $slug) return true;
+    }
+    return false;
+  }
+
+  private static function callback_label($callback): string {
+    if (is_string($callback)) return $callback;
+    if (is_array($callback) && isset($callback[0], $callback[1])) {
+      $left = is_object($callback[0]) ? get_class($callback[0]) : (string) $callback[0];
+      return $left . '::' . (string) $callback[1];
+    }
+    if ($callback instanceof Closure) return 'Closure';
+    return 'Unknown callback';
+  }
+
+  private static function callback_file_and_line($callback): array {
+    try {
+      if (is_string($callback) && function_exists($callback)) {
+        $ref = new ReflectionFunction($callback);
+        return ['file' => (string) $ref->getFileName(), 'line' => (int) $ref->getStartLine()];
+      }
+      if ($callback instanceof Closure) {
+        $ref = new ReflectionFunction($callback);
+        return ['file' => (string) $ref->getFileName(), 'line' => (int) $ref->getStartLine()];
+      }
+      if (is_array($callback) && isset($callback[0], $callback[1])) {
+        $ref = new ReflectionMethod($callback[0], (string) $callback[1]);
+        return ['file' => (string) $ref->getFileName(), 'line' => (int) $ref->getStartLine()];
+      }
+    } catch (\Throwable $e) {
+      // Ignore reflection failures for non-standard callbacks.
+    }
+    return ['file' => '', 'line' => 0];
+  }
+
+  private static function callback_mentions_menu_removal(string $file, int $line): bool {
+    if ($file === '' || !is_readable($file)) return false;
+    $lines = @file($file, FILE_IGNORE_NEW_LINES);
+    if (!is_array($lines) || empty($lines)) return false;
+
+    $start = max(1, $line - 30);
+    $end = min(count($lines), $line + 180);
+    $chunk = implode("\n", array_slice($lines, $start - 1, $end - $start + 1));
+    if ($chunk === '') return false;
+
+    if (strpos($chunk, 'remove_menu_page') === false && strpos($chunk, 'remove_submenu_page') === false) {
+      return false;
+    }
+
+    if (strpos($chunk, 'bp_dashboard') !== false || strpos($chunk, 'toplevel_page_bp_dashboard') !== false) {
+      return true;
+    }
+
+    // Generic menu removals are still suspicious in this context.
+    return true;
+  }
+
+  public static function debug_admin_menu_notice(): void {
+    if (!self::is_menu_debug_enabled()) return;
+
+    global $wp_filter;
+    $exists = self::menu_has_slug('bp_dashboard');
+    $rows = [];
+
+    $hook = $wp_filter['admin_menu'] ?? null;
+    if ($hook instanceof WP_Hook) {
+      foreach ((array) $hook->callbacks as $priority => $callbacks) {
+        foreach ((array) $callbacks as $entry) {
+          $cb = $entry['function'] ?? null;
+          if ($cb === null) continue;
+
+          $info = self::callback_file_and_line($cb);
+          $file = (string) ($info['file'] ?? '');
+          $line = (int) ($info['line'] ?? 0);
+          if ($file === '') continue;
+
+          $norm = wp_normalize_path($file);
+          $pluginRoot = defined('WP_PLUGIN_DIR') ? wp_normalize_path(WP_PLUGIN_DIR) : '';
+          $ourRoot = wp_normalize_path(BP_PLUGIN_PATH);
+          if ($pluginRoot === '' || strpos($norm, $pluginRoot) !== 0) continue;
+          if (strpos($norm, $ourRoot) === 0) continue;
+
+          $isLate = ((int) $priority >= 100000);
+          $mentionsRemoval = self::callback_mentions_menu_removal($file, $line);
+          if (!$isLate && !$mentionsRemoval) continue;
+
+          $rel = ltrim(substr($norm, strlen($pluginRoot)), '/\\');
+          $pluginSlug = strtok($rel, '/\\');
+
+          $rows[] = [
+            'priority' => (int) $priority,
+            'callback' => self::callback_label($cb),
+            'plugin' => (string) ($pluginSlug ?: ''),
+            'file' => $rel,
+            'line' => $line,
+            'remover' => $mentionsRemoval ? 1 : 0,
+            'late' => $isLate ? 1 : 0,
+          ];
+        }
+      }
+    }
+
+    usort($rows, static function ($a, $b) {
+      if ((int) $a['remover'] !== (int) $b['remover']) {
+        return (int) $b['remover'] - (int) $a['remover'];
+      }
+      if ((int) $a['priority'] !== (int) $b['priority']) {
+        return (int) $b['priority'] - (int) $a['priority'];
+      }
+      return strcmp((string) $a['callback'], (string) $b['callback']);
+    });
+
+    $likely = null;
+    foreach ($rows as $row) {
+      if ((int) $row['remover'] === 1) {
+        $likely = $row;
+        break;
+      }
+    }
+
+    echo '<div class="notice notice-warning"><p><strong>BookPoint menu debug is ON</strong> ';
+    echo '(disable by removing <code>bp_menu_debug=1</code> from URL).</p>';
+    echo '<p><strong>bp_dashboard in $menu:</strong> ' . ($exists ? 'YES' : 'NO') . '</p>';
+    if ($likely) {
+      echo '<p><strong>Likely remover:</strong> ';
+      echo esc_html((string) $likely['plugin']) . ' | ';
+      echo esc_html((string) $likely['callback']) . ' | ';
+      echo esc_html((string) $likely['file']) . ':' . (int) $likely['line'];
+      echo '</p>';
+    } else {
+      echo '<p><strong>Likely remover:</strong> not detected from callback source scan.</p>';
+    }
+
+    if (!empty($rows)) {
+      echo '<p><strong>Relevant admin_menu callbacks (other plugins):</strong></p>';
+      echo '<table class="widefat striped" style="max-width:100%;margin:8px 0;"><thead><tr>';
+      echo '<th>Priority</th><th>Plugin</th><th>Callback</th><th>File</th><th>Flags</th>';
+      echo '</tr></thead><tbody>';
+      $max = min(30, count($rows));
+      for ($index = 0; $index < $max; $index++) {
+        $row = $rows[$index];
+        $flags = [];
+        if ((int) $row['remover'] === 1) $flags[] = 'menu-remove';
+        if ((int) $row['late'] === 1) $flags[] = 'late';
+        echo '<tr>';
+        echo '<td>' . (int) $row['priority'] . '</td>';
+        echo '<td>' . esc_html((string) $row['plugin']) . '</td>';
+        echo '<td><code>' . esc_html((string) $row['callback']) . '</code></td>';
+        echo '<td><code>' . esc_html((string) $row['file']) . ':' . (int) $row['line'] . '</code></td>';
+        echo '<td>' . esc_html(implode(', ', $flags)) . '</td>';
+        echo '</tr>';
+      }
+      echo '</tbody></table>';
+    }
+    echo '</div>';
   }
 
   public static function enqueue_admin_assets(string $hook): void {
@@ -1582,6 +2152,11 @@ final class BP_Plugin {
         [],
         $admin_app_ver
       );
+    }
+
+    // Free: do not load the React admin app on Pro-only pages (they render a PHP upgrade screen instead).
+    if (!self::is_pro_enabled() && self::is_pro_only_page($page)) {
+      return;
     }
 
     // React admin bundle (All admin pages)
@@ -1689,6 +2264,39 @@ final class BP_Plugin {
 
       $route = $route_map[$page] ?? 'dashboard';
 
+      $icons_dir_rel = self::public_icons_dir_rel();
+
+      $icons_build = '';
+      $icons_max = 0;
+      $icon_files = glob(BP_PLUGIN_PATH . $icons_dir_rel . '/*.svg');
+      if (is_array($icon_files)) {
+        foreach ($icon_files as $f) {
+          $mt = @filemtime($f);
+          if ($mt && $mt > $icons_max) $icons_max = $mt;
+        }
+      }
+      if ($icons_max > 0) $icons_build = (string)$icons_max;
+
+      $images_build = '';
+      $images_max = 0;
+      $images_dir = BP_PLUGIN_PATH . 'public/images';
+      if (is_dir($images_dir)) {
+        try {
+          $it = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($images_dir, FilesystemIterator::SKIP_DOTS)
+          );
+          foreach ($it as $file) {
+            if ($file->isFile()) {
+              $mt = $file->getMTime();
+              if ($mt && $mt > $images_max) $images_max = $mt;
+            }
+          }
+        } catch (\Throwable $e) {
+          // ignore
+        }
+      }
+      if ($images_max > 0) $images_build = (string)$images_max;
+
         wp_localize_script('bp-admin', 'BP_ADMIN', [
           'restUrl' => esc_url_raw(rest_url('bp/v1')),
           'nonce'   => wp_create_nonce('wp_rest'),
@@ -1696,35 +2304,26 @@ final class BP_Plugin {
           'adminPostUrl' => admin_url('admin-post.php'),
           'pluginUrl' => BP_PLUGIN_URL,
           'publicImagesUrl' => BP_PLUGIN_URL . 'public/images',
-          'publicIconsUrl' => BP_PLUGIN_URL . 'public/icons',
+          'publicIconsUrl' => BP_PLUGIN_URL . $icons_dir_rel,
           'iconsProxyUrl' => BP_PLUGIN_URL . 'public/icon.php?file=',
           'route'   => $route,
           'page'    => $page,
           'build'   => (file_exists(BP_PLUGIN_PATH . 'build/admin.js') ? (string)@filemtime(BP_PLUGIN_PATH . 'build/admin.js') : ''),
+          'iconsBuild' => $icons_build,
+          'imagesBuild' => $images_build,
           'timezone'=> wp_timezone_string(),
           'currency'=> (string)BP_SettingsHelper::get('currency', 'USD'),
           'currency_position'=> (string)BP_SettingsHelper::get('currency_position', 'before'),
           'isPro' => (defined('BP_IS_PRO') && BP_IS_PRO) ? 1 : 0,
           'licenseStatus' => class_exists('BP_LicenseHelper') ? (string)BP_LicenseHelper::status() : 'unset',
           'licenseIsValid' => class_exists('BP_LicenseHelper') ? (BP_LicenseHelper::is_valid() ? 1 : 0) : 0,
-          'trial' => class_exists('BP_TrialHelper') ? [
-            'accepted' => BP_TrialHelper::is_trial_accepted() ? 1 : 0,
-            'active' => BP_TrialHelper::is_trial_active() ? 1 : 0,
-            'startedAt' => (int) BP_TrialHelper::trial_started_at(),
-            'endsAt' => (int) BP_TrialHelper::trial_ends_at(),
-            'daysLeft' => (int) BP_TrialHelper::days_left(),
-          ] : [
-            'accepted' => 0,
-            'active' => 0,
-            'startedAt' => 0,
-            'endsAt' => 0,
-            'daysLeft' => 0,
-          ],
         ]);
 
         wp_localize_script('bp-admin', 'bpAdmin', [
-          'iconsUrl' => BP_PLUGIN_URL . 'public/icons',
+          'iconsUrl' => BP_PLUGIN_URL . $icons_dir_rel,
           'iconsProxyUrl' => BP_PLUGIN_URL . 'public/icon.php?file=',
+          'iconsBuild' => $icons_build,
+          'imagesBuild' => $images_build,
         ]);
 
       wp_enqueue_media();
@@ -1769,10 +2368,18 @@ final class BP_Plugin {
   }
 
   public static function render_extras_edit() : void {
+    if (!self::is_pro_enabled()) {
+      self::render_upgrade_for_feature(__('Service Extras', 'bookpoint'));
+      return;
+    }
     echo '<div id="bp-admin-app" data-route="extras-edit"></div>';
   }
 
   public static function render_extras_delete() : void {
+    if (!self::is_pro_enabled()) {
+      self::render_upgrade_for_feature(__('Service Extras', 'bookpoint'));
+      return;
+    }
     (new BP_AdminExtrasController())->delete();
   }
 
@@ -1789,10 +2396,18 @@ final class BP_Plugin {
   }
 
   public static function render_promo_codes_edit() : void {
+    if (!self::is_pro_enabled()) {
+      self::render_upgrade_for_feature(__('Promo Codes', 'bookpoint'));
+      return;
+    }
     (new BP_AdminPromoCodesController())->edit();
   }
 
   public static function render_promo_codes_delete() : void {
+    if (!self::is_pro_enabled()) {
+      self::render_upgrade_for_feature(__('Promo Codes', 'bookpoint'));
+      return;
+    }
     (new BP_AdminPromoCodesController())->delete();
   }
 
@@ -1811,114 +2426,6 @@ final class BP_Plugin {
 
   public static function handle_settings_save_license(): void {
     (new BP_AdminSettingsController())->save_license();
-  }
-
-  public static function render_setup_wizard(): void {
-    if (!current_user_can('administrator') && !current_user_can('bp_manage_settings') && !current_user_can('manage_options')) {
-      echo '<div class="wrap"><h1>' . esc_html__('BookPoint Setup', 'bookpoint') . '</h1><p>' . esc_html__('You do not have permission to access this page.', 'bookpoint') . '</p></div>';
-      return;
-    }
-
-    $pricingUrl = 'https://wpbookpoint.com/pricing/';
-    $step = isset($_GET['step']) ? sanitize_key((string) $_GET['step']) : '';
-    $hasErr = !empty($_GET['err']);
-    $trialActive = class_exists('BP_TrialHelper') ? BP_TrialHelper::is_trial_active() : false;
-
-    echo '<div class="wrap bp-setup-wrap">';
-    echo '<style>
-      .bp-setup-wrap{max-width:980px}
-      .bp-setup-hero{margin:18px 0 14px;padding:18px;border-radius:18px;border:1px solid rgba(15,23,42,.10);background:linear-gradient(180deg, rgba(37,99,235,.10), rgba(37,99,235,.03))}
-      .bp-setup-hero h1{margin:0 0 6px;font-size:26px}
-      .bp-setup-hero p{margin:0;color:#334155;font-size:13px}
-      .bp-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
-      .bp-setup-card{background:#fff;border:1px solid rgba(15,23,42,.10);border-radius:18px;padding:16px}
-      .bp-setup-card h2{margin:0 0 8px;font-size:16px}
-      .bp-setup-card p{margin:0 0 12px;color:#334155;font-size:13px;line-height:1.55}
-      .bp-setup-actions{display:flex;gap:10px;flex-wrap:wrap}
-      .bp-setup-btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:12px;text-decoration:none;border:1px solid rgba(15,23,42,.14);font-weight:700}
-      .bp-setup-btn.primary{background:#2563eb;border-color:#1d4ed8;color:#fff}
-      .bp-setup-btn.primary:hover{background:#1d4ed8;color:#fff}
-      .bp-setup-btn.ghost{background:#fff;color:#0f172a}
-      .bp-setup-btn.ghost:hover{background:#f8fafc}
-      .bp-setup-note{margin-top:12px;color:#64748b;font-size:12px}
-      .bp-setup-terms{background:#f8fafc;border:1px solid rgba(15,23,42,.10);border-radius:14px;padding:12px;color:#0f172a;font-size:13px;line-height:1.6}
-      .bp-setup-warn{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(239,68,68,.22);background:rgba(239,68,68,.06);color:#7f1d1d}
-      @media (max-width: 780px){.bp-setup-grid{grid-template-columns:1fr}}
-    </style>';
-
-    echo '<div class="bp-setup-hero">';
-    echo '<h1>' . esc_html__('Welcome to BookPoint', 'bookpoint') . '</h1>';
-    echo '<p>' . esc_html__('Let\'s get you set up. Choose a 14-day free trial or purchase a license to unlock everything.', 'bookpoint') . '</p>';
-    echo '</div>';
-
-    if ($trialActive) {
-      $daysLeft = class_exists('BP_TrialHelper') ? BP_TrialHelper::days_left() : 0;
-      $endAt = class_exists('BP_TrialHelper') ? BP_TrialHelper::trial_ends_at() : 0;
-      $endStr = $endAt > 0 ? gmdate('Y-m-d', $endAt) : '';
-      echo '<div class="bp-setup-card">';
-      echo '<h2>' . esc_html__('Trial is active', 'bookpoint') . '</h2>';
-      echo '<p>' . esc_html(sprintf('Your trial is running. Days left: %d. Trial ends on: %s (UTC).', (int) $daysLeft, $endStr !== '' ? $endStr : '-')) . '</p>';
-      echo '<div class="bp-setup-actions">';
-      echo '<a class="bp-setup-btn primary" href="' . esc_url(admin_url('admin.php?page=bp_settings&tab=license')) . '">' . esc_html__('Open License settings', 'bookpoint') . '</a>';
-      echo '<a class="bp-setup-btn ghost" href="' . esc_url($pricingUrl) . '" target="_blank" rel="noreferrer noopener">' . esc_html__('Buy a license', 'bookpoint') . '</a>';
-      echo '</div></div>';
-      return;
-    }
-
-    if ($step === 'trial_terms') {
-      echo '<div class="bp-setup-card">';
-      echo '<h2>' . esc_html__('14-day Free Trial - Terms', 'bookpoint') . '</h2>';
-      echo '<p>' . esc_html__('Please read and accept the terms to start your trial.', 'bookpoint') . '</p>';
-      echo '<div class="bp-setup-terms">';
-      echo esc_html__('By starting the trial, you get full access to BookPoint Pro for 14 days. After the trial ends, BookPoint Pro features will lock until you activate a license.', 'bookpoint');
-      echo '<br><br>';
-      echo esc_html__('Important: After 14 days (if you do not activate a license), the plugin will be locked and you may not be able to view bookings content and other Pro features in the admin.', 'bookpoint');
-      echo '</div>';
-
-      if ($hasErr) {
-        echo '<div class="bp-setup-warn">' . esc_html__('You must accept the terms to start the trial.', 'bookpoint') . '</div>';
-      }
-
-      echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:14px;">';
-      echo '<input type="hidden" name="action" value="bp_setup_wizard_start_trial">';
-      wp_nonce_field('bp_setup_wizard_trial');
-      echo '<label style="display:flex;gap:10px;align-items:flex-start;font-weight:700;">';
-      echo '<input type="checkbox" name="accept_terms" value="1" style="margin-top:3px;">';
-      echo '<span>' . esc_html__('I accept the terms and want to start my 14-day free trial.', 'bookpoint') . '</span>';
-      echo '</label>';
-      echo '<div class="bp-setup-actions" style="margin-top:14px;">';
-      echo '<button type="submit" class="bp-setup-btn primary">' . esc_html__('Start Trial', 'bookpoint') . '</button>';
-      echo '<a class="bp-setup-btn ghost" href="' . esc_url(admin_url('admin.php?page=bp_setup_wizard')) . '">' . esc_html__('Back', 'bookpoint') . '</a>';
-      echo '</div>';
-      echo '<div class="bp-setup-note">' . esc_html__('Tip: You can activate a license at any time from BookPoint → Settings → License.', 'bookpoint') . '</div>';
-      echo '</form>';
-      echo '</div></div>';
-      return;
-    }
-
-    $trialUrl = admin_url('admin.php?page=bp_setup_wizard&step=trial_terms');
-
-    echo '<div class="bp-setup-grid">';
-    echo '<div class="bp-setup-card">';
-    echo '<h2>' . esc_html__('Try 14 days free', 'bookpoint') . '</h2>';
-    echo '<p>' . esc_html__('Get instant access to all Pro features. No license needed during the trial. You can upgrade anytime.', 'bookpoint') . '</p>';
-    echo '<div class="bp-setup-actions">';
-    echo '<a class="bp-setup-btn primary" href="' . esc_url($trialUrl) . '">' . esc_html__('Start 14-day trial', 'bookpoint') . '</a>';
-    echo '</div>';
-    echo '</div>';
-
-    echo '<div class="bp-setup-card">';
-    echo '<h2>' . esc_html__('Buy a license now', 'bookpoint') . '</h2>';
-    echo '<p>' . esc_html__('Unlock everything permanently: best performance, future updates, and priority support.', 'bookpoint') . '</p>';
-    echo '<div class="bp-setup-actions">';
-    echo '<a class="bp-setup-btn primary" href="' . esc_url($pricingUrl) . '" target="_blank" rel="noreferrer noopener">' . esc_html__('View plans & pricing', 'bookpoint') . '</a>';
-    echo '<a class="bp-setup-btn ghost" href="' . esc_url(admin_url('admin.php?page=bp_settings&tab=license')) . '">' . esc_html__('I already have a license', 'bookpoint') . '</a>';
-    echo '</div>';
-    echo '<div class="bp-setup-note">' . esc_html__('If you already purchased a license, you can enter it now.', 'bookpoint') . '</div>';
-    echo '</div>';
-    echo '</div>';
-
-    echo '</div>';
   }
 
   public static function handle_settings_validate_license(): void {
@@ -2001,7 +2508,9 @@ final class BP_Plugin {
       ) return;
     }
 
-    $front_asset_path = BP_PLUGIN_PATH . 'public/front.asset.php';
+    $front_dir_rel = file_exists(BP_PLUGIN_PATH . 'public/build/front.js') ? 'public/build' : 'public';
+
+    $front_asset_path = BP_PLUGIN_PATH . $front_dir_rel . '/front.asset.php';
     $front_asset = null;
     if (file_exists($front_asset_path)) {
       $front_asset = require $front_asset_path;
@@ -2023,12 +2532,12 @@ final class BP_Plugin {
       }, 10, 2);
     }
 
-    $front_css = BP_PLUGIN_PATH . 'public/index.jsx.css';
+    $front_css = BP_PLUGIN_PATH . $front_dir_rel . '/index.jsx.css';
     if (file_exists($front_css)) {
       $css_ver = @filemtime($front_css) ?: ($front_asset['version'] ?? self::VERSION);
       wp_enqueue_style(
         'bp-front',
-        BP_PLUGIN_URL . 'public/index.jsx.css',
+        BP_PLUGIN_URL . $front_dir_rel . '/index.jsx.css',
         [],
         $css_ver
       );
@@ -2047,11 +2556,11 @@ final class BP_Plugin {
 
     self::ensure_react_scripts();
 
-    $front_js = BP_PLUGIN_PATH . 'public/front.js';
+    $front_js = BP_PLUGIN_PATH . $front_dir_rel . '/front.js';
     $js_ver = file_exists($front_js) ? (@filemtime($front_js) ?: ($front_asset['version'] ?? self::VERSION)) : ($front_asset['version'] ?? self::VERSION);
     wp_enqueue_script(
       'bp-front',
-      BP_PLUGIN_URL . 'public/front.js',
+      BP_PLUGIN_URL . $front_dir_rel . '/front.js',
       $front_asset['dependencies'] ?? [],
       $js_ver,
       true
@@ -2069,13 +2578,51 @@ final class BP_Plugin {
     if ($currency === '') {
       $currency = 'USD';
     }
+
+    $images_build = '';
+    $images_max = 0;
+    $images_dir = BP_PLUGIN_PATH . 'public/images';
+    if (is_dir($images_dir)) {
+      try {
+        $it = new RecursiveIteratorIterator(
+          new RecursiveDirectoryIterator($images_dir, FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($it as $file) {
+          if ($file->isFile()) {
+            $mt = $file->getMTime();
+            if ($mt && $mt > $images_max) $images_max = $mt;
+          }
+        }
+      } catch (\Throwable $e) {
+        // ignore
+      }
+    }
+    if ($images_max > 0) $images_build = (string)$images_max;
+
+    $icons_dir_rel = self::public_icons_dir_rel();
+
+    $icons_build = '';
+    $icons_max = 0;
+    $icon_files = glob(BP_PLUGIN_PATH . $icons_dir_rel . '/*.svg');
+    if (is_array($icon_files)) {
+      foreach ($icon_files as $f) {
+        $mt = @filemtime($f);
+        if ($mt && $mt > $icons_max) $icons_max = $mt;
+      }
+    }
+    if ($icons_max > 0) $icons_build = (string)$icons_max;
+
     return [
       'rest' => esc_url_raw(rest_url()),
       'restUrl' => esc_url_raw(rest_url('bp/v1')),
       'ajaxUrl' => admin_url('admin-ajax.php'),
       'siteUrl' => site_url('/'),
       'nonce' => wp_create_nonce('wp_rest'),
+      'isPro' => self::is_pro_enabled() ? 1 : 0,
       'images' => BP_PLUGIN_URL . 'public/images/',
+      'icons' => BP_PLUGIN_URL . $icons_dir_rel . '/',
+      'imagesBuild' => $images_build,
+      'iconsBuild' => $icons_build,
       'tz' => wp_timezone_string(),
       'stripe_pk' => $stripe_pk,
       'currency' => $currency ?: 'USD',
@@ -2096,14 +2643,26 @@ final class BP_Plugin {
   }
 
   private static function front_settings_payload(): array {
-    $enabled = BP_SettingsHelper::get_with_default('payments_enabled_methods');
-    if (!is_array($enabled)) {
-      $enabled = ['cash'];
-    }
-
-    return [
+    $base = [
       'currency' => (string)BP_SettingsHelper::get('currency', 'USD'),
       'currency_position' => (string)BP_SettingsHelper::get('currency_position', 'before'),
+    ];
+
+    // Free build: payments are completely disabled (including cash).
+    if (!self::is_pro_enabled()) {
+      return $base + [
+        'payments_enabled' => 0,
+        'payments_enabled_methods' => [],
+        'payments_default_method' => '',
+        'payments_require_payment_to_confirm' => 0,
+      ];
+    }
+
+    $enabled = BP_SettingsHelper::get_with_default('payments_enabled_methods');
+    if (!is_array($enabled)) $enabled = [];
+
+    return $base + [
+      'payments_enabled' => (int)BP_SettingsHelper::get_with_default('payments_enabled'),
       'payments_enabled_methods' => $enabled,
       'payments_default_method' => BP_SettingsHelper::get_with_default('payments_default_method'),
       'payments_require_payment_to_confirm' => BP_SettingsHelper::get_with_default('payments_require_payment_to_confirm'),
@@ -2356,15 +2915,17 @@ final class BP_Plugin {
     $service_id = absint($atts['service_id']);
 
     // enqueue assets only when shortcode is used
-    $front_js = BP_PLUGIN_PATH . 'public/front.js';
+    $front_dir_rel = file_exists(BP_PLUGIN_PATH . 'public/build/front.js') ? 'public/build' : 'public';
+
+    $front_js = BP_PLUGIN_PATH . $front_dir_rel . '/front.js';
     if (file_exists($front_js)) {
-      wp_enqueue_script('bp-front', BP_PLUGIN_URL . 'public/front.js', [], @filemtime($front_js) ?: self::VERSION, true);
+      wp_enqueue_script('bp-front', BP_PLUGIN_URL . $front_dir_rel . '/front.js', [], @filemtime($front_js) ?: self::VERSION, true);
       wp_localize_script('bp-front', 'BP_FRONT', self::front_localized_data());
     }
 
-    $front_css = BP_PLUGIN_PATH . 'public/index.jsx.css';
+    $front_css = BP_PLUGIN_PATH . $front_dir_rel . '/index.jsx.css';
     if (file_exists($front_css)) {
-      wp_enqueue_style('bp-front', BP_PLUGIN_URL . 'public/index.jsx.css', [], @filemtime($front_css) ?: self::VERSION);
+      wp_enqueue_style('bp-front', BP_PLUGIN_URL . $front_dir_rel . '/index.jsx.css', [], @filemtime($front_css) ?: self::VERSION);
     }
 
     $nonce = wp_create_nonce('bp_public');
@@ -2506,8 +3067,23 @@ final class BP_Plugin {
     }
   }
 }
+}
 
-BP_Plugin::init();
+// Backwards compatibility for old integrations expecting BP_Plugin class.
+if (!class_exists('BP_Plugin', false)) {
+  class_alias('BPV5_BookPoint_Core_Plugin', 'BP_Plugin');
+}
+
+// Boot on plugins_loaded in normal flow, with immediate fallback for environments that load plugins late.
+if (did_action('plugins_loaded')) {
+  BPV5_BookPoint_Core_Plugin::init();
+} else {
+  add_action('plugins_loaded', ['BPV5_BookPoint_Core_Plugin', 'init'], 20);
+}
+
+// Activation/deactivation hooks must be registered at file load time (not delayed inside init()).
+register_activation_hook(__FILE__, ['BPV5_BookPoint_Core_Plugin', 'on_activate']);
+register_deactivation_hook(__FILE__, ['BPV5_BookPoint_Core_Plugin', 'on_deactivate']);
 
 if (!function_exists('bp_shortcode_booking_form')) {
   function bp_shortcode_booking_form($atts = []) {
@@ -2515,8 +3091,8 @@ if (!function_exists('bp_shortcode_booking_form')) {
       'label' => __('Book Now', 'bookpoint'),
     ], $atts);
 
-    if (class_exists('BP_Plugin')) {
-      BP_Plugin::enqueue_public_assets(true);
+    if (class_exists('BPV5_BookPoint_Core_Plugin')) {
+      BPV5_BookPoint_Core_Plugin::enqueue_public_assets(true);
       if (did_action('wp_footer')) {
         wp_print_styles('bp-front');
         wp_print_scripts('bp-front');

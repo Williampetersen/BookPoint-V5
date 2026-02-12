@@ -266,8 +266,8 @@ final class BP_PublicBookingsController extends BP_Controller {
       );
     }
 
-    wp_enqueue_style('bp-portal', BP_PLUGIN_URL . 'public/stylesheets/portal.css', [], BP_Plugin::VERSION);
-    wp_enqueue_script('bp-manage', BP_PLUGIN_URL . 'public/javascripts/manage-booking.js', [], BP_Plugin::VERSION, true);
+    wp_enqueue_style('bp-portal', BP_PLUGIN_URL . 'public/stylesheets/portal.css', [], BPV5_BookPoint_Core_Plugin::VERSION);
+    wp_enqueue_script('bp-manage', BP_PLUGIN_URL . 'public/javascripts/manage-booking.js', [], BPV5_BookPoint_Core_Plugin::VERSION, true);
 
     // Render view
     $this->render('public/manage_booking', [
@@ -279,7 +279,7 @@ final class BP_PublicBookingsController extends BP_Controller {
   }
 
   public function handle_manage_actions() : void {
-    BP_Plugin::rate_limit_or_block('manage_action', 30, 600);
+    BPV5_BookPoint_Core_Plugin::rate_limit_or_block('manage_action', 30, 600);
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bp_manage_action'])) {
       if (!wp_verify_nonce($_POST['_wpnonce'] ?? '', 'BP_manage_booking')) {

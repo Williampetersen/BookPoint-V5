@@ -38,7 +38,7 @@ export default function HowToUseScreen() {
       <main className="myplugin-content">
       <div className="bp-page-head">
         <div>
-          <div className="bp-title">How to Use BookPoint</div>
+          <div className="bp-h1">How to Use BookPoint</div>
           <div className="bp-muted">Everything an admin needs after installing on a new site/device.</div>
         </div>
       </div>

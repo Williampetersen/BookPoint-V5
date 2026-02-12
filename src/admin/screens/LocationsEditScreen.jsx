@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
+import UpgradeToPro from "../components/UpgradeToPro";
 
 const DAYS = [
   { value: 0, label: "Sunday" },
@@ -37,6 +38,7 @@ function normalizeLocation(raw, id) {
 }
 
 export default function LocationsEditScreen() {
+  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const initialId = getQueryInt("id");
   const [locationId, setLocationId] = useState(initialId);
 
@@ -79,6 +81,11 @@ export default function LocationsEditScreen() {
     let alive = true;
 
     async function load() {
+      if (!isPro) {
+        setLoading(false);
+        setError("");
+        return;
+      }
       setLoading(true);
       setError("");
       try {
@@ -128,7 +135,7 @@ export default function LocationsEditScreen() {
     return () => {
       alive = false;
     };
-  }, [locationId]);
+  }, [locationId, isPro]);
 
   useEffect(() => {
     if (!toast) return;
@@ -308,6 +315,10 @@ export default function LocationsEditScreen() {
     for (const s of services) m.set(Number(s.id), s);
     return m;
   }, [services]);
+
+  if (!isPro) {
+    return <UpgradeToPro feature="Locations" />;
+  }
 
   return (
     <div className="myplugin-page bp-location-edit">

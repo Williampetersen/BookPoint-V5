@@ -9,7 +9,6 @@ final class BP_LicenseGateHelper {
 
   public static function is_locked() : bool {
     if (!self::is_pro()) return false;
-    if (class_exists('BP_TrialHelper') && BP_TrialHelper::is_trial_active()) return false;
     return !BP_LicenseHelper::is_valid();
   }
 

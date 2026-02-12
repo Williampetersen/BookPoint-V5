@@ -50,15 +50,59 @@ function currencyPreview(code, position) {
     : (needsSpace ? `${symbol} ${formatted}` : `${symbol}${formatted}`);
 }
 
+function ProUpgradePanel({ feature, description, pricingUrl }) {
+  return (
+    <div className="bp-license">
+      <div className="bp-card bp-license-proBanner is-invalid">
+        <div className="bp-license-proBannerBody">
+          <div className="bp-license-proDot is-invalid" aria-hidden="true" />
+          <div style={{ minWidth: 0 }}>
+            <div className="bp-section-title" style={{ margin: 0 }}>{feature} is a Pro feature</div>
+            <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
+              {description || "Upgrade to BookPoint Pro to unlock this feature."}
+            </div>
+          </div>
+          <div className="bp-license-proBannerActions">
+            <a className="bp-btn bp-btn-primary" href={pricingUrl} target="_blank" rel="noreferrer noopener">
+              View plans & pricing
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div className="bp-card">
+        <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
+          <div>
+            <div className="bp-section-title" style={{ margin: 0 }}>Upgrade to unlock</div>
+            <div className="bp-muted bp-text-xs">Install Pro, then activate your license key.</div>
+          </div>
+        </div>
+        <div style={{ padding: 14, display: "grid", gap: 10 }}>
+          <div className="bp-muted bp-text-xs">
+            1) Purchase a plan from{" "}
+            <a href={pricingUrl} target="_blank" rel="noreferrer noopener">wpbookpoint.com</a>.
+          </div>
+          <div className="bp-muted bp-text-xs">
+            2) Download the BookPoint Pro ZIP from your account/download link.
+          </div>
+          <div className="bp-muted bp-text-xs">
+            3) In WordPress: Plugins → Add New → Upload Plugin → choose the ZIP → Install Now → Activate.
+          </div>
+          <div className="bp-muted bp-text-xs">
+            4) Then go to Settings → License to paste and activate your license key.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsScreen() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
   const pricingUrl = "https://wpbookpoint.com/pricing/";
-  const trial = window.BP_ADMIN?.trial || {};
-  const trialActive = Boolean(Number(trial?.active || 0));
-  const trialDaysLeft = Number(trial?.daysLeft || 0);
-  const trialEndsAt = Number(trial?.endsAt || 0);
+  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const [license, setLicense] = useState({
     key: "",
     status: "unset",
@@ -247,7 +291,9 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     loadSettings();
-    loadLicense();
+    if (isPro) {
+      loadLicense();
+    }
   }, []);
 
   const setTab = (key) => {
@@ -513,6 +559,12 @@ export default function SettingsScreen() {
           <div className="bp-settings-title">Settings</div>
           <div className="bp-muted">Configure scheduling, notifications, and system preferences.</div>
         </div>
+        {activeTab === "general" ? (
+          <div className="bp-settings-actions is-top">
+            <button onClick={saveSettings} className="bp-btn bp-btn-primary">Save Settings</button>
+            {saved && <span className="bp-settings-saved">Saved!</span>}
+          </div>
+        ) : null}
       </div>
 
       <div className="bp-settings-layout">
@@ -670,7 +722,7 @@ export default function SettingsScreen() {
 
                 <div className="bp-settings-actions">
                   <button onClick={saveSettings} className="bp-btn bp-btn-primary">Save Settings</button>
-                  {saved && <span className="bp-settings-saved">âœ“ Saved!</span>}
+                  {saved && <span className="bp-settings-saved">Saved!</span>}
                 </div>
               </div>
             </div>
@@ -681,11 +733,27 @@ export default function SettingsScreen() {
           )}
 
           {activeTab === "payments" && (
-            <PaymentsSettings />
+            isPro ? (
+              <PaymentsSettings />
+            ) : (
+              <ProUpgradePanel
+                feature="Payments"
+                pricingUrl={pricingUrl}
+                description="Online payments (Stripe/PayPal/WooCommerce) and payment settings are available in BookPoint Pro."
+              />
+            )
           )}
 
           {activeTab === "holidays" && (
-            <HolidaysScreen embedded />
+            isPro ? (
+              <HolidaysScreen embedded />
+            ) : (
+              <ProUpgradePanel
+                feature="Holidays"
+                pricingUrl={pricingUrl}
+                description="Holiday management is available in BookPoint Pro."
+              />
+            )
           )}
 
           {activeTab === "form_fields" && (
@@ -693,7 +761,15 @@ export default function SettingsScreen() {
           )}
 
           {activeTab === "promo_codes" && (
-            <PromoCodesScreen />
+            isPro ? (
+              <PromoCodesScreen />
+            ) : (
+              <ProUpgradePanel
+                feature="Promo Codes"
+                pricingUrl={pricingUrl}
+                description="Discount codes and promotions are available in BookPoint Pro."
+              />
+            )
           )}
 
           {activeTab === "notifications" && (
@@ -709,225 +785,254 @@ export default function SettingsScreen() {
           )}
 
           {activeTab === "license" && (
-  <div className="bp-license">
-    <div className={`bp-card bp-license-proBanner ${isLicenseValid ? "is-valid" : "is-invalid"}`}>
-      <div className="bp-license-proBannerBody">
-        <div className={`bp-license-proDot ${isLicenseValid ? "is-valid" : "is-invalid"}`} aria-hidden="true" />
-        <div style={{ minWidth: 0 }}>
-          {isLicenseValid ? (
-            <>
-              <div className="bp-section-title" style={{ margin: 0 }}>BookPoint Pro is active</div>
-              <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
-                You’re running the Pro version with an active license. All premium features are unlocked.
+            isPro ? (
+              <div className="bp-license">
+                <div className={`bp-card bp-license-proBanner ${isLicenseValid ? "is-valid" : "is-invalid"}`}>
+                  <div className="bp-license-proBannerBody">
+                    <div className={`bp-license-proDot ${isLicenseValid ? "is-valid" : "is-invalid"}`} aria-hidden="true" />
+                    <div style={{ minWidth: 0 }}>
+                      {isLicenseValid ? (
+                        <>
+                          <div className="bp-section-title" style={{ margin: 0 }}>BookPoint Pro is active</div>
+                          <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
+                            You’re running the Pro version with an active license. All premium features are unlocked.
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="bp-section-title" style={{ margin: 0 }}>Unlock BookPoint Pro</div>
+                          <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
+                            Activate your license to unlock all Pro features, get the best performance, and receive priority updates and support.
+                            Don’t have a license yet? Choose a plan and upgrade in minutes.
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {!isLicenseValid ? (
+                      <div className="bp-license-proBannerActions">
+                        <a className="bp-btn bp-btn-primary" href={pricingUrl} target="_blank" rel="noreferrer noopener">
+                          View plans & pricing
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="bp-license-proBannerActions">
+                        <a className="bp-btn" href={pricingUrl} target="_blank" rel="noreferrer noopener">
+                          Manage / renew
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="bp-license-grid">
+                  <div className="bp-card bp-license-status">
+                    <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
+                      <div>
+                        <div className="bp-section-title" style={{ margin: 0 }}>License Status</div>
+                        <div className="bp-muted bp-text-xs">Validation, plan, and support info.</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <button type="button" onClick={validateLicense} className="bp-btn" disabled={licenseValidating}>
+                          {licenseValidating ? "Validating..." : "Validate Now"}
+                        </button>
+                        <a className="bp-btn" href="admin.php?page=bp_settings&tab=tools">Diagnostics</a>
+                      </div>
+                    </div>
+
+                    <div className="bp-license-statusBody">
+                      <div className={`bp-license-pill is-${licenseStatusKey}`}>
+                        <span className="k">Status</span>
+                        <span className="v">{licenseStatusKey}</span>
+                      </div>
+
+                      <div className="bp-license-kvGrid">
+                        <div className="bp-license-kv">
+                          <div className="k">Plan</div>
+                          <div className="v">{license.plan || licenseMeta?.plan || "-"}</div>
+                        </div>
+                        <div className="bp-license-kv">
+                          <div className="k">Expires</div>
+                          <div className="v">{license.expires_at || licenseMeta?.expires_at || licenseMeta?.expires || "-"}</div>
+                        </div>
+                        <div className="bp-license-kv">
+                          <div className="k">Licensed Domain</div>
+                          <div className="v">{license.licensed_domain || licenseMeta?.licensed_domain || licenseMeta?.domain || "-"}</div>
+                        </div>
+                        <div className="bp-license-kv">
+                          <div className="k">Instance ID</div>
+                          <div className="v">{license.instance_id || licenseMeta?.instance_id || "-"}</div>
+                        </div>
+                      </div>
+
+                      <div className="bp-license-kvRow">
+                        <div className="k">Last checked</div>
+                        <div className="v">
+                          {license.checked_at ? (
+                            <span>
+                              {new Date(license.checked_at * 1000).toLocaleString()}{" "}
+                              <span className="bp-muted">({timeAgo(license.checked_at)})</span>
+                            </span>
+                          ) : (
+                            "-"
+                          )}
+                        </div>
+                      </div>
+
+                      {license.last_error ? (
+                        <div className={`bp-license-error is-${licenseStatusKey}`}>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="bp-label" style={{ margin: 0 }}>Server message</div>
+                              <div className="bp-muted bp-text-xs" style={{ marginTop: 4 }}>{license.last_error}</div>
+                            </div>
+                            <button className="bp-btn" type="button" onClick={() => setShowLicenseDetails((v) => !v)}>
+                              {showLicenseDetails ? "Hide" : "Details"}
+                            </button>
+                          </div>
+                          {showLicenseDetails && licenseMeta ? (
+                            <pre className="bp-license-pre">{JSON.stringify(licenseMeta, null, 2)}</pre>
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      <div className="bp-license-help">
+                        <div className="bp-section-title" style={{ margin: 0, fontSize: 14 }}>Support</div>
+                        <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
+                          If validation fails, copy these and send to support:
+                        </div>
+                        <div className="bp-license-helpRow">
+                          <code className="bp-license-code">{license.server_base_effective || "-"}</code>
+                          <button className="bp-btn" type="button" onClick={async () => { await copyText(license.server_base_effective || ""); }}>
+                            Copy Server
+                          </button>
+                        </div>
+                        <div className="bp-license-helpRow">
+                          <code className="bp-license-code">{window.location.origin}</code>
+                          <button className="bp-btn" type="button" onClick={async () => { await copyText(window.location.origin); }}>Copy</button>
+                        </div>
+                        <div className="bp-license-helpRow">
+                          <code className="bp-license-code">{window.location.hostname}</code>
+                          <button className="bp-btn" type="button" onClick={async () => { await copyText(window.location.hostname); }}>Copy</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bp-card bp-license-manage">
+                    <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
+                      <div>
+                        <div className="bp-section-title" style={{ margin: 0 }}>Manage License</div>
+                        <div className="bp-muted bp-text-xs">Paste key, then activate.</div>
+                      </div>
+                    </div>
+
+                    <div className="bp-license-manageBody">
+                      <div className="bp-license-field">
+                        <label className="bp-label">License key</label>
+                        <div className="bp-license-keyRow">
+                          <input
+                            type={showLicenseKey ? "text" : "password"}
+                            value={license.key || ""}
+                            onChange={(e) => setLicense({ ...license, key: e.target.value })}
+                            className="bp-input-field"
+                            placeholder="Paste your license key..."
+                            autoComplete="off"
+                          />
+                          <button type="button" className="bp-btn" onClick={() => setShowLicenseKey((v) => !v)}>
+                            {showLicenseKey ? "Hide" : "Show"}
+                          </button>
+                        </div>
+                        <div className="bp-muted bp-text-xs" style={{ marginTop: 8 }}>
+                          Tip: whitespace is trimmed on save.
+                        </div>
+                      </div>
+
+                      <div className="bp-license-actions">
+                        <button type="button" onClick={saveLicense} className="bp-btn bp-btn-primary" disabled={licenseSaving}>
+                          {licenseSaving ? "Saving..." : "Save Key"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={activateLicense}
+                          className="bp-btn"
+                          disabled={licenseActivating || licenseSaving || !license.key}
+                        >
+                          {licenseActivating ? "Activating..." : "Activate"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={deactivateLicense}
+                          className="bp-btn"
+                          disabled={licenseDeactivating || licenseSaving || !license.key}
+                        >
+                          {licenseDeactivating ? "Deactivating..." : "Deactivate"}
+                        </button>
+                        <button type="button" onClick={validateLicense} className="bp-btn" disabled={licenseValidating}>
+                          {licenseValidating ? "Validating..." : "Validate Now"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!license.key) return;
+                            if (!confirm("Remove license key from this site?")) return;
+                            setLicense({ ...license, key: "" });
+                            await saveLicense();
+                          }}
+                          className="bp-btn bp-btn-danger"
+                          disabled={licenseSaving || !license.key}
+                        >
+                          Remove Key
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </>
-          ) : (
-            <>
-              <div className="bp-section-title" style={{ margin: 0 }}>Unlock BookPoint Pro</div>
-              <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
-                {trialActive ? (
-                  <>
-                    You’re currently on a free trial.{" "}
-                    <strong>{Number.isFinite(trialDaysLeft) ? Math.max(0, trialDaysLeft) : 0}</strong>{" "}
-                    day{trialDaysLeft === 1 ? "" : "s"} left
-                    {trialEndsAt ? (
-                      <>
-                        {" "}
-                        (ends {new Date(trialEndsAt * 1000).toLocaleDateString()})
-                      </>
-                    ) : null}
-                    . Activate your license now to keep all features unlocked after the trial.
-                  </>
-                ) : (
-                  <>
-                    Activate your license to unlock all Pro features, get the best performance, and receive priority updates and support.
-                    Don’t have a license yet? Choose a plan and upgrade in minutes.
-                  </>
-                )}
+            ) : (
+              <div className="bp-license">
+                <div className="bp-card bp-license-proBanner is-invalid">
+                  <div className="bp-license-proBannerBody">
+                    <div className="bp-license-proDot is-invalid" aria-hidden="true" />
+                    <div style={{ minWidth: 0 }}>
+                      <div className="bp-section-title" style={{ margin: 0 }}>Upgrade to BookPoint Pro</div>
+                      <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
+                        Locations, Service Extras, Promo Codes, Holidays, and Payments are Pro features. Install the Pro version to unlock them.
+                      </div>
+                    </div>
+                    <div className="bp-license-proBannerActions">
+                      <a className="bp-btn bp-btn-primary" href={pricingUrl} target="_blank" rel="noreferrer noopener">
+                        View plans & pricing
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bp-card">
+                  <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
+                    <div>
+                      <div className="bp-section-title" style={{ margin: 0 }}>How to upgrade</div>
+                      <div className="bp-muted bp-text-xs">Install Pro, then activate your license key.</div>
+                    </div>
+                  </div>
+                  <div style={{ padding: 14, display: "grid", gap: 10 }}>
+                    <div className="bp-muted bp-text-xs">
+                      1) Purchase a plan from{" "}
+                      <a href={pricingUrl} target="_blank" rel="noreferrer noopener">wpbookpoint.com</a>.
+                    </div>
+                    <div className="bp-muted bp-text-xs">
+                      2) Download the BookPoint Pro ZIP from your account/download link.
+                    </div>
+                    <div className="bp-muted bp-text-xs">
+                      3) In WordPress: Plugins → Add New → Upload Plugin → choose the ZIP → Install Now → Activate.
+                    </div>
+                    <div className="bp-muted bp-text-xs">
+                      4) Come back to Settings → License to paste and activate your license key.
+                    </div>
+                  </div>
+                </div>
               </div>
-            </>
+            )
           )}
         </div>
-        {!isLicenseValid ? (
-          <div className="bp-license-proBannerActions">
-            <a className="bp-btn bp-btn-primary" href={pricingUrl} target="_blank" rel="noreferrer noopener">
-              View plans & pricing
-            </a>
-          </div>
-        ) : (
-          <div className="bp-license-proBannerActions">
-            <a className="bp-btn" href={pricingUrl} target="_blank" rel="noreferrer noopener">
-              Manage / renew
-            </a>
-          </div>
-        )}
-      </div>
-    </div>
-    <div className="bp-license-grid">
-      <div className="bp-card bp-license-status">
-        <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
-          <div>
-            <div className="bp-section-title" style={{ margin: 0 }}>License Status</div>
-            <div className="bp-muted bp-text-xs">Validation, plan, and support info.</div>
-          </div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button type="button" onClick={validateLicense} className="bp-btn" disabled={licenseValidating}>
-              {licenseValidating ? "Validating..." : "Validate Now"}
-            </button>
-            <a className="bp-btn" href="admin.php?page=bp_settings&tab=tools">Diagnostics</a>
-          </div>
-        </div>
-
-          <div className="bp-license-statusBody">
-            <div className={`bp-license-pill is-${licenseStatusKey}`}>
-              <span className="k">Status</span>
-              <span className="v">{licenseStatusKey}</span>
-            </div>
-
-          <div className="bp-license-kvGrid">
-            <div className="bp-license-kv">
-              <div className="k">Plan</div>
-              <div className="v">{license.plan || licenseMeta?.plan || "-"}</div>
-            </div>
-            <div className="bp-license-kv">
-              <div className="k">Expires</div>
-              <div className="v">{license.expires_at || licenseMeta?.expires_at || licenseMeta?.expires || "-"}</div>
-            </div>
-            <div className="bp-license-kv">
-              <div className="k">Licensed Domain</div>
-              <div className="v">{license.licensed_domain || licenseMeta?.licensed_domain || licenseMeta?.domain || "-"}</div>
-            </div>
-            <div className="bp-license-kv">
-              <div className="k">Instance ID</div>
-              <div className="v">{license.instance_id || licenseMeta?.instance_id || "-"}</div>
-            </div>
-          </div>
-
-          <div className="bp-license-kvRow">
-            <div className="k">Last checked</div>
-            <div className="v">
-              {license.checked_at ? (
-                <span>
-                  {new Date(license.checked_at * 1000).toLocaleString()} {" "}
-                  <span className="bp-muted">({timeAgo(license.checked_at)})</span>
-                </span>
-              ) : (
-                "-"
-              )}
-            </div>
-          </div>
-
-          {license.last_error ? (
-            <div className={`bp-license-error is-${licenseStatusKey}`}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                <div style={{ minWidth: 0 }}>
-                  <div className="bp-label" style={{ margin: 0 }}>Server message</div>
-                  <div className="bp-muted bp-text-xs" style={{ marginTop: 4 }}>{license.last_error}</div>
-                </div>
-                <button className="bp-btn" type="button" onClick={() => setShowLicenseDetails((v) => !v)}>
-                  {showLicenseDetails ? "Hide" : "Details"}
-                </button>
-              </div>
-              {showLicenseDetails && licenseMeta ? (
-                <pre className="bp-license-pre">{JSON.stringify(licenseMeta, null, 2)}</pre>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="bp-license-help">
-            <div className="bp-section-title" style={{ margin: 0, fontSize: 14 }}>Support</div>
-            <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
-              If validation fails, copy these and send to support:
-            </div>
-            <div className="bp-license-helpRow">
-              <code className="bp-license-code">{license.server_base_effective || "-"}</code>
-              <button className="bp-btn" type="button" onClick={async () => { await copyText(license.server_base_effective || ""); }}>
-                Copy Server
-              </button>
-            </div>
-            <div className="bp-license-helpRow">
-              <code className="bp-license-code">{window.location.origin}</code>
-              <button className="bp-btn" type="button" onClick={async () => { await copyText(window.location.origin); }}>Copy</button>
-            </div>
-            <div className="bp-license-helpRow">
-              <code className="bp-license-code">{window.location.hostname}</code>
-              <button className="bp-btn" type="button" onClick={async () => { await copyText(window.location.hostname); }}>Copy</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bp-card bp-license-manage">
-        <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
-          <div>
-            <div className="bp-section-title" style={{ margin: 0 }}>Manage License</div>
-            <div className="bp-muted bp-text-xs">Paste key, then activate.</div>
-          </div>
-        </div>
-
-          <div className="bp-license-manageBody">
-          <div className="bp-license-field">
-            <label className="bp-label">License key</label>
-            <div className="bp-license-keyRow">
-              <input
-                type={showLicenseKey ? "text" : "password"}
-                value={license.key || ""}
-                onChange={(e) => setLicense({ ...license, key: e.target.value })}
-                className="bp-input-field"
-                placeholder="Paste your license key..."
-                autoComplete="off"
-              />
-              <button type="button" className="bp-btn" onClick={() => setShowLicenseKey((v) => !v)}>
-                {showLicenseKey ? "Hide" : "Show"}
-              </button>
-            </div>
-            <div className="bp-muted bp-text-xs" style={{ marginTop: 8 }}>
-              Tip: whitespace is trimmed on save.
-            </div>
-          </div>
-
-          <div className="bp-license-actions">
-            <button type="button" onClick={saveLicense} className="bp-btn bp-btn-primary" disabled={licenseSaving}>
-              {licenseSaving ? "Saving..." : "Save Key"}
-            </button>
-            <button
-              type="button"
-              onClick={activateLicense}
-              className="bp-btn"
-              disabled={licenseActivating || licenseSaving || !license.key}
-            >
-              {licenseActivating ? "Activating..." : "Activate"}
-            </button>
-            <button
-              type="button"
-              onClick={deactivateLicense}
-              className="bp-btn"
-              disabled={licenseDeactivating || licenseSaving || !license.key}
-            >
-              {licenseDeactivating ? "Deactivating..." : "Deactivate"}
-            </button>
-            <button type="button" onClick={validateLicense} className="bp-btn" disabled={licenseValidating}>
-              {licenseValidating ? "Validating..." : "Validate Now"}
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                if (!license.key) return;
-                if (!confirm("Remove license key from this site?")) return;
-                setLicense({ ...license, key: "" });
-                await saveLicense();
-              }}
-              className="bp-btn bp-btn-danger"
-              disabled={licenseSaving || !license.key}
-            >
-              Remove Key
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}</div>
       </div>
     </div>
   );

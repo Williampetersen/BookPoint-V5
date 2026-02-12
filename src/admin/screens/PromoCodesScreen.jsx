@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { bpFetch } from "../api/client";
+import UpgradeToPro from "../components/UpgradeToPro";
 
 function clamp(n, min, max) {
   const v = Number(n);
@@ -321,6 +322,7 @@ function PromoDrawer({ open, promo, onClose, onSaved, onDeleted }) {
 }
 
 export default function PromoCodesScreen() {
+  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -356,9 +358,14 @@ export default function PromoCodesScreen() {
   }
 
   useEffect(() => {
+    if (!isPro) {
+      setLoading(false);
+      setRows([]);
+      return;
+    }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isPro]);
 
   const filtered = useMemo(() => {
     const now = new Date();
@@ -477,6 +484,10 @@ export default function PromoCodesScreen() {
     } finally {
       setBusyId(null);
     }
+  }
+
+  if (!isPro) {
+    return <UpgradeToPro feature="Promo Codes" />;
   }
 
   return (

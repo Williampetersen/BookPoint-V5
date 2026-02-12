@@ -1,11 +1,28 @@
 import React from "react";
 
-function imgUrl(filename) {
-  const base =
-    window.BP_ADMIN?.publicImagesUrl ||
-    window.BP_ADMIN?.pluginUrl?.replace(/\/$/, "") + "/public/images" ||
-    "/wp-content/plugins/bookpoint-v5/public/images";
-  return `${base}/${filename}`;
+function fileUrl(filename) {
+  const file = String(filename || "").trim();
+  const isSvg = file.toLowerCase().endsWith(".svg");
+
+  const base = isSvg
+    ? (
+        window.BP_ADMIN?.publicIconsUrl ||
+        window.BP_ADMIN?.pluginUrl?.replace(/\/$/, "") + "/public/icons" ||
+        "/wp-content/plugins/bookpoint-v5/public/icons"
+      )
+    : (
+        window.BP_ADMIN?.publicImagesUrl ||
+        window.BP_ADMIN?.pluginUrl?.replace(/\/$/, "") + "/public/images" ||
+        "/wp-content/plugins/bookpoint-v5/public/images"
+      );
+
+  const url = `${String(base || "").replace(/\/$/, "")}/${file}`;
+  const v = String(
+    (isSvg ? window.BP_ADMIN?.iconsBuild : window.BP_ADMIN?.imagesBuild) || ""
+  ).trim();
+  if (!v) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}v=${encodeURIComponent(v)}`;
 }
 
 export default function WizardPreview({ config, activeStepKey, device = "desktop" }) {
@@ -29,7 +46,7 @@ export default function WizardPreview({ config, activeStepKey, device = "desktop
   const showLeft = !isMobile && step?.showLeftPanel !== false;
   const showHelp = step?.showHelpBox !== false;
 
-  const fallback = imgUrl(step?.image || "location-image.png");
+  const fallback = fileUrl(step?.image || "locations.svg");
   const src = step?.imageUrl || fallback;
 
   return (

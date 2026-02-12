@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
+import UpgradeToPro from "../components/UpgradeToPro";
 
 export default function LocationsScreen() {
+  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -12,8 +14,14 @@ export default function LocationsScreen() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
+    if (!isPro) {
+      setLoading(false);
+      setLocations([]);
+      return;
+    }
     loadLocations();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPro]);
 
   async function loadLocations() {
     try {
@@ -75,6 +83,10 @@ export default function LocationsScreen() {
       { total: 0, active: 0, inactive: 0 }
     );
   }, [locations]);
+
+  if (!isPro) {
+    return <UpgradeToPro feature="Locations" />;
+  }
 
   return (
     <div className="myplugin-page bp-locations">
@@ -270,4 +282,3 @@ export default function LocationsScreen() {
     </div>
   );
 }
-
