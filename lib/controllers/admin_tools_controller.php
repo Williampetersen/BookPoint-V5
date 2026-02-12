@@ -33,7 +33,7 @@ final class BP_AdminToolsController extends BP_Controller {
     }
 
     $db_version = (string) get_option('BP_db_version', '');
-    $plugin_version = defined('BP_Plugin::VERSION') ? BP_Plugin::VERSION : '';
+    $plugin_version = defined('BPV5_BookPoint_Core_Plugin::VERSION') ? BPV5_BookPoint_Core_Plugin::VERSION : '';
 
     $this->render('admin/tools_index', [
       'exists' => $exists,

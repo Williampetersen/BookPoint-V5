@@ -118,6 +118,9 @@ add_action('rest_api_init', function(){
       if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
         return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
       }
+      if (!(defined('BP_IS_PRO') && BP_IS_PRO)) {
+        return new WP_REST_Response(['status'=>'error','message'=>'BookPoint Pro is required to add form fields.'], 403);
+      }
 
       global $wpdb;
       $t = $wpdb->prefix . 'bp_form_fields';
@@ -176,6 +179,9 @@ add_action('rest_api_init', function(){
       if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
         return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
       }
+      if (!(defined('BP_IS_PRO') && BP_IS_PRO)) {
+        return new WP_REST_Response(['status'=>'error','message'=>'BookPoint Pro is required to modify form fields.'], 403);
+      }
 
       global $wpdb;
       $t = $wpdb->prefix . 'bp_form_fields';
@@ -217,6 +223,9 @@ add_action('rest_api_init', function(){
       if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
         return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
       }
+      if (!(defined('BP_IS_PRO') && BP_IS_PRO)) {
+        return new WP_REST_Response(['status'=>'error','message'=>'BookPoint Pro is required to delete form fields.'], 403);
+      }
 
       global $wpdb;
       $t = $wpdb->prefix . 'bp_form_fields';
@@ -235,6 +244,9 @@ add_action('rest_api_init', function(){
     'callback' => function(WP_REST_Request $req){
       if (!current_user_can('bp_manage_settings') && !current_user_can('administrator')) {
         return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+      }
+      if (!(defined('BP_IS_PRO') && BP_IS_PRO)) {
+        return new WP_REST_Response(['status'=>'error','message'=>'BookPoint Pro is required to reorder form fields.'], 403);
       }
 
       global $wpdb;
@@ -269,6 +281,9 @@ add_action('rest_api_init', function(){
   register_rest_route('bp/v1', '/admin/form-fields/reseed', [
     'methods'=>'POST',
     'callback'=>function(){
+      if (!(defined('BP_IS_PRO') && BP_IS_PRO)) {
+        return new WP_REST_Response(['status'=>'error','message'=>'BookPoint Pro is required to reseed form fields.'], 403);
+      }
       if (!function_exists('bp_seed_default_form_fields')) {
         return new WP_REST_Response(['status'=>'error','message'=>'Seed function not found'], 500);
       }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
+import UpgradeToPro from "../components/UpgradeToPro";
 
 function getQueryInt(key) {
   const params = new URLSearchParams(window.location.search);
@@ -10,6 +11,7 @@ function getQueryInt(key) {
 }
 
 export default function LocationCategoryEditScreen() {
+  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const initialId = getQueryInt("id");
   const [categoryId, setCategoryId] = useState(initialId);
   const [loading, setLoading] = useState(true);
@@ -20,8 +22,14 @@ export default function LocationCategoryEditScreen() {
   const [edit, setEdit] = useState(null);
 
   useEffect(() => {
+    if (!isPro) {
+      setLoading(false);
+      setEdit(null);
+      return;
+    }
     loadCategory();
-  }, [categoryId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryId, isPro]);
 
   async function loadCategory() {
     setLoading(true);
@@ -107,6 +115,10 @@ export default function LocationCategoryEditScreen() {
       setError(e.message || "Delete failed");
       setSaving(false);
     }
+  }
+
+  if (!isPro) {
+    return <UpgradeToPro feature="Locations" />;
   }
 
   return (

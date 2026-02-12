@@ -62,11 +62,12 @@ $filesToUpload = New-Object System.Collections.Generic.List[string]
     "build/admin.asset.php",
     "build/index.jsx.css",
     "build/index.jsx-rtl.css",
-    "public/front.js",
-    "public/front.asset.php",
-    "public/index.jsx.css",
-    "public/index.jsx-rtl.css",
+    "public/build/front.js",
+    "public/build/front.asset.php",
+    "public/build/index.jsx.css",
+    "public/build/index.jsx-rtl.css",
     "lib/rest/admin-booking-form-design-routes.php",
+    "lib/rest/front-booking-form-design-routes.php",
     "public/admin-ui.css",
     "public/admin-app.css"
   )
@@ -74,6 +75,18 @@ $filesToUpload = New-Object System.Collections.Generic.List[string]
   foreach ($f in $fastFiles) {
     $p = Join-Path $basePath $f
     if (Test-Path $p) { $filesToUpload.Add($p) }
+  }
+
+  # Always include icons in FAST mode (common hotfix/update).
+  $iconsDir = Join-Path $basePath "public/icons"
+  if (Test-Path $iconsDir) {
+    Get-ChildItem -Path $iconsDir -Filter *.svg -File | ForEach-Object { $filesToUpload.Add($_.FullName) }
+  }
+
+  # Also include public images in FAST mode (logos/payment images, etc.).
+  $imagesDir = Join-Path $basePath "public/images"
+  if (Test-Path $imagesDir) {
+    Get-ChildItem -Path $imagesDir -Recurse -File | ForEach-Object { $filesToUpload.Add($_.FullName) }
   }
 } else {
   foreach ($f in $rootFiles) {

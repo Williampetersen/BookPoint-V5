@@ -5,11 +5,6 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
   const page = window.BP_ADMIN?.page || "bp_dashboard";
   const pricingUrl = "https://wpbookpoint.com/pricing/";
   const licenseIsValid = Boolean(Number(window.BP_ADMIN?.licenseIsValid || 0));
-  const trial = window.BP_ADMIN?.trial || {};
-  const trialActive = Boolean(Number(trial?.active || 0));
-  const trialDaysLeft = Number(trial?.daysLeft || 0);
-  const trialEndsAt = Number(trial?.endsAt || 0);
-  const showTrialBanner = trialActive && !licenseIsValid;
   const showUpgradeCta = !licenseIsValid;
   const pluginUrl = window.BP_ADMIN?.pluginUrl || "";
   const logoBase = pluginUrl
@@ -271,37 +266,6 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
               <div className="bp-avatar">W</div>
             </div>
           </header>
-
-          {showTrialBanner ? (
-            <div className="bp-trial-banner" role="status" aria-live="polite">
-              <div className="bp-trial-banner__left">
-                <span className="bp-trial-dot" aria-hidden="true" />
-                <div style={{ minWidth: 0 }}>
-                  <div className="bp-trial-title">Trial active</div>
-                  <div className="bp-trial-sub">
-                    Trial ends in{" "}
-                    <strong>{Number.isFinite(trialDaysLeft) ? Math.max(0, trialDaysLeft) : 0}</strong>{" "}
-                    day{trialDaysLeft === 1 ? "" : "s"}
-                    {trialEndsAt ? (
-                      <>
-                        {" "}
-                        ({new Date(trialEndsAt * 1000).toLocaleDateString()})
-                      </>
-                    ) : null}
-                    . After that, Pro features will lock until you activate a license.
-                  </div>
-                </div>
-              </div>
-              <div className="bp-trial-banner__right">
-                <a className="bp-btn bp-btn-primary" href={pricingUrl} target="_blank" rel="noreferrer noopener">
-                  Buy license
-                </a>
-                <a className="bp-btn" href="admin.php?page=bp_settings&tab=license">
-                  Activate key
-                </a>
-              </div>
-            </div>
-          ) : null}
 
           <div className="bp-content">{children}</div>
         </main>

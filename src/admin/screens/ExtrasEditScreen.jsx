@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
+import UpgradeToPro from "../components/UpgradeToPro";
 
 function normalizeExtra(raw, id) {
   const isActive =
@@ -31,6 +32,7 @@ function normalizeExtra(raw, id) {
 }
 
 export default function ExtrasEditScreen() {
+  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const params = new URLSearchParams(window.location.search);
   const id = Number(params.get("id") || 0) || 0;
 
@@ -64,6 +66,11 @@ export default function ExtrasEditScreen() {
     let alive = true;
 
     async function load() {
+      if (!isPro) {
+        setLoading(false);
+        setError("");
+        return;
+      }
       setLoading(true);
       setError("");
       try {
@@ -109,7 +116,7 @@ export default function ExtrasEditScreen() {
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, isPro]);
 
   useEffect(() => {
     const onBeforeUnload = (e) => {
@@ -232,6 +239,10 @@ export default function ExtrasEditScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!isPro) {
+    return <UpgradeToPro feature="Service Extras" />;
   }
 
   return (
@@ -450,4 +461,3 @@ export default function ExtrasEditScreen() {
     </div>
   );
 }
-

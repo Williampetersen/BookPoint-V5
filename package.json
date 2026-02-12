@@ -8,8 +8,8 @@
   "scripts": {
     "build:book-form": "wp-scripts build blocks/src/book-form/index.js --output-path=blocks/build/book-form",
     "start:book-form": "wp-scripts start blocks/src/book-form/index.js --output-path=blocks/build/book-form",
-    "build:admin": "cross-env BABEL_CONFIG_PATH=./babel.config.js wp-scripts build src/admin/index.jsx --output-path=build --output-filename=admin.js",
-    "build:front": "cross-env BABEL_CONFIG_PATH=./babel.config.js wp-scripts build src/front/index.jsx --output-path=public --output-filename=front.js",
+    "build:admin": "cross-env BABEL_CONFIG_PATH=./babel.config.js WP_SCRIPTS_NO_CLEAN=true wp-scripts build src/admin/index.jsx --output-path=build --output-filename=admin.js",
+    "build:front": "cross-env BABEL_CONFIG_PATH=./babel.config.js WP_SCRIPTS_NO_CLEAN=true wp-scripts build src/front/index.jsx --output-path=public/build --output-filename=front.js",
     "deploy:admin": "powershell -ExecutionPolicy Bypass -File scripts/deploy-admin-build.ps1",
     "deploy:plugin": "powershell -ExecutionPolicy Bypass -File scripts/deploy-plugin.ps1",
     "build-and-deploy:admin": "npm run build:admin && npm run deploy:admin"

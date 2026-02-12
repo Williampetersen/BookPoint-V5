@@ -57,7 +57,7 @@ final class BP_LicenseHelper {
         'Accept-Language' => 'en-US,en;q=0.9',
         'Cache-Control' => 'no-cache',
         'Pragma' => 'no-cache',
-        'X-BookPoint' => defined('BP_Plugin::VERSION') ? (string) BP_Plugin::VERSION : 'unknown',
+        'X-BookPoint' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? (string) BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
       ],
       'user-agent' => self::http_user_agent(),
       'body' => wp_json_encode($payload),
@@ -78,7 +78,7 @@ final class BP_LicenseHelper {
         'Accept-Language' => 'en-US,en;q=0.9',
         'Cache-Control' => 'no-cache',
         'Pragma' => 'no-cache',
-        'X-BookPoint' => defined('BP_Plugin::VERSION') ? (string) BP_Plugin::VERSION : 'unknown',
+        'X-BookPoint' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? (string) BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
       ],
       'user-agent' => self::http_user_agent(),
       'body' => $payload, // array => WP will encode
@@ -228,7 +228,7 @@ final class BP_LicenseHelper {
         'Cache-Control' => 'no-cache',
         'Pragma' => 'no-cache',
         'X-BP-Payload' => $packedPayload,
-        'X-BookPoint' => defined('BP_Plugin::VERSION') ? (string) BP_Plugin::VERSION : 'unknown',
+        'X-BookPoint' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? (string) BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
       ],
       'user-agent' => self::http_user_agent(),
     ];
@@ -382,7 +382,7 @@ final class BP_LicenseHelper {
           'Accept-Language' => 'en-US,en;q=0.9',
           'Cache-Control' => 'no-cache',
           'Pragma' => 'no-cache',
-          'X-BookPoint' => defined('BP_Plugin::VERSION') ? (string) BP_Plugin::VERSION : 'unknown',
+          'X-BookPoint' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? (string) BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
         ],
         'user-agent' => self::http_user_agent(),
       ];
@@ -454,7 +454,7 @@ final class BP_LicenseHelper {
       'license_key' => $key,
       'site' => home_url(),
       'plugin' => 'bookpoint',
-      'version' => defined('BP_Plugin::VERSION') ? BP_Plugin::VERSION : 'unknown',
+      'version' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
       'instance_id' => self::get_instance_id(),
     ];
 
@@ -601,7 +601,7 @@ final class BP_LicenseHelper {
       'license_key' => $key,
       'site' => home_url(),
       'plugin' => 'bookpoint',
-      'version' => defined('BP_Plugin::VERSION') ? BP_Plugin::VERSION : 'unknown',
+      'version' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
       'instance_id' => self::get_instance_id(),
     ];
 

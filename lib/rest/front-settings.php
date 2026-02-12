@@ -5,12 +5,14 @@ add_action('rest_api_init', function () {
   register_rest_route('bp/v1', '/front/settings', [
     'methods' => 'GET',
     'callback' => function () {
+      $is_pro = class_exists('BPV5_BookPoint_Core_Plugin') && method_exists('BPV5_BookPoint_Core_Plugin', 'is_pro_enabled') ? BPV5_BookPoint_Core_Plugin::is_pro_enabled() : (defined('BP_IS_PRO') && BP_IS_PRO);
       $settings = BP_SettingsHelper::get_all();
-      $enabled = $settings['payments_enabled_methods'] ?? ['cash'];
-      if (!is_array($enabled)) $enabled = ['cash'];
+      $enabled = $settings['payments_enabled_methods'] ?? [];
+      if (!is_array($enabled)) $enabled = [];
 
-      $require = !empty($settings['payments_require_payment_to_confirm']) ? 1 : 0;
-      $payments_enabled = !array_key_exists('payments_enabled', $settings) || !empty($settings['payments_enabled']) ? 1 : 0;
+      // Free build: payments are always disabled.
+      $require = $is_pro && !empty($settings['payments_require_payment_to_confirm']) ? 1 : 0;
+      $payments_enabled = $is_pro && (!array_key_exists('payments_enabled', $settings) || !empty($settings['payments_enabled'])) ? 1 : 0;
       $stripe_mode = $settings['stripe_mode'] ?? 'test';
       $stripe_publishable = get_option('bp_stripe_publishable_key', '');
       if ($stripe_publishable === '') {
@@ -26,13 +28,13 @@ add_action('rest_api_init', function () {
         'settings' => [
           'currency' => $settings['currency'] ?? 'USD',
           'currency_position' => $settings['currency_position'] ?? 'before',
-          'payments_enabled_methods' => $enabled,
+          'payments_enabled_methods' => $payments_enabled ? $enabled : [],
           'payments_enabled' => $payments_enabled,
-          'payments_default_method' => $settings['payments_default_method'] ?? 'cash',
+          'payments_default_method' => $payments_enabled ? ($settings['payments_default_method'] ?? '') : '',
           'payments_require_payment_to_confirm' => $require,
           'stripe_mode' => $settings['stripe_mode'] ?? 'test',
           'paypal_mode' => $settings['paypal_mode'] ?? 'test',
-          'stripe_publishable_key' => $stripe_publishable,
+          'stripe_publishable_key' => $payments_enabled ? $stripe_publishable : '',
         ],
       ]);
     },

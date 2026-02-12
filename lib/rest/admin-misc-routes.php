@@ -755,7 +755,7 @@ function bp_rest_admin_tools_status(WP_REST_Request $req) {
   }
 
   $db_version = (string)get_option('BP_db_version', '');
-  $plugin_version = class_exists('BP_Plugin') ? BP_Plugin::VERSION : '';
+  $plugin_version = class_exists('BPV5_BookPoint_Core_Plugin') ? BPV5_BookPoint_Core_Plugin::VERSION : '';
 
   return new WP_REST_Response([
     'status' => 'success',
@@ -887,7 +887,7 @@ function bp_rest_admin_tools_report(WP_REST_Request $req) {
     'environment' => $env_type,
     'timezone' => wp_timezone_string(),
     'locale' => get_locale(),
-    'plugin_version' => class_exists('BP_Plugin') ? BP_Plugin::VERSION : '',
+    'plugin_version' => class_exists('BPV5_BookPoint_Core_Plugin') ? BPV5_BookPoint_Core_Plugin::VERSION : '',
     'db_version' => (string)get_option('BP_db_version', ''),
     'theme' => [
       'name' => $theme ? $theme->get('Name') : '',

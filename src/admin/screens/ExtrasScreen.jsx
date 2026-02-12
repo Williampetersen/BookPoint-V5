@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
+import UpgradeToPro from "../components/UpgradeToPro";
 
 export default function ExtrasScreen() {
+  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const [extras, setExtras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -13,8 +15,14 @@ export default function ExtrasScreen() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
+    if (!isPro) {
+      setLoading(false);
+      setExtras([]);
+      return;
+    }
     loadExtras();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPro]);
 
   async function loadExtras() {
     try {
@@ -72,6 +80,10 @@ export default function ExtrasScreen() {
       { total: 0, active: 0, inactive: 0 }
     );
   }, [extras]);
+
+  if (!isPro) {
+    return <UpgradeToPro feature="Service Extras" />;
+  }
 
   return (
     <div className="myplugin-page bp-extras">

@@ -437,6 +437,15 @@ export default function ScheduleScreen({ embedded = false }) {
               </div>
             </div>
 
+            <div className="bp-sched-bar is-top">
+              <div className="bp-muted bp-text-sm" style={{ minWidth: 0 }}>
+                {validation.hasErrors ? "Fix validation errors before saving." : "Changes apply to booking availability."}
+              </div>
+              <button className="bp-btn bp-btn-primary" onClick={save} disabled={!canSave}>
+                {saving ? "Saving..." : "Save schedule"}
+              </button>
+            </div>
+
             {loading ? (
               <div className="bp-muted">Loading...</div>
             ) : (

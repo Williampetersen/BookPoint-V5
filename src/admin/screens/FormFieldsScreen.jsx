@@ -169,6 +169,17 @@ export default function FormFieldsScreen({ embedded = false }) {
     setTimeout(() => setToast(""), 2500);
   };
 
+  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
+  const pricingUrl = "https://wpbookpoint.com/pricing/";
+  const promptUpgrade = () => {
+    showToast("This action requires BookPoint Pro.");
+    try {
+      window.open(pricingUrl, "_blank", "noopener,noreferrer");
+    } catch (_) {
+      // ignore
+    }
+  };
+
   const theme = document.documentElement.classList.contains("bp-dark") ? "dark" : "light";
 
   async function load() {
@@ -261,6 +272,10 @@ export default function FormFieldsScreen({ embedded = false }) {
   const canSave = useMemo(() => Object.keys(invalid).length === 0 && !saving, [invalid, saving]);
 
   const openCreate = () => {
+    if (!isPro) {
+      promptUpgrade();
+      return;
+    }
     setSelectedId(-1);
     setDraft(makeEmpty(scope));
     setDrawerOpen(window.innerWidth < 1024);
@@ -292,6 +307,10 @@ export default function FormFieldsScreen({ embedded = false }) {
   };
 
   const save = async () => {
+    if (!isPro) {
+      promptUpgrade();
+      return;
+    }
     setSaving(true);
     setErr("");
     try {
@@ -327,6 +346,10 @@ export default function FormFieldsScreen({ embedded = false }) {
   };
 
   const handleDelete = async (id) => {
+    if (!isPro) {
+      promptUpgrade();
+      return;
+    }
     if (!confirm("Delete this field?")) return;
     setErr("");
     try {
@@ -340,6 +363,10 @@ export default function FormFieldsScreen({ embedded = false }) {
   };
 
   const toggleEnabled = async (row) => {
+    if (!isPro) {
+      promptUpgrade();
+      return;
+    }
     try {
       const next = Number(row.is_enabled) ? 0 : 1;
       await bpFetch(`/admin/form-fields/${row.id}`, { method: "PATCH", body: { is_enabled: !!next } });
@@ -351,6 +378,10 @@ export default function FormFieldsScreen({ embedded = false }) {
   };
 
   const duplicate = async (row) => {
+    if (!isPro) {
+      promptUpgrade();
+      return;
+    }
     const baseKey = sanitizeKey(`${row.field_key || row.name_key || "field"}_copy`);
     let key = baseKey;
     let i = 2;
@@ -381,6 +412,10 @@ export default function FormFieldsScreen({ embedded = false }) {
   };
 
   const startReorder = () => {
+    if (!isPro) {
+      promptUpgrade();
+      return;
+    }
     setReorderMode(true);
     setDirtyOrder(false);
     setSort("order");
@@ -408,6 +443,10 @@ export default function FormFieldsScreen({ embedded = false }) {
   };
 
   const moveRow = (id, delta) => {
+    if (!isPro) {
+      promptUpgrade();
+      return;
+    }
     const rowId = Number(id) || 0;
     const d = Number(delta) || 0;
     if (!rowId || !d) return;
@@ -426,6 +465,10 @@ export default function FormFieldsScreen({ embedded = false }) {
   };
 
   const onDrop = (e, targetId) => {
+    if (!isPro) {
+      promptUpgrade();
+      return;
+    }
     e.preventDefault();
     const sourceId = Number(dragIdRef.current) || 0;
     dragIdRef.current = null;
@@ -444,6 +487,10 @@ export default function FormFieldsScreen({ embedded = false }) {
   };
 
   const saveOrder = async () => {
+    if (!isPro) {
+      promptUpgrade();
+      return;
+    }
     setErr("");
     try {
       const ids = (rows || []).map((r) => Number(r.id)).filter(Boolean);
@@ -463,6 +510,35 @@ export default function FormFieldsScreen({ embedded = false }) {
   const EditorPanel = (
     <div className="bp-ff-editor">
       {err ? <div className="bp-alert bp-alert-error">{err}</div> : null}
+      {!isPro ? (
+        <div className="bp-card" style={{ padding: 12, marginBottom: 12 }}>
+          <div className="bp-section-title" style={{ margin: 0 }}>View-only in the free version</div>
+          <div className="bp-muted bp-text-sm" style={{ marginTop: 6 }}>
+            You can view your form fields, but adding or modifying fields requires BookPoint Pro.
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <button type="button" className="bp-btn bp-btn-primary" onClick={promptUpgrade}>
+              View plans & pricing
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="bp-ff-savebar is-top">
+        <button type="button" className="bp-btn bp-btn-ghost" onClick={closeEditor}>Cancel</button>
+        {isPro && draft.id && draft.id !== -1 ? (
+          <button type="button" className="bp-btn bp-btn-danger" onClick={() => handleDelete(draft.id)}>Delete</button>
+        ) : null}
+        {isPro ? (
+          <button type="button" className="bp-btn bp-btn-primary" disabled={!canSave} onClick={save}>
+            {saving ? "Saving..." : "Save"}
+          </button>
+        ) : (
+          <button type="button" className="bp-btn bp-btn-primary" onClick={promptUpgrade}>
+            Upgrade to edit
+          </button>
+        )}
+      </div>
 
       <div className="bp-card bp-ff-editorCard">
         <div className="bp-card-head bp-ff-editorHead">
@@ -484,6 +560,7 @@ export default function FormFieldsScreen({ embedded = false }) {
                 <input
                   className={`bp-input-field ${invalid.label ? "bp-field-error" : ""}`}
                   value={draft.label}
+                  disabled={!isPro}
                   onChange={(e) => setDraft({ ...draft, label: e.target.value })}
                 />
               </div>
@@ -493,7 +570,7 @@ export default function FormFieldsScreen({ embedded = false }) {
                   className={`bp-input-field ${invalid.field_key ? "bp-field-error" : ""}`}
                   value={draft.field_key}
                   onChange={(e) => setDraft({ ...draft, field_key: sanitizeKey(e.target.value) })}
-                  disabled={Boolean(draft.id && draft.id !== -1)}
+                  disabled={!isPro || Boolean(draft.id && draft.id !== -1)}
                   placeholder="e.g. customer_phone"
                 />
                 {invalid.field_key ? <div className="bp-muted bp-text-xs" style={{ color: "#991b1b", marginTop: 6 }}>{invalid.field_key}</div> : null}
@@ -503,7 +580,7 @@ export default function FormFieldsScreen({ embedded = false }) {
             <div className="bp-ff-grid2">
               <div>
                 <label className="bp-label">Type</label>
-                <select className="bp-select" value={draft.type} onChange={(e) => setDraft({ ...draft, type: e.target.value })}>
+                <select className="bp-select" value={draft.type} disabled={!isPro} onChange={(e) => setDraft({ ...draft, type: e.target.value })}>
                   {TYPES.map((t) => (
                     <option key={t.key} value={t.key}>{t.label}</option>
                   ))}
@@ -511,7 +588,7 @@ export default function FormFieldsScreen({ embedded = false }) {
               </div>
               <div>
                 <label className="bp-label">Step</label>
-                <select className="bp-select" value={draft.step_key} onChange={(e) => setDraft({ ...draft, step_key: e.target.value })}>
+                <select className="bp-select" value={draft.step_key} disabled={!isPro} onChange={(e) => setDraft({ ...draft, step_key: e.target.value })}>
                   {STEPS.map((s) => (
                     <option key={s.key} value={s.key}>{s.label}</option>
                   ))}
@@ -521,7 +598,7 @@ export default function FormFieldsScreen({ embedded = false }) {
 
             <div>
               <label className="bp-label">Placeholder / Help text</label>
-              <input className="bp-input-field" value={draft.placeholder} onChange={(e) => setDraft({ ...draft, placeholder: e.target.value })} />
+              <input className="bp-input-field" value={draft.placeholder} disabled={!isPro} onChange={(e) => setDraft({ ...draft, placeholder: e.target.value })} />
             </div>
           </div>
 
@@ -534,7 +611,7 @@ export default function FormFieldsScreen({ embedded = false }) {
                   <div className="bp-muted bp-text-xs">User must fill this field.</div>
                 </div>
                 <label className="bp-switch">
-                  <input type="checkbox" checked={!!Number(draft.is_required)} onChange={(e) => setDraft({ ...draft, is_required: e.target.checked ? 1 : 0 })} />
+                  <input type="checkbox" checked={!!Number(draft.is_required)} disabled={!isPro} onChange={(e) => setDraft({ ...draft, is_required: e.target.checked ? 1 : 0 })} />
                   <span className="bp-slider" />
                 </label>
               </div>
@@ -545,7 +622,7 @@ export default function FormFieldsScreen({ embedded = false }) {
                   <div className="bp-muted bp-text-xs">Show this field in admin and wizard.</div>
                 </div>
                 <label className="bp-switch">
-                  <input type="checkbox" checked={!!Number(draft.is_enabled)} onChange={(e) => setDraft({ ...draft, is_enabled: e.target.checked ? 1 : 0 })} />
+                  <input type="checkbox" checked={!!Number(draft.is_enabled)} disabled={!isPro} onChange={(e) => setDraft({ ...draft, is_enabled: e.target.checked ? 1 : 0 })} />
                   <span className="bp-slider" />
                 </label>
               </div>
@@ -556,7 +633,7 @@ export default function FormFieldsScreen({ embedded = false }) {
                   <div className="bp-muted bp-text-xs">Visible during booking flow.</div>
                 </div>
                 <label className="bp-switch">
-                  <input type="checkbox" checked={!!Number(draft.show_in_wizard)} onChange={(e) => setDraft({ ...draft, show_in_wizard: e.target.checked ? 1 : 0 })} />
+                  <input type="checkbox" checked={!!Number(draft.show_in_wizard)} disabled={!isPro} onChange={(e) => setDraft({ ...draft, show_in_wizard: e.target.checked ? 1 : 0 })} />
                   <span className="bp-slider" />
                 </label>
               </div>
@@ -573,6 +650,7 @@ export default function FormFieldsScreen({ embedded = false }) {
                     <input
                       className="bp-input-field"
                       value={o.label}
+                      disabled={!isPro}
                       onChange={(e) => {
                         const next = normalizeOptions(draft.options);
                         next[i] = { ...next[i], label: e.target.value, value: sanitizeKey(e.target.value) || next[i].value };
@@ -583,6 +661,7 @@ export default function FormFieldsScreen({ embedded = false }) {
                     <input
                       className="bp-input-field"
                       value={o.value}
+                      disabled={!isPro}
                       onChange={(e) => {
                         const next = normalizeOptions(draft.options);
                         next[i] = { ...next[i], value: sanitizeKey(e.target.value) || e.target.value };
@@ -593,6 +672,7 @@ export default function FormFieldsScreen({ embedded = false }) {
                     <button
                       type="button"
                       className="bp-btn-sm bp-btn-danger"
+                      disabled={!isPro}
                       onClick={() => {
                         const next = normalizeOptions(draft.options);
                         next.splice(i, 1);
@@ -606,6 +686,7 @@ export default function FormFieldsScreen({ embedded = false }) {
                 <button
                   type="button"
                   className="bp-btn-sm"
+                  disabled={!isPro}
                   onClick={() => setDraft({ ...draft, options: [...normalizeOptions(draft.options), { label: "", value: "" }] })}
                 >
                   + Add option
@@ -622,12 +703,18 @@ export default function FormFieldsScreen({ embedded = false }) {
 
         <div className="bp-ff-savebar">
           <button type="button" className="bp-btn bp-btn-ghost" onClick={closeEditor}>Cancel</button>
-          {draft.id && draft.id !== -1 ? (
+          {isPro && draft.id && draft.id !== -1 ? (
             <button type="button" className="bp-btn bp-btn-danger" onClick={() => handleDelete(draft.id)}>Delete</button>
           ) : null}
-          <button type="button" className="bp-btn bp-btn-primary" disabled={!canSave} onClick={save}>
-            {saving ? "Saving..." : "Save"}
-          </button>
+          {isPro ? (
+            <button type="button" className="bp-btn bp-btn-primary" disabled={!canSave} onClick={save}>
+              {saving ? "Saving..." : "Save"}
+            </button>
+          ) : (
+            <button type="button" className="bp-btn bp-btn-primary" onClick={promptUpgrade}>
+              Upgrade to edit
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -669,11 +756,25 @@ export default function FormFieldsScreen({ embedded = false }) {
             </div>
             <div className="bp-ff-listActions">
               {!reorderMode ? (
-                <button type="button" className="bp-btn-sm" onClick={startReorder}>Reorder</button>
+                <button type="button" className="bp-btn-sm" onClick={isPro ? startReorder : promptUpgrade}>Reorder</button>
               ) : (
                 <button type="button" className="bp-btn-sm" onClick={cancelReorder}>Done</button>
               )}
-              <button type="button" className="bp-btn bp-btn-primary" onClick={openCreate}>+ Add field</button>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                <button
+                  type="button"
+                  className="bp-btn bp-btn-primary"
+                  disabled={!isPro}
+                  onClick={isPro ? openCreate : promptUpgrade}
+                >
+                  {isPro ? "+ Add field" : "Upgrade to add fields"}
+                </button>
+                {!isPro ? (
+                  <div className="bp-muted bp-text-xs" style={{ maxWidth: 320, textAlign: "right" }}>
+                    You can view fields in the free version, but adding or modifying fields requires BookPoint Pro.
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -705,7 +806,7 @@ export default function FormFieldsScreen({ embedded = false }) {
           {!loading && err ? <div className="bp-alert bp-alert-error" style={{ margin: 14 }}>{err}</div> : null}
           {!loading && !err && filtered.length === 0 ? (
             <div className="bp-muted" style={{ padding: 14 }}>
-              No fields yet. Create one to get started.
+              {isPro ? "No fields yet. Create one to get started." : "No fields yet. Upgrade to BookPoint Pro to add form fields."}
             </div>
           ) : null}
 
@@ -732,10 +833,10 @@ export default function FormFieldsScreen({ embedded = false }) {
                       try { e.dataTransfer.dropEffect = "move"; } catch (_) {}
                     }}
                     onDrop={(e) => draggable && onDrop(e, r.id)}
-                    onClick={() => (!reorderMode ? openEdit(r) : null)}
+                    onClick={() => (!reorderMode ? (isPro ? openEdit(r) : promptUpgrade()) : null)}
                     role="button"
                     tabIndex={reorderMode ? -1 : 0}
-                    onKeyDown={(e) => (!reorderMode && (e.key === "Enter" || e.key === " ")) && openEdit(r)}
+                    onKeyDown={(e) => (!reorderMode && (e.key === "Enter" || e.key === " ")) && (isPro ? openEdit(r) : promptUpgrade())}
                   >
                     <div className="bp-ff-itemMain">
                       <div className="bp-ff-itemTop">
@@ -763,9 +864,15 @@ export default function FormFieldsScreen({ embedded = false }) {
 
                     {!reorderMode ? (
                       <div className="bp-ff-itemActions" onClick={(e) => e.stopPropagation()}>
-                        <button type="button" className="bp-btn-sm" onClick={() => toggleEnabled(r)}>{enabled ? "Disable" : "Enable"}</button>
-                        <button type="button" className="bp-btn-sm" onClick={() => duplicate(r)}>Duplicate</button>
-                        <button type="button" className="bp-btn-sm bp-btn-danger" onClick={() => handleDelete(r.id)}>Delete</button>
+                        <button type="button" className="bp-btn-sm" disabled={!isPro} onClick={() => (isPro ? toggleEnabled(r) : promptUpgrade())}>
+                          {enabled ? "Disable" : "Enable"}
+                        </button>
+                        <button type="button" className="bp-btn-sm" disabled={!isPro} onClick={() => (isPro ? duplicate(r) : promptUpgrade())}>
+                          Duplicate
+                        </button>
+                        <button type="button" className="bp-btn-sm bp-btn-danger" disabled={!isPro} onClick={() => (isPro ? handleDelete(r.id) : promptUpgrade())}>
+                          Delete
+                        </button>
                       </div>
                     ) : null}
                   </div>
@@ -781,7 +888,7 @@ export default function FormFieldsScreen({ embedded = false }) {
               </div>
               <div className="bp-ff-orderbar__actions">
                 <button type="button" className="bp-btn bp-btn-ghost" onClick={cancelReorder}>Cancel</button>
-                <button type="button" className="bp-btn bp-btn-primary" disabled={!dirtyOrder} onClick={saveOrder}>Save order</button>
+                <button type="button" className="bp-btn bp-btn-primary" disabled={!dirtyOrder || !isPro} onClick={isPro ? saveOrder : promptUpgrade}>Save order</button>
               </div>
             </div>
           ) : null}
@@ -794,8 +901,15 @@ export default function FormFieldsScreen({ embedded = false }) {
               <div className="bp-muted bp-text-sm" style={{ marginTop: 6 }}>
                 Pick a field from the left, or create a new one.
               </div>
-              <div style={{ marginTop: 12 }}>
-                <button className="bp-btn bp-btn-primary" type="button" onClick={openCreate}>+ Add field</button>
+                <div style={{ marginTop: 12 }}>
+                  <button className="bp-btn bp-btn-primary" type="button" disabled={!isPro} onClick={isPro ? openCreate : promptUpgrade}>
+                    {isPro ? "+ Add field" : "Upgrade to add fields"}
+                  </button>
+                  {!isPro ? (
+                    <div className="bp-muted bp-text-xs" style={{ marginTop: 8 }}>
+                      You can view fields in the free version, but adding or modifying fields requires BookPoint Pro.
+                    </div>
+                  ) : null}
               </div>
             </div>
           ) : (

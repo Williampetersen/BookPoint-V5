@@ -26,12 +26,19 @@ const baseIconsUrl = () => {
 export function iconDataUri(name, { active = false, theme = "light" } = {}) {
   const base = baseIconsUrl();
   if (!base) return "";
+  const build =
+    (window.BP_ADMIN && window.BP_ADMIN.iconsBuild) ||
+    (window.bpAdmin && window.bpAdmin.iconsBuild) ||
+    "";
 
   const key = String(name || "").trim();
   if (!key) return "";
 
   if (key === "menu") {
-    return `${base}/menu.svg`;
+    const url = `${base}/menu.svg`;
+    if (!build) return url;
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}v=${encodeURIComponent(build)}`;
   }
 
   const isDark = theme === "dark";
@@ -40,8 +47,14 @@ export function iconDataUri(name, { active = false, theme = "light" } = {}) {
   if (isDark) file += "-dark";
 
   if (!KNOWN_ICON_NAMES.has(key)) {
-    return `${base}/${key}.svg`;
+    const url = `${base}/${key}.svg`;
+    if (!build) return url;
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}v=${encodeURIComponent(build)}`;
   }
 
-  return `${base}/${file}.svg`;
+  const url = `${base}/${file}.svg`;
+  if (!build) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}v=${encodeURIComponent(build)}`;
 }

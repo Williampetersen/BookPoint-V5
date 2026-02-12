@@ -10,6 +10,35 @@ $stagingPluginDir = Join-Path $stagingRoot $pluginDirName
 New-Item -ItemType Directory -Force $distDir | Out-Null
 New-Item -ItemType Directory -Force $stagingPluginDir | Out-Null
 
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.IO.Compression
+
+function New-ZipFromDirectory([string]$SourceDir, [string]$ZipPath) {
+  if (Test-Path $ZipPath) { Remove-Item -Force $ZipPath }
+
+  $source = (Resolve-Path $SourceDir).Path.TrimEnd('\', '/')
+  $fs = [System.IO.File]::Open($ZipPath, [System.IO.FileMode]::CreateNew)
+  $zip = New-Object System.IO.Compression.ZipArchive($fs, [System.IO.Compression.ZipArchiveMode]::Create, $false)
+
+  try {
+    Get-ChildItem -Path $source -Recurse -File | ForEach-Object {
+      $full = $_.FullName
+      $rel = $full.Substring($source.Length).TrimStart('\', '/')
+      $rel = $rel -replace '\\', '/'
+
+      $entry = $zip.CreateEntry($rel, [System.IO.Compression.CompressionLevel]::Optimal)
+      $entry.LastWriteTime = $_.LastWriteTime
+
+      $in = [System.IO.File]::OpenRead($full)
+      $out = $entry.Open()
+      try { $in.CopyTo($out) } finally { $out.Dispose(); $in.Dispose() }
+    }
+  } finally {
+    $zip.Dispose()
+    $fs.Dispose()
+  }
+}
+
 $includeDirs = @('lib', 'public', 'build', 'blocks')
 $includeFiles = @(
   'bookpoint-v5.php',
@@ -31,18 +60,35 @@ foreach ($file in $includeFiles) {
   }
 }
 
-if (Test-Path $outZip) { Remove-Item -Force $outZip }
-
-$maxAttempts = 5
-for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+# Strip UTF-8 BOM from PHP files to prevent "headers already sent" during activation.
+Get-ChildItem -Path $stagingPluginDir -Recurse -File -Filter *.php | ForEach-Object {
   try {
-    Compress-Archive -Path (Join-Path $stagingRoot '*') -DestinationPath $outZip -CompressionLevel Optimal -Force
-    break
+    $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+      $newBytes = New-Object byte[] ($bytes.Length - 3)
+      [System.Array]::Copy($bytes, 3, $newBytes, 0, $bytes.Length - 3)
+      [System.IO.File]::WriteAllBytes($_.FullName, $newBytes)
+    }
   } catch {
-    if ($attempt -ge $maxAttempts) { throw }
-    Start-Sleep -Seconds 1
+    throw "Packaging failed while stripping BOM from: $($_.FullName) - $($_.Exception.Message)"
   }
 }
+
+# Free (WP.org) package excludes Pro-only licensing/updater code.
+$excludePaths = @(
+  (Join-Path $stagingPluginDir 'lib/helpers/license_helper.php'),
+  (Join-Path $stagingPluginDir 'lib/helpers/license_gate_helper.php'),
+  (Join-Path $stagingPluginDir 'lib/helpers/updates_helper.php')
+)
+foreach ($p in $excludePaths) {
+  if (Test-Path $p) {
+    Remove-Item -Force $p -ErrorAction SilentlyContinue
+  }
+}
+
+if (Test-Path $outZip) { Remove-Item -Force $outZip }
+
+New-ZipFromDirectory -SourceDir $stagingRoot -ZipPath $outZip
 
 try { Remove-Item -Recurse -Force $stagingRoot } catch { }
 
