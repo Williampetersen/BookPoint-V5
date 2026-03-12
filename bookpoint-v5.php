@@ -1,97 +1,62 @@
 <?php
 /**
- * Plugin Name: BookPoint
- * Description: Appointment booking system (with optional Pro add-on).
- * Version: 6.1.8
- * Author: William
- * Text Domain: bookpoint
+ * Plugin Name: BookPoint Booking & Appointments
+ * Description: Lightweight appointment booking plugin for WordPress.
+ * Version: 1.0.1
+ * Author: BookPoint Team
+ * Author URI: https://wpbookpoint.com/
+ * Plugin URI: https://wpbookpoint.com/download-for-free/
+ * Text Domain: bookpoint-booking
  * Domain Path: /languages
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 defined('ABSPATH') || exit;
 
-// Emergency runtime probe (temporary): does not depend on BookPoint class boot.
-if (is_admin() && isset($_GET['bp_probe']) && sanitize_text_field((string) $_GET['bp_probe']) === '1') {
-  $GLOBALS['bp_probe_menu_has_dashboard'] = null;
-
-  add_action('admin_menu', function () {
-    global $menu;
-    $has = false;
-    if (is_array($menu)) {
-      foreach ($menu as $item) {
-        if (is_array($item) && (($item[2] ?? '') === 'bp_dashboard')) {
-          $has = true;
-          break;
-        }
-      }
-    }
-    $GLOBALS['bp_probe_menu_has_dashboard'] = $has ? 1 : 0;
-  }, PHP_INT_MAX);
-
-  add_action('admin_notices', function () {
-    if (!current_user_can('activate_plugins') && !current_user_can('manage_options')) return;
-
-    $didPluginsLoaded = did_action('plugins_loaded') ? 'yes' : 'no';
-    $didAdminMenu = did_action('admin_menu') ? 'yes' : 'no';
-    $hasBookPointClass = class_exists('BPV5_BookPoint_Core_Plugin', false) ? 'yes' : 'no';
-    $hasBPClass = class_exists('BP_Plugin', false) ? 'yes' : 'no';
-    $hasConst = defined('BP_PLUGIN_FILE') ? 'yes' : 'no';
-    $menuState = $GLOBALS['bp_probe_menu_has_dashboard'];
-    $menuText = ($menuState === null) ? 'unknown' : (($menuState === 1) ? 'yes' : 'no');
-
-    echo '<div class="notice notice-info"><p><strong>BookPoint probe</strong> (remove <code>bp_probe=1</code> to hide).</p>';
-    echo '<p>plugins_loaded: <strong>' . esc_html($didPluginsLoaded) . '</strong> | admin_menu fired: <strong>' . esc_html($didAdminMenu) . '</strong></p>';
-    echo '<p>BPV5_BookPoint_Core_Plugin class loaded: <strong>' . esc_html($hasBookPointClass) . '</strong> | BP_Plugin class loaded: <strong>' . esc_html($hasBPClass) . '</strong></p>';
-    echo '<p>BP_PLUGIN_FILE defined: <strong>' . esc_html($hasConst) . '</strong> | bp_dashboard in $menu: <strong>' . esc_html($menuText) . '</strong></p>';
-
-    if (defined('BP_PLUGIN_FILE')) {
-      echo '<p>BP_PLUGIN_FILE: <code>' . esc_html((string) BP_PLUGIN_FILE) . '</code></p>';
-    }
-    echo '</div>';
-  }, 1);
-}
-
-// Pro build bootstrap (only present in the Pro distribution ZIP).
-$bpProBootstrap = __DIR__ . '/bookpoint-pro.php';
-if (file_exists($bpProBootstrap)) {
-  require_once $bpProBootstrap;
-}
-
 // Guard against true class collisions, but allow same-file preload/duplicate includes.
-if (class_exists('BPV5_BookPoint_Core_Plugin', false)) {
-  $product = file_exists($bpProBootstrap) ? 'BookPoint Pro' : 'BookPoint';
-  $existing_file = '';
+$pointlybooking_existing_class = '';
+if (class_exists('POINTLYBOOKING_Core_Plugin', false)) {
+  $pointlybooking_existing_class = 'POINTLYBOOKING_Core_Plugin';
+} elseif (class_exists('BPV5_BookPoint_Core_Plugin', false)) {
+  $pointlybooking_existing_class = 'BPV5_BookPoint_Core_Plugin';
+}
+if ($pointlybooking_existing_class !== '') {
+  $pointlybooking_product = 'BookPoint';
+  $pointlybooking_existing_file = '';
   try {
-    $ref = new ReflectionClass('BPV5_BookPoint_Core_Plugin');
-    $existing_file = (string) ($ref->getFileName() ?: '');
+    $pointlybooking_reflection = new ReflectionClass($pointlybooking_existing_class);
+    $pointlybooking_existing_file = (string) ($pointlybooking_reflection->getFileName() ?: '');
   } catch (\Throwable $e) {
-    $existing_file = '';
+    $pointlybooking_existing_file = '';
   }
 
-  $same_file = false;
-  if ($existing_file !== '') {
-    $same_file = (wp_normalize_path($existing_file) === wp_normalize_path(__FILE__));
+  $pointlybooking_same_file = false;
+  if ($pointlybooking_existing_file !== '') {
+    $pointlybooking_same_file = (wp_normalize_path($pointlybooking_existing_file) === wp_normalize_path(__FILE__));
   }
 
-  if (!$same_file) {
-    $details = '';
-    if ($existing_file !== '') {
-      $existing_display = $existing_file;
-      $base = defined('ABSPATH') ? wp_normalize_path(ABSPATH) : '';
-      if ($base !== '' && strpos(wp_normalize_path($existing_file), $base) === 0) {
-        $existing_display = substr(wp_normalize_path($existing_file), strlen($base));
-        $existing_display = ltrim((string) $existing_display, '/\\');
+  if (!$pointlybooking_same_file) {
+    $pointlybooking_details = '';
+    if ($pointlybooking_existing_file !== '') {
+      $pointlybooking_existing_display = $pointlybooking_existing_file;
+      $pointlybooking_plugins_root = wp_normalize_path(dirname(plugin_dir_path(__FILE__)));
+      if ($pointlybooking_plugins_root !== '' && strpos(wp_normalize_path($pointlybooking_existing_file), $pointlybooking_plugins_root) === 0) {
+        $pointlybooking_existing_display = substr(wp_normalize_path($pointlybooking_existing_file), strlen($pointlybooking_plugins_root));
+        $pointlybooking_existing_display = ltrim((string) $pointlybooking_existing_display, '/\\');
       }
-      $details = "\n\n" . sprintf(__('Loaded from: %s', 'bookpoint'), $existing_display);
+      /* translators: %s: Relative path to the already-loaded plugin file. */
+      $pointlybooking_details = "\n\n" . sprintf(__('Loaded from: %s', 'bookpoint-booking'), $pointlybooking_existing_display);
     }
 
-    add_action('admin_notices', function () use ($product, $details) {
+    add_action('admin_notices', function () use ($pointlybooking_product, $pointlybooking_details) {
       if (!current_user_can('activate_plugins')) return;
       $message = sprintf(
-        __('%s could not be loaded because another copy of BookPoint is already active. Please deactivate the other BookPoint plugin first, then activate %s.%s', 'bookpoint'),
-        $product,
-        $product,
-        $details
+        /* translators: 1: Product name, 2: Product name, 3: Extra details about loaded path. */
+        __('%1$s could not be loaded because another copy of BookPoint is already active. Please deactivate the other BookPoint plugin first, then activate %2$s.%3$s', 'bookpoint-booking'),
+        $pointlybooking_product,
+        $pointlybooking_product,
+        $pointlybooking_details
       );
       echo '<div class="notice notice-error"><p>' . esc_html($message) . '</p></div>';
     });
@@ -100,151 +65,32 @@ if (class_exists('BPV5_BookPoint_Core_Plugin', false)) {
 }
 
 add_filter('admin_body_class', function($classes){
-  if (!isset($_GET['page'])) return $classes;
-  $page = sanitize_text_field($_GET['page']);
-  if (strpos($page, 'bp') !== 0) return $classes;
+  $page = sanitize_key(wp_unslash($_GET['page'] ?? ''));
+  if ($page === '') return $classes;
+  if (strpos($page, 'pointlybooking_') !== 0) return $classes;
   return $classes . ' bp-app-mode';
 });
 
-if (!class_exists('BPV5_BookPoint_Core_Plugin', false)) {
-final class BPV5_BookPoint_Core_Plugin {
+if (!class_exists('POINTLYBOOKING_Core_Plugin', false)) {
+final class POINTLYBOOKING_Core_Plugin {
 
   // NOTE: Keep plugin header Version in sync with this.
-  const VERSION    = '6.1.8';
+  const VERSION    = '1.0.1';
   const DB_VERSION = '5.0.0';
-  const PRICING_URL = 'https://wpbookpoint.com/pricing/';
-  const CAPS_SEEDED_OPTION = 'bp_caps_seeded';
+  const CAPS_SEEDED_OPTION = 'pointlybooking_caps_seeded';
   private static $booted = false;
-
-  public static function is_pro_enabled(): bool {
-    return defined('BP_IS_PRO') && BP_IS_PRO;
-  }
-
-  /**
-   * Pages that are only available in BookPoint Pro (shown as upgrade screens in Free).
-   * Key: admin.php?page=... slug
-   * Value: Human label shown in the upgrade screen.
-   */
-  private static function pro_only_pages(): array {
-    return [
-      'bp_locations' => __('Locations', 'bookpoint'),
-      'bp_locations_edit' => __('Locations', 'bookpoint'),
-      'bp_location_categories_edit' => __('Locations', 'bookpoint'),
-      'bp_extras' => __('Service Extras', 'bookpoint'),
-      'bp_extras_edit' => __('Service Extras', 'bookpoint'),
-      'bp_extras_delete' => __('Service Extras', 'bookpoint'),
-      'bp_promo_codes' => __('Promo Codes', 'bookpoint'),
-      'bp_promo_codes_edit' => __('Promo Codes', 'bookpoint'),
-      'bp_promo_codes_delete' => __('Promo Codes', 'bookpoint'),
-      'bp_holidays' => __('Holidays', 'bookpoint'),
-    ];
-  }
-
-  private static function is_pro_only_page(string $page): bool {
-    $map = self::pro_only_pages();
-    return isset($map[$page]);
-  }
-
-  private static function pro_feature_label_for_page(string $page): string {
-    $map = self::pro_only_pages();
-    return $map[$page] ?? __('This feature', 'bookpoint');
-  }
-
-  private static function render_upgrade_screen(string $feature_label): void {
-    $pricing = esc_url(self::PRICING_URL);
-    $back = esc_url(admin_url('admin.php?page=bp_dashboard'));
-    $license = esc_url(admin_url('admin.php?page=bp_settings&tab=license'));
-    echo '<div class="wrap bp-upgrade-wrap">';
-    echo '<style>
-      .bp-upgrade-wrap{max-width:1200px}
-      .bp-upgrade-hero{margin:16px 0 14px;padding:18px;border-radius:18px;border:1px solid rgba(30,64,175,.16);background:linear-gradient(180deg, rgba(37,99,235,.10), rgba(37,99,235,.03))}
-      .bp-upgrade-hero-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
-      .bp-upgrade-hero h1{margin:0 0 6px;font-size:24px;line-height:1.2}
-      .bp-upgrade-hero p{margin:0;color:#334155;font-size:13px;line-height:1.6}
-      .bp-upgrade-actions{display:flex;gap:10px;flex-wrap:wrap}
-      .bp-upgrade-btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 14px;border-radius:12px;text-decoration:none;font-weight:700;border:1px solid rgba(15,23,42,.14)}
-      .bp-upgrade-btn.primary{background:#2563eb;border-color:#1d4ed8;color:#fff}
-      .bp-upgrade-btn.primary:hover{background:#1d4ed8;color:#fff}
-      .bp-upgrade-btn.ghost{background:#fff;color:#0f172a}
-      .bp-upgrade-btn.ghost:hover{background:#f8fafc}
-      .bp-upgrade-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-      .bp-pill{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#fff;border:1px solid rgba(15,23,42,.10);font-size:12px;color:#334155}
-      .bp-upgrade-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-      .bp-upgrade-card{background:#fff;border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:16px 18px}
-      .bp-upgrade-card h2{margin:0 0 8px;font-size:16px}
-      .bp-upgrade-card p,.bp-upgrade-card li{color:#475569;font-size:13px;line-height:1.65}
-      .bp-upgrade-card ul,.bp-upgrade-card ol{margin:8px 0 0 18px}
-      .bp-upgrade-note{margin-top:10px;color:#64748b;font-size:12px}
-      @media (max-width: 900px){
-        .bp-upgrade-hero-head{flex-direction:column}
-        .bp-upgrade-grid{grid-template-columns:1fr}
-      }
-    </style>';
-    echo '<div class="bp-upgrade-hero">';
-    echo '<div class="bp-upgrade-hero-head">';
-    echo '<div>';
-    echo '<h1>' . esc_html__('Upgrade to BookPoint Pro', 'bookpoint') . '</h1>';
-    echo '<p>' . esc_html(sprintf(__('%s is available in Pro. Upgrade to unlock it and keep your workflow in one place.', 'bookpoint'), $feature_label)) . '</p>';
-    echo '</div>';
-    echo '<div class="bp-upgrade-actions">';
-    echo '<a class="bp-upgrade-btn primary" href="' . $pricing . '" target="_blank" rel="noopener noreferrer">' . esc_html__('View plans & pricing', 'bookpoint') . '</a>';
-    echo '<a class="bp-upgrade-btn ghost" href="' . $license . '">' . esc_html__('Open License settings', 'bookpoint') . '</a>';
-    echo '<a class="bp-upgrade-btn ghost" href="' . $back . '">' . esc_html__('Back to Dashboard', 'bookpoint') . '</a>';
-    echo '</div>';
-    echo '</div>';
-    echo '<div class="bp-upgrade-pills">';
-    echo '<span class="bp-pill">' . esc_html__('Locations', 'bookpoint') . '</span>';
-    echo '<span class="bp-pill">' . esc_html__('Service Extras', 'bookpoint') . '</span>';
-    echo '<span class="bp-pill">' . esc_html__('Promo Codes', 'bookpoint') . '</span>';
-    echo '<span class="bp-pill">' . esc_html__('Holidays', 'bookpoint') . '</span>';
-    echo '<span class="bp-pill">' . esc_html__('Payments', 'bookpoint') . '</span>';
-    echo '</div>';
-    echo '</div>';
-    echo '<div class="bp-upgrade-grid">';
-    echo '<div class="bp-upgrade-card">';
-    echo '<h2>' . esc_html__('What you unlock in Pro', 'bookpoint') . '</h2>';
-    echo '<ul>';
-    echo '<li>' . esc_html__('Multi-location setup and location categories.', 'bookpoint') . '</li>';
-    echo '<li>' . esc_html__('Service extras and advanced pricing options.', 'bookpoint') . '</li>';
-    echo '<li>' . esc_html__('Promo codes, holidays, and payment integrations.', 'bookpoint') . '</li>';
-    echo '<li>' . esc_html__('License-based updates and premium support.', 'bookpoint') . '</li>';
-    echo '</ul>';
-    echo '<div class="bp-upgrade-note">' . esc_html__('Free version stays active and keeps core booking features.', 'bookpoint') . '</div>';
-    echo '</div>';
-    echo '<div class="bp-upgrade-card">';
-    echo '<h2>' . esc_html__('How to upgrade', 'bookpoint') . '</h2>';
-    echo '<p>' . esc_html__('Install Pro, then activate your license key.', 'bookpoint') . '</p>';
-    echo '<ol>';
-    echo '<li>' . esc_html__('Purchase a plan from wpbookpoint.com.', 'bookpoint') . '</li>';
-    echo '<li>' . esc_html__('Download the BookPoint Pro ZIP from your account.', 'bookpoint') . '</li>';
-    echo '<li>' . esc_html__('In WordPress: Plugins -> Add New -> Upload Plugin -> choose the ZIP -> Install Now -> Activate.', 'bookpoint') . '</li>';
-    echo '<li>' . esc_html__('Open BookPoint -> Settings -> License to paste and activate your license key.', 'bookpoint') . '</li>';
-    echo '</ol>';
-    echo '</div>';
-    echo '</div>';
-    echo '</div>';
-  }
-  public static function render_upgrade_page(): void {
-    $page = isset($_GET['page']) ? sanitize_text_field((string) $_GET['page']) : '';
-    self::render_upgrade_screen(self::pro_feature_label_for_page($page));
-  }
-
-  public static function render_upgrade_for_feature(string $feature_label): void {
-    self::render_upgrade_screen($feature_label);
-  }
 
   public static function init() : void {
     if (self::$booted) return;
     self::$booted = true;
 
     self::define_constants();
+    self::load_textdomain();
     self::includes();
     self::maybe_seed_capabilities();
-    self::load_textdomain();
     self::register_hooks();
-    // Only Pro builds should use the external update + licensing system.
-    if (self::is_pro_enabled() && class_exists('BP_UpdatesHelper')) {
-      BP_UpdatesHelper::init();
+    if (class_exists('POINTLYBOOKING_UpdatesHelper')) {
+      POINTLYBOOKING_UpdatesHelper::init();
     }
   }
 
@@ -253,9 +99,9 @@ final class BPV5_BookPoint_Core_Plugin {
     // This runs once per site.
     $seeded = (string) get_option(self::CAPS_SEEDED_OPTION, '');
     if ($seeded === '1') return;
-    if (!class_exists('BP_RolesHelper')) return;
+    if (!class_exists('POINTLYBOOKING_RolesHelper')) return;
 
-    BP_RolesHelper::add_capabilities();
+    POINTLYBOOKING_RolesHelper::add_capabilities();
     update_option(self::CAPS_SEEDED_OPTION, '1', false);
 
     // Refresh current user caps for the current request so admin menus can render immediately.
@@ -268,173 +114,169 @@ final class BPV5_BookPoint_Core_Plugin {
   }
 
   private static function define_constants() : void {
-    if (!defined('BP_PLUGIN_FILE')) define('BP_PLUGIN_FILE', __FILE__);
-    if (!defined('BP_PLUGIN_PATH')) define('BP_PLUGIN_PATH', plugin_dir_path(__FILE__));
-    if (!defined('BP_PLUGIN_URL'))  define('BP_PLUGIN_URL', plugin_dir_url(__FILE__));
+    if (!defined('POINTLYBOOKING_PLUGIN_FILE')) define('POINTLYBOOKING_PLUGIN_FILE', __FILE__);
+    if (!defined('POINTLYBOOKING_PLUGIN_DIR')) define('POINTLYBOOKING_PLUGIN_DIR', plugin_dir_path(__FILE__));
+    if (!defined('POINTLYBOOKING_PLUGIN_URL'))  define('POINTLYBOOKING_PLUGIN_URL', plugin_dir_url(__FILE__));
+    if (!defined('POINTLYBOOKING_PLUGIN_PATH')) define('POINTLYBOOKING_PLUGIN_PATH', POINTLYBOOKING_PLUGIN_DIR);
 
-    if (!defined('BP_LIB_PATH'))    define('BP_LIB_PATH', BP_PLUGIN_PATH . 'lib/');
-    if (!defined('BP_PUBLIC_PATH')) define('BP_PUBLIC_PATH', BP_PLUGIN_PATH . 'public/');
-    if (!defined('BP_VIEWS_PATH'))  define('BP_VIEWS_PATH', BP_LIB_PATH . 'views/');
-    if (!defined('BP_BLOCKS_PATH')) define('BP_BLOCKS_PATH', BP_PLUGIN_PATH . 'blocks/');
-
-    // NOTE: BP_IS_PRO is defined by the Pro add-on (or Pro distribution). Free must not define it,
-    // so the add-on can enable Pro mode regardless of plugin load order.
+    if (!defined('POINTLYBOOKING_LIB_PATH'))    define('POINTLYBOOKING_LIB_PATH', POINTLYBOOKING_PLUGIN_PATH . 'lib/');
+    if (!defined('POINTLYBOOKING_PUBLIC_PATH')) define('POINTLYBOOKING_PUBLIC_PATH', POINTLYBOOKING_PLUGIN_PATH . 'public/');
+    if (!defined('POINTLYBOOKING_VIEWS_PATH'))  define('POINTLYBOOKING_VIEWS_PATH', POINTLYBOOKING_LIB_PATH . 'views/');
+    if (!defined('POINTLYBOOKING_BLOCKS_PATH')) define('POINTLYBOOKING_BLOCKS_PATH', POINTLYBOOKING_PLUGIN_PATH . 'blocks/');
   }
 
   private static function load_textdomain() : void {
-    add_action('init', function () {
-      load_plugin_textdomain(
-        'bookpoint',
-        false,
-        dirname(plugin_basename(BP_PLUGIN_FILE)) . '/languages'
-      );
-    });
+    load_plugin_textdomain(
+      'bookpoint-booking',
+      false,
+      dirname(plugin_basename(POINTLYBOOKING_PLUGIN_FILE)) . '/languages'
+    );
   }
 
   private static function public_icons_dir_rel(): string {
     // Prefer the canonical icons folder if present; fallback for older builds.
-    if (is_dir(BP_PLUGIN_PATH . 'public/icons')) return 'public/icons';
+    if (is_dir(POINTLYBOOKING_PLUGIN_PATH . 'public/icons')) return 'public/icons';
     return 'public/images/icons';
+  }
+
+  private static function safe_filemtime(string $path): int {
+    if ($path === '') return 0;
+    if (!is_file($path)) return 0;
+    $mt = filemtime($path);
+    return $mt ? (int) $mt : 0;
   }
 
   private static function includes() : void {
     // Helpers (Step 2)
-    require_once BP_LIB_PATH . 'helpers/roles_helper.php';
-    require_once BP_LIB_PATH . 'helpers/migrations_helper.php';
-    require_once BP_LIB_PATH . 'helpers/form_fields_helper.php';
-    require_once BP_LIB_PATH . 'helpers/form_fields_seed_helper.php';
-    require_once BP_LIB_PATH . 'helpers/field_values_helper.php';
-    require_once BP_LIB_PATH . 'helpers/database_helper.php';
-    require_once BP_LIB_PATH . 'helpers/defaults_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/roles_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/migrations_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/form_fields_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/form_fields_seed_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/field_values_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/database_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/defaults_helper.php';
 
     // Helpers (Step 5)
-    require_once BP_LIB_PATH . 'helpers/availability_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/availability_helper.php';
 
     // Models (Step 4)
-    require_once BP_LIB_PATH . 'models/model.php';
-    require_once BP_LIB_PATH . 'models/service_model.php';
-    require_once BP_LIB_PATH . 'models/category_model.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'models/model.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'models/service_model.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'models/category_model.php';
 
     // Models (Step 5)
-    require_once BP_LIB_PATH . 'models/customer_model.php';
-    require_once BP_LIB_PATH . 'models/booking_model.php';
-    require_once BP_LIB_PATH . 'models/service_extra_model.php';
-    require_once BP_LIB_PATH . 'models/promo_code_model.php';
-    require_once BP_LIB_PATH . 'models/form_field_model.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'models/customer_model.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'models/booking_model.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'models/service_extra_model.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'models/promo_code_model.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'models/form_field_model.php';
 
     // Models (Step 16)
-    require_once BP_LIB_PATH . 'models/agent_model.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'models/agent_model.php';
 
     // Models (Step 18)
-    require_once BP_LIB_PATH . 'models/service_agent_model.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'models/service_agent_model.php';
 
     // Models (Audit)
-    require_once BP_LIB_PATH . 'models/audit_model.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'models/audit_model.php';
 
     // Helpers (Step 7)
-    require_once BP_LIB_PATH . 'helpers/settings_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/settings_helper.php';
 
     // Helpers (Step 14)
-    require_once BP_LIB_PATH . 'helpers/schedule_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/schedule_helper.php';
 
     // Helpers (Step 10)
-    require_once BP_LIB_PATH . 'helpers/email_helper.php';
-    require_once BP_LIB_PATH . 'helpers/notifications_helper.php';
-    require_once BP_LIB_PATH . 'helpers/locations_migrations_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/email_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/notifications_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/locations_migrations_helper.php';
 
     // Helpers (Portal + Webhooks)
-    require_once BP_LIB_PATH . 'helpers/portal_helper.php';
-    require_once BP_LIB_PATH . 'helpers/webhook_helper.php';
-    if (self::is_pro_enabled()) {
-      require_once BP_LIB_PATH . 'helpers/payments_booking_bridge.php';
-    }
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/portal_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/webhook_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/payments_booking_bridge.php';
 
     // Helpers (Audit)
-    require_once BP_LIB_PATH . 'helpers/audit_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/audit_helper.php';
 
     // Helpers (Relations)
-    require_once BP_LIB_PATH . 'helpers/relations_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/relations_helper.php';
 
     // Helpers (Dashboard)
-    require_once BP_LIB_PATH . 'helpers/dashboard_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/dashboard_helper.php';
 
     // Helpers (Demo)
-    require_once BP_LIB_PATH . 'helpers/demo_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/demo_helper.php';
 
-    // Helpers (License + Updates) live in the Pro add-on plugin (Free must not require them).
+    // Updates helper lives in the Pro add-on plugin (Free must not require it).
 
     // Integrations
-    if (self::is_pro_enabled()) {
-      require_once BP_LIB_PATH . 'integrations/woocommerce-hooks.php';
-    }
+    require_once POINTLYBOOKING_LIB_PATH . 'integrations/woocommerce-hooks.php';
 
     // Controllers (Step 3)
-    require_once BP_LIB_PATH . 'controllers/controller.php';
-    require_once BP_LIB_PATH . 'controllers/admin_dashboard_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_dashboard_controller.php';
 
     // Controllers (Step 4)
-    require_once BP_LIB_PATH . 'controllers/admin_services_controller.php';
-    require_once BP_LIB_PATH . 'controllers/admin_categories_controller.php';
-    require_once BP_LIB_PATH . 'controllers/admin_extras_controller.php';
-    require_once BP_LIB_PATH . 'controllers/admin_promo_codes_controller.php';
-    require_once BP_LIB_PATH . 'controllers/admin_form_fields_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_services_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_categories_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_extras_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_promo_codes_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_form_fields_controller.php';
 
     // Controllers (Step 5)
-    require_once BP_LIB_PATH . 'controllers/public_bookings_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/public_bookings_controller.php';
 
     // Controllers (Step 7)
-    require_once BP_LIB_PATH . 'controllers/admin_settings_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_settings_controller.php';
 
     // Controllers (Step 8)
-    require_once BP_LIB_PATH . 'controllers/admin_bookings_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_bookings_controller.php';
 
     // Controllers (Step 9)
-    require_once BP_LIB_PATH . 'controllers/admin_customers_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_customers_controller.php';
 
     // Controllers (Step 16)
-    require_once BP_LIB_PATH . 'controllers/admin_agents_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_agents_controller.php';
 
     // Controllers (Audit + Tools)
-    require_once BP_LIB_PATH . 'controllers/admin_audit_controller.php';
-    require_once BP_LIB_PATH . 'controllers/admin_tools_controller.php';
-    if (self::is_pro_enabled()) {
-      require_once BP_LIB_PATH . 'admin/admin-payments-settings-routes.php';
-    }
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_audit_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'controllers/admin_tools_controller.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'admin/admin-payments-settings-routes.php';
 
     // REST routes (Admin)
-    require_once BP_LIB_PATH . 'rest/admin-calendar-routes.php';
-    require_once BP_LIB_PATH . 'rest/admin-bookings-routes.php';
-    require_once BP_LIB_PATH . 'rest/bookings-routes.php';
-    require_once BP_LIB_PATH . 'rest/admin-catalog-routes.php';
-    require_once BP_LIB_PATH . 'rest/admin-schedule-routes.php';
-    require_once BP_LIB_PATH . 'rest/admin-schedule-editor-routes.php';
-    require_once BP_LIB_PATH . 'rest/admin-holidays-routes.php';
-    require_once BP_LIB_PATH . 'rest/calendar-routes.php';
-    require_once BP_LIB_PATH . 'rest/dashboard-routes.php';
-    require_once BP_LIB_PATH . 'rest/admin-catalog-manager-routes.php';
-    require_once BP_LIB_PATH . 'rest/admin-misc-routes.php';
-    require_once BP_LIB_PATH . 'rest/admin-notifications-routes.php';
-    require_once BP_LIB_PATH . 'rest/admin-locations-routes.php';
-    require_once BP_LIB_PATH . 'rest/admin-field-values-routes.php';
-    require_once BP_LIB_PATH . 'rest/settings-routes.php';
-    require_once BP_LIB_PATH . 'rest/public-catalog-routes.php';
-    require_once BP_LIB_PATH . 'rest/public-availability-routes.php';
-    require_once BP_LIB_PATH . 'rest/public-booking-routes.php';
-    require_once BP_LIB_PATH . 'rest/front-wizard-routes.php';
-    require_once BP_LIB_PATH . 'rest/admin-booking-form-design-routes.php';
-    require_once BP_LIB_PATH . 'rest/front-booking-form-design-routes.php';
-    require_once BP_LIB_PATH . 'rest/front-settings.php';
-    require_once BP_LIB_PATH . 'rest/front-booking-create.php';
-    require_once BP_LIB_PATH . 'rest/front-booking-status.php';
-    if (self::is_pro_enabled()) {
-      require_once BP_LIB_PATH . 'rest/front-payments-woocommerce.php';
-      require_once BP_LIB_PATH . 'rest/front-payments-stripe.php';
-      require_once BP_LIB_PATH . 'rest/front-payments-paypal.php';
-      require_once BP_LIB_PATH . 'front/front-stripe-routes.php';
-    }
-    require_once BP_LIB_PATH . 'routes/front-availability-routes.php';
-    require_once BP_LIB_PATH . 'routes/front-availability-month-slots.php';
-    require_once BP_LIB_PATH . 'rest/form-fields-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-calendar-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-bookings-routes.php';
+    // Duplicate legacy schedule routes file removed from load list to avoid
+    // redeclaration fatals with rest/admin-schedule-routes.php.
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-catalog-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-schedule-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-schedule-editor-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-holidays-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/calendar-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/dashboard-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-catalog-manager-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-misc-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-notifications-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-locations-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-field-values-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/settings-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/public-catalog-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/public-availability-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/public-booking-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/front-wizard-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/admin-booking-form-design-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/front-booking-form-design-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/front-settings.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/front-booking-create.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/front-booking-status.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/front-payments-woocommerce.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/front-payments-stripe.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/front-payments-paypal.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'front/front-stripe-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'routes/front-availability-routes.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'routes/front-availability-month-slots.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'rest/form-fields-routes.php';
   }
 
   private static function register_hooks() : void {
@@ -449,196 +291,125 @@ final class BPV5_BookPoint_Core_Plugin {
     add_action('network_admin_menu', [__CLASS__, 'register_admin_menu'], 100000);
 
     // Plugins screen quick links
-    add_filter('plugin_action_links_' . plugin_basename(BP_PLUGIN_FILE), [__CLASS__, 'plugin_action_links']);
+    add_filter('plugin_action_links_' . plugin_basename(POINTLYBOOKING_PLUGIN_FILE), [__CLASS__, 'plugin_action_links']);
     add_action('admin_notices', [__CLASS__, 'debug_admin_menu_notice']);
 
-    // Free build: block Pro-only REST endpoints (keeps upgrade screens visible but prevents API usage).
-    add_filter('rest_pre_dispatch', [__CLASS__, 'maybe_block_pro_rest_in_free'], 9, 3);
-
-    // Pro gating (only when the Pro add-on is present)
-    if (self::is_pro_enabled() && class_exists('BP_LicenseGateHelper')) {
-      add_filter('rest_pre_dispatch', ['BP_LicenseGateHelper', 'maybe_block_rest'], 10, 3);
-      add_action('admin_notices', ['BP_LicenseGateHelper', 'admin_notice']);
-    }
-
-    // Hide WP admin bar for BookPoint admin pages to remove top gap
-    add_action('admin_head', function () {
-      if (!isset($_GET['page'])) return;
-      $page = sanitize_text_field($_GET['page']);
-      if (strpos($page, 'bp') !== 0) return;
-      echo '<style>#wpadminbar{display:none!important;}html.wp-toolbar{padding-top:0!important;}</style>';
-    });
-
     add_action('admin_init', function () {
-      BP_MigrationsHelper::run();
-      if (class_exists('BP_Locations_Migrations_Helper')) {
-        BP_Locations_Migrations_Helper::ensure_tables();
+      POINTLYBOOKING_MigrationsHelper::run();
+      if (class_exists('POINTLYBOOKING_Locations_Migrations_Helper')) {
+        POINTLYBOOKING_Locations_Migrations_Helper::ensure_tables();
       }
     });
 
     add_action('admin_init', function () {
-      if (!current_user_can('administrator') && !current_user_can('bp_manage_settings')) return;
-      if (!class_exists('BP_FormFieldsSeedHelper')) return;
-      BP_FormFieldsSeedHelper::ensure_defaults();
+      if (!current_user_can('administrator') && !current_user_can('pointlybooking_manage_settings')) return;
+      if (!class_exists('POINTLYBOOKING_FormFieldsSeedHelper')) return;
+      POINTLYBOOKING_FormFieldsSeedHelper::ensure_defaults();
     });
 
     add_action('admin_init', function () {
       if (!is_admin()) return;
-      if (!isset($_GET['page'])) return;
-
-      $page = sanitize_text_field($_GET['page']);
-
-      // Free build: keep Pro-locked pages inside the app shell by redirecting to Settings -> License.
-      if (!self::is_pro_enabled()) {
-        $pro_locked_redirects = [
-          'bp_locations' => 'locations',
-          'bp_locations_edit' => 'locations',
-          'bp_location_categories_edit' => 'locations',
-          'bp_extras' => 'service_extras',
-          'bp_extras_edit' => 'service_extras',
-          'bp_extras_delete' => 'service_extras',
-        ];
-        if (isset($pro_locked_redirects[$page])) {
-          $url = add_query_arg([
-            'page' => 'bp_settings',
-            'tab' => 'license',
-            'feature' => $pro_locked_redirects[$page],
-          ], admin_url('admin.php'));
-          wp_safe_redirect($url);
-          exit;
-        }
-      }
+      $page = sanitize_key(wp_unslash($_GET['page'] ?? ''));
+      if ($page === '') return;
 
       $map = [
-        'bp_schedule' => 'schedule',
-        'bp_holidays' => 'holidays',
-        'bp_form_fields' => 'form_fields',
+        'pointlybooking_schedule' => 'schedule',
+        'pointlybooking_holidays' => 'holidays',
+        'pointlybooking_form_fields' => 'form_fields',
         'bp-form-fields' => 'form_fields',
-        'bp_promo_codes' => 'promo_codes',
-        'bp_notifications' => 'notifications',
-        'bp_audit' => 'audit_log',
-        'bp_audit_log' => 'audit_log',
-        'bp_tools' => 'tools',
+        'pointlybooking_promo_codes' => 'promo_codes',
+        'pointlybooking_notifications' => 'notifications',
+        'pointlybooking_audit' => 'audit_log',
+        'pointlybooking_audit_log' => 'audit_log',
+        'pointlybooking_tools' => 'tools',
       ];
 
       if (!isset($map[$page])) return;
 
-      wp_safe_redirect(admin_url('admin.php?page=bp_settings&tab=' . $map[$page]));
+      wp_safe_redirect(admin_url('admin.php?page=pointlybooking_settings&tab=' . $map[$page]));
       exit;
     });
 
     add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_admin_assets']);
 
     // Services admin-post action
-    add_action('admin_post_bp_admin_services_save', [__CLASS__, 'handle_services_save']);
+    add_action('admin_post_pointlybooking_admin_services_save', [__CLASS__, 'handle_services_save']);
 
     // Settings admin-post action
-    add_action('admin_post_bp_admin_settings_save', [__CLASS__, 'handle_settings_save']);
-    add_action('admin_post_bp_admin_settings_export_json', [__CLASS__, 'handle_settings_export_json']);
-    add_action('admin_post_bp_admin_settings_import_json', [__CLASS__, 'handle_settings_import_json']);
+    add_action('admin_post_pointlybooking_admin_settings_save', [__CLASS__, 'handle_settings_save']);
+    add_action('admin_post_pointlybooking_admin_settings_export_json', [__CLASS__, 'handle_settings_export_json']);
+    add_action('admin_post_pointlybooking_admin_settings_import_json', [__CLASS__, 'handle_settings_import_json']);
 
-    // License-related settings actions are Pro-only.
-    if (self::is_pro_enabled()) {
-      add_action('admin_post_bp_admin_settings_save_license', [__CLASS__, 'handle_settings_save_license']);
-      add_action('admin_post_bp_admin_settings_validate_license', [__CLASS__, 'handle_settings_validate_license']);
-      add_action('admin_post_bp_admin_settings_activate_license', [__CLASS__, 'handle_settings_activate_license']);
-      add_action('admin_post_bp_admin_settings_deactivate_license', [__CLASS__, 'handle_settings_deactivate_license']);
-    }
-
-    add_action('admin_post_bp_admin_categories_save', function () {
-      (new BP_AdminCategoriesController())->save();
+    add_action('admin_post_pointlybooking_admin_categories_save', function () {
+      (new POINTLYBOOKING_AdminCategoriesController())->save();
     });
 
-    add_action('admin_post_bp_admin_extras_save', function () {
-      if (!BPV5_BookPoint_Core_Plugin::is_pro_enabled()) {
-        BPV5_BookPoint_Core_Plugin::render_upgrade_for_feature(__('Service Extras', 'bookpoint'));
-        exit;
-      }
-      (new BP_AdminExtrasController())->save();
+    add_action('admin_post_pointlybooking_admin_extras_save', function () {
+      (new POINTLYBOOKING_AdminExtrasController())->save();
     });
 
-    add_action('admin_post_bp_admin_promo_codes_save', function () {
-      if (!BPV5_BookPoint_Core_Plugin::is_pro_enabled()) {
-        BPV5_BookPoint_Core_Plugin::render_upgrade_for_feature(__('Promo Codes', 'bookpoint'));
-        exit;
-      }
-      (new BP_AdminPromoCodesController())->save();
+    add_action('admin_post_pointlybooking_admin_promo_codes_save', function () {
+      (new POINTLYBOOKING_AdminPromoCodesController())->save();
     });
 
-    add_action('admin_post_bp_admin_form_fields_save', function () {
-      (new BP_AdminFormFieldsController())->save();
+    add_action('admin_post_pointlybooking_admin_form_fields_save', function () {
+      (new POINTLYBOOKING_AdminFormFieldsController())->save();
     });
 
     // Agents admin-post action (Step 16)
-    add_action('admin_post_bp_admin_agents_save', [__CLASS__, 'handle_agents_save']);
+    add_action('admin_post_pointlybooking_admin_agents_save', [__CLASS__, 'handle_agents_save']);
 
     // Booking notes admin-post action (Step 19)
-    add_action('admin_post_bp_admin_booking_notes_save', [__CLASS__, 'handle_booking_notes_save']);
+    add_action('admin_post_pointlybooking_admin_booking_notes_save', [__CLASS__, 'handle_booking_notes_save']);
 
     // Dashboard quick booking update
-    add_action('admin_post_bp_admin_booking_quick_update', function () {
-      if (!current_user_can('bp_manage_bookings')) wp_die('No permission');
-      check_admin_referer('bp_admin');
+    add_action('admin_post_pointlybooking_admin_booking_quick_update', function () {
+      if (!current_user_can('pointlybooking_manage_bookings')) wp_die('No permission');
+      check_admin_referer('pointlybooking_admin');
 
-      $id = (int)($_POST['id'] ?? 0);
-      $status = sanitize_text_field($_POST['status'] ?? '');
+      $id = absint(wp_unslash($_POST['id'] ?? 0));
+      $status = sanitize_text_field(wp_unslash($_POST['status'] ?? ''));
 
       if ($id > 0 && in_array($status, ['confirmed', 'cancelled'], true)) {
         global $wpdb;
-        $wpdb->update($wpdb->prefix . 'bp_bookings', ['status' => $status], ['id' => $id], ['%s'], ['%d']);
+        $wpdb->update($wpdb->prefix . 'pointlybooking_bookings', ['status' => $status], ['id' => $id], ['%s'], ['%d']);
 
         // Optional: trigger notifications if available
-        // BP_NotificationsHelper::booking_status_changed($id, $status);
+        // pointlybooking_NotificationsHelper::booking_status_changed($id, $status);
       }
 
-      wp_safe_redirect(admin_url('admin.php?page=bp_dashboard&updated=1'));
+      wp_safe_redirect(admin_url('admin.php?page=pointlybooking_dashboard&updated=1'));
       exit;
     });
 
     // Bookings export CSV
-    add_action('admin_post_bp_admin_bookings_export_csv', [__CLASS__, 'handle_bookings_export_csv']);
-    add_action('admin_post_bp_admin_bookings_export_pdf', [__CLASS__, 'handle_bookings_export_pdf']);
+    add_action('admin_post_pointlybooking_admin_bookings_export_csv', [__CLASS__, 'handle_bookings_export_csv']);
+    add_action('admin_post_pointlybooking_admin_bookings_export_pdf', [__CLASS__, 'handle_bookings_export_pdf']);
 
     // GDPR delete customer
-    add_action('admin_post_bp_admin_customer_gdpr_delete', [__CLASS__, 'handle_customer_gdpr_delete']);
+    add_action('admin_post_pointlybooking_admin_customer_gdpr_delete', [__CLASS__, 'handle_customer_gdpr_delete']);
 
     // Customers import/export CSV
-    add_action('admin_post_bp_admin_customers_export_csv', [__CLASS__, 'handle_customers_export_csv']);
-    add_action('admin_post_bp_admin_customers_import_csv', [__CLASS__, 'handle_customers_import_csv']);
+    add_action('admin_post_pointlybooking_admin_customers_export_csv', [__CLASS__, 'handle_customers_export_csv']);
+    add_action('admin_post_pointlybooking_admin_customers_import_csv', [__CLASS__, 'handle_customers_import_csv']);
 
     // Tools actions
-    add_action('admin_post_bp_admin_tools_email_test', [__CLASS__, 'handle_tools_email_test']);
-    add_action('admin_post_bp_admin_tools_webhook_test', [__CLASS__, 'handle_tools_webhook_test']);
-    add_action('admin_post_bp_admin_tools_generate_demo', [__CLASS__, 'handle_tools_generate_demo']);
-
-    // License actions (Pro-only)
-    if (self::is_pro_enabled()) {
-      add_action('admin_post_bp_admin_license_save', [__CLASS__, 'handle_license_save']);
-      add_action('admin_post_bp_admin_license_validate', [__CLASS__, 'handle_license_validate']);
-    }
+    add_action('admin_post_pointlybooking_admin_tools_email_test', [__CLASS__, 'handle_tools_email_test']);
+    add_action('admin_post_pointlybooking_admin_tools_webhook_test', [__CLASS__, 'handle_tools_webhook_test']);
+    add_action('admin_post_pointlybooking_admin_tools_generate_demo', [__CLASS__, 'handle_tools_generate_demo']);
 
     // Tools settings import/export
-    add_action('admin_post_bp_admin_tools_export_settings', [__CLASS__, 'handle_tools_export_settings']);
-    add_action('admin_post_bp_admin_tools_import_settings', [__CLASS__, 'handle_tools_import_settings']);
+    add_action('admin_post_pointlybooking_admin_tools_export_settings', [__CLASS__, 'handle_tools_export_settings']);
+    add_action('admin_post_pointlybooking_admin_tools_import_settings', [__CLASS__, 'handle_tools_import_settings']);
 
     // Shortcode
-    add_shortcode('bookPoint', 'bp_shortcode_booking_form');
-    add_shortcode('bookpoint', 'bp_shortcode_booking_form');
-    add_shortcode('BookPoint', 'bp_shortcode_booking_form');
-    add_shortcode('bookPoint_portal', [__CLASS__, 'shortcode_customer_portal']);
+    add_shortcode('pointlybooking_booking_form', 'pointlybooking_shortcode_booking_form');
+    add_shortcode('pointlybooking_customer_portal', [__CLASS__, 'shortcode_customer_portal']);
 
     // Portal actions
     add_action('init', [__CLASS__, 'handle_portal_posts']);
 
     add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_public_assets']);
-
-    // License cron (only for Pro builds)
-    if (self::is_pro_enabled()) {
-      add_action('bp_daily_license_check', ['BP_LicenseHelper', 'maybe_cron_validate']);
-      if (!wp_next_scheduled('bp_daily_license_check')) {
-        wp_schedule_event(time() + 300, 'daily', 'bp_daily_license_check');
-      }
-    }
 
     // Gutenberg blocks (Step 11)
     add_action('init', [__CLASS__, 'register_blocks']);
@@ -647,10 +418,10 @@ final class BPV5_BookPoint_Core_Plugin {
     add_action('rest_api_init', [__CLASS__, 'register_rest_routes']);
 
     // AJAX (public)
-    add_action('wp_ajax_bp_slots', [__CLASS__, 'ajax_slots']);
-    add_action('wp_ajax_nopriv_bp_slots', [__CLASS__, 'ajax_slots']);
-    add_action('wp_ajax_bp_submit_booking', [__CLASS__, 'ajax_submit_booking']);
-    add_action('wp_ajax_nopriv_bp_submit_booking', [__CLASS__, 'ajax_submit_booking']);
+    add_action('wp_ajax_pointlybooking_slots', [__CLASS__, 'ajax_slots']);
+    add_action('wp_ajax_nopriv_pointlybooking_slots', [__CLASS__, 'ajax_slots']);
+    add_action('wp_ajax_pointlybooking_submit_booking', [__CLASS__, 'ajax_submit_booking']);
+    add_action('wp_ajax_nopriv_pointlybooking_submit_booking', [__CLASS__, 'ajax_submit_booking']);
 
     // Public manage booking page
     add_action('parse_request', [__CLASS__, 'maybe_render_public_pages']);
@@ -659,70 +430,17 @@ final class BPV5_BookPoint_Core_Plugin {
 
   public static function plugin_action_links(array $links): array {
     if (!is_admin()) return $links;
-    if (!current_user_can('manage_options') && !current_user_can('bp_manage_bookings')) return $links;
+    if (!current_user_can('manage_options') && !current_user_can('pointlybooking_manage_bookings')) return $links;
 
-    $dash = admin_url('admin.php?page=bp_dashboard');
-    $settings = admin_url('admin.php?page=bp_settings');
+    $dash = admin_url('admin.php?page=pointlybooking_dashboard');
+    $settings = admin_url('admin.php?page=pointlybooking_settings');
 
     $custom = [
-      '<a href="' . esc_url($dash) . '">' . esc_html__('Open BookPoint', 'bookpoint') . '</a>',
-      '<a href="' . esc_url($settings) . '">' . esc_html__('Settings', 'bookpoint') . '</a>',
+      '<a href="' . esc_url($dash) . '">' . esc_html__('Open BookPoint', 'bookpoint-booking') . '</a>',
+      '<a href="' . esc_url($settings) . '">' . esc_html__('Settings', 'bookpoint-booking') . '</a>',
     ];
 
     return array_merge($custom, $links);
-  }
-
-  public static function maybe_block_pro_rest_in_free($result, $server, $request) {
-    if (self::is_pro_enabled()) return $result;
-    if (!$request instanceof \WP_REST_Request) return $result;
-
-    $route = (string) $request->get_route();
-    if (strpos($route, '/bp/v1') !== 0) return $result;
-    $method = strtoupper((string) $request->get_method());
-
-    // Form Fields must remain visible in Free, but creation / edits / deletes are Pro-only.
-    if (strpos($route, '/bp/v1/admin/form-fields') === 0) {
-      if ($method === 'GET') return $result;
-      return new \WP_Error(
-        'bp_pro_required',
-        __('You can view form fields in the free version, but adding or modifying fields requires BookPoint Pro.', 'bookpoint'),
-        ['status' => 403]
-      );
-    }
-
-    // Endpoints that should behave as "feature not available" (empty list) in Free.
-    $empty_ok_prefixes = [
-      '/bp/v1/front/locations',
-      '/bp/v1/front/extras',
-      '/bp/v1/public/extras',
-      '/bp/v1/extras',
-    ];
-    foreach ($empty_ok_prefixes as $prefix) {
-      if (strpos($route, $prefix) === 0) {
-        return rest_ensure_response(['status' => 'success', 'data' => []]);
-      }
-    }
-
-    // Endpoints that must be blocked entirely in Free.
-    $blocked_prefixes = [
-      '/bp/v1/admin/locations',
-      '/bp/v1/admin/location-categories',
-      '/bp/v1/admin/extras',
-      '/bp/v1/admin/holidays',
-      '/bp/v1/admin/promo-codes',
-      '/bp/v1/promo/validate',
-    ];
-    foreach ($blocked_prefixes as $prefix) {
-      if (strpos($route, $prefix) === 0) {
-        return new \WP_Error(
-          'bp_pro_required',
-          __('This feature requires BookPoint Pro. Please upgrade to unlock it.', 'bookpoint'),
-          ['status' => 403]
-        );
-      }
-    }
-
-    return $result;
   }
 
   public static function on_activate() : void {
@@ -734,59 +452,56 @@ final class BPV5_BookPoint_Core_Plugin {
         if (!function_exists('deactivate_plugins')) {
           require_once ABSPATH . 'wp-admin/includes/plugin.php';
         }
-        deactivate_plugins(plugin_basename(BP_PLUGIN_FILE));
-        $product = self::is_pro_enabled() ? 'BookPoint Pro' : 'BookPoint';
-        wp_die(esc_html(sprintf(
+        deactivate_plugins(plugin_basename(POINTLYBOOKING_PLUGIN_FILE));
+        while (ob_get_level() > $level) {
+          ob_end_clean();
+        }
+        $product = 'BookPoint';
+        $message = sprintf(
+          /* translators: %s: Plugin name. */
           __(
             '%s cannot be activated while another BookPoint plugin is installed. Please deactivate/remove the other BookPoint plugin first.',
-            'bookpoint'
+            'bookpoint-booking'
           ),
           $product
-        )));
+        );
+        wp_die(esc_html($message));
       }
 
       self::includes();
 
       // Run migrations quietly during activation.
-      if (class_exists('BP_MigrationsHelper')) {
-        $mLevel = ob_get_level();
-        ob_start();
-        try {
-          BP_MigrationsHelper::run();
-        } finally {
-          while (ob_get_level() > $mLevel) {
-            ob_end_clean();
-          }
-        }
+      if (class_exists('POINTLYBOOKING_MigrationsHelper')) {
+        POINTLYBOOKING_MigrationsHelper::run();
       }
 
-      BP_RolesHelper::add_capabilities();
-      BP_DatabaseHelper::install_or_update(self::DB_VERSION);
+      POINTLYBOOKING_RolesHelper::add_capabilities();
+      POINTLYBOOKING_DatabaseHelper::install_or_update(self::DB_VERSION);
       self::install_or_upgrade_schedule_tables();
       self::seed_default_agent_hours();
-      bp_install_form_fields_table();
-      bp_seed_default_form_fields();
-      if (class_exists('BP_FormFieldsSeedHelper')) {
-        BP_FormFieldsSeedHelper::ensure_defaults();
+      pointlybooking_install_form_fields_table();
+      pointlybooking_seed_default_form_fields();
+      if (class_exists('POINTLYBOOKING_FormFieldsSeedHelper')) {
+        POINTLYBOOKING_FormFieldsSeedHelper::ensure_defaults();
       }
-      bp_install_field_values_table();
-      if (class_exists('BP_Locations_Migrations_Helper')) {
-        BP_Locations_Migrations_Helper::ensure_tables();
+      pointlybooking_install_field_values_table();
+      if (class_exists('POINTLYBOOKING_Locations_Migrations_Helper')) {
+        POINTLYBOOKING_Locations_Migrations_Helper::ensure_tables();
       }
 
       // Seed default settings/design on fresh installs (do not overwrite existing).
-      if (class_exists('BP_SettingsHelper')) {
-        $existing = get_option('bp_settings', null);
+      if (class_exists('POINTLYBOOKING_SettingsHelper')) {
+        $existing = get_option('pointlybooking_settings', null);
         if (!is_array($existing)) {
-          BP_SettingsHelper::set_all(BP_SettingsHelper::defaults());
+          POINTLYBOOKING_SettingsHelper::set_all(POINTLYBOOKING_SettingsHelper::defaults());
         }
       }
-      if (get_option('bp_booking_form_design', null) === null && function_exists('bp_booking_form_design_default')) {
-        update_option('bp_booking_form_design', bp_booking_form_design_default(), false);
+      if (get_option('pointlybooking_booking_form_design', null) === null && function_exists('pointlybooking_booking_form_design_default')) {
+        update_option('pointlybooking_booking_form_design', pointlybooking_booking_form_design_default(), false);
       }
 
       // Store plugin version too (optional but helpful)
-      update_option('BP_version', self::VERSION, false);
+      update_option('pointlybooking_version', self::VERSION, false);
     } finally {
       while (ob_get_level() > $level) {
         ob_end_clean();
@@ -799,7 +514,7 @@ final class BPV5_BookPoint_Core_Plugin {
       require_once ABSPATH . 'wp-admin/includes/plugin.php';
     }
     $plugins = get_plugins();
-    $current = plugin_basename(BP_PLUGIN_FILE);
+    $current = plugin_basename(POINTLYBOOKING_PLUGIN_FILE);
 
     $is_active = function (string $file): bool {
       if (function_exists('is_plugin_active') && is_plugin_active($file)) return true;
@@ -810,15 +525,9 @@ final class BPV5_BookPoint_Core_Plugin {
     foreach ($plugins as $file => $data) {
       if ($file === $current) continue;
       if (!$is_active($file)) continue;
-      // Allow the license server plugin to coexist.
-      if (stripos($file, 'bookpoint-license-server') !== false) continue;
-      // Allow the licenses admin plugin and the Pro add-on to coexist.
-      if (stripos($file, 'licenses-admin') !== false) continue;
       if (stripos($file, 'bookpoint-pro-addon') !== false) continue;
       $name = strtolower((string)($data['Name'] ?? ''));
       $textdomain = strtolower((string)($data['TextDomain'] ?? ''));
-      // Allow license-related companion plugins.
-      if (strpos($name, 'license') !== false) continue;
       if (strpos($name, 'bookpoint') !== false || $textdomain === 'bookpoint') {
         return true;
       }
@@ -830,19 +539,19 @@ final class BPV5_BookPoint_Core_Plugin {
     global $wpdb;
     $charset_collate = $wpdb->get_charset_collate();
 
-    $t_hours  = $wpdb->prefix . 'bp_agent_working_hours';
-    $t_breaks = $wpdb->prefix . 'bp_agent_breaks';
-    $t_schedules = $wpdb->prefix . 'bp_schedules';
-    $t_schedule_settings = $wpdb->prefix . 'bp_schedule_settings';
-    $t_holidays = $wpdb->prefix . 'bp_holidays';
-    $t_services = $wpdb->prefix . 'bp_services';
-    $t_categories = $wpdb->prefix . 'bp_categories';
-    $t_extras = $wpdb->prefix . 'bp_service_extras';
-    $t_agents = $wpdb->prefix . 'bp_agents';
-    $t_bookings = $wpdb->prefix . 'bp_bookings';
-    $t_service_categories = $wpdb->prefix . 'bp_service_categories';
-    $t_extra_services = $wpdb->prefix . 'bp_extra_services';
-    $t_agent_services = $wpdb->prefix . 'bp_agent_services';
+    $t_hours  = $wpdb->prefix . 'pointlybooking_agent_working_hours';
+    $t_breaks = $wpdb->prefix . 'pointlybooking_agent_breaks';
+    $t_schedules = $wpdb->prefix . 'pointlybooking_schedules';
+    $t_schedule_settings = $wpdb->prefix . 'pointlybooking_schedule_settings';
+    $t_holidays = $wpdb->prefix . 'pointlybooking_holidays';
+    $t_services = $wpdb->prefix . 'pointlybooking_services';
+    $t_categories = $wpdb->prefix . 'pointlybooking_categories';
+    $t_extras = $wpdb->prefix . 'pointlybooking_service_extras';
+    $t_agents = $wpdb->prefix . 'pointlybooking_agents';
+    $t_bookings = $wpdb->prefix . 'pointlybooking_bookings';
+    $t_service_categories = $wpdb->prefix . 'pointlybooking_service_categories';
+    $t_extra_services = $wpdb->prefix . 'pointlybooking_extra_services';
+    $t_agent_services = $wpdb->prefix . 'pointlybooking_agent_services';
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
@@ -925,69 +634,122 @@ final class BPV5_BookPoint_Core_Plugin {
     ) {$charset_collate};");
 
     // Column upgrades
-    self::add_column_if_missing($t_categories, 'image_id', "ALTER TABLE {$t_categories} ADD COLUMN image_id BIGINT UNSIGNED NOT NULL DEFAULT 0");
-    self::add_column_if_missing($t_categories, 'sort_order', "ALTER TABLE {$t_categories} ADD COLUMN sort_order INT NOT NULL DEFAULT 0");
+    self::add_column_if_missing($t_categories, 'image_id', 'BIGINT UNSIGNED NOT NULL DEFAULT 0');
+    self::add_column_if_missing($t_categories, 'sort_order', 'INT NOT NULL DEFAULT 0');
 
-    self::add_column_if_missing($t_services, 'image_id', "ALTER TABLE {$t_services} ADD COLUMN image_id BIGINT UNSIGNED NOT NULL DEFAULT 0");
-    self::add_column_if_missing($t_services, 'sort_order', "ALTER TABLE {$t_services} ADD COLUMN sort_order INT NOT NULL DEFAULT 0");
+    self::add_column_if_missing($t_services, 'image_id', 'BIGINT UNSIGNED NOT NULL DEFAULT 0');
+    self::add_column_if_missing($t_services, 'sort_order', 'INT NOT NULL DEFAULT 0');
 
-    self::add_column_if_missing($t_extras, 'image_id', "ALTER TABLE {$t_extras} ADD COLUMN image_id BIGINT UNSIGNED NOT NULL DEFAULT 0");
-    self::add_column_if_missing($t_extras, 'sort_order', "ALTER TABLE {$t_extras} ADD COLUMN sort_order INT NOT NULL DEFAULT 0");
+    self::add_column_if_missing($t_extras, 'image_id', 'BIGINT UNSIGNED NOT NULL DEFAULT 0');
+    self::add_column_if_missing($t_extras, 'sort_order', 'INT NOT NULL DEFAULT 0');
 
-    self::add_column_if_missing($t_agents, 'image_id', "ALTER TABLE {$t_agents} ADD COLUMN image_id BIGINT UNSIGNED NOT NULL DEFAULT 0");
+    self::add_column_if_missing($t_agents, 'image_id', 'BIGINT UNSIGNED NOT NULL DEFAULT 0');
 
     // Holiday extensions (agent-specific + metadata)
-    self::add_column_if_missing($t_holidays, 'agent_id', "ALTER TABLE {$t_holidays} ADD COLUMN agent_id BIGINT UNSIGNED NULL");
-    self::add_column_if_missing($t_holidays, 'is_recurring', "ALTER TABLE {$t_holidays} ADD COLUMN is_recurring TINYINT NOT NULL DEFAULT 0");
-    self::add_column_if_missing($t_holidays, 'created_at', "ALTER TABLE {$t_holidays} ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-    self::add_column_if_missing($t_holidays, 'updated_at', "ALTER TABLE {$t_holidays} ADD COLUMN updated_at DATETIME NULL");
+    self::add_column_if_missing($t_holidays, 'agent_id', 'BIGINT UNSIGNED NULL');
+    self::add_column_if_missing($t_holidays, 'is_recurring', 'TINYINT NOT NULL DEFAULT 0');
+    self::add_column_if_missing($t_holidays, 'created_at', 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
+    self::add_column_if_missing($t_holidays, 'updated_at', 'DATETIME NULL');
 
     // Indexes for speed
-    self::add_index_if_missing($t_bookings, 'agent_start_date', "CREATE INDEX agent_start_date ON {$t_bookings} (agent_id, start_date)");
-    self::add_index_if_missing($t_bookings, 'service_start_date', "CREATE INDEX service_start_date ON {$t_bookings} (service_id, start_date)");
+    self::add_index_if_missing($t_bookings, 'agent_start_date', ['agent_id', 'start_date']);
+    self::add_index_if_missing($t_bookings, 'service_start_date', ['service_id', 'start_date']);
 
-    self::add_index_if_missing($t_categories, 'sort_order', "CREATE INDEX sort_order ON {$t_categories} (sort_order)");
-    self::add_index_if_missing($t_services, 'sort_order', "CREATE INDEX sort_order ON {$t_services} (sort_order)");
-    self::add_index_if_missing($t_extras, 'sort_order', "CREATE INDEX sort_order ON {$t_extras} (sort_order)");
-    self::add_index_if_missing($t_holidays, 'agent_id', "CREATE INDEX agent_id ON {$t_holidays} (agent_id)");
-    self::add_index_if_missing($t_schedules, 'agent_day', "CREATE INDEX agent_day ON {$t_schedules} (agent_id, day_of_week)");
+    self::add_index_if_missing($t_categories, 'sort_order', ['sort_order']);
+    self::add_index_if_missing($t_services, 'sort_order', ['sort_order']);
+    self::add_index_if_missing($t_extras, 'sort_order', ['sort_order']);
+    self::add_index_if_missing($t_holidays, 'agent_id', ['agent_id']);
+    self::add_index_if_missing($t_schedules, 'agent_day', ['agent_id', 'day_of_week']);
 
-    $cols = $wpdb->get_results("SHOW COLUMNS FROM {$t_services}", ARRAY_A);
-    $names = array_column($cols, 'Field');
+    self::add_column_if_missing($t_services, 'buffer_before', 'INT NOT NULL DEFAULT 0');
+    self::add_column_if_missing($t_services, 'buffer_after', 'INT NOT NULL DEFAULT 0');
+    self::add_column_if_missing($t_services, 'capacity', 'INT NOT NULL DEFAULT 1');
+  }
 
-    if (!in_array('buffer_before', $names, true)) {
-      $wpdb->query("ALTER TABLE {$t_services} ADD COLUMN buffer_before INT NOT NULL DEFAULT 0");
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
+  private static function prepare_with_identifiers(string $query, array $identifiers = [], array $args = []): string {
+    global $wpdb;
+
+    $identifiers = array_values(array_map('strval', $identifiers));
+    if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
+      return $wpdb->prepare($query, array_merge($identifiers, $args));
     }
-    if (!in_array('buffer_after', $names, true)) {
-      $wpdb->query("ALTER TABLE {$t_services} ADD COLUMN buffer_after INT NOT NULL DEFAULT 0");
+
+    foreach ($identifiers as $identifier) {
+      $safe_identifier = preg_replace('/[^A-Za-z0-9_]/', '', $identifier);
+      $query = preg_replace('/%i/', '`' . $safe_identifier . '`', $query, 1);
     }
-    if (!in_array('capacity', $names, true)) {
-      $wpdb->query("ALTER TABLE {$t_services} ADD COLUMN capacity INT NOT NULL DEFAULT 1");
+
+    if (empty($args)) {
+      return (string) $query;
+    }
+
+    return $wpdb->prepare($query, $args);
+  }
+
+  private static function is_safe_column_definition(string $definition): bool {
+    return preg_match("/^[A-Za-z0-9_(),\\s'\\.-]+$/", $definition) === 1;
+  }
+
+  private static function add_column_if_missing(string $table, string $column, string $definition) : void {
+    global $wpdb;
+    if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($column)) {
+      return;
+    }
+    if (!self::is_safe_column_definition($definition)) {
+      return;
+    }
+    $exists = $wpdb->get_var(self::prepare_with_identifiers("SHOW COLUMNS FROM %i LIKE %s", [$table], [$column]));
+    if (!$exists) {
+      $wpdb->query(self::prepare_with_identifiers("ALTER TABLE %i ADD COLUMN %i {$definition}", [$table, $column]));
     }
   }
 
-  private static function add_column_if_missing(string $table, string $column, string $sql) : void {
+  private static function add_index_if_missing(string $table, string $index, array $columns) : void {
     global $wpdb;
-    $exists = $wpdb->get_var($wpdb->prepare("SHOW COLUMNS FROM {$table} LIKE %s", $column));
-    if (!$exists) $wpdb->query($sql);
-  }
+    if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($index) || empty($columns)) {
+      return;
+    }
+    foreach ($columns as $column) {
+      if (!is_string($column) || !self::is_safe_sql_identifier($column)) {
+        return;
+      }
+    }
 
-  private static function add_index_if_missing(string $table, string $index, string $sql) : void {
-    global $wpdb;
-    $exists = $wpdb->get_var($wpdb->prepare("SHOW INDEX FROM {$table} WHERE Key_name = %s", $index));
-    if (!$exists) $wpdb->query($sql);
+    $exists = $wpdb->get_var(self::prepare_with_identifiers("SHOW INDEX FROM %i WHERE Key_name = %s", [$table], [$index]));
+    if (!$exists) {
+      $column_placeholders = implode(', ', array_fill(0, count($columns), '%i'));
+      $identifiers = array_merge([$table, $index], $columns);
+      $wpdb->query(self::prepare_with_identifiers("ALTER TABLE %i ADD INDEX %i ({$column_placeholders})", $identifiers));
+    }
   }
 
   private static function seed_default_agent_hours() : void {
     global $wpdb;
-    $t_agents = $wpdb->prefix . 'bp_agents';
-    $t_hours  = $wpdb->prefix . 'bp_agent_working_hours';
+    $t_agents = pointlybooking_table('agents');
+    $t_hours  = pointlybooking_table('agent_working_hours');
 
-    $agents = $wpdb->get_results("SELECT id FROM {$t_agents}", ARRAY_A) ?: [];
+    $agents = $wpdb->get_results(
+      self::prepare_with_identifiers("SELECT id FROM %i ORDER BY id ASC", [$t_agents]),
+      ARRAY_A
+    ) ?: [];
     foreach ($agents as $a) {
       $aid = (int)$a['id'];
 
-      $exists = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$t_hours} WHERE agent_id=%d", $aid));
+      $exists = (int) $wpdb->get_var(
+        self::prepare_with_identifiers(
+          "SELECT COUNT(*) FROM %i WHERE agent_id=%d",
+          [$t_hours],
+          [$aid]
+        )
+      );
       if ($exists > 0) continue;
 
       for ($d = 1; $d <= 5; $d++) {
@@ -1006,14 +768,11 @@ final class BPV5_BookPoint_Core_Plugin {
     self::define_constants();
     self::includes();
     // Usually we do not remove caps on deactivate (optional).
-    // BP_RolesHelper::remove_capabilities();
-
-    $t = wp_next_scheduled('bp_daily_license_check');
-    if ($t) wp_unschedule_event($t, 'bp_daily_license_check');
+    // POINTLYBOOKING_RolesHelper::remove_capabilities();
   }
 
   public static function register_blocks() : void {
-    $block_dir = BP_PLUGIN_PATH . 'blocks/build/book-form';
+    $block_dir = POINTLYBOOKING_PLUGIN_PATH . 'blocks/build/book-form';
 
     if (file_exists($block_dir . '/block.json')) {
       register_block_type($block_dir, [
@@ -1022,10 +781,10 @@ final class BPV5_BookPoint_Core_Plugin {
       return;
     }
 
-    $src_json = BP_PLUGIN_PATH . 'blocks/src/book-form/block.json';
+    $src_json = POINTLYBOOKING_PLUGIN_PATH . 'blocks/src/book-form/block.json';
     if (!file_exists($src_json)) return;
 
-    $asset_file = BP_PLUGIN_PATH . 'blocks/build/book-form/index.asset.php';
+    $asset_file = POINTLYBOOKING_PLUGIN_PATH . 'blocks/build/book-form/index.asset.php';
     $deps = [];
     $ver = self::VERSION;
 
@@ -1036,15 +795,15 @@ final class BPV5_BookPoint_Core_Plugin {
     }
 
     wp_register_script(
-      'bp-book-form-block',
-      BP_PLUGIN_URL . 'blocks/build/book-form/index.js',
+      'pointlybooking-book-form-block',
+      POINTLYBOOKING_PLUGIN_URL . 'blocks/build/book-form/index.js',
       $deps,
       $ver,
       true
     );
 
     register_block_type($src_json, [
-      'editor_script'   => 'bp-book-form-block',
+      'editor_script'   => 'pointlybooking-book-form-block',
       'render_callback' => [__CLASS__, 'render_booking_form_block']
     ]);
   }
@@ -1052,7 +811,7 @@ final class BPV5_BookPoint_Core_Plugin {
   public static function render_booking_form_block(array $attributes) : string {
     $service_id = isset($attributes['serviceId']) ? absint($attributes['serviceId']) : 0;
     if ($service_id <= 0) {
-      return '<p>' . esc_html__('BookPoint: Service ID is required.', 'bookpoint') . '</p>';
+      return '<p>' . esc_html__('BookPoint: Service ID is required.', 'bookpoint-booking') . '</p>';
     }
 
     $default_date = isset($attributes['defaultDate']) ? sanitize_text_field($attributes['defaultDate']) : '';
@@ -1061,7 +820,7 @@ final class BPV5_BookPoint_Core_Plugin {
     $compact = !empty($attributes['compact']) ? 1 : 0;
 
     return do_shortcode(sprintf(
-      '[bookPoint service_id="%d" default_date="%s" hide_notes="%d" require_phone="%d" compact="%d"]',
+      '[pointlybooking_booking_form service_id="%d" default_date="%s" hide_notes="%d" require_phone="%d" compact="%d"]',
       $service_id,
       esc_attr($default_date),
       $hide_notes,
@@ -1071,58 +830,58 @@ final class BPV5_BookPoint_Core_Plugin {
   }
 
   public static function register_rest_routes() : void {
-    register_rest_route('bp/v1', '/categories', [
+    register_rest_route('pointly-booking/v1', '/categories', [
       'methods' => 'GET',
       'permission_callback' => '__return_true',
-      'callback' => 'bp_rest_get_categories',
+      'callback' => 'pointlybooking_rest_get_categories',
     ]);
 
-    register_rest_route('bp/v1', '/services', [
+    register_rest_route('pointly-booking/v1', '/services', [
       'methods'  => 'GET',
-      'callback' => 'bp_rest_get_services',
+      'callback' => 'pointlybooking_rest_get_services',
       'permission_callback' => '__return_true',
     ]);
 
-    register_rest_route('bp/v1', '/extras', [
+    register_rest_route('pointly-booking/v1', '/extras', [
       'methods' => 'GET',
       'permission_callback' => '__return_true',
-      'callback' => 'bp_rest_get_extras',
+      'callback' => 'pointlybooking_rest_get_extras',
     ]);
 
     // Step 16: Agents endpoint
-    register_rest_route('bp/v1', '/agents', [
+    register_rest_route('pointly-booking/v1', '/agents', [
       'methods' => 'GET',
-      'callback' => 'bp_rest_get_agents',
+      'callback' => 'pointlybooking_rest_get_agents',
       'permission_callback' => '__return_true',
     ]);
 
-    register_rest_route('bp/v1', '/booking/create', [
+    register_rest_route('pointly-booking/v1', '/booking/create', [
       'methods' => 'POST',
       'permission_callback' => '__return_true',
-      'callback' => 'bp_rest_create_booking',
+      'callback' => 'pointlybooking_rest_create_booking',
     ]);
 
-    register_rest_route('bp/v1', '/promo/validate', [
+    register_rest_route('pointly-booking/v1', '/promo/validate', [
       'methods' => 'GET',
       'permission_callback' => '__return_true',
-      'callback' => 'bp_rest_validate_promo',
+      'callback' => 'pointlybooking_rest_validate_promo',
     ]);
 
-    register_rest_route('bp/v1', '/form-fields', [
+    register_rest_route('pointly-booking/v1', '/form-fields', [
       'methods' => 'GET',
       'permission_callback' => '__return_true',
-      'callback' => 'bp_rest_get_form_fields',
+      'callback' => 'pointlybooking_rest_get_form_fields',
     ]);
 
     // Step 18: Service agents endpoint
-    register_rest_route('bp/v1', '/service-agents', [
+    register_rest_route('pointly-booking/v1', '/service-agents', [
       'methods' => 'GET',
       'callback' => [__CLASS__, 'rest_get_service_agents'],
       'permission_callback' => '__return_true',
     ]);
 
     // Step 21: Manage booking slots endpoint
-    register_rest_route('bp/v1', '/manage/slots', [
+    register_rest_route('pointly-booking/v1', '/manage/slots', [
       'methods' => 'GET',
       'callback' => [__CLASS__, 'rest_manage_slots'],
       'permission_callback' => '__return_true',
@@ -1130,20 +889,24 @@ final class BPV5_BookPoint_Core_Plugin {
 
     // ----------------------------
     // Admin: Agents list (React UI)
-    // GET /wp-json/bp/v1/admin/agents
+    // GET /wp-json/pointly-booking/v1/admin/agents
     // ----------------------------
-    register_rest_route('bp/v1', '/admin/agents', [
+    register_rest_route('pointly-booking/v1', '/admin/agents', [
       'methods'  => 'GET',
-      'callback' => function(\WP_REST_Request $req){
+      'permission_callback' => [__CLASS__, 'rest_can_manage_agents'],
+        'callback' => function(\WP_REST_Request $req){
 
-        if (!current_user_can('administrator') && !current_user_can('bp_manage_settings') && !current_user_can('bp_manage_bookings')) {
+        if (!current_user_can('administrator') && !current_user_can('pointlybooking_manage_settings') && !current_user_can('pointlybooking_manage_bookings')) {
           return new \WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
         }
 
         global $wpdb;
-        $tA = $wpdb->prefix . 'bp_agents';
+        $tA = pointlybooking_table('agents');
 
-        $rows = $wpdb->get_results("SELECT * FROM {$tA} ORDER BY id DESC", ARRAY_A) ?: [];
+        $rows = $wpdb->get_results(
+          self::prepare_with_identifiers("SELECT * FROM %i ORDER BY id DESC", [$tA]),
+          ARRAY_A
+        ) ?: [];
 
         $agents = array_map(function($a){
           $first = $a['first_name'] ?? '';
@@ -1163,21 +926,22 @@ final class BPV5_BookPoint_Core_Plugin {
 
     // ----------------------------
     // Admin: Bookings list (React UI)
-    // GET /wp-json/bp/v1/admin/bookings?q=&status=&sort=&date_from=&date_to=&page=&per=
+    // GET /wp-json/pointly-booking/v1/admin/bookings?q=&status=&sort=&date_from=&date_to=&page=&per=
     // ----------------------------
-    register_rest_route('bp/v1', '/admin/bookings', [
+    register_rest_route('pointly-booking/v1', '/admin/bookings', [
       'methods'  => 'GET',
+      'permission_callback' => [__CLASS__, 'rest_can_manage_bookings'],
       'callback' => function(\WP_REST_Request $req){
 
-        if (!current_user_can('administrator') && !current_user_can('bp_manage_bookings')) {
+        if (!current_user_can('administrator') && !current_user_can('pointlybooking_manage_bookings')) {
           return new \WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
         }
 
         global $wpdb;
-        $b = $wpdb->prefix . 'bp_bookings';
-        $c = $wpdb->prefix . 'bp_customers';
-        $s = $wpdb->prefix . 'bp_services';
-        $a = $wpdb->prefix . 'bp_agents';
+        $b = pointlybooking_table('bookings');
+        $c = pointlybooking_table('customers');
+        $s = pointlybooking_table('services');
+        $a = pointlybooking_table('agents');
 
         $q        = sanitize_text_field($req->get_param('q') ?? '');
         $status   = sanitize_text_field($req->get_param('status') ?? 'all');
@@ -1189,65 +953,78 @@ final class BPV5_BookPoint_Core_Plugin {
         $per    = min(50, max(10, (int)($req->get_param('per') ?? 20)));
         $offset = ($page - 1) * $per;
 
-        $where  = "WHERE 1=1 ";
+        $where_clauses = ['1=1'];
         $params = [];
 
         if ($status && $status !== 'all') {
-          $where .= " AND LOWER(b.status) = %s ";
+          $where_clauses[] = 'LOWER(b.status) = %s';
           $params[] = strtolower($status);
         }
 
         // date range filter
         if ($dateFrom && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
-          $where .= " AND b.start_datetime >= %s ";
+          $where_clauses[] = 'b.start_datetime >= %s';
           $params[] = $dateFrom . " 00:00:00";
         }
         if ($dateTo && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
-          $where .= " AND b.start_datetime <= %s ";
+          $where_clauses[] = 'b.start_datetime <= %s';
           $params[] = $dateTo . " 23:59:59";
         }
 
         if ($q) {
           $like = '%' . $wpdb->esc_like($q) . '%';
-          $where .= " AND (
+          $where_clauses[] = "(
             CONCAT(cust.first_name, ' ', cust.last_name) LIKE %s OR
             cust.email LIKE %s OR
             srv.name LIKE %s OR
             ag.first_name LIKE %s OR
             ag.last_name LIKE %s
-          ) ";
+          )";
           array_push($params, $like, $like, $like, $like, $like);
         }
 
         $order = (strtolower($sort) === 'asc') ? 'ASC' : 'DESC';
+        $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
 
         // total count
-        $sqlCount = "SELECT COUNT(*) FROM {$b} b
-          LEFT JOIN {$c} cust ON b.customer_id = cust.id
-          LEFT JOIN {$s} srv ON b.service_id = srv.id
-          LEFT JOIN {$a} ag ON b.agent_id = ag.id
-          {$where}";
-        $total = (int) ($params ? $wpdb->get_var($wpdb->prepare($sqlCount, $params)) : $wpdb->get_var($sqlCount));
+        $count_sql = "SELECT COUNT(*) FROM %i b
+             LEFT JOIN %i cust ON b.customer_id = cust.id
+             LEFT JOIN %i srv ON b.service_id = srv.id
+             LEFT JOIN %i ag ON b.agent_id = ag.id
+             " . $where_sql;
+        $total = (int) $wpdb->get_var(
+          pointlybooking_prepare_query_with_identifiers(
+            $count_sql,
+            [$b, $c, $s, $a],
+            $params
+          )
+        );
 
         // rows
-        $sql = "SELECT
-                  b.id,
-                  b.start_datetime,
-                  b.end_datetime,
-                  b.status,
-                  CONCAT(cust.first_name, ' ', cust.last_name) as customer_name,
-                  cust.email as customer_email,
-                  srv.name as service_name,
-                  CONCAT(ag.first_name, ' ', ag.last_name) as agent_name
-                FROM {$b} b
-                LEFT JOIN {$c} cust ON b.customer_id = cust.id
-                LEFT JOIN {$s} srv ON b.service_id = srv.id
-                LEFT JOIN {$a} ag ON b.agent_id = ag.id
-                {$where}
-                ORDER BY b.start_datetime {$order}
-                LIMIT {$per} OFFSET {$offset}";
-
-        $items = $params ? $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) : $wpdb->get_results($sql, ARRAY_A);
+        $list_sql = "SELECT
+               b.id,
+               b.start_datetime,
+               b.end_datetime,
+               b.status,
+               CONCAT(cust.first_name, ' ', cust.last_name) as customer_name,
+               cust.email as customer_email,
+               srv.name as service_name,
+               CONCAT(ag.first_name, ' ', ag.last_name) as agent_name
+             FROM %i b
+             LEFT JOIN %i cust ON b.customer_id = cust.id
+             LEFT JOIN %i srv ON b.service_id = srv.id
+             LEFT JOIN %i ag ON b.agent_id = ag.id
+             " . $where_sql . "
+             ORDER BY b.start_datetime " . (($order === 'ASC') ? 'ASC' : 'DESC') . "
+             LIMIT %d OFFSET %d";
+        $items = $wpdb->get_results(
+          pointlybooking_prepare_query_with_identifiers(
+            $list_sql,
+            [$b, $c, $s, $a],
+            array_merge($params, [$per, $offset])
+          ),
+          ARRAY_A
+        );
         if (!$items) $items = [];
 
         return new \WP_REST_Response([
@@ -1267,41 +1044,47 @@ final class BPV5_BookPoint_Core_Plugin {
 
     // ----------------------------
     // Admin: Booking details (drawer)
-    // GET /wp-json/bp/v1/admin/bookings/{id}
+    // GET /wp-json/pointly-booking/v1/admin/bookings/{id}
     // ----------------------------
-    register_rest_route('bp/v1', '/admin/bookings/(?P<id>\d+)', [
+    register_rest_route('pointly-booking/v1', '/admin/bookings/(?P<id>\d+)', [
       'methods'  => 'GET',
+      'permission_callback' => [__CLASS__, 'rest_can_manage_bookings'],
       'callback' => function(\WP_REST_Request $req){
 
-        if (!current_user_can('administrator') && !current_user_can('bp_manage_bookings')) {
+        if (!current_user_can('administrator') && !current_user_can('pointlybooking_manage_bookings')) {
           return new \WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
         }
 
         global $wpdb;
         $id = (int) $req['id'];
 
-        $b = $wpdb->prefix . 'bp_bookings';
-        $c = $wpdb->prefix . 'bp_customers';
-        $s = $wpdb->prefix . 'bp_services';
-        $a = $wpdb->prefix . 'bp_agents';
-        $tFields   = $wpdb->prefix . 'bp_form_fields';
+        $b = pointlybooking_table('bookings');
+        $c = pointlybooking_table('customers');
+        $s = pointlybooking_table('services');
+        $a = pointlybooking_table('agents');
+        $tFields   = pointlybooking_table('form_fields');
 
         // Get booking with all JOINs for complete data
-        $sql = "SELECT
-                  b.*,
-                  CONCAT(cust.first_name, ' ', cust.last_name) as customer_name,
-                  cust.email as customer_email,
-                  cust.phone as customer_phone,
-                  srv.name as service_name,
-                  srv.price_cents as service_price_cents,
-                  CONCAT(ag.first_name, ' ', ag.last_name) as agent_name
-                FROM {$b} b
-                LEFT JOIN {$c} cust ON b.customer_id = cust.id
-                LEFT JOIN {$s} srv ON b.service_id = srv.id
-                LEFT JOIN {$a} ag ON b.agent_id = ag.id
-                WHERE b.id = %d";
-
-        $row = $wpdb->get_row($wpdb->prepare($sql, $id), ARRAY_A);
+        $row = $wpdb->get_row(
+          pointlybooking_prepare_query_with_identifiers(
+            "SELECT
+               b.*,
+               CONCAT(cust.first_name, ' ', cust.last_name) as customer_name,
+               cust.email as customer_email,
+               cust.phone as customer_phone,
+               srv.name as service_name,
+               srv.price_cents as service_price_cents,
+               CONCAT(ag.first_name, ' ', ag.last_name) as agent_name
+             FROM %i b
+             LEFT JOIN %i cust ON b.customer_id = cust.id
+             LEFT JOIN %i srv ON b.service_id = srv.id
+             LEFT JOIN %i ag ON b.agent_id = ag.id
+             WHERE b.id = %d",
+            [$b, $c, $s, $a],
+            [$id]
+          ),
+          ARRAY_A
+        );
         if (!$row) {
           return new \WP_REST_Response(['status'=>'error','message'=>'Booking not found'], 404);
         }
@@ -1364,9 +1147,18 @@ final class BPV5_BookPoint_Core_Plugin {
 
         // Form field definitions
         $field_defs = [];
-        $tables = $wpdb->get_col("SHOW TABLES");
-        if (in_array($tFields, $tables, true)) {
-          $defs = $wpdb->get_results("SELECT * FROM {$tFields} ORDER BY sort_order ASC, id ASC LIMIT 100", ARRAY_A) ?: [];
+        $t_fields_raw = $wpdb->prefix . 'pointlybooking_form_fields';
+        $like_form_fields = $wpdb->esc_like($t_fields_raw);
+        $has_form_fields = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $like_form_fields)) === $t_fields_raw);
+        if ($has_form_fields) {
+          $defs = $wpdb->get_results(
+            self::prepare_with_identifiers(
+              "SELECT * FROM %i ORDER BY sort_order ASC, id ASC LIMIT %d",
+              [$tFields],
+              [100]
+            ),
+            ARRAY_A
+          ) ?: [];
           foreach($defs as $d){
             $field_defs[] = [
               'key'   => $d['field_key'] ?? ($d['slug'] ?? ($d['name'] ?? ('field_'.$d['id']))),
@@ -1402,14 +1194,15 @@ final class BPV5_BookPoint_Core_Plugin {
 
     // ----------------------------
     // Admin: Update booking status
-    // POST /wp-json/bp/v1/admin/bookings/{id}/status
+    // POST /wp-json/pointly-booking/v1/admin/bookings/{id}/status
     // body: { status: pending|confirmed|cancelled }
     // ----------------------------
-    register_rest_route('bp/v1', '/admin/bookings/(?P<id>\d+)/status', [
+    register_rest_route('pointly-booking/v1', '/admin/bookings/(?P<id>\d+)/status', [
       'methods'  => 'POST',
+      'permission_callback' => [__CLASS__, 'rest_can_manage_bookings'],
       'callback' => function(\WP_REST_Request $req){
 
-        if (!current_user_can('administrator') && !current_user_can('bp_manage_bookings')) {
+        if (!current_user_can('administrator') && !current_user_can('pointlybooking_manage_bookings')) {
           return new \WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
         }
 
@@ -1422,7 +1215,7 @@ final class BPV5_BookPoint_Core_Plugin {
           return new \WP_REST_Response(['status'=>'error','message'=>'Invalid status'], 400);
         }
 
-        $t = $wpdb->prefix . 'bp_bookings';
+        $t = $wpdb->prefix . 'pointlybooking_bookings';
         $wpdb->update($t, ['status'=>$status], ['id'=>$id], ['%s'], ['%d']);
 
         return new \WP_REST_Response(['status'=>'success'], 200);
@@ -1431,11 +1224,19 @@ final class BPV5_BookPoint_Core_Plugin {
   }
 
   public static function rest_get_services(\WP_REST_Request $request) {
-    return bp_rest_get_services($request);
+    return pointlybooking_rest_get_services($request);
+  }
+
+  public static function rest_can_manage_agents() : bool {
+    return current_user_can('administrator') || current_user_can('pointlybooking_manage_settings') || current_user_can('pointlybooking_manage_bookings');
+  }
+
+  public static function rest_can_manage_bookings() : bool {
+    return current_user_can('administrator') || current_user_can('pointlybooking_manage_bookings');
   }
 
   public static function rest_get_agents(\WP_REST_Request $request) {
-    return bp_rest_get_agents($request);
+    return pointlybooking_rest_get_agents($request);
   }
 
   public static function rest_get_service_agents(\WP_REST_Request $request) {
@@ -1447,13 +1248,13 @@ final class BPV5_BookPoint_Core_Plugin {
       ]);
     }
 
-    $agents = BP_ServiceAgentModel::get_agents_for_service($service_id);
+    $agents = POINTLYBOOKING_ServiceAgentModel::get_agents_for_service($service_id);
     $items = [];
 
     foreach ($agents as $a) {
       $items[] = [
         'id' => (int)$a['id'],
-        'name' => BP_AgentModel::display_name($a),
+        'name' => POINTLYBOOKING_AgentModel::display_name($a),
       ];
     }
 
@@ -1469,16 +1270,16 @@ final class BPV5_BookPoint_Core_Plugin {
     $date       = sanitize_text_field($req->get_param('date'));
     $exclude_id = absint($req->get_param('exclude_booking_id'));
 
-    if ($service_id <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+    if ($service_id <= 0 || !pointlybooking_is_valid_ymd($date)) {
       return rest_ensure_response(['status' => 'success', 'data' => []]);
     }
 
-    $service = BP_ServiceModel::find($service_id);
+    $service = POINTLYBOOKING_ServiceModel::find($service_id);
     if (!$service) return rest_ensure_response(['status' => 'success', 'data' => []]);
 
     $duration = (int)($service['duration_minutes'] ?? 60);
 
-    $slots = BP_AvailabilityHelper::get_available_slots_for_date(
+    $slots = POINTLYBOOKING_AvailabilityHelper::get_available_slots_for_date(
       $service_id,
       $date,
       $duration,
@@ -1494,22 +1295,22 @@ final class BPV5_BookPoint_Core_Plugin {
     if ($did_register) return;
     $did_register = true;
 
-    $cap = function (string $bp_cap): string {
+    $cap = function (string $pointlybooking_cap): string {
       // If the user has the plugin cap, use it. Otherwise fall back to admin capability so admins always see the menu.
-      if (current_user_can($bp_cap)) return $bp_cap;
+      if (current_user_can($pointlybooking_cap)) return $pointlybooking_cap;
       if (current_user_can('manage_options')) return 'manage_options';
       if (current_user_can('activate_plugins')) return 'activate_plugins';
       if (function_exists('is_network_admin') && is_network_admin() && current_user_can('manage_network_options')) return 'manage_network_options';
-      return $bp_cap;
+      return $pointlybooking_cap;
     };
 
     if (
-      !current_user_can('bp_manage_bookings') &&
-      !current_user_can('bp_manage_services') &&
-      !current_user_can('bp_manage_customers') &&
-      !current_user_can('bp_manage_agents') &&
-      !current_user_can('bp_manage_settings') &&
-      !current_user_can('bp_manage_tools') &&
+      !current_user_can('pointlybooking_manage_bookings') &&
+      !current_user_can('pointlybooking_manage_services') &&
+      !current_user_can('pointlybooking_manage_customers') &&
+      !current_user_can('pointlybooking_manage_agents') &&
+      !current_user_can('pointlybooking_manage_settings') &&
+      !current_user_can('pointlybooking_manage_tools') &&
       !current_user_can('manage_options') &&
       !current_user_can('activate_plugins') &&
       !(function_exists('is_network_admin') && is_network_admin() && current_user_can('manage_network_options'))
@@ -1517,15 +1318,15 @@ final class BPV5_BookPoint_Core_Plugin {
       return;
     }
 
-    // Pro-only pages: in Free show upgrade screen; in Pro render the React admin app.
-    $pro_only_cb = self::is_pro_enabled() ? 'bp_render_admin_app' : [__CLASS__, 'render_upgrade_page'];
+    // Free distribution exposes all built-in features directly in the admin app.
+    $admin_app_cb = 'pointlybooking_render_admin_app';
 
     add_menu_page(
-      __('BookPoint', 'bookpoint'),
-      __('BookPoint', 'bookpoint'),
-      $cap('bp_manage_bookings'),
-      'bp_dashboard',
-      'bp_render_admin_app',
+      __('BookPoint', 'bookpoint-booking'),
+      __('BookPoint', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_bookings'),
+      'pointlybooking_dashboard',
+      'pointlybooking_render_admin_app',
       'dashicons-calendar-alt',
       56
     );
@@ -1535,402 +1336,402 @@ final class BPV5_BookPoint_Core_Plugin {
     if (current_user_can('manage_options')) {
       add_submenu_page(
         'options-general.php',
-        __('BookPoint', 'bookpoint'),
-        __('BookPoint', 'bookpoint'),
+        __('BookPoint', 'bookpoint-booking'),
+        __('BookPoint', 'bookpoint-booking'),
         'manage_options',
-        'bp_dashboard',
-        'bp_render_admin_app'
+        'pointlybooking_dashboard',
+        'pointlybooking_render_admin_app'
       );
       // Guaranteed fallback access from Plugins screen in restrictive admin-menu environments.
       add_submenu_page(
         'plugins.php',
-        __('BookPoint', 'bookpoint'),
-        __('BookPoint', 'bookpoint'),
+        __('BookPoint', 'bookpoint-booking'),
+        __('BookPoint', 'bookpoint-booking'),
         'manage_options',
-        'bp_dashboard',
-        'bp_render_admin_app'
+        'pointlybooking_dashboard',
+        'pointlybooking_render_admin_app'
       );
     }
     if (function_exists('is_network_admin') && is_network_admin() && current_user_can('manage_network_options')) {
       add_submenu_page(
         'settings.php',
-        __('BookPoint', 'bookpoint'),
-        __('BookPoint', 'bookpoint'),
+        __('BookPoint', 'bookpoint-booking'),
+        __('BookPoint', 'bookpoint-booking'),
         'manage_network_options',
-        'bp_dashboard',
-        'bp_render_admin_app'
+        'pointlybooking_dashboard',
+        'pointlybooking_render_admin_app'
       );
       add_submenu_page(
         'plugins.php',
-        __('BookPoint', 'bookpoint'),
-        __('BookPoint', 'bookpoint'),
+        __('BookPoint', 'bookpoint-booking'),
+        __('BookPoint', 'bookpoint-booking'),
         'manage_network_options',
-        'bp_dashboard',
-        'bp_render_admin_app'
+        'pointlybooking_dashboard',
+        'pointlybooking_render_admin_app'
       );
     }
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Dashboard', 'bookpoint'),
-      __('Dashboard', 'bookpoint'),
-      $cap('bp_manage_bookings'),
-      'bp_dashboard',
-      'bp_render_admin_app',
+      'pointlybooking_dashboard',
+      __('Dashboard', 'bookpoint-booking'),
+      __('Dashboard', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_bookings'),
+      'pointlybooking_dashboard',
+      'pointlybooking_render_admin_app',
       0
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('How to Use', 'bookpoint'),
-      __('How to Use', 'bookpoint'),
-      $cap('bp_manage_bookings'),
-      'bp_how_to_use',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('How to Use', 'bookpoint-booking'),
+      __('How to Use', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_bookings'),
+      'pointlybooking_how_to_use',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Bookings', 'bookpoint'),
-      __('Bookings', 'bookpoint'),
-      $cap('bp_manage_bookings'),
-      'bp_bookings',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Bookings', 'bookpoint-booking'),
+      __('Bookings', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_bookings'),
+      'pointlybooking_bookings',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
       null,
-      __('Booking Edit', 'bookpoint'),
-      __('Booking Edit', 'bookpoint'),
-      $cap('bp_manage_bookings'),
-      'bp_bookings_edit',
-      'bp_render_admin_app'
+      __('Booking Edit', 'bookpoint-booking'),
+      __('Booking Edit', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_bookings'),
+      'pointlybooking_bookings_edit',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Calendar', 'bookpoint'),
-      __('Calendar', 'bookpoint'),
-      $cap('bp_manage_bookings'),
-      'bp_calendar',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Calendar', 'bookpoint-booking'),
+      __('Calendar', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_bookings'),
+      'pointlybooking_calendar',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Schedule', 'bookpoint'),
-      __('Schedule', 'bookpoint'),
-      $cap('bp_manage_settings'),
-      'bp_schedule',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Schedule', 'bookpoint-booking'),
+      __('Schedule', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_settings'),
+      'pointlybooking_schedule',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Holidays', 'bookpoint'),
-      __('Holidays', 'bookpoint'),
-      $cap('bp_manage_settings'),
-      'bp_holidays',
-      $pro_only_cb
+      'pointlybooking_dashboard',
+      __('Holidays', 'bookpoint-booking'),
+      __('Holidays', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_settings'),
+      'pointlybooking_holidays',
+      $admin_app_cb
     );
 
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Catalog', 'bookpoint'),
-      __('Catalog', 'bookpoint'),
-      $cap('bp_manage_services'),
-      'bp_catalog',
-      'bp_render_admin_app_catalog'
+      'pointlybooking_dashboard',
+      __('Catalog', 'bookpoint-booking'),
+      __('Catalog', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_services'),
+      'pointlybooking_catalog',
+      'pointlybooking_render_admin_app_catalog'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Services', 'bookpoint'),
-      __('Services', 'bookpoint'),
-      $cap('bp_manage_services'),
-      'bp_services',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Services', 'bookpoint-booking'),
+      __('Services', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_services'),
+      'pointlybooking_services',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Categories', 'bookpoint'),
-      __('Categories', 'bookpoint'),
-      $cap('bp_manage_services'),
-      'bp_categories',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Categories', 'bookpoint-booking'),
+      __('Categories', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_services'),
+      'pointlybooking_categories',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Service Extras', 'bookpoint'),
-      __('Service Extras', 'bookpoint'),
-      $cap('bp_manage_services'),
-      'bp_extras',
-      $pro_only_cb
+      'pointlybooking_dashboard',
+      __('Service Extras', 'bookpoint-booking'),
+      __('Service Extras', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_services'),
+      'pointlybooking_extras',
+      $admin_app_cb
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Locations', 'bookpoint'),
-      __('Locations', 'bookpoint'),
-      $cap('bp_manage_settings'),
-      'bp_locations',
-      $pro_only_cb
+      'pointlybooking_dashboard',
+      __('Locations', 'bookpoint-booking'),
+      __('Locations', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_settings'),
+      'pointlybooking_locations',
+      $admin_app_cb
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Promo Codes', 'bookpoint'),
-      __('Promo Codes', 'bookpoint'),
-      $cap('bp_manage_settings'),
-      'bp_promo_codes',
-      $pro_only_cb
+      'pointlybooking_dashboard',
+      __('Promo Codes', 'bookpoint-booking'),
+      __('Promo Codes', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_settings'),
+      'pointlybooking_promo_codes',
+      $admin_app_cb
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Form Fields', 'bookpoint'),
-      __('Form Fields', 'bookpoint'),
-      $cap('bp_manage_settings'),
+      'pointlybooking_dashboard',
+      __('Form Fields', 'bookpoint-booking'),
+      __('Form Fields', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_settings'),
       'bp-form-fields',
-      'bp_render_admin_app'
+      'pointlybooking_render_admin_app'
     );
     add_submenu_page(
-      'bp_dashboard',
-      __('Form Fields', 'bookpoint'),
-      __('Form Fields', 'bookpoint'),
-      $cap('bp_manage_settings'),
-      'bp_form_fields',
-      'bp_render_admin_app'
-    );
-
-    add_submenu_page(
-      'bp_dashboard',
-      __('Booking Form Designer', 'bookpoint'),
-      __('Booking Form Designer', 'bookpoint'),
-      $cap('bp_manage_settings'),
-      'bp_design_form',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Form Fields', 'bookpoint-booking'),
+      __('Form Fields', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_settings'),
+      'pointlybooking_form_fields',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Form Fields', 'bookpoint'),
-      __('Form Fields', 'bookpoint'),
-      $cap('bp_manage_settings'),
-      'bp_form_fields_edit',
+      'pointlybooking_dashboard',
+      __('Booking Form Designer', 'bookpoint-booking'),
+      __('Booking Form Designer', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_settings'),
+      'pointlybooking_design_form',
+      'pointlybooking_render_admin_app'
+    );
+
+    add_submenu_page(
+      'pointlybooking_dashboard',
+      __('Form Fields', 'bookpoint-booking'),
+      __('Form Fields', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_settings'),
+      'pointlybooking_form_fields_edit',
       [__CLASS__, 'render_form_fields_edit']
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Customers', 'bookpoint'),
-      __('Customers', 'bookpoint'),
-      $cap('bp_manage_customers'),
-      'bp_customers',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Customers', 'bookpoint-booking'),
+      __('Customers', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_customers'),
+      'pointlybooking_customers',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Settings', 'bookpoint'),
-      __('Settings', 'bookpoint'),
-      $cap('bp_manage_settings'),
-      'bp_settings',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Settings', 'bookpoint-booking'),
+      __('Settings', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_settings'),
+      'pointlybooking_settings',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Notifications', 'bookpoint'),
-      __('Notifications', 'bookpoint'),
-      $cap('bp_manage_settings'),
-      'bp_notifications',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Notifications', 'bookpoint-booking'),
+      __('Notifications', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_settings'),
+      'pointlybooking_notifications',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Audit Log', 'bookpoint'),
-      __('Audit Log', 'bookpoint'),
-      $cap('bp_manage_tools'),
-      'bp_audit',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Audit Log', 'bookpoint-booking'),
+      __('Audit Log', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_tools'),
+      'pointlybooking_audit',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Tools', 'bookpoint'),
-      __('Tools', 'bookpoint'),
-      $cap('bp_manage_tools'),
-      'bp_tools',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Tools', 'bookpoint-booking'),
+      __('Tools', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_tools'),
+      'pointlybooking_tools',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
       'tools.php',
-      __('BookPoint Tools', 'bookpoint'),
-      __('BookPoint Tools', 'bookpoint'),
-      $cap('bp_manage_tools'),
-      'bp_tools',
-      'bp_render_admin_app'
+      __('BookPoint Tools', 'bookpoint-booking'),
+      __('BookPoint Tools', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_tools'),
+      'pointlybooking_tools',
+      'pointlybooking_render_admin_app'
     );
 
     add_submenu_page(
-      'bp_dashboard',
-      __('Agents', 'bookpoint'),
-      __('Agents', 'bookpoint'),
-      $cap('bp_manage_agents'),
-      'bp_agents',
-      'bp_render_admin_app'
+      'pointlybooking_dashboard',
+      __('Agents', 'bookpoint-booking'),
+      __('Agents', 'bookpoint-booking'),
+      $cap('pointlybooking_manage_agents'),
+      'pointlybooking_agents',
+      'pointlybooking_render_admin_app'
     );
 
     // Hidden pages for internal use
       add_submenu_page(
         null,
-        __('Edit Agent', 'bookpoint'),
-        __('Edit Agent', 'bookpoint'),
-        'bp_manage_agents',
-        'bp_agents_edit',
+        __('Edit Agent', 'bookpoint-booking'),
+        __('Edit Agent', 'bookpoint-booking'),
+        'pointlybooking_manage_agents',
+        'pointlybooking_agents_edit',
         [__CLASS__, 'render_agents_edit']
       );
 
       add_submenu_page(
         null,
-        __('Edit Location', 'bookpoint'),
-        __('Edit Location', 'bookpoint'),
-        'bp_manage_settings',
-        'bp_locations_edit',
-        $pro_only_cb
+        __('Edit Location', 'bookpoint-booking'),
+        __('Edit Location', 'bookpoint-booking'),
+        'pointlybooking_manage_settings',
+        'pointlybooking_locations_edit',
+        $admin_app_cb
       );
 
       add_submenu_page(
         null,
-        __('Edit Location Category', 'bookpoint'),
-        __('Edit Location Category', 'bookpoint'),
-        'bp_manage_settings',
-        'bp_location_categories_edit',
-        $pro_only_cb
+        __('Edit Location Category', 'bookpoint-booking'),
+        __('Edit Location Category', 'bookpoint-booking'),
+        'pointlybooking_manage_settings',
+        'pointlybooking_location_categories_edit',
+        $admin_app_cb
       );
 
     add_submenu_page(
       null,
-      __('Delete Agent', 'bookpoint'),
-      __('Delete Agent', 'bookpoint'),
-      'bp_manage_agents',
-      'bp_agents_delete',
+      __('Delete Agent', 'bookpoint-booking'),
+      __('Delete Agent', 'bookpoint-booking'),
+      'pointlybooking_manage_agents',
+      'pointlybooking_agents_delete',
       [__CLASS__, 'render_agents_delete']
     );
 
     add_submenu_page(
       null,
-      __('Edit Service', 'bookpoint'),
-      __('Edit Service', 'bookpoint'),
-      'bp_manage_services',
-      'bp_services_edit',
+      __('Edit Service', 'bookpoint-booking'),
+      __('Edit Service', 'bookpoint-booking'),
+      'pointlybooking_manage_services',
+      'pointlybooking_services_edit',
       [__CLASS__, 'render_services_edit']
     );
 
     add_submenu_page(
       null,
-      __('Edit Extra', 'bookpoint'),
-      __('Edit Extra', 'bookpoint'),
-      'bp_manage_services',
-      'bp_extras_edit',
-      $pro_only_cb
+      __('Edit Extra', 'bookpoint-booking'),
+      __('Edit Extra', 'bookpoint-booking'),
+      'pointlybooking_manage_services',
+      'pointlybooking_extras_edit',
+      $admin_app_cb
     );
 
     add_submenu_page(
       null,
-      __('Delete Extra', 'bookpoint'),
-      __('Delete Extra', 'bookpoint'),
-      'bp_manage_services',
-      'bp_extras_delete',
-      self::is_pro_enabled() ? [__CLASS__, 'render_extras_delete'] : $pro_only_cb
+      __('Delete Extra', 'bookpoint-booking'),
+      __('Delete Extra', 'bookpoint-booking'),
+      'pointlybooking_manage_services',
+      'pointlybooking_extras_delete',
+      [__CLASS__, 'render_extras_delete']
     );
 
     add_submenu_page(
       null,
-      __('Edit Category', 'bookpoint'),
-      __('Edit Category', 'bookpoint'),
-      'bp_manage_services',
-      'bp_categories_edit',
+      __('Edit Category', 'bookpoint-booking'),
+      __('Edit Category', 'bookpoint-booking'),
+      'pointlybooking_manage_services',
+      'pointlybooking_categories_edit',
       [__CLASS__, 'render_categories_edit']
     );
 
     add_submenu_page(
       null,
-      __('Delete Category', 'bookpoint'),
-      __('Delete Category', 'bookpoint'),
-      'bp_manage_services',
-      'bp_categories_delete',
+      __('Delete Category', 'bookpoint-booking'),
+      __('Delete Category', 'bookpoint-booking'),
+      'pointlybooking_manage_services',
+      'pointlybooking_categories_delete',
       [__CLASS__, 'render_categories_delete']
     );
 
     add_submenu_page(
       null,
-      __('Delete Service', 'bookpoint'),
-      __('Delete Service', 'bookpoint'),
-      'bp_manage_services',
-      'bp_services_delete',
+      __('Delete Service', 'bookpoint-booking'),
+      __('Delete Service', 'bookpoint-booking'),
+      'pointlybooking_manage_services',
+      'pointlybooking_services_delete',
       [__CLASS__, 'render_services_delete']
     );
 
     add_submenu_page(
       null,
-      __('Edit Promo Code', 'bookpoint'),
-      __('Edit Promo Code', 'bookpoint'),
-      'bp_manage_settings',
-      'bp_promo_codes_edit',
-      self::is_pro_enabled() ? [__CLASS__, 'render_promo_codes_edit'] : $pro_only_cb
+      __('Edit Promo Code', 'bookpoint-booking'),
+      __('Edit Promo Code', 'bookpoint-booking'),
+      'pointlybooking_manage_settings',
+      'pointlybooking_promo_codes_edit',
+      [__CLASS__, 'render_promo_codes_edit']
     );
 
     add_submenu_page(
       null,
-      __('Delete Promo Code', 'bookpoint'),
-      __('Delete Promo Code', 'bookpoint'),
-      'bp_manage_settings',
-      'bp_promo_codes_delete',
-      self::is_pro_enabled() ? [__CLASS__, 'render_promo_codes_delete'] : $pro_only_cb
+      __('Delete Promo Code', 'bookpoint-booking'),
+      __('Delete Promo Code', 'bookpoint-booking'),
+      'pointlybooking_manage_settings',
+      'pointlybooking_promo_codes_delete',
+      [__CLASS__, 'render_promo_codes_delete']
     );
 
     add_submenu_page(
       null,
-      __('Confirm Booking', 'bookpoint'),
-      __('Confirm Booking', 'bookpoint'),
-      'bp_manage_bookings',
-      'bp_booking_confirm',
+      __('Confirm Booking', 'bookpoint-booking'),
+      __('Confirm Booking', 'bookpoint-booking'),
+      'pointlybooking_manage_bookings',
+      'pointlybooking_booking_confirm',
       [__CLASS__, 'render_booking_confirm']
     );
 
     add_submenu_page(
       null,
-      __('Cancel Booking', 'bookpoint'),
-      __('Cancel Booking', 'bookpoint'),
-      'bp_manage_bookings',
-      'bp_booking_cancel',
+      __('Cancel Booking', 'bookpoint-booking'),
+      __('Cancel Booking', 'bookpoint-booking'),
+      'pointlybooking_manage_bookings',
+      'pointlybooking_booking_cancel',
       [__CLASS__, 'render_booking_cancel']
     );
 
     add_submenu_page(
       null,
-      __('View Customer', 'bookpoint'),
-      __('View Customer', 'bookpoint'),
-      'bp_manage_customers',
-      'bp_customers_view',
+      __('View Customer', 'bookpoint-booking'),
+      __('View Customer', 'bookpoint-booking'),
+      'pointlybooking_manage_customers',
+      'pointlybooking_customers_view',
       [__CLASS__, 'render_customer_view']
     );
 
     // Hidden page for internal use (React)
     add_submenu_page(
       null,
-      __('Edit Customer', 'bookpoint'),
-      __('Edit Customer', 'bookpoint'),
-      'bp_manage_customers',
-      'bp_customers_edit',
-      'bp_render_admin_app'
+      __('Edit Customer', 'bookpoint-booking'),
+      __('Edit Customer', 'bookpoint-booking'),
+      'pointlybooking_manage_customers',
+      'pointlybooking_customers_edit',
+      'pointlybooking_render_admin_app'
     );
 
   }
@@ -1942,7 +1743,7 @@ final class BPV5_BookPoint_Core_Plugin {
     if (is_array($menu)) {
       foreach ($menu as $item) {
         if (!is_array($item)) continue;
-        if (($item[2] ?? '') === 'bp_dashboard') {
+        if (($item[2] ?? '') === 'pointlybooking_dashboard') {
           return;
         }
       }
@@ -1950,11 +1751,11 @@ final class BPV5_BookPoint_Core_Plugin {
 
     // Re-add the top-level entry if a plugin/theme removed it.
     add_menu_page(
-      __('BookPoint', 'bookpoint'),
-      __('BookPoint', 'bookpoint'),
+      __('BookPoint', 'bookpoint-booking'),
+      __('BookPoint', 'bookpoint-booking'),
       current_user_can('manage_options') ? 'manage_options' : 'activate_plugins',
-      'bp_dashboard',
-      'bp_render_admin_app',
+      'pointlybooking_dashboard',
+      'pointlybooking_render_admin_app',
       'dashicons-calendar-alt',
       56
     );
@@ -1963,7 +1764,7 @@ final class BPV5_BookPoint_Core_Plugin {
   private static function is_menu_debug_enabled(): bool {
     if (!is_admin()) return false;
     if (!current_user_can('manage_options') && !current_user_can('activate_plugins')) return false;
-    return isset($_GET['bp_menu_debug']) && sanitize_text_field((string) $_GET['bp_menu_debug']) === '1';
+    return isset($_GET['pointlybooking_menu_debug']) && sanitize_text_field(wp_unslash((string) $_GET['pointlybooking_menu_debug'])) === '1';
   }
 
   private static function menu_has_slug(string $slug): bool {
@@ -2008,7 +1809,7 @@ final class BPV5_BookPoint_Core_Plugin {
 
   private static function callback_mentions_menu_removal(string $file, int $line): bool {
     if ($file === '' || !is_readable($file)) return false;
-    $lines = @file($file, FILE_IGNORE_NEW_LINES);
+    $lines = file($file, FILE_IGNORE_NEW_LINES);
     if (!is_array($lines) || empty($lines)) return false;
 
     $start = max(1, $line - 30);
@@ -2020,7 +1821,7 @@ final class BPV5_BookPoint_Core_Plugin {
       return false;
     }
 
-    if (strpos($chunk, 'bp_dashboard') !== false || strpos($chunk, 'toplevel_page_bp_dashboard') !== false) {
+    if (strpos($chunk, 'pointlybooking_dashboard') !== false || strpos($chunk, 'toplevel_page_pointlybooking_dashboard') !== false) {
       return true;
     }
 
@@ -2032,7 +1833,7 @@ final class BPV5_BookPoint_Core_Plugin {
     if (!self::is_menu_debug_enabled()) return;
 
     global $wp_filter;
-    $exists = self::menu_has_slug('bp_dashboard');
+    $exists = self::menu_has_slug('pointlybooking_dashboard');
     $rows = [];
 
     $hook = $wp_filter['admin_menu'] ?? null;
@@ -2048,8 +1849,8 @@ final class BPV5_BookPoint_Core_Plugin {
           if ($file === '') continue;
 
           $norm = wp_normalize_path($file);
-          $pluginRoot = defined('WP_PLUGIN_DIR') ? wp_normalize_path(WP_PLUGIN_DIR) : '';
-          $ourRoot = wp_normalize_path(BP_PLUGIN_PATH);
+          $pluginRoot = trailingslashit(wp_normalize_path(dirname(rtrim(POINTLYBOOKING_PLUGIN_PATH, '/\\'))));
+          $ourRoot = wp_normalize_path(POINTLYBOOKING_PLUGIN_PATH);
           if ($pluginRoot === '' || strpos($norm, $pluginRoot) !== 0) continue;
           if (strpos($norm, $ourRoot) === 0) continue;
 
@@ -2092,8 +1893,8 @@ final class BPV5_BookPoint_Core_Plugin {
     }
 
     echo '<div class="notice notice-warning"><p><strong>BookPoint menu debug is ON</strong> ';
-    echo '(disable by removing <code>bp_menu_debug=1</code> from URL).</p>';
-    echo '<p><strong>bp_dashboard in $menu:</strong> ' . ($exists ? 'YES' : 'NO') . '</p>';
+    echo '(disable by removing <code>pointlybooking_menu_debug=1</code> from URL).</p>';
+    echo '<p><strong>pointlybooking_dashboard in $menu:</strong> ' . ($exists ? 'YES' : 'NO') . '</p>';
     if ($likely) {
       echo '<p><strong>Likely remover:</strong> ';
       echo esc_html((string) $likely['plugin']) . ' | ';
@@ -2129,49 +1930,25 @@ final class BPV5_BookPoint_Core_Plugin {
   }
 
   public static function enqueue_admin_assets(string $hook): void {
-    if (empty($_GET['page'])) return;
-
-    $page = sanitize_text_field($_GET['page']);
-
-    wp_enqueue_style(
-      'bp-admin-ui',
-      plugins_url('public/admin-ui.css', BP_PLUGIN_FILE),
-      [],
-      (file_exists(BP_PLUGIN_PATH . 'public/admin-ui.css') ? (string)@filemtime(BP_PLUGIN_PATH . 'public/admin-ui.css') : self::VERSION)
-    );
-
-    if (strpos($page, 'bp') === 0) {
-      // Ensure WP Dashicons are available for sidebar icons
-      wp_enqueue_style('dashicons');
-
-      $admin_app_css = BP_PLUGIN_PATH . 'public/admin-app.css';
-      $admin_app_ver = file_exists($admin_app_css) ? (string)@filemtime($admin_app_css) : self::VERSION;
-      wp_enqueue_style(
-        'bp-admin-app-css',
-        plugin_dir_url(__FILE__) . 'public/admin-app.css',
-        [],
-        $admin_app_ver
-      );
-    }
-
-    // Free: do not load the React admin app on Pro-only pages (they render a PHP upgrade screen instead).
-    if (!self::is_pro_enabled() && self::is_pro_only_page($page)) {
-      return;
-    }
+    $page = sanitize_key(wp_unslash($_GET['page'] ?? ''));
+    if ($page === '') return;
 
     // React admin bundle (All admin pages)
         $admin_react_pages = [
-          'bp_dashboard', 'bp_bookings', 'bp_bookings_edit', 'bp_calendar', 'bp_schedule', 'bp_holidays', 'bp_catalog',
-          'bp-form-fields', 'bp_form_fields', 'bp_services', 'bp_services_edit', 'bp_categories', 'bp_categories_edit', 'bp_extras', 'bp_extras_edit', 'bp_locations', 'bp_promo_codes',
-          'bp_customers', 'bp_settings', 'bp_notifications', 'bp_agents', 'bp_audit', 'bp_tools',
-          'bp_locations_edit', 'bp_location_categories_edit', 'bp_design_form',
-          'bp_how_to_use',
-          'bp_agents_edit',
-          'bp_customers_edit'
+          'pointlybooking_dashboard', 'pointlybooking_bookings', 'pointlybooking_bookings_edit', 'pointlybooking_calendar', 'pointlybooking_schedule', 'pointlybooking_holidays', 'pointlybooking_catalog',
+          'bp-form-fields', 'pointlybooking_form_fields', 'pointlybooking_services', 'pointlybooking_services_edit', 'pointlybooking_categories', 'pointlybooking_categories_edit', 'pointlybooking_extras', 'pointlybooking_extras_edit', 'pointlybooking_locations', 'pointlybooking_promo_codes',
+          'pointlybooking_customers', 'pointlybooking_settings', 'pointlybooking_notifications', 'pointlybooking_agents', 'pointlybooking_audit', 'pointlybooking_tools',
+          'pointlybooking_locations_edit', 'pointlybooking_location_categories_edit', 'pointlybooking_design_form',
+          'pointlybooking_how_to_use',
+          'pointlybooking_agents_edit',
+          'pointlybooking_customers_edit'
         ];
     
     if (in_array($page, $admin_react_pages, true)) {
-      $asset_path = BP_PLUGIN_PATH . 'build/admin.asset.php';
+      // Ensure WP Dashicons are available if the admin UI references them.
+      wp_enqueue_style('dashicons');
+
+      $asset_path = POINTLYBOOKING_PLUGIN_PATH . 'build/admin.asset.php';
       $asset = [
         'dependencies' => ['react', 'react-dom', 'react-jsx-runtime'],
         'version' => self::VERSION,
@@ -2183,34 +1960,35 @@ final class BPV5_BookPoint_Core_Plugin {
 
       self::ensure_react_scripts();
 
-      $admin_js_path = BP_PLUGIN_PATH . 'build/admin.js';
-      $admin_js_ver = file_exists($admin_js_path) ? (string)@filemtime($admin_js_path) : (string)($asset['version'] ?? self::VERSION);
+      $admin_js_path = POINTLYBOOKING_PLUGIN_PATH . 'build/admin.js';
+      $admin_js_mtime = self::safe_filemtime($admin_js_path);
+      $admin_js_ver = (string) ($admin_js_mtime ?: (string)($asset['version'] ?? self::VERSION));
 
       wp_enqueue_script(
-        'bp-admin',
-        BP_PLUGIN_URL . 'build/admin.js',
+        'pointlybooking-admin',
+        POINTLYBOOKING_PLUGIN_URL . 'build/admin.js',
         $asset['dependencies'],
         $admin_js_ver,
         true
       );
 
-        $admin_css = BP_PLUGIN_PATH . 'build/index.jsx.css';
-        $admin_css_ver = file_exists($admin_css) ? (string)@filemtime($admin_css) : $admin_js_ver;
+        $admin_css = POINTLYBOOKING_PLUGIN_PATH . 'build/index.jsx.css';
+        $admin_css_ver = (string) (self::safe_filemtime($admin_css) ?: $admin_js_ver);
         if (file_exists($admin_css)) {
           wp_enqueue_style(
-            'bp-admin',
-            BP_PLUGIN_URL . 'build/index.jsx.css',
+            'pointlybooking-admin',
+            POINTLYBOOKING_PLUGIN_URL . 'build/index.jsx.css',
             [],
             $admin_css_ver
           );
 
           if (function_exists('is_rtl') && is_rtl()) {
-            $admin_css_rtl = BP_PLUGIN_PATH . 'build/index.jsx-rtl.css';
+            $admin_css_rtl = POINTLYBOOKING_PLUGIN_PATH . 'build/index.jsx-rtl.css';
             if (file_exists($admin_css_rtl)) {
               wp_enqueue_style(
-                'bp-admin-rtl',
-                BP_PLUGIN_URL . 'build/index.jsx-rtl.css',
-                ['bp-admin'],
+                'pointlybooking-admin-rtl',
+                POINTLYBOOKING_PLUGIN_URL . 'build/index.jsx-rtl.css',
+                ['pointlybooking-admin'],
                 $admin_css_ver
               );
             }
@@ -2218,13 +1996,13 @@ final class BPV5_BookPoint_Core_Plugin {
         }
 
       add_filter('script_loader_src', function ($src, $handle) use ($admin_js_ver) {
-        if ($handle === 'bp-admin') {
+        if ($handle === 'pointlybooking-admin') {
           return add_query_arg('v', $admin_js_ver, $src);
         }
         return $src;
       }, 10, 2);
       add_filter('style_loader_src', function ($src, $handle) use ($admin_css_ver) {
-        if ($handle === 'bp-admin' || $handle === 'bp-admin-rtl') {
+        if ($handle === 'pointlybooking-admin' || $handle === 'pointlybooking-admin-rtl') {
           return add_query_arg('v', $admin_css_ver, $src);
         }
         return $src;
@@ -2232,34 +2010,34 @@ final class BPV5_BookPoint_Core_Plugin {
 
       // Map page slug to route name
         $route_map = [
-          'bp_dashboard' => 'dashboard',
-          'bp_bookings' => 'bookings',
-          'bp_bookings_edit' => 'bookings-edit',
-          'bp_calendar' => 'calendar',
-          'bp_schedule' => 'schedule',
-          'bp_holidays' => 'holidays',
-          'bp_catalog' => 'catalog',
+          'pointlybooking_dashboard' => 'dashboard',
+          'pointlybooking_bookings' => 'bookings',
+          'pointlybooking_bookings_edit' => 'bookings-edit',
+          'pointlybooking_calendar' => 'calendar',
+          'pointlybooking_schedule' => 'schedule',
+          'pointlybooking_holidays' => 'holidays',
+          'pointlybooking_catalog' => 'catalog',
           'bp-form-fields' => 'form-fields',
-          'bp_form_fields' => 'form-fields',
-          'bp_design_form' => 'design-form',
-          'bp_how_to_use' => 'how-to',
-          'bp_services' => 'services',
-          'bp_categories' => 'categories',
-          'bp_categories_edit' => 'categories-edit',
-          'bp_extras' => 'extras',
-          'bp_extras_edit' => 'extras-edit',
-          'bp_locations' => 'locations',
-          'bp_locations_edit' => 'locations-edit',
-          'bp_location_categories_edit' => 'location-categories-edit',
-          'bp_promo_codes' => 'promo-codes',
-          'bp_customers' => 'customers',
-          'bp_customers_edit' => 'customers-edit',
-        'bp_settings' => 'settings',
-        'bp_notifications' => 'notifications',
-        'bp_agents' => 'agents',
-        'bp_agents_edit' => 'agents-edit',
-        'bp_audit' => 'audit',
-        'bp_tools' => 'tools',
+          'pointlybooking_form_fields' => 'form-fields',
+          'pointlybooking_design_form' => 'design-form',
+          'pointlybooking_how_to_use' => 'how-to',
+          'pointlybooking_services' => 'services',
+          'pointlybooking_categories' => 'categories',
+          'pointlybooking_categories_edit' => 'categories-edit',
+          'pointlybooking_extras' => 'extras',
+          'pointlybooking_extras_edit' => 'extras-edit',
+          'pointlybooking_locations' => 'locations',
+          'pointlybooking_locations_edit' => 'locations-edit',
+          'pointlybooking_location_categories_edit' => 'location-categories-edit',
+          'pointlybooking_promo_codes' => 'promo-codes',
+          'pointlybooking_customers' => 'customers',
+          'pointlybooking_customers_edit' => 'customers-edit',
+        'pointlybooking_settings' => 'settings',
+        'pointlybooking_notifications' => 'notifications',
+        'pointlybooking_agents' => 'agents',
+        'pointlybooking_agents_edit' => 'agents-edit',
+        'pointlybooking_audit' => 'audit',
+        'pointlybooking_tools' => 'tools',
       ];
 
       $route = $route_map[$page] ?? 'dashboard';
@@ -2268,10 +2046,10 @@ final class BPV5_BookPoint_Core_Plugin {
 
       $icons_build = '';
       $icons_max = 0;
-      $icon_files = glob(BP_PLUGIN_PATH . $icons_dir_rel . '/*.svg');
+      $icon_files = glob(POINTLYBOOKING_PLUGIN_PATH . $icons_dir_rel . '/*.svg');
       if (is_array($icon_files)) {
         foreach ($icon_files as $f) {
-          $mt = @filemtime($f);
+          $mt = self::safe_filemtime($f);
           if ($mt && $mt > $icons_max) $icons_max = $mt;
         }
       }
@@ -2279,7 +2057,7 @@ final class BPV5_BookPoint_Core_Plugin {
 
       $images_build = '';
       $images_max = 0;
-      $images_dir = BP_PLUGIN_PATH . 'public/images';
+      $images_dir = POINTLYBOOKING_PLUGIN_PATH . 'public/images';
       if (is_dir($images_dir)) {
         try {
           $it = new RecursiveIteratorIterator(
@@ -2297,57 +2075,47 @@ final class BPV5_BookPoint_Core_Plugin {
       }
       if ($images_max > 0) $images_build = (string)$images_max;
 
-        wp_localize_script('bp-admin', 'BP_ADMIN', [
-          'restUrl' => esc_url_raw(rest_url('bp/v1')),
+        wp_localize_script('pointlybooking-admin', 'pointlybooking_ADMIN', [
+          'restUrl' => esc_url_raw(rest_url('pointly-booking/v1')),
           'nonce'   => wp_create_nonce('wp_rest'),
-          'adminNonce' => wp_create_nonce('bp_admin'),
+          'adminNonce' => wp_create_nonce('pointlybooking_admin'),
           'adminPostUrl' => admin_url('admin-post.php'),
-          'pluginUrl' => BP_PLUGIN_URL,
-          'publicImagesUrl' => BP_PLUGIN_URL . 'public/images',
-          'publicIconsUrl' => BP_PLUGIN_URL . $icons_dir_rel,
-          'iconsProxyUrl' => BP_PLUGIN_URL . 'public/icon.php?file=',
+          'pluginUrl' => POINTLYBOOKING_PLUGIN_URL,
+          'publicImagesUrl' => POINTLYBOOKING_PLUGIN_URL . 'public/images',
+          'publicIconsUrl' => POINTLYBOOKING_PLUGIN_URL . $icons_dir_rel,
+          'iconsProxyUrl' => POINTLYBOOKING_PLUGIN_URL . 'public/icon.php?file=',
           'route'   => $route,
           'page'    => $page,
-          'build'   => (file_exists(BP_PLUGIN_PATH . 'build/admin.js') ? (string)@filemtime(BP_PLUGIN_PATH . 'build/admin.js') : ''),
+          'build'   => ($admin_js_mtime > 0 ? (string) $admin_js_mtime : ''),
           'iconsBuild' => $icons_build,
           'imagesBuild' => $images_build,
           'timezone'=> wp_timezone_string(),
-          'currency'=> (string)BP_SettingsHelper::get('currency', 'USD'),
-          'currency_position'=> (string)BP_SettingsHelper::get('currency_position', 'before'),
-          'isPro' => (defined('BP_IS_PRO') && BP_IS_PRO) ? 1 : 0,
-          'licenseStatus' => class_exists('BP_LicenseHelper') ? (string)BP_LicenseHelper::status() : 'unset',
-          'licenseIsValid' => class_exists('BP_LicenseHelper') ? (BP_LicenseHelper::is_valid() ? 1 : 0) : 0,
-        ]);
-
-        wp_localize_script('bp-admin', 'bpAdmin', [
-          'iconsUrl' => BP_PLUGIN_URL . $icons_dir_rel,
-          'iconsProxyUrl' => BP_PLUGIN_URL . 'public/icon.php?file=',
-          'iconsBuild' => $icons_build,
-          'imagesBuild' => $images_build,
+          'currency'=> (string)POINTLYBOOKING_SettingsHelper::get('currency', 'USD'),
+          'currency_position'=> (string)POINTLYBOOKING_SettingsHelper::get('currency_position', 'before'),
         ]);
 
       wp_enqueue_media();
       return;
     }
 
-    if ($page === 'bp_categories_edit' || ($page === 'bp_categories' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
-      wp_enqueue_media();
-      wp_enqueue_script('bp-admin-media', BP_PLUGIN_URL . 'public/admin-media.js', ['jquery'], self::VERSION, true);
-      return;
-    }
+    $action_param = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : '';
 
-    if ($page === 'bp_services_edit' || ($page === 'bp_services' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
-      wp_enqueue_media();
-      wp_enqueue_script('bp-admin-service-media', BP_PLUGIN_URL . 'public/admin-service-media.js', ['jquery'], self::VERSION, true);
-      return;
-    }
-
-    if ($page === 'bp_extras_edit' || ($page === 'bp_extras' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
+    if ($page === 'pointlybooking_categories_edit' || ($page === 'pointlybooking_categories' && $action_param === 'edit')) {
       wp_enqueue_media();
       return;
     }
 
-    if ($page === 'bp_agents_edit' || ($page === 'bp_agents' && isset($_GET['action']) && $_GET['action'] === 'edit')) {
+    if ($page === 'pointlybooking_services_edit' || ($page === 'pointlybooking_services' && $action_param === 'edit')) {
+      wp_enqueue_media();
+      return;
+    }
+
+    if ($page === 'pointlybooking_extras_edit' || ($page === 'pointlybooking_extras' && $action_param === 'edit')) {
+      wp_enqueue_media();
+      return;
+    }
+
+    if ($page === 'pointlybooking_agents_edit' || ($page === 'pointlybooking_agents' && $action_param === 'edit')) {
       wp_enqueue_media();
       // React edit screens use window.wp.media directly; keep only the core media library enqueued.
       return;
@@ -2360,7 +2128,7 @@ final class BPV5_BookPoint_Core_Plugin {
 
   public static function render_services_index() : void {
     // React admin screen (keeps UI consistent + full-width layout)
-    bp_render_admin_app();
+    pointlybooking_render_admin_app();
   }
 
   public static function render_services_edit() : void {
@@ -2368,19 +2136,11 @@ final class BPV5_BookPoint_Core_Plugin {
   }
 
   public static function render_extras_edit() : void {
-    if (!self::is_pro_enabled()) {
-      self::render_upgrade_for_feature(__('Service Extras', 'bookpoint'));
-      return;
-    }
     echo '<div id="bp-admin-app" data-route="extras-edit"></div>';
   }
 
   public static function render_extras_delete() : void {
-    if (!self::is_pro_enabled()) {
-      self::render_upgrade_for_feature(__('Service Extras', 'bookpoint'));
-      return;
-    }
-    (new BP_AdminExtrasController())->delete();
+    (new POINTLYBOOKING_AdminExtrasController())->delete();
   }
 
   public static function render_categories_edit() : void {
@@ -2388,69 +2148,45 @@ final class BPV5_BookPoint_Core_Plugin {
   }
 
   public static function render_categories_delete() : void {
-    (new BP_AdminCategoriesController())->delete();
+    (new POINTLYBOOKING_AdminCategoriesController())->delete();
   }
 
   public static function render_services_delete() : void {
-    (new BP_AdminServicesController())->delete();
+    (new POINTLYBOOKING_AdminServicesController())->delete();
   }
 
   public static function render_promo_codes_edit() : void {
-    if (!self::is_pro_enabled()) {
-      self::render_upgrade_for_feature(__('Promo Codes', 'bookpoint'));
-      return;
-    }
-    (new BP_AdminPromoCodesController())->edit();
+    (new POINTLYBOOKING_AdminPromoCodesController())->edit();
   }
 
   public static function render_promo_codes_delete() : void {
-    if (!self::is_pro_enabled()) {
-      self::render_upgrade_for_feature(__('Promo Codes', 'bookpoint'));
-      return;
-    }
-    (new BP_AdminPromoCodesController())->delete();
+    (new POINTLYBOOKING_AdminPromoCodesController())->delete();
   }
 
   public static function handle_services_save() : void {
-    (new BP_AdminServicesController())->save();
+    (new POINTLYBOOKING_AdminServicesController())->save();
   }
 
   public static function render_settings() : void {
     // Render React admin app so the Settings UI matches other screens (full-width + modern buttons).
-    bp_render_admin_app();
+    pointlybooking_render_admin_app();
   }
 
   public static function handle_settings_save() : void {
-    (new BP_AdminSettingsController())->save();
-  }
-
-  public static function handle_settings_save_license(): void {
-    (new BP_AdminSettingsController())->save_license();
-  }
-
-  public static function handle_settings_validate_license(): void {
-    (new BP_AdminSettingsController())->validate_license();
-  }
-
-  public static function handle_settings_activate_license(): void {
-    (new BP_AdminSettingsController())->activate_license();
-  }
-
-  public static function handle_settings_deactivate_license(): void {
-    (new BP_AdminSettingsController())->deactivate_license();
+    (new POINTLYBOOKING_AdminSettingsController())->save();
   }
 
   public static function handle_settings_export_json(): void {
-    (new BP_AdminSettingsController())->export_json();
+    (new POINTLYBOOKING_AdminSettingsController())->export_json();
   }
 
   public static function handle_settings_import_json(): void {
-    (new BP_AdminSettingsController())->import_json();
+    (new POINTLYBOOKING_AdminSettingsController())->import_json();
   }
 
   public static function render_bookings() : void {
     // React admin screen (keeps UI consistent + full-width layout)
-    bp_render_admin_app();
+    pointlybooking_render_admin_app();
   }
 
   public static function render_calendar() : void {
@@ -2470,110 +2206,97 @@ final class BPV5_BookPoint_Core_Plugin {
   }
 
   public static function render_form_fields_edit() : void {
-    (new BP_AdminFormFieldsController())->edit();
+    (new POINTLYBOOKING_AdminFormFieldsController())->edit();
   }
 
   public static function render_booking_confirm() : void {
-    (new BP_AdminBookingsController())->confirm();
+    (new POINTLYBOOKING_AdminBookingsController())->confirm();
   }
 
   public static function render_booking_cancel() : void {
-    (new BP_AdminBookingsController())->cancel();
+    (new POINTLYBOOKING_AdminBookingsController())->cancel();
   }
 
   public static function handle_booking_notes_save() : void {
-    (new BP_AdminBookingsController())->save_notes();
+    (new POINTLYBOOKING_AdminBookingsController())->save_notes();
   }
 
   public static function render_customers() : void {
     // React admin screen (keeps UI consistent + full-width layout)
-    bp_render_admin_app();
+    pointlybooking_render_admin_app();
   }
 
   public static function render_customer_view() : void {
-    (new BP_AdminCustomersController())->view();
+    (new POINTLYBOOKING_AdminCustomersController())->view();
+  }
+
+  public static function enqueue_public_styles_only(): void {
+    $front_dir_rel = file_exists(POINTLYBOOKING_PLUGIN_PATH . 'public/build/front.js') ? 'public/build' : 'public';
+
+    $front_css = POINTLYBOOKING_PLUGIN_PATH . $front_dir_rel . '/index.jsx.css';
+    if (file_exists($front_css)) {
+      $css_ver = (string) (self::safe_filemtime($front_css) ?: self::VERSION);
+      wp_enqueue_style(
+        'pointlybooking-front',
+        POINTLYBOOKING_PLUGIN_URL . $front_dir_rel . '/index.jsx.css',
+        [],
+        $css_ver
+      );
+    }
+
+    $front_css_overrides = POINTLYBOOKING_PLUGIN_PATH . 'public/front-overrides.css';
+    if (file_exists($front_css_overrides)) {
+      $css_overrides_ver = (string) (self::safe_filemtime($front_css_overrides) ?: self::VERSION);
+      wp_enqueue_style(
+        'pointlybooking-front-overrides',
+        POINTLYBOOKING_PLUGIN_URL . 'public/front-overrides.css',
+        ['pointlybooking-front'],
+        $css_overrides_ver
+      );
+    }
   }
 
   public static function enqueue_public_assets(bool $force = false): void {
-    static $cache_bust_added = false;
     if (!$force) {
       if (!is_singular()) return;
 
       global $post;
       if (
         !$post ||
-        (!has_shortcode($post->post_content, 'bookPoint') &&
-          !has_shortcode($post->post_content, 'bookpoint') &&
-          !has_shortcode($post->post_content, 'BookPoint'))
+        (!has_shortcode($post->post_content, 'pointlybooking_booking_form'))
       ) return;
     }
 
-    $front_dir_rel = file_exists(BP_PLUGIN_PATH . 'public/build/front.js') ? 'public/build' : 'public';
+    $front_dir_rel = file_exists(POINTLYBOOKING_PLUGIN_PATH . 'public/build/front.js') ? 'public/build' : 'public';
 
-    $front_asset_path = BP_PLUGIN_PATH . $front_dir_rel . '/front.asset.php';
+    $front_asset_path = POINTLYBOOKING_PLUGIN_PATH . $front_dir_rel . '/front.asset.php';
     $front_asset = null;
     if (file_exists($front_asset_path)) {
       $front_asset = require $front_asset_path;
     }
 
-    if (!$cache_bust_added) {
-      $cache_bust_added = true;
-      add_filter('script_loader_src', function ($src, $handle) {
-        if ($handle === 'bp-front') {
-          return add_query_arg('v', time(), $src);
-        }
-        return $src;
-      }, 10, 2);
-      add_filter('style_loader_src', function ($src, $handle) {
-        if ($handle === 'bp-front') {
-          return add_query_arg('v', time(), $src);
-        }
-        return $src;
-      }, 10, 2);
-    }
-
-    $front_css = BP_PLUGIN_PATH . $front_dir_rel . '/index.jsx.css';
-    if (file_exists($front_css)) {
-      $css_ver = @filemtime($front_css) ?: ($front_asset['version'] ?? self::VERSION);
-      wp_enqueue_style(
-        'bp-front',
-        BP_PLUGIN_URL . $front_dir_rel . '/index.jsx.css',
-        [],
-        $css_ver
-      );
-    }
-
-    $front_css_overrides = BP_PLUGIN_PATH . 'public/front-overrides.css';
-    if (file_exists($front_css_overrides)) {
-      $css_overrides_ver = @filemtime($front_css_overrides) ?: self::VERSION;
-      wp_enqueue_style(
-        'bp-front-overrides',
-        BP_PLUGIN_URL . 'public/front-overrides.css',
-        ['bp-front'],
-        $css_overrides_ver
-      );
-    }
+    self::enqueue_public_styles_only();
 
     self::ensure_react_scripts();
 
-    $front_js = BP_PLUGIN_PATH . $front_dir_rel . '/front.js';
-    $js_ver = file_exists($front_js) ? (@filemtime($front_js) ?: ($front_asset['version'] ?? self::VERSION)) : ($front_asset['version'] ?? self::VERSION);
+    $front_js = POINTLYBOOKING_PLUGIN_PATH . $front_dir_rel . '/front.js';
+    $js_ver = (string) (self::safe_filemtime($front_js) ?: ($front_asset['version'] ?? self::VERSION));
     wp_enqueue_script(
-      'bp-front',
-      BP_PLUGIN_URL . $front_dir_rel . '/front.js',
+      'pointlybooking-front',
+      POINTLYBOOKING_PLUGIN_URL . $front_dir_rel . '/front.js',
       $front_asset['dependencies'] ?? [],
       $js_ver,
       true
     );
 
-    wp_localize_script('bp-front', 'BP_FRONT', self::front_localized_data());
+    wp_localize_script('pointlybooking-front', 'pointlybooking_FRONT', self::front_localized_data());
   }
 
   private static function front_localized_data(): array {
     $stripe_pk = self::front_stripe_publishable_key();
-    $currency = BP_SettingsHelper::get('currency', '');
+    $currency = POINTLYBOOKING_SettingsHelper::get('currency', '');
     if ($currency === '') {
-      $currency = get_option('bp_currency', '');
+      $currency = get_option('pointlybooking_currency', '');
     }
     if ($currency === '') {
       $currency = 'USD';
@@ -2581,7 +2304,7 @@ final class BPV5_BookPoint_Core_Plugin {
 
     $images_build = '';
     $images_max = 0;
-    $images_dir = BP_PLUGIN_PATH . 'public/images';
+    $images_dir = POINTLYBOOKING_PLUGIN_PATH . 'public/images';
     if (is_dir($images_dir)) {
       try {
         $it = new RecursiveIteratorIterator(
@@ -2603,10 +2326,10 @@ final class BPV5_BookPoint_Core_Plugin {
 
     $icons_build = '';
     $icons_max = 0;
-    $icon_files = glob(BP_PLUGIN_PATH . $icons_dir_rel . '/*.svg');
+    $icon_files = glob(POINTLYBOOKING_PLUGIN_PATH . $icons_dir_rel . '/*.svg');
     if (is_array($icon_files)) {
       foreach ($icon_files as $f) {
-        $mt = @filemtime($f);
+        $mt = self::safe_filemtime($f);
         if ($mt && $mt > $icons_max) $icons_max = $mt;
       }
     }
@@ -2614,13 +2337,12 @@ final class BPV5_BookPoint_Core_Plugin {
 
     return [
       'rest' => esc_url_raw(rest_url()),
-      'restUrl' => esc_url_raw(rest_url('bp/v1')),
+      'restUrl' => esc_url_raw(rest_url('pointly-booking/v1')),
       'ajaxUrl' => admin_url('admin-ajax.php'),
       'siteUrl' => site_url('/'),
       'nonce' => wp_create_nonce('wp_rest'),
-      'isPro' => self::is_pro_enabled() ? 1 : 0,
-      'images' => BP_PLUGIN_URL . 'public/images/',
-      'icons' => BP_PLUGIN_URL . $icons_dir_rel . '/',
+      'images' => POINTLYBOOKING_PLUGIN_URL . 'public/images/',
+      'icons' => POINTLYBOOKING_PLUGIN_URL . $icons_dir_rel . '/',
       'imagesBuild' => $images_build,
       'iconsBuild' => $icons_build,
       'tz' => wp_timezone_string(),
@@ -2631,10 +2353,10 @@ final class BPV5_BookPoint_Core_Plugin {
   }
 
   private static function front_stripe_publishable_key(): string {
-    $pk = (string)get_option('bp_stripe_publishable_key', '');
+    $pk = (string)get_option('pointlybooking_stripe_publishable_key', '');
     if ($pk !== '') return $pk;
 
-    $settings = BP_SettingsHelper::get_all();
+    $settings = POINTLYBOOKING_SettingsHelper::get_all();
     $mode = $settings['stripe_mode'] ?? 'test';
     if ($mode === 'live') {
       return (string)($settings['stripe_live_publishable_key'] ?? '');
@@ -2644,42 +2366,32 @@ final class BPV5_BookPoint_Core_Plugin {
 
   private static function front_settings_payload(): array {
     $base = [
-      'currency' => (string)BP_SettingsHelper::get('currency', 'USD'),
-      'currency_position' => (string)BP_SettingsHelper::get('currency_position', 'before'),
+      'currency' => (string)POINTLYBOOKING_SettingsHelper::get('currency', 'USD'),
+      'currency_position' => (string)POINTLYBOOKING_SettingsHelper::get('currency_position', 'before'),
     ];
 
-    // Free build: payments are completely disabled (including cash).
-    if (!self::is_pro_enabled()) {
-      return $base + [
-        'payments_enabled' => 0,
-        'payments_enabled_methods' => [],
-        'payments_default_method' => '',
-        'payments_require_payment_to_confirm' => 0,
-      ];
-    }
-
-    $enabled = BP_SettingsHelper::get_with_default('payments_enabled_methods');
+    $enabled = POINTLYBOOKING_SettingsHelper::get_with_default('payments_enabled_methods');
     if (!is_array($enabled)) $enabled = [];
 
     return $base + [
-      'payments_enabled' => (int)BP_SettingsHelper::get_with_default('payments_enabled'),
+      'payments_enabled' => (int)POINTLYBOOKING_SettingsHelper::get_with_default('payments_enabled'),
       'payments_enabled_methods' => $enabled,
-      'payments_default_method' => BP_SettingsHelper::get_with_default('payments_default_method'),
-      'payments_require_payment_to_confirm' => BP_SettingsHelper::get_with_default('payments_require_payment_to_confirm'),
+      'payments_default_method' => POINTLYBOOKING_SettingsHelper::get_with_default('payments_default_method'),
+      'payments_require_payment_to_confirm' => POINTLYBOOKING_SettingsHelper::get_with_default('payments_require_payment_to_confirm'),
     ];
   }
 
   public static function render_agents() : void {
-    (new BP_AdminAgentsController())->index();
+    (new POINTLYBOOKING_AdminAgentsController())->index();
   }
 
   public static function ensure_react_scripts() : void {
     if (!wp_script_is('react', 'registered')) {
-      $react_path = BP_PLUGIN_PATH . 'public/vendor/react.production.min.js';
+      $react_path = POINTLYBOOKING_PLUGIN_PATH . 'public/vendor/react.production.min.js';
       if (file_exists($react_path)) {
         wp_register_script(
           'react',
-          BP_PLUGIN_URL . 'public/vendor/react.production.min.js',
+          POINTLYBOOKING_PLUGIN_URL . 'public/vendor/react.production.min.js',
           [],
           self::VERSION,
           true
@@ -2696,11 +2408,11 @@ final class BPV5_BookPoint_Core_Plugin {
     }
 
     if (!wp_script_is('react-dom', 'registered')) {
-      $react_dom_path = BP_PLUGIN_PATH . 'public/vendor/react-dom.production.min.js';
+      $react_dom_path = POINTLYBOOKING_PLUGIN_PATH . 'public/vendor/react-dom.production.min.js';
       if (file_exists($react_dom_path)) {
         wp_register_script(
           'react-dom',
-          BP_PLUGIN_URL . 'public/vendor/react-dom.production.min.js',
+          POINTLYBOOKING_PLUGIN_URL . 'public/vendor/react-dom.production.min.js',
           ['react'],
           self::VERSION,
           true
@@ -2709,14 +2421,23 @@ final class BPV5_BookPoint_Core_Plugin {
     }
 
     if (!wp_script_is('react-jsx-runtime', 'registered')) {
-      $jsx_runtime_path = BP_PLUGIN_PATH . 'public/vendor/react-jsx-runtime.min.js';
+      $jsx_runtime_path = POINTLYBOOKING_PLUGIN_PATH . 'public/vendor/react-jsx-runtime.min.js';
       if (file_exists($jsx_runtime_path)) {
         wp_register_script(
           'react-jsx-runtime',
-          BP_PLUGIN_URL . 'public/vendor/react-jsx-runtime.min.js',
+          POINTLYBOOKING_PLUGIN_URL . 'public/vendor/react-jsx-runtime.min.js',
           ['react'],
           self::VERSION,
           true
+        );
+      } else {
+        // WordPress core doesn't always register this handle. Provide an inline-only fallback so our bundles can
+        // depend on `react-jsx-runtime` without shipping React binaries in the plugin.
+        wp_register_script('react-jsx-runtime', false, ['react'], self::VERSION, true);
+        wp_add_inline_script(
+          'react-jsx-runtime',
+          "if(!window.ReactJSXRuntime&&window.React){window.ReactJSXRuntime={jsx:function(t,p,k){var x=p||{};if(k!==undefined)x.key=k;return window.React.createElement(t,x);},jsxs:function(t,p,k){var x=p||{};if(k!==undefined)x.key=k;return window.React.createElement(t,x);},Fragment:window.React.Fragment};}",
+          'before'
         );
       }
     }
@@ -2727,78 +2448,70 @@ final class BPV5_BookPoint_Core_Plugin {
   }
 
   public static function render_agents_delete() : void {
-    (new BP_AdminAgentsController())->delete();
+    (new POINTLYBOOKING_AdminAgentsController())->delete();
   }
 
   public static function handle_agents_save() : void {
-    (new BP_AdminAgentsController())->save();
+    (new POINTLYBOOKING_AdminAgentsController())->save();
   }
 
   public static function render_audit_log() : void {
     // React admin screen (keeps UI consistent + full-width layout)
-    bp_render_admin_app();
+    pointlybooking_render_admin_app();
   }
 
   public static function render_tools() : void {
     // React admin screen (keeps UI consistent + full-width layout)
-    bp_render_admin_app();
+    pointlybooking_render_admin_app();
   }
 
   public static function handle_tools_email_test() : void {
-    (new BP_AdminToolsController())->email_test();
+    (new POINTLYBOOKING_AdminToolsController())->email_test();
   }
 
   public static function handle_tools_webhook_test() : void {
-    (new BP_AdminToolsController())->webhook_test();
+    (new POINTLYBOOKING_AdminToolsController())->webhook_test();
   }
 
   public static function handle_tools_generate_demo() : void {
-    (new BP_AdminToolsController())->generate_demo();
+    (new POINTLYBOOKING_AdminToolsController())->generate_demo();
   }
 
   public static function handle_tools_export_settings() : void {
-    (new BP_AdminToolsController())->export_settings();
+    (new POINTLYBOOKING_AdminToolsController())->export_settings();
   }
 
   public static function handle_tools_import_settings() : void {
-    (new BP_AdminToolsController())->import_settings();
-  }
-
-  public static function handle_license_save() : void {
-    (new BP_AdminSettingsController())->license_save();
-  }
-
-  public static function handle_license_validate() : void {
-    (new BP_AdminSettingsController())->license_validate();
+    (new POINTLYBOOKING_AdminToolsController())->import_settings();
   }
 
   public static function handle_bookings_export_csv() : void {
-    (new BP_AdminBookingsController())->export_csv();
+    (new POINTLYBOOKING_AdminBookingsController())->export_csv();
   }
 
   public static function handle_bookings_export_pdf() : void {
-    (new BP_AdminBookingsController())->export_pdf();
+    (new POINTLYBOOKING_AdminBookingsController())->export_pdf();
   }
 
   public static function handle_customers_export_csv() : void {
-    if (!current_user_can('bp_manage_customers') && !current_user_can('bp_manage_bookings') && !current_user_can('bp_manage_settings') && !current_user_can('manage_options')) {
+    if (!current_user_can('pointlybooking_manage_customers') && !current_user_can('pointlybooking_manage_bookings') && !current_user_can('pointlybooking_manage_settings') && !current_user_can('manage_options')) {
       wp_die('No permission');
     }
-    check_admin_referer('bp_admin');
+    check_admin_referer('pointlybooking_admin');
 
     global $wpdb;
-    $table = $wpdb->prefix . 'bp_customers';
-    $rows = $wpdb->get_results("SELECT * FROM {$table} ORDER BY id DESC", ARRAY_A) ?: [];
+    $table = pointlybooking_table('customers');
+    $rows = $wpdb->get_results(
+      self::prepare_with_identifiers("SELECT * FROM %i ORDER BY id DESC", [$table]),
+      ARRAY_A
+    ) ?: [];
 
-    $filename = 'bookpoint-customers-' . date('Y-m-d') . '.csv';
+    $filename = 'bookpoint-customers-' . gmdate('Y-m-d') . '.csv';
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename=' . $filename);
-
-    $out = fopen('php://output', 'w');
-    fputcsv($out, ['id','first_name','last_name','email','phone','wp_user_id','created_at','updated_at']);
-
+    $csv_rows = [];
     foreach ($rows as $r) {
-      fputcsv($out, [
+      $csv_rows[] = [
         $r['id'] ?? '',
         $r['first_name'] ?? '',
         $r['last_name'] ?? '',
@@ -2807,32 +2520,41 @@ final class BPV5_BookPoint_Core_Plugin {
         $r['wp_user_id'] ?? '',
         $r['created_at'] ?? '',
         $r['updated_at'] ?? '',
-      ]);
+      ];
     }
-
-    fclose($out);
+    $csv = pointlybooking_build_csv(['id','first_name','last_name','email','phone','wp_user_id','created_at','updated_at'], $csv_rows);
+    echo "\xEF\xBB\xBF";
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV output, not HTML.
+    echo $csv;
     exit;
   }
 
   public static function handle_customers_import_csv() : void {
-    if (!current_user_can('bp_manage_customers') && !current_user_can('bp_manage_bookings') && !current_user_can('bp_manage_settings') && !current_user_can('manage_options')) {
+    if (!current_user_can('pointlybooking_manage_customers') && !current_user_can('pointlybooking_manage_bookings') && !current_user_can('pointlybooking_manage_settings') && !current_user_can('manage_options')) {
       wp_die('No permission');
     }
-    check_admin_referer('bp_admin');
+    check_admin_referer('pointlybooking_admin');
 
-    if (empty($_FILES['csv']) || !is_uploaded_file($_FILES['csv']['tmp_name'])) {
-      wp_safe_redirect(admin_url('admin.php?page=bp_customers&import=0'));
+    $raw_csv = pointlybooking_get_uploaded_file_contents('csv', ['csv'], 5 * MB_IN_BYTES);
+    if ($raw_csv === null) {
+      wp_safe_redirect(admin_url('admin.php?page=pointlybooking_customers&import=0'));
       exit;
     }
 
-    $file = $_FILES['csv']['tmp_name'];
-    $handle = fopen($file, 'r');
-    if (!$handle) {
-      wp_safe_redirect(admin_url('admin.php?page=bp_customers&import=0'));
+    $lines = preg_split('/\r\n|\n|\r/', $raw_csv);
+    $parsed_rows = [];
+    foreach ($lines as $line) {
+      if (trim($line) === '') {
+        continue;
+      }
+      $parsed_rows[] = str_getcsv($line);
+    }
+    if (empty($parsed_rows)) {
+      wp_safe_redirect(admin_url('admin.php?page=pointlybooking_customers&import=0'));
       exit;
     }
 
-    $header = fgetcsv($handle);
+    $header = array_shift($parsed_rows);
     $map = [];
     if (is_array($header)) {
       foreach ($header as $i => $col) {
@@ -2843,9 +2565,9 @@ final class BPV5_BookPoint_Core_Plugin {
 
     $count = 0;
     global $wpdb;
-    $table = $wpdb->prefix . 'bp_customers';
+    $table = pointlybooking_table('customers');
 
-    while (($row = fgetcsv($handle)) !== false) {
+    foreach ($parsed_rows as $row) {
       if (!is_array($row) || count($row) === 0) continue;
 
       $first = $map['first_name'] ?? null;
@@ -2871,7 +2593,7 @@ final class BPV5_BookPoint_Core_Plugin {
       if ($email === '' && $first_name === '' && $last_name === '' && $phone === '') continue;
 
       if ($email !== '') {
-        $existing = BP_CustomerModel::find_by_email($email);
+        $existing = POINTLYBOOKING_CustomerModel::find_by_email($email);
         if ($existing) {
           $wpdb->update($table, [
             'first_name' => $first_name !== '' ? $first_name : ($existing['first_name'] ?? null),
@@ -2884,7 +2606,7 @@ final class BPV5_BookPoint_Core_Plugin {
         }
       }
 
-      BP_CustomerModel::create([
+      POINTLYBOOKING_CustomerModel::create([
         'first_name' => $first_name ?: null,
         'last_name'  => $last_name ?: null,
         'email'      => $email ?: null,
@@ -2893,14 +2615,12 @@ final class BPV5_BookPoint_Core_Plugin {
       $count++;
     }
 
-    fclose($handle);
-
-    wp_safe_redirect(admin_url('admin.php?page=bp_customers&import=' . $count));
+    wp_safe_redirect(admin_url('admin.php?page=pointlybooking_customers&import=' . $count));
     exit;
   }
 
   public static function handle_customer_gdpr_delete() : void {
-    (new BP_AdminCustomersController())->gdpr_delete();
+    (new POINTLYBOOKING_AdminCustomersController())->gdpr_delete();
   }
 
   public static function shortcode_book_form($atts) : string {
@@ -2910,25 +2630,14 @@ final class BPV5_BookPoint_Core_Plugin {
       'hide_notes' => 0,
       'require_phone' => 0,
       'compact' => 0,
-    ], $atts, 'bookPoint');
+    ], $atts, 'pointlybooking_booking_form');
 
     $service_id = absint($atts['service_id']);
 
-    // enqueue assets only when shortcode is used
-    $front_dir_rel = file_exists(BP_PLUGIN_PATH . 'public/build/front.js') ? 'public/build' : 'public';
+    // Ensure public assets are enqueued when shortcode is rendered (widgets, builders, etc).
+    self::enqueue_public_assets(true);
 
-    $front_js = BP_PLUGIN_PATH . $front_dir_rel . '/front.js';
-    if (file_exists($front_js)) {
-      wp_enqueue_script('bp-front', BP_PLUGIN_URL . $front_dir_rel . '/front.js', [], @filemtime($front_js) ?: self::VERSION, true);
-      wp_localize_script('bp-front', 'BP_FRONT', self::front_localized_data());
-    }
-
-    $front_css = BP_PLUGIN_PATH . $front_dir_rel . '/index.jsx.css';
-    if (file_exists($front_css)) {
-      wp_enqueue_style('bp-front', BP_PLUGIN_URL . $front_dir_rel . '/index.jsx.css', [], @filemtime($front_css) ?: self::VERSION);
-    }
-
-    $nonce = wp_create_nonce('bp_public');
+    $nonce = wp_create_nonce('pointlybooking_public');
 
     $options = [
       'default_date' => sanitize_text_field($atts['default_date']),
@@ -2939,7 +2648,7 @@ final class BPV5_BookPoint_Core_Plugin {
     ];
 
     ob_start();
-    $controller = new class extends BP_Controller {};
+    $controller = new class extends POINTLYBOOKING_Controller {};
     $controller->render('public/booking_form', [
       'service_id' => $service_id,
       'nonce' => $nonce,
@@ -2949,87 +2658,153 @@ final class BPV5_BookPoint_Core_Plugin {
   }
 
   public static function shortcode_customer_portal() : string {
-    wp_enqueue_style('bp-portal', BP_PLUGIN_URL . 'public/stylesheets/portal.css', [], self::VERSION);
+    self::enqueue_public_styles_only();
 
     self::rate_limit_or_block('portal_view', 120, 600);
 
-    $step = sanitize_text_field($_GET['step'] ?? 'email');
-    $email = sanitize_email($_GET['email'] ?? '');
+    $step = sanitize_key(wp_unslash($_GET['step'] ?? 'email'));
+    $email = sanitize_email(wp_unslash($_GET['email'] ?? ''));
+    $session = sanitize_text_field(wp_unslash($_GET['s'] ?? ''));
+    $view_nonce = sanitize_text_field(wp_unslash($_GET['bpv'] ?? ''));
+    if (!in_array($step, ['email', 'verify', 'list'], true)) {
+      $step = 'email';
+    }
+    if (in_array($step, ['verify', 'list'], true)) {
+      if ($email === '' || $view_nonce === '' || !wp_verify_nonce($view_nonce, self::portal_view_nonce_action($step, $email))) {
+        $step = 'email';
+        $email = '';
+        $session = '';
+      }
+    }
 
     ob_start();
 
     if ($step === 'verify' && $email) {
-      include BP_LIB_PATH . 'views/public/portal_verify.php';
+      include POINTLYBOOKING_LIB_PATH . 'views/public/portal_verify.php';
     } elseif ($step === 'list' && $email) {
-      include BP_LIB_PATH . 'views/public/portal_list.php';
+      if ($session !== '' && POINTLYBOOKING_PortalHelper::is_session_valid($email, $session)) {
+        include POINTLYBOOKING_LIB_PATH . 'views/public/portal_list.php';
+      } else {
+        include POINTLYBOOKING_LIB_PATH . 'views/public/portal_verify.php';
+      }
     } else {
-      include BP_LIB_PATH . 'views/public/portal_email.php';
+      include POINTLYBOOKING_LIB_PATH . 'views/public/portal_email.php';
     }
 
     return (string) ob_get_clean();
   }
 
+  private static function portal_view_nonce_action(string $step, string $email): string {
+    return 'pointlybooking_portal_view|' . $step . '|' . md5(strtolower(trim($email)));
+  }
+
+  private static function portal_base_url(): string {
+    $base = wp_get_referer();
+    $base = $base ? wp_validate_redirect($base, '') : '';
+    if (!$base) {
+      $base = home_url('/');
+    }
+
+    // Drop portal args from the base so redirects don't accumulate query strings.
+    return remove_query_arg(['step', 'email', 's', 'bpv', 'error'], $base);
+  }
+
   public static function handle_portal_posts() : void {
-    if (empty($_POST['bp_portal_action'])) return;
+    $action = sanitize_text_field(wp_unslash($_POST['pointlybooking_portal_action'] ?? ''));
+    if ($action === '') return;
 
     self::rate_limit_or_block('portal_action', 20, 600);
 
-    $action = sanitize_text_field($_POST['bp_portal_action']);
-
     if ($action === 'send_otp') {
-      if (!wp_verify_nonce($_POST['_wpnonce'] ?? '', 'bp_portal_email')) return;
+      $nonce = isset($_POST['_wpnonce']) ? sanitize_text_field(wp_unslash($_POST['_wpnonce'])) : '';
+      if (!wp_verify_nonce($nonce, 'pointlybooking_portal_email')) return;
 
-      $email = sanitize_email($_POST['bp_portal_email'] ?? '');
-      if ($email && BP_PortalHelper::send_otp($email)) {
-        wp_safe_redirect(add_query_arg(['step' => 'verify', 'email' => $email], site_url('/my-bookings/')));
+      $base = self::portal_base_url();
+      // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized with sanitize_email().
+      $email = sanitize_email(wp_unslash($_POST['pointlybooking_portal_email'] ?? ''));
+      if ($email !== '' && is_email($email) && POINTLYBOOKING_PortalHelper::send_otp($email)) {
+        wp_safe_redirect(add_query_arg([
+          'step' => 'verify',
+          'email' => $email,
+          'bpv' => wp_create_nonce(self::portal_view_nonce_action('verify', $email)),
+        ], $base));
         exit;
       }
 
-      wp_safe_redirect(add_query_arg(['error' => 'send_failed'], site_url('/my-bookings/')));
+      wp_safe_redirect(add_query_arg(['error' => 'send_failed'], $base));
       exit;
     }
 
     if ($action === 'verify_otp') {
-      if (!wp_verify_nonce($_POST['_wpnonce'] ?? '', 'bp_portal_verify')) return;
+      $nonce = isset($_POST['_wpnonce']) ? sanitize_text_field(wp_unslash($_POST['_wpnonce'])) : '';
+      if (!wp_verify_nonce($nonce, 'pointlybooking_portal_verify')) return;
 
-      $email = sanitize_email($_POST['bp_portal_email'] ?? '');
-      $otp = preg_replace('/\D+/', '', (string)($_POST['bp_portal_otp'] ?? ''));
-
-      $session = ($email && strlen($otp) === 6) ? BP_PortalHelper::verify_otp($email, $otp) : null;
-      if ($session) {
-        wp_safe_redirect(add_query_arg(['step' => 'list', 'email' => $email, 's' => $session], site_url('/my-bookings/')));
+      $base = self::portal_base_url();
+      $email = sanitize_email(wp_unslash($_POST['pointlybooking_portal_email'] ?? ''));
+      if ($email === '' || !is_email($email)) {
+        wp_safe_redirect(add_query_arg([
+          'step' => 'verify',
+          'error' => 'bad_code',
+        ], $base));
+        exit;
+      }
+      $otp_raw = sanitize_text_field(wp_unslash($_POST['pointlybooking_portal_otp'] ?? ''));
+      $otp = preg_replace('/\D+/', '', $otp_raw);
+      if (!preg_match('/^\d{6}$/', $otp)) {
+        wp_safe_redirect(add_query_arg([
+          'step' => 'verify',
+          'email' => $email,
+          'error' => 'bad_code',
+          'bpv' => wp_create_nonce(self::portal_view_nonce_action('verify', $email)),
+        ], $base));
         exit;
       }
 
-      wp_safe_redirect(add_query_arg(['step' => 'verify', 'email' => $email, 'error' => 'bad_code'], site_url('/my-bookings/')));
+      $session = ($email !== '') ? POINTLYBOOKING_PortalHelper::verify_otp($email, $otp) : null;
+      if ($session) {
+        wp_safe_redirect(add_query_arg([
+          'step' => 'list',
+          'email' => $email,
+          's' => $session,
+          'bpv' => wp_create_nonce(self::portal_view_nonce_action('list', $email)),
+        ], $base));
+        exit;
+      }
+
+      wp_safe_redirect(add_query_arg([
+        'step' => 'verify',
+        'email' => $email,
+        'error' => 'bad_code',
+        'bpv' => wp_create_nonce(self::portal_view_nonce_action('verify', $email)),
+      ], $base));
       exit;
     }
   }
 
   public static function ajax_slots() : void {
-    (new BP_PublicBookingsController())->slots();
+    (new POINTLYBOOKING_PublicBookingsController())->slots();
   }
 
   public static function ajax_submit_booking() : void {
-    (new BP_PublicBookingsController())->submit();
+    (new POINTLYBOOKING_PublicBookingsController())->submit();
   }
 
   public static function register_query_vars($vars) {
-    $vars[] = 'bp_manage_booking';
+    $vars[] = 'pointlybooking_manage_booking';
     $vars[] = 'key';
-    $vars[] = 'bp_action';
+    $vars[] = 'pointlybooking_action';
     return $vars;
   }
 
   public static function maybe_render_public_pages($wp) : void {
     // if not our page, ignore
-    $is_manage = get_query_var('bp_manage_booking');
+    $is_manage = get_query_var('pointlybooking_manage_booking');
     if (!$is_manage) return;
 
     self::rate_limit_or_block('manage_view', 60, 600);
 
     // handle cancel action first
-    $controller = new BP_PublicBookingsController();
+    $controller = new POINTLYBOOKING_PublicBookingsController();
     $controller->handle_manage_actions();
 
     // render manage booking page
@@ -3047,8 +2822,8 @@ final class BPV5_BookPoint_Core_Plugin {
   }
 
   public static function rate_limit_or_block(string $key, int $limit = 30, int $window_sec = 600) : void {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    $bucket = 'bp_rl_' . md5($key . '|' . $ip);
+    $ip = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'));
+    $bucket = 'pointlybooking_rl_' . md5($key . '|' . $ip);
 
     $data = get_transient($bucket);
     if (!is_array($data)) {
@@ -3063,39 +2838,39 @@ final class BPV5_BookPoint_Core_Plugin {
     set_transient($bucket, $data, $window_sec);
 
     if ((int)$data['count'] > $limit) {
-      wp_die(esc_html__('Too many requests. Please try again later.', 'bookpoint'), 429);
+      wp_die(esc_html__('Too many requests. Please try again later.', 'bookpoint-booking'), 429);
     }
   }
 }
 }
 
-// Backwards compatibility for old integrations expecting BP_Plugin class.
-if (!class_exists('BP_Plugin', false)) {
-  class_alias('BPV5_BookPoint_Core_Plugin', 'BP_Plugin');
+// Backwards compatibility for old integrations expecting pointlybooking_Plugin class.
+if (!class_exists('pointlybooking_Plugin', false)) {
+  class_alias('POINTLYBOOKING_Core_Plugin', 'pointlybooking_Plugin');
 }
 
 // Boot on plugins_loaded in normal flow, with immediate fallback for environments that load plugins late.
 if (did_action('plugins_loaded')) {
-  BPV5_BookPoint_Core_Plugin::init();
+  POINTLYBOOKING_Core_Plugin::init();
 } else {
-  add_action('plugins_loaded', ['BPV5_BookPoint_Core_Plugin', 'init'], 20);
+  add_action('plugins_loaded', ['POINTLYBOOKING_Core_Plugin', 'init'], 20);
 }
 
 // Activation/deactivation hooks must be registered at file load time (not delayed inside init()).
-register_activation_hook(__FILE__, ['BPV5_BookPoint_Core_Plugin', 'on_activate']);
-register_deactivation_hook(__FILE__, ['BPV5_BookPoint_Core_Plugin', 'on_deactivate']);
+register_activation_hook(__FILE__, ['POINTLYBOOKING_Core_Plugin', 'on_activate']);
+register_deactivation_hook(__FILE__, ['POINTLYBOOKING_Core_Plugin', 'on_deactivate']);
 
-if (!function_exists('bp_shortcode_booking_form')) {
-  function bp_shortcode_booking_form($atts = []) {
+if (!function_exists('pointlybooking_shortcode_booking_form')) {
+  function pointlybooking_shortcode_booking_form($atts = []) {
     $atts = shortcode_atts([
-      'label' => __('Book Now', 'bookpoint'),
+      'label' => __('Book Now', 'bookpoint-booking'),
     ], $atts);
 
-    if (class_exists('BPV5_BookPoint_Core_Plugin')) {
-      BPV5_BookPoint_Core_Plugin::enqueue_public_assets(true);
+    if (class_exists('POINTLYBOOKING_Core_Plugin')) {
+      POINTLYBOOKING_Core_Plugin::enqueue_public_assets(true);
       if (did_action('wp_footer')) {
-        wp_print_styles('bp-front');
-        wp_print_scripts('bp-front');
+        wp_print_styles('pointlybooking-front');
+        wp_print_scripts('pointlybooking-front');
       }
     }
 
@@ -3109,9 +2884,9 @@ if (!function_exists('bp_shortcode_booking_form')) {
   }
 }
 
-if (!function_exists('bp_rest_get_categories')) {
-  function bp_rest_get_categories(\WP_REST_Request $req) {
-    $rows = BP_CategoryModel::all(['is_active' => 1]);
+if (!function_exists('pointlybooking_rest_get_categories')) {
+  function pointlybooking_rest_get_categories(\WP_REST_Request $req) {
+    $rows = POINTLYBOOKING_CategoryModel::all(['is_active' => 1]);
 
     $data = [];
     foreach ($rows as $c) {
@@ -3126,29 +2901,37 @@ if (!function_exists('bp_rest_get_categories')) {
   }
 }
 
-if (!function_exists('bp_rest_get_services')) {
-  function bp_rest_get_services(\WP_REST_Request $req) {
+if (!function_exists('pointlybooking_rest_get_services')) {
+  function pointlybooking_rest_get_services(\WP_REST_Request $req) {
     $category_id = (int)$req->get_param('category_id');
 
     global $wpdb;
-    $t = $wpdb->prefix . 'bp_services';
-    $map = $wpdb->prefix . 'bp_service_categories';
+    $t = pointlybooking_table('services');
+    $map = pointlybooking_table('service_categories');
 
-    $params = [];
     if ($category_id > 0) {
-      $sql = "
-        SELECT s.id, s.name, s.price_cents, s.duration_minutes, s.category_id, s.image_id
-        FROM {$t} s
-        INNER JOIN {$map} m ON m.service_id = s.id
-        WHERE s.is_active = 1 AND m.category_id = %d
-        ORDER BY s.id DESC
-        LIMIT 500
-      ";
-      $params[] = $category_id;
-      $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+      $rows = $wpdb->get_results(
+        pointlybooking_prepare_query_with_identifiers(
+          "SELECT s.id, s.name, s.price_cents, s.duration_minutes, s.category_id, s.image_id
+           FROM %i s
+           INNER JOIN %i m ON m.service_id = s.id
+           WHERE s.is_active = 1 AND m.category_id = %d
+           ORDER BY s.id DESC
+           LIMIT 500",
+          [$t, $map],
+          [$category_id]
+        ),
+        ARRAY_A
+      );
     } else {
-      $sql = "SELECT id, name, price_cents, duration_minutes, category_id, image_id FROM {$t} WHERE is_active = 1 ORDER BY id DESC LIMIT 500";
-      $rows = $wpdb->get_results($sql, ARRAY_A);
+      $rows = $wpdb->get_results(
+        pointlybooking_prepare_query_with_identifiers(
+          "SELECT id, name, price_cents, duration_minutes, category_id, image_id FROM %i WHERE is_active = %d ORDER BY id DESC LIMIT 500",
+          [$t],
+          [1]
+        ),
+        ARRAY_A
+      );
     }
 
     $data = [];
@@ -3171,22 +2954,27 @@ if (!function_exists('bp_rest_get_services')) {
   }
 }
 
-if (!function_exists('bp_rest_get_extras')) {
-  function bp_rest_get_extras(\WP_REST_Request $req) {
+if (!function_exists('pointlybooking_rest_get_extras')) {
+  function pointlybooking_rest_get_extras(\WP_REST_Request $req) {
     $service_id = (int)$req->get_param('service_id');
     if ($service_id <= 0) return rest_ensure_response(['status' => 'success', 'data' => []]);
 
     global $wpdb;
-    $extras_table = $wpdb->prefix . 'bp_service_extras';
-    $map = $wpdb->prefix . 'bp_extra_services';
+    $extras_table = pointlybooking_table('service_extras');
+    $map = pointlybooking_table('extra_services');
 
-    $rows = $wpdb->get_results($wpdb->prepare("
-      SELECT e.*
-      FROM {$extras_table} e
-      INNER JOIN {$map} m ON m.extra_id = e.id
-      WHERE e.is_active = 1 AND m.service_id = %d
-      ORDER BY e.sort_order ASC, e.id ASC
-    ", $service_id), ARRAY_A);
+    $rows = $wpdb->get_results(
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT e.*
+         FROM %i e
+         INNER JOIN %i m ON m.extra_id = e.id
+         WHERE e.is_active = 1 AND m.service_id = %d
+         ORDER BY e.sort_order ASC, e.id ASC",
+        [$extras_table, $map],
+        [$service_id]
+      ),
+      ARRAY_A
+    );
 
     $data = [];
     foreach ($rows as $e) {
@@ -3204,22 +2992,27 @@ if (!function_exists('bp_rest_get_extras')) {
   }
 }
 
-if (!function_exists('bp_rest_get_agents')) {
-  function bp_rest_get_agents(\WP_REST_Request $req) {
+if (!function_exists('pointlybooking_rest_get_agents')) {
+  function pointlybooking_rest_get_agents(\WP_REST_Request $req) {
     $service_id = (int)$req->get_param('service_id');
     if ($service_id <= 0) return rest_ensure_response(['status'=>'success','data'=>[]]);
 
     global $wpdb;
-    $map = $wpdb->prefix . 'bp_agent_services';
-    $agents = $wpdb->prefix . 'bp_agents';
+    $map = pointlybooking_table('agent_services');
+    $agents = pointlybooking_table('agents');
 
-    $rows = $wpdb->get_results($wpdb->prepare("
-      SELECT a.id, a.first_name, a.last_name, a.image_id
-      FROM {$agents} a
-      INNER JOIN {$map} m ON m.agent_id = a.id
-      WHERE m.service_id = %d AND a.is_active = 1
-      ORDER BY a.id DESC
-    ", $service_id), ARRAY_A);
+    $rows = $wpdb->get_results(
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT a.id, a.first_name, a.last_name, a.image_id
+         FROM %i a
+         INNER JOIN %i m ON m.agent_id = a.id
+         WHERE m.service_id = %d AND a.is_active = 1
+         ORDER BY a.id DESC",
+        [$agents, $map],
+        [$service_id]
+      ),
+      ARRAY_A
+    );
 
     $data = [];
     foreach ($rows as $a) {
@@ -3236,8 +3029,55 @@ if (!function_exists('bp_rest_get_agents')) {
   }
 }
 
-if (!function_exists('bp_rest_create_booking')) {
-  function bp_rest_create_booking(\WP_REST_Request $req) {
+if (!function_exists('pointlybooking_prepare_query_with_identifiers')) {
+  function pointlybooking_prepare_query_with_identifiers(string $query, $identifiers = [], array $args = []): string {
+    global $wpdb;
+
+    if (!is_array($identifiers)) {
+      $identifiers = [$identifiers];
+    }
+    $identifiers = array_values(array_map('strval', $identifiers));
+
+    if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
+      return $wpdb->prepare($query, array_merge($identifiers, $args));
+    }
+
+    foreach ($identifiers as $identifier) {
+      $safe_identifier = preg_replace('/[^A-Za-z0-9_]/', '', $identifier);
+      $query = preg_replace('/%i/', '`' . $safe_identifier . '`', $query, 1);
+    }
+
+    if (empty($args)) {
+      return (string)$query;
+    }
+
+    return $wpdb->prepare($query, $args);
+  }
+}
+
+if (!function_exists('pointlybooking_quote_sql_identifier')) {
+  function pointlybooking_quote_sql_identifier(string $identifier): string {
+    $safe_identifier = preg_replace('/[^A-Za-z0-9_]/', '', $identifier);
+    return '`' . $safe_identifier . '`';
+  }
+}
+
+if (!function_exists('pointlybooking_is_valid_ymd')) {
+  function pointlybooking_is_valid_ymd(string $value): bool {
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) return false;
+    [$year, $month, $day] = array_map('intval', explode('-', $value));
+    return checkdate($month, $day, $year);
+  }
+}
+
+if (!function_exists('pointlybooking_is_valid_time_hm_or_hms')) {
+  function pointlybooking_is_valid_time_hm_or_hms(string $value): bool {
+    return preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $value) === 1;
+  }
+}
+
+if (!function_exists('pointlybooking_rest_create_booking')) {
+  function pointlybooking_rest_create_booking(\WP_REST_Request $req) {
     $body = $req->get_json_params();
     if (!is_array($body)) $body = [];
 
@@ -3263,19 +3103,25 @@ if (!function_exists('bp_rest_create_booking')) {
     if (!$date || !$time) return rest_ensure_response(['status'=>'error','message'=>'Date/time required']);
     if (!$customer_name || !$customer_email) return rest_ensure_response(['status'=>'error','message'=>'Customer name/email required']);
 
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+    if (!pointlybooking_is_valid_ymd($date)) {
       return rest_ensure_response(['status'=>'error','message'=>'Invalid date']);
     }
-    if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $time)) {
+    if (!pointlybooking_is_valid_time_hm_or_hms($time)) {
       return rest_ensure_response(['status'=>'error','message'=>'Invalid time']);
     }
 
     global $wpdb;
 
-    $svc = $wpdb->get_row($wpdb->prepare(
-      "SELECT id, price_cents, duration_minutes, category_id FROM {$wpdb->prefix}bp_services WHERE id = %d AND is_active = 1",
-      $service_id
-    ), ARRAY_A);
+    $t_services = pointlybooking_table('services');
+
+    $svc = $wpdb->get_row(
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT id, price_cents, duration_minutes, category_id FROM %i WHERE id = %d AND is_active = 1",
+        [$t_services],
+        [$service_id]
+      ),
+      ARRAY_A
+    );
 
     if (!$svc) return rest_ensure_response(['status'=>'error','message'=>'Invalid service']);
 
@@ -3284,18 +3130,26 @@ if (!function_exists('bp_rest_create_booking')) {
     if ($duration_min <= 0) $duration_min = 60;
 
     if ($agent_id > 0) {
-      $map = $wpdb->prefix . 'bp_agent_services';
-      $ok = (int)$wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM {$map} WHERE agent_id=%d AND service_id=%d",
-        $agent_id, $service_id
-      ));
+      $map = pointlybooking_table('agent_services');
+      $ok = (int) $wpdb->get_var(
+        pointlybooking_prepare_query_with_identifiers(
+          "SELECT COUNT(*) FROM %i WHERE agent_id=%d AND service_id=%d",
+          [$map],
+          [$agent_id, $service_id]
+        )
+      );
       if ($ok <= 0) return rest_ensure_response(['status'=>'error','message'=>'Agent not allowed for this service']);
     }
 
-    $valid_extras = $wpdb->get_results($wpdb->prepare(
-      "SELECT id, price FROM {$wpdb->prefix}bp_service_extras WHERE service_id=%d AND is_active=1",
-      $service_id
-    ), ARRAY_A);
+    $t_extras = pointlybooking_table('service_extras');
+    $valid_extras = $wpdb->get_results(
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT id, price FROM %i WHERE service_id=%d AND is_active=1",
+        [$t_extras],
+        [$service_id]
+      ),
+      ARRAY_A
+    );
 
     $valid_map = [];
     foreach ($valid_extras as $e) $valid_map[(int)$e['id']] = (float)$e['price'];
@@ -3315,13 +3169,13 @@ if (!function_exists('bp_rest_create_booking')) {
 
     $subtotal = $service_price + $extras_total;
 
-    $chk1 = bp_validate_required_fields('customer', $customer_fields);
+    $chk1 = pointlybooking_validate_required_fields('customer', $customer_fields);
     if (!$chk1['ok']) return rest_ensure_response(['status'=>'error','message'=>$chk1['message']]);
 
-    $chk2 = bp_validate_required_fields('booking', $booking_fields);
+    $chk2 = pointlybooking_validate_required_fields('booking', $booking_fields);
     if (!$chk2['ok']) return rest_ensure_response(['status'=>'error','message'=>$chk2['message']]);
 
-    $promo_res = bp_apply_promo_to_subtotal($promo_code, $subtotal, true);
+    $promo_res = pointlybooking_apply_promo_to_subtotal($promo_code, $subtotal, true);
     $discount_total = 0.00;
     $final_total = $subtotal;
     if (!empty($promo_code) && !empty($promo_res['valid'])) {
@@ -3344,7 +3198,7 @@ if (!function_exists('bp_rest_create_booking')) {
       $last_name = trim(implode(' ', $parts));
     }
 
-    $customer_id = BP_CustomerModel::find_or_create_by_email([
+    $customer_id = POINTLYBOOKING_CustomerModel::find_or_create_by_email([
       'first_name' => $first_name,
       'last_name' => $last_name,
       'email' => $customer_email,
@@ -3352,7 +3206,7 @@ if (!function_exists('bp_rest_create_booking')) {
     ]);
 
     $wpdb->update(
-      $wpdb->prefix . 'bp_customers',
+      $wpdb->prefix . 'pointlybooking_customers',
       ['custom_fields_json' => wp_json_encode($customer_fields)],
       ['id' => $customer_id],
       ['%s'],
@@ -3362,7 +3216,7 @@ if (!function_exists('bp_rest_create_booking')) {
     $manage_key = bin2hex(random_bytes(32));
     $now = current_time('mysql');
 
-    $bookings = $wpdb->prefix . 'bp_bookings';
+    $bookings = $wpdb->prefix . 'pointlybooking_bookings';
     $insert = [
       'category_id' => $category_id > 0 ? $category_id : (int)($svc['category_id'] ?? 0),
       'service_id' => $service_id,
@@ -3399,35 +3253,35 @@ if (!function_exists('bp_rest_create_booking')) {
   }
 }
 
-if (!function_exists('bp_rest_validate_promo')) {
-  function bp_rest_validate_promo(\WP_REST_Request $req) {
+if (!function_exists('pointlybooking_rest_validate_promo')) {
+  function pointlybooking_rest_validate_promo(\WP_REST_Request $req) {
     $code = strtoupper(sanitize_text_field($req->get_param('code') ?? ''));
     $subtotal = (float)($req->get_param('subtotal') ?? 0);
 
-    $res = bp_apply_promo_to_subtotal($code, $subtotal, false);
+    $res = pointlybooking_apply_promo_to_subtotal($code, $subtotal, false);
     return rest_ensure_response($res);
   }
 }
 
-if (!function_exists('bp_render_admin_app_catalog')) {
-  function bp_render_admin_app_catalog() {
+if (!function_exists('pointlybooking_render_admin_app_catalog')) {
+  function pointlybooking_render_admin_app_catalog() {
     echo '<div id="bp-admin-app" data-route="catalog"></div>';
   }
 }
 
-if (!function_exists('bp_render_admin_app')) {
-  function bp_render_admin_app() {
+if (!function_exists('pointlybooking_render_admin_app')) {
+  function pointlybooking_render_admin_app() {
     echo '<div id="bp-admin-app"></div>';
   }
 }
 
 
-if (!function_exists('bp_rest_get_form_fields')) {
-  function bp_rest_get_form_fields(\WP_REST_Request $req) {
+if (!function_exists('pointlybooking_rest_get_form_fields')) {
+  function pointlybooking_rest_get_form_fields(\WP_REST_Request $req) {
     $scope = sanitize_text_field($req->get_param('scope') ?? 'form');
     if (!in_array($scope, ['form','customer','booking'], true)) $scope = 'form';
 
-    $rows = BP_FormFieldModel::active_fields($scope);
+    $rows = POINTLYBOOKING_FormFieldModel::active_fields($scope);
 
     $data = [];
     foreach ($rows as $f) {
@@ -3454,9 +3308,9 @@ if (!function_exists('bp_rest_get_form_fields')) {
   }
 }
 
-if (!function_exists('bp_validate_required_fields')) {
-  function bp_validate_required_fields(string $scope, array $submitted): array {
-    $fields = BP_FormFieldModel::active_fields($scope);
+if (!function_exists('pointlybooking_validate_required_fields')) {
+  function pointlybooking_validate_required_fields(string $scope, array $submitted): array {
+    $fields = POINTLYBOOKING_FormFieldModel::active_fields($scope);
     foreach ($fields as $f) {
       $is_required = (int)($f['is_required'] ?? $f['required'] ?? 0);
       if ($is_required !== 1) continue;
@@ -3476,14 +3330,14 @@ if (!function_exists('bp_validate_required_fields')) {
   }
 }
 
-if (!function_exists('bp_apply_promo_to_subtotal')) {
-  function bp_apply_promo_to_subtotal(string $code, float $subtotal, bool $increment_use): array {
+if (!function_exists('pointlybooking_apply_promo_to_subtotal')) {
+  function pointlybooking_apply_promo_to_subtotal(string $code, float $subtotal, bool $increment_use): array {
     $code = strtoupper(trim($code));
     if ($code === '') {
       return ['status'=>'success','valid'=>false,'discount'=>0,'total'=>$subtotal,'message'=>''];
     }
 
-    $promo = BP_PromoCodeModel::find_by_code($code);
+    $promo = POINTLYBOOKING_PromoCodeModel::find_by_code($code);
     if (!$promo || (int)$promo['is_active'] !== 1) {
       return ['status'=>'success','valid'=>false,'discount'=>0,'total'=>$subtotal,'message'=>'Invalid code'];
     }
@@ -3521,7 +3375,7 @@ if (!function_exists('bp_apply_promo_to_subtotal')) {
     $total = $subtotal - $discount;
 
     if ($increment_use) {
-      BP_PromoCodeModel::increment_use((int)$promo['id']);
+      POINTLYBOOKING_PromoCodeModel::increment_use((int)$promo['id']);
     }
 
     return [

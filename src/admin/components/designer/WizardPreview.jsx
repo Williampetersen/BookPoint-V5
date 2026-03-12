@@ -1,24 +1,26 @@
-import React from "react";
+﻿import React from "react";
 
 function fileUrl(filename) {
   const file = String(filename || "").trim();
   const isSvg = file.toLowerCase().endsWith(".svg");
+  const admin = window.pointlybooking_ADMIN || window.bpAdmin || {};
+  const pluginUrl = String(admin.pluginUrl || "").replace(/\/$/, "");
 
   const base = isSvg
     ? (
-        window.BP_ADMIN?.publicIconsUrl ||
-        window.BP_ADMIN?.pluginUrl?.replace(/\/$/, "") + "/public/icons" ||
-        "/wp-content/plugins/bookpoint-v5/public/icons"
+        admin.publicIconsUrl ||
+        admin.iconsUrl ||
+        (pluginUrl ? `${pluginUrl}/public/icons` : "")
       )
     : (
-        window.BP_ADMIN?.publicImagesUrl ||
-        window.BP_ADMIN?.pluginUrl?.replace(/\/$/, "") + "/public/images" ||
-        "/wp-content/plugins/bookpoint-v5/public/images"
+        admin.publicImagesUrl ||
+        (pluginUrl ? `${pluginUrl}/public/images` : "")
       );
 
+  if (!base) return "";
   const url = `${String(base || "").replace(/\/$/, "")}/${file}`;
   const v = String(
-    (isSvg ? window.BP_ADMIN?.iconsBuild : window.BP_ADMIN?.imagesBuild) || ""
+    (isSvg ? window.pointlybooking_ADMIN?.iconsBuild : window.pointlybooking_ADMIN?.imagesBuild) || ""
   ).trim();
   if (!v) return url;
   const sep = url.includes("?") ? "&" : "?";

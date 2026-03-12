@@ -1,4 +1,4 @@
-export function normalizeCurrencyCode(input) {
+﻿export function normalizeCurrencyCode(input) {
   const raw = String(input || '').trim();
   if (!raw) return '';
 
@@ -20,8 +20,8 @@ export function currencySymbol(currencyCode) {
   } catch (e) {
     const fallback = {
       USD: '$',
-      EUR: '€',
-      GBP: '£',
+      EUR: 'â‚¬',
+      GBP: 'Â£',
       DKK: 'Kr',
       NOK: 'Kr',
       SEK: 'Kr',
@@ -40,11 +40,11 @@ export function formatMoney(amount, settings = {}) {
 
   const currencyCode =
     normalizeCurrencyCode(settings.currency) ||
-    normalizeCurrencyCode(settings.bp_default_currency) ||
-    normalizeCurrencyCode(typeof window !== 'undefined' ? window.BP_FRONT?.currency : '') ||
+    normalizeCurrencyCode(settings.pointlybooking_default_currency) ||
+    normalizeCurrencyCode(typeof window !== 'undefined' ? window.pointlybooking_FRONT?.currency : '') ||
     'USD';
 
-  const positionRaw = settings.currency_position || settings.bp_currency_position || 'before';
+  const positionRaw = settings.currency_position || settings.pointlybooking_currency_position || 'before';
   const position = positionRaw === 'after' ? 'after' : 'before';
 
   const symbol = currencySymbol(currencyCode);

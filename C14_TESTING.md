@@ -1,22 +1,22 @@
-# C14 Testing Checklist
+﻿# C14 Testing Checklist
 
-## ✅ C14.1 — Click Event Opens Drawer
+## âœ… C14.1 â€” Click Event Opens Drawer
 
-**Step 1:** Navigate to Calendar page (`wp-admin/?page=bp_calendar`)
+**Step 1:** Navigate to Calendar page (`wp-admin/?page=pointlybooking_calendar`)
 **Step 2:** Click on any colored event block
 **Expected Result:**
 - Drawer slides in from right
 - Shows "Booking #123" title
-- Displays start_datetime → end_datetime
+- Displays start_datetime â†’ end_datetime
 - Shows customer, service, agent, email in drawer
 
 ---
 
-## ✅ C14.2 — Status Change Endpoint Works
+## âœ… C14.2 â€” Status Change Endpoint Works
 
 **Step 1:** Open drawer (from C14.1)
 **Step 2:** Look for status selector in BookingDrawer
-**Step 3:** Change status (e.g., pending → confirmed)
+**Step 3:** Change status (e.g., pending â†’ confirmed)
 **Expected Result:**
 - Status updates immediately
 - `POST /admin/bookings/{id}/status` called with new status
@@ -24,7 +24,7 @@
 
 ---
 
-## ✅ C14.3 — Event Bus Triggers Refresh
+## âœ… C14.3 â€” Event Bus Triggers Refresh
 
 **Step 1:** Drag an event to a new time
 **Step 2:** Watch calendar
@@ -41,7 +41,7 @@
 
 ---
 
-## ✅ C14.4 — Colors By Status
+## âœ… C14.4 â€” Colors By Status
 
 **Visual Check:**
 
@@ -64,14 +64,14 @@
 **Issue:** Drawer not appearing
 - Clear browser cache: Ctrl+Shift+Delete
 - Hard refresh: Ctrl+Shift+R
-- Check console for errors: F12 → Console tab
+- Check console for errors: F12 â†’ Console tab
 
-**Issue:** Event title shows "Booking" instead of "Service • Customer"
+**Issue:** Event title shows "Booking" instead of "Service â€¢ Customer"
 - Rebuild admin bundle: `npm run build:admin`
 - Check CalendarScreen event mapping has service_name + customer_name
 
 **Issue:** Colors not showing
-- Check CSS is loaded: F12 → Elements → find `.bp-evt-confirmed`
+- Check CSS is loaded: F12 â†’ Elements â†’ find `.bp-evt-confirmed`
 - Verify public/admin-app.css has color classes
 - Clear cache and rebuild
 
@@ -85,11 +85,11 @@
 ## Files to Deploy
 
 ```
-build/admin.js                                  ← rebuilt with all changes
-build/admin.asset.php                          ← dependency manifest
-lib/rest/admin-calendar-routes.php             ← new status endpoint
-src/admin/screens/CalendarScreen.jsx           ← new event bus integration
-public/admin-app.css                           ← new event colors
+build/admin.js                                  â† rebuilt with all changes
+build/admin.asset.php                          â† dependency manifest
+lib/rest/admin-calendar-routes.php             â† new status endpoint
+src/admin/screens/CalendarScreen.jsx           â† new event bus integration
+public/admin-app.css                           â† new event colors
 ```
 
 No PHP file changes needed on production (endpoints auto-register via hook).

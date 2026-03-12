@@ -1,13 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
-import UpgradeToPro from "../components/UpgradeToPro";
 
 export default function ExtrasScreen() {
-  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const [extras, setExtras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const defaultCurrency = (window.BP_ADMIN?.currency || "USD").toUpperCase();
+  const defaultCurrency = (window.pointlybooking_ADMIN?.currency || "USD").toUpperCase();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -15,14 +13,9 @@ export default function ExtrasScreen() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
-    if (!isPro) {
-      setLoading(false);
-      setExtras([]);
-      return;
-    }
     loadExtras();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPro]);
+  }, []);
 
   async function loadExtras() {
     try {
@@ -81,10 +74,6 @@ export default function ExtrasScreen() {
     );
   }, [extras]);
 
-  if (!isPro) {
-    return <UpgradeToPro feature="Service Extras" />;
-  }
-
   return (
     <div className="myplugin-page bp-extras">
       <main className="myplugin-content">
@@ -94,7 +83,7 @@ export default function ExtrasScreen() {
             <div className="bp-muted">Upsell add-ons and extras for services.</div>
           </div>
           <div className="bp-head-actions">
-            <a className="bp-primary-btn" href="admin.php?page=bp_extras_edit">
+            <a className="bp-primary-btn" href="admin.php?page=pointlybooking_extras_edit">
               + New Extra
             </a>
           </div>
@@ -170,7 +159,7 @@ export default function ExtrasScreen() {
               const currency = (x.currency || defaultCurrency || "USD").toUpperCase();
               const priceDisplay = priceCents !== null ? `${currency} ${(priceCents / 100).toFixed(2)}` : "???";
               const typeDisplay = x.type || (x.duration_min ? `Duration ${x.duration_min} min` : "");
-              const editHref = `admin.php?page=bp_extras_edit&id=${x.id}`;
+              const editHref = `admin.php?page=pointlybooking_extras_edit&id=${x.id}`;
 
               return (
                 <a key={x.id} className="bp-entity-card bp-entity-card--link" href={editHref}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch, bpPost } from "../api/client";
 
 function toDateInput(mysqlOrIso){
@@ -41,10 +41,40 @@ export default function BookingEditScreen(){
     return parseInt(p.get("id") || "0", 10);
   }, []);
 
+  const isNew = !id;
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [data, setData] = useState(null);
+
+  const [services, setServices] = useState([]);
+  const [agents, setAgents] = useState([]);
+
+  const [newServiceId, setNewServiceId] = useState(0);
+  const [newAgentId, setNewAgentId] = useState(0);
+  const [newDate, setNewDate] = useState(() => {
+    try {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    } catch {
+      return "";
+    }
+  });
+  const [newTime, setNewTime] = useState("");
+  const [newSlots, setNewSlots] = useState([]);
+  const [newSlotsLoading, setNewSlotsLoading] = useState(false);
+  const [newSlotsErr, setNewSlotsErr] = useState("");
+
+  const [newStatus, setNewStatus] = useState("pending");
+  const [newFirst, setNewFirst] = useState("");
+  const [newLast, setNewLast] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newNotes, setNewNotes] = useState("");
 
   const [status, setStatus] = useState("pending");
   const [adminNotes, setAdminNotes] = useState("");
@@ -112,6 +142,60 @@ export default function BookingEditScreen(){
     })();
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => {
+    if (!isNew) return;
+    let alive = true;
+    (async () => {
+      try {
+        const [sRes, aRes] = await Promise.all([bpFetch("/admin/services"), bpFetch("/admin/agents")]);
+        if (!alive) return;
+        const sList = sRes?.data || sRes?.items || sRes?.data?.items || [];
+        const aList = aRes?.data || aRes?.items || aRes?.data?.items || [];
+        setServices(Array.isArray(sList) ? sList : []);
+        setAgents(Array.isArray(aList) ? aList : []);
+
+        if (!newServiceId && Array.isArray(sList) && sList[0]?.id) setNewServiceId(Number(sList[0].id) || 0);
+        if (!newAgentId && Array.isArray(aList) && aList[0]?.id) setNewAgentId(Number(aList[0].id) || 0);
+      } catch (e) {
+        if (!alive) return;
+        setServices([]);
+        setAgents([]);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNew]);
+
+  useEffect(() => {
+    (async () => {
+      if (!isNew) return;
+      if (!newServiceId || !newAgentId || !newDate) return;
+
+      setNewSlotsLoading(true);
+      setNewSlotsErr("");
+      try {
+        const res = await bpFetch(
+          `/admin/availability/slots?service_id=${encodeURIComponent(newServiceId)}&agent_id=${encodeURIComponent(newAgentId)}&date=${encodeURIComponent(newDate)}`
+        );
+        const payload = res?.data?.data ? res.data.data : (res?.data ? res.data : res);
+        const slots = payload?.slots || [];
+        const normalized = normalizeSlots(slots);
+        setNewSlots(normalized);
+        if (normalized.length && !normalized.includes(newTime)) setNewTime(normalized[0] || "");
+        if (!normalized.length) setNewTime("");
+      } catch (e) {
+        setNewSlots([]);
+        setNewTime("");
+        setNewSlotsErr(e?.message || "Failed to load available times");
+      } finally {
+        setNewSlotsLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNew, newServiceId, newAgentId, newDate]);
 
   useEffect(() => {
     (async () => {
@@ -217,13 +301,153 @@ export default function BookingEditScreen(){
     if (!id) return;
     if (!window.confirm("Delete this booking? This cannot be undone.")) return;
     await bpFetch(`/admin/bookings/${id}`, { method: "DELETE" });
-    window.location.href = "admin.php?page=bp_bookings";
+    window.location.href = "admin.php?page=pointlybooking_bookings";
   }
 
   const booking = data?.booking || data || {};
   const customer = data?.customer || {};
   const service = data?.service || {};
   const agent = data?.agent || {};
+
+  async function createBooking(){
+    if (!newServiceId || !newAgentId || !newDate || !newTime) {
+      setErr("Please select service, agent, date and time.");
+      return;
+    }
+    setSaving(true);
+    setErr("");
+    try {
+      const res = await bpPost("/admin/bookings", {
+        service_id: Number(newServiceId) || 0,
+        agent_id: Number(newAgentId) || 0,
+        date: newDate,
+        start_time: newTime,
+        status: newStatus,
+        customer_fields: {
+          first_name: newFirst,
+          last_name: newLast,
+          email: newEmail,
+          phone: newPhone,
+        },
+        booking_fields: {
+          notes: newNotes,
+        },
+      });
+      const bookingId = Number(res?.data?.booking_id || 0);
+      if (!bookingId) throw new Error("Booking was created but no booking_id was returned.");
+      window.location.href = `admin.php?page=pointlybooking_bookings_edit&id=${bookingId}`;
+    } catch (e) {
+      setErr(e?.message || "Create booking failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (isNew) {
+    return (
+      <div className="bp-booking-edit">
+        <div className="bp-page-head">
+          <div>
+            <div className="bp-h1">New Booking</div>
+            <div className="bp-muted">Create a booking from the admin.</div>
+          </div>
+          <div className="bp-head-actions">
+            <button className="bp-top-btn" onClick={() => (window.location.href = "admin.php?page=pointlybooking_bookings")}>
+              Back to Bookings
+            </button>
+            <button className="bp-btn bp-btn-primary" onClick={createBooking} disabled={saving}>
+              {saving ? "Creating..." : "Create Booking"}
+            </button>
+          </div>
+        </div>
+
+        {err ? <div className="bp-error">{err}</div> : null}
+
+        <div className="bp-be-grid">
+          <div className="bp-card bp-be-card">
+            <div className="bp-section-title">Details</div>
+            <div className="bp-form-grid">
+              <div className="bp-form-row">
+                <label className="bp-label">Service</label>
+                <select className="bp-input" value={newServiceId || 0} onChange={(e) => setNewServiceId(Number(e.target.value || 0))}>
+                  <option value={0}>Select service</option>
+                  {services.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name || `Service #${s.id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bp-form-row">
+                <label className="bp-label">Agent</label>
+                <select className="bp-input" value={newAgentId || 0} onChange={(e) => setNewAgentId(Number(e.target.value || 0))}>
+                  <option value={0}>Select agent</option>
+                  {agents.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name || `Agent #${a.id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bp-form-row">
+                <label className="bp-label">Date</label>
+                <input className="bp-input" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
+              </div>
+
+              <div className="bp-form-row">
+                <label className="bp-label">Time</label>
+                <select className="bp-input" value={newTime} onChange={(e) => setNewTime(e.target.value)}>
+                  {!newServiceId || !newAgentId ? <option value="">Select service and agent first</option> : null}
+                  {newSlotsLoading ? <option value="">Loading...</option> : null}
+                  {newSlotsErr ? <option value="">{newSlotsErr}</option> : null}
+                  {!newSlotsLoading && !newSlotsErr && newSlots.length === 0 ? <option value="">No slots available</option> : null}
+                  {newSlots.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bp-form-row">
+                <label className="bp-label">Status</label>
+                <select className="bp-input" value={newStatus} onChange={(e) => setNewStatus(e.target.value)}>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              <div className="bp-form-row">
+                <label className="bp-label">First name</label>
+                <input className="bp-input" value={newFirst} onChange={(e) => setNewFirst(e.target.value)} />
+              </div>
+              <div className="bp-form-row">
+                <label className="bp-label">Last name</label>
+                <input className="bp-input" value={newLast} onChange={(e) => setNewLast(e.target.value)} />
+              </div>
+              <div className="bp-form-row">
+                <label className="bp-label">Email</label>
+                <input className="bp-input" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+              </div>
+              <div className="bp-form-row">
+                <label className="bp-label">Phone</label>
+                <input className="bp-input" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+              </div>
+
+              <div className="bp-form-row" style={{ gridColumn: "1 / -1" }}>
+                <label className="bp-label">Notes</label>
+                <textarea className="bp-input" rows={4} value={newNotes} onChange={(e) => setNewNotes(e.target.value)} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bp-booking-edit">
@@ -233,7 +457,7 @@ export default function BookingEditScreen(){
           <div className="bp-muted">Edit booking details</div>
         </div>
         <div className="bp-head-actions">
-          <button className="bp-top-btn" onClick={() => window.location.href = "admin.php?page=bp_bookings"}>
+          <button className="bp-top-btn" onClick={() => window.location.href = "admin.php?page=pointlybooking_bookings"}>
             Back to Bookings
           </button>
           <button className="bp-btn bp-btn-danger" onClick={handleDelete}>Delete</button>

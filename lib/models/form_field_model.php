@@ -1,11 +1,10 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_FormFieldModel {
+final class POINTLYBOOKING_FormFieldModel {
 
   public static function table(): string {
-    global $wpdb;
-    return $wpdb->prefix . 'bp_form_fields';
+    return pointlybooking_table('form_fields');
   }
 
   public static function all(string $scope, array $args = []): array {
@@ -15,28 +14,43 @@ final class BP_FormFieldModel {
     $q = trim((string)($args['q'] ?? ''));
     $is_active = isset($args['is_active']) && $args['is_active'] !== '' ? (int)$args['is_active'] : null;
 
-    $where = "WHERE scope = %s";
+    $where_clauses = ['scope = %s'];
     $params = [$scope];
 
     if ($q !== '') {
-      $where .= " AND (label LIKE %s OR field_key LIKE %s OR name_key LIKE %s)";
+      $where_clauses[] = '(label LIKE %s OR field_key LIKE %s OR name_key LIKE %s)';
       $params[] = '%' . $wpdb->esc_like($q) . '%';
       $params[] = '%' . $wpdb->esc_like($q) . '%';
       $params[] = '%' . $wpdb->esc_like($q) . '%';
     }
     if ($is_active !== null) {
-      $where .= " AND (CASE WHEN (field_key IS NULL OR field_key = '') THEN is_active ELSE is_enabled END) = %d";
+      $where_clauses[] = "(CASE WHEN (field_key IS NULL OR field_key = '') THEN is_active ELSE is_enabled END) = %d";
       $params[] = $is_active;
     }
 
-    $sql = "SELECT * FROM {$t} {$where} ORDER BY sort_order ASC, id ASC LIMIT 500";
-    return $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+    $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
+    $sql = "SELECT * FROM %i " . $where_sql . " ORDER BY sort_order ASC, id ASC LIMIT 500";
+    return $wpdb->get_results(
+      pointlybooking_prepare_query_with_identifiers(
+        $sql,
+        [$t],
+        $params
+      ),
+      ARRAY_A
+    );
   }
 
   public static function find(int $id): ?array {
     global $wpdb;
     $t = self::table();
-    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id=%d", $id), ARRAY_A);
+    $row = $wpdb->get_row(
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT * FROM %i WHERE id=%d",
+        [$t],
+        [$id]
+      ),
+      ARRAY_A
+    );
     return $row ?: null;
   }
 

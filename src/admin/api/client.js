@@ -1,5 +1,5 @@
-export async function bpFetch(path, opts = {}) {
-  const base = window.BP_ADMIN?.restUrl || '/wp-json/bp/v1';
+﻿export async function bpFetch(path, opts = {}) {
+  const base = window.pointlybooking_ADMIN?.restUrl || '/wp-json/pointly-booking/v1';
   const url = base.replace(/\/$/, '') + path;
 
   const headers = {
@@ -7,7 +7,7 @@ export async function bpFetch(path, opts = {}) {
     ...(opts.headers || {}),
   };
 
-  const nonce = window.BP_ADMIN?.nonce;
+  const nonce = window.pointlybooking_ADMIN?.nonce;
   if (nonce) headers['X-WP-Nonce'] = nonce;
 
   const body = typeof opts.body === 'string' ? opts.body : (opts.body ? JSON.stringify(opts.body) : undefined);

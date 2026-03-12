@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
 
@@ -140,7 +140,7 @@ export default function CategoriesEditScreen() {
       setDirty(false);
 
       if (!id && newId) {
-        window.location.href = `admin.php?page=bp_categories_edit&id=${newId}`;
+        window.location.href = `admin.php?page=pointlybooking_categories_edit&id=${newId}`;
       }
     } catch (e) {
       console.error(e);
@@ -157,7 +157,7 @@ export default function CategoriesEditScreen() {
     setError("");
     try {
       await bpFetch(`/admin/categories/${id}`, { method: "DELETE" });
-      window.location.href = "admin.php?page=bp_categories";
+      window.location.href = "admin.php?page=pointlybooking_categories";
     } catch (e) {
       setError(e?.message || "Delete failed");
     } finally {
@@ -273,7 +273,7 @@ export default function CategoriesEditScreen() {
         <div className="bp-category-edit__bar">
           <a
             className="bp-top-btn"
-            href="admin.php?page=bp_categories"
+            href="admin.php?page=pointlybooking_categories"
             onClick={(e) => {
               if (!dirty) return;
               if (!window.confirm("You have unsaved changes. Leave anyway?")) e.preventDefault();

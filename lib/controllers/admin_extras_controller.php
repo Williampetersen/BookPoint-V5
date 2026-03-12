@@ -1,18 +1,19 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_AdminExtrasController extends BP_Controller {
+final class POINTLYBOOKING_AdminExtrasController extends POINTLYBOOKING_Controller {
 
   public function index(): void {
-    $this->require_cap('bp_manage_services');
+    $this->require_cap('pointlybooking_manage_services');
+    $has_filter_nonce = $this->has_valid_admin_filter_nonce();
 
-    $q = sanitize_text_field($_GET['q'] ?? '');
-    $service_id = (int)($_GET['service_id'] ?? 0);
-    $is_active = isset($_GET['is_active']) ? sanitize_text_field($_GET['is_active']) : '';
+    $q = $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['q'] ?? '')) : '';
+    $service_id = $has_filter_nonce ? absint(wp_unslash($_GET['service_id'] ?? 0)) : 0;
+    $is_active = $has_filter_nonce && isset($_GET['is_active']) ? sanitize_text_field(wp_unslash($_GET['is_active'])) : '';
 
-    $services = BP_ServiceModel::all(['is_active' => 1]);
+    $services = POINTLYBOOKING_ServiceModel::all(['is_active' => 1]);
 
-    $items = BP_ServiceExtraModel::all([
+    $items = POINTLYBOOKING_ServiceExtraModel::all([
       'q' => $q,
       'service_id' => $service_id,
       'is_active' => ($is_active === '' ? '' : (int)$is_active),
@@ -28,12 +29,18 @@ final class BP_AdminExtrasController extends BP_Controller {
   }
 
   public function edit(): void {
-    $this->require_cap('bp_manage_services');
+    $this->require_cap('pointlybooking_manage_services');
 
-    $id = (int)($_GET['id'] ?? 0);
-    $item = $id > 0 ? BP_ServiceExtraModel::find($id) : null;
+    $id = absint(wp_unslash($_GET['id'] ?? 0));
+    if ($id > 0) {
+      $nonce = sanitize_text_field(wp_unslash($_GET['pointlybooking_edit_nonce'] ?? ''));
+      if (!wp_verify_nonce($nonce, 'pointlybooking_edit_extra_' . $id)) {
+        wp_die(esc_html__('Security check failed.', 'bookpoint-booking'));
+      }
+    }
+    $item = $id > 0 ? POINTLYBOOKING_ServiceExtraModel::find($id) : null;
 
-    $services = BP_ServiceModel::all(['is_active' => 1]);
+    $services = POINTLYBOOKING_ServiceModel::all(['is_active' => 1]);
 
     $this->render('admin/extras_edit', [
       'item' => $item,
@@ -42,44 +49,45 @@ final class BP_AdminExtrasController extends BP_Controller {
   }
 
   public function save(): void {
-    $this->require_cap('bp_manage_services');
-    check_admin_referer('bp_admin');
+    $this->require_cap('pointlybooking_manage_services');
+    check_admin_referer('pointlybooking_admin');
 
-    $id = (int)($_POST['id'] ?? 0);
+    $id = absint(wp_unslash($_POST['id'] ?? 0));
 
-    $new_id = BP_ServiceExtraModel::save([
+    $new_id = POINTLYBOOKING_ServiceExtraModel::save([
       'id' => $id,
       'service_id' => 0,
-      'name' => $_POST['name'] ?? '',
-      'description' => $_POST['description'] ?? '',
-      'price' => $_POST['price'] ?? 0,
-      'duration_min' => $_POST['duration_min'] ?? '',
-      'image_id' => (int)($_POST['image_id'] ?? 0),
-      'sort_order' => (int)($_POST['sort_order'] ?? 0),
+      'name' => sanitize_text_field(wp_unslash($_POST['name'] ?? '')),
+      'description' => wp_kses_post(wp_unslash($_POST['description'] ?? '')),
+      'price' => floatval(wp_unslash($_POST['price'] ?? 0)),
+      'duration_min' => absint(wp_unslash($_POST['duration_min'] ?? 0)),
+      'image_id' => absint(wp_unslash($_POST['image_id'] ?? 0)),
+      'sort_order' => absint(wp_unslash($_POST['sort_order'] ?? 0)),
       'is_active' => isset($_POST['is_active']) ? 1 : 0,
     ]);
 
-    $service_ids = $_POST['service_ids'] ?? [];
-    if (!is_array($service_ids)) $service_ids = [];
+    $service_ids = isset($_POST['service_ids'])
+      ? wp_parse_id_list(wp_unslash($_POST['service_ids']))
+      : [];
     $first_service = !empty($service_ids) ? (int)$service_ids[0] : 0;
 
-    BP_ServiceExtraModel::set_services($new_id, $service_ids);
+    POINTLYBOOKING_ServiceExtraModel::set_services($new_id, $service_ids);
 
     global $wpdb;
-    $wpdb->update($wpdb->prefix . 'bp_service_extras', ['service_id' => $first_service], ['id' => $new_id], ['%d'], ['%d']);
+    $wpdb->update($wpdb->prefix . 'pointlybooking_service_extras', ['service_id' => $first_service], ['id' => $new_id], ['%d'], ['%d']);
 
-    wp_safe_redirect(admin_url('admin.php?page=bp_extras&updated=1&edit=' . $new_id));
+    wp_safe_redirect(admin_url('admin.php?page=pointlybooking_extras&updated=1&edit=' . $new_id));
     exit;
   }
 
   public function delete(): void {
-    $this->require_cap('bp_manage_services');
-    check_admin_referer('bp_admin');
+    $this->require_cap('pointlybooking_manage_services');
+    check_admin_referer('pointlybooking_admin');
 
-    $id = (int)($_GET['id'] ?? 0);
-    if ($id > 0) BP_ServiceExtraModel::delete($id);
+    $id = absint(wp_unslash($_GET['id'] ?? 0));
+    if ($id > 0) POINTLYBOOKING_ServiceExtraModel::delete($id);
 
-    wp_safe_redirect(admin_url('admin.php?page=bp_extras&deleted=1'));
+    wp_safe_redirect(admin_url('admin.php?page=pointlybooking_extras&deleted=1'));
     exit;
   }
 }

@@ -1,4 +1,4 @@
-# FTP Deployment (UnoEuro / generic)
+﻿# FTP Deployment (UnoEuro / generic)
 
 This repo is a WordPress plugin. On a typical install, it lives here on the server:
 
@@ -12,25 +12,25 @@ This repo is a WordPress plugin. On a typical install, it lives here on the serv
    - `npm run build:book-form`
 2. Upload plugin files to the server (FTPES / explicit TLS):
    - Option A (script): `npm run deploy:plugin`
-   - Option B (GUI): FileZilla / WinSCP “upload & overwrite”
+   - Option B (GUI): FileZilla / WinSCP â€œupload & overwriteâ€
 
 ## Script deploy (FTPES)
 
-The deploy scripts read credentials from environment variables so you don’t hardcode them in the repo:
+The deploy scripts read credentials from environment variables so you donâ€™t hardcode them in the repo:
 
-- `BP_FTP_HOST` (example: `linux9.unoeuro.com`)
-- `BP_FTP_USER` (example: `wpbookpoint.com`)
-- `BP_FTP_PASS` (your FTP password)
-- `BP_FTP_REMOTE_PLUGIN_DIR` (optional; default: `/public_html/wp-content/plugins/bookpoint-v5`)
+- `POINTLYBOOKING_FTP_HOST` (example: `linux9.unoeuro.com`)
+- `POINTLYBOOKING_FTP_USER` (example: `wpbookpoint.com`)
+- `POINTLYBOOKING_FTP_PASS` (your FTP password)
+- `POINTLYBOOKING_FTP_REMOTE_PLUGIN_DIR` (optional; default: `/public_html/wp-content/plugins/bookpoint-v5`)
 
 PowerShell example:
 
 ```powershell
-$env:BP_FTP_HOST="linux9.unoeuro.com"
-$env:BP_FTP_USER="wpbookpoint.com"
-$env:BP_FTP_PASS="(your password)"
+$env:POINTLYBOOKING_FTP_HOST="linux9.unoeuro.com"
+$env:POINTLYBOOKING_FTP_USER="wpbookpoint.com"
+$env:POINTLYBOOKING_FTP_PASS="(your password)"
 # Optional:
-# $env:BP_FTP_REMOTE_PLUGIN_DIR="/public_html/wp-content/plugins/bookpoint-v5"
+# $env:POINTLYBOOKING_FTP_REMOTE_PLUGIN_DIR="/public_html/wp-content/plugins/bookpoint-v5"
 
 npm run deploy:plugin
 ```
@@ -47,7 +47,7 @@ Connection:
 
 - Host: `linux9.unoeuro.com`
 - Port: `21`
-- Encryption: “Require explicit FTP over TLS” (FTPES)
+- Encryption: â€œRequire explicit FTP over TLSâ€ (FTPES)
 - Remote web root: `/public_html/`
 
 Then upload your plugin folder into:
@@ -56,6 +56,6 @@ Then upload your plugin folder into:
 
 ## After upload
 
-- WordPress Admin → Plugins: ensure “BookPoint” is active
+- WordPress Admin â†’ Plugins: ensure â€œBookPointâ€ is active
 - Clear any cache plugin + hard refresh the browser (Ctrl+Shift+R)
 

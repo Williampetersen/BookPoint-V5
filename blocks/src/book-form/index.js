@@ -23,7 +23,7 @@ registerBlockType(metadata.name, {
       setLoading(true);
       setLoadError('');
 
-      apiFetch({ path: '/bp/v1/services' })
+      apiFetch({ path: '/pointly-booking/v1/services' })
         .then((res) => {
           if (!isMounted) return;
           const list = (res && res.data) ? res.data : [];
@@ -42,7 +42,7 @@ registerBlockType(metadata.name, {
     }, []);
 
     const options = useMemo(() => {
-      const base = [{ label: __('Select a service…', 'bookpoint'), value: '0' }];
+      const base = [{ label: __('Select a serviceÃ¢â‚¬Â¦', 'bookpoint-booking'), value: '0' }];
       const mapped = services.map((s) => ({
         label: `${s.name} (${s.duration_minutes} min)`,
         value: String(s.id),
@@ -58,49 +58,49 @@ registerBlockType(metadata.name, {
     return (
       <>
         <InspectorControls>
-          <PanelBody title={__('BookPoint Settings', 'bookpoint')} initialOpen={true}>
+          <PanelBody title={__('BookPoint Settings', 'bookpoint-booking')} initialOpen={true}>
 
             {loading && (
               <Notice status="info" isDismissible={false}>
-                {__('Loading services…', 'bookpoint')}
+                {__('Loading servicesÃ¢â‚¬Â¦', 'bookpoint-booking')}
               </Notice>
             )}
 
             {!!loadError && (
               <Notice status="error" isDismissible={false}>
-                {__('Could not load services:', 'bookpoint')} {loadError}
+                {__('Could not load services:', 'bookpoint-booking')} {loadError}
               </Notice>
             )}
 
             <SelectControl
-              label={__('Service', 'bookpoint')}
+              label={__('Service', 'bookpoint-booking')}
               value={String(serviceId || 0)}
               options={options}
               onChange={(val) => setAttributes({ serviceId: parseInt(val || '0', 10) || 0 })}
-              help={__('Services are loaded from BookPoint → Services.', 'bookpoint')}
+              help={__('Services are loaded from BookPoint Ã¢â€ â€™ Services.', 'bookpoint-booking')}
             />
 
             <TextControl
-              label={__('Default Date (YYYY-MM-DD)', 'bookpoint')}
+              label={__('Default Date (YYYY-MM-DD)', 'bookpoint-booking')}
               value={attributes.defaultDate || ''}
               onChange={(val) => setAttributes({ defaultDate: val || '' })}
               placeholder="2026-01-19"
             />
 
             <ToggleControl
-              label={__('Hide Notes Field', 'bookpoint')}
+              label={__('Hide Notes Field', 'bookpoint-booking')}
               checked={!!attributes.hideNotes}
               onChange={(val) => setAttributes({ hideNotes: !!val })}
             />
 
             <ToggleControl
-              label={__('Require Phone', 'bookpoint')}
+              label={__('Require Phone', 'bookpoint-booking')}
               checked={!!attributes.requirePhone}
               onChange={(val) => setAttributes({ requirePhone: !!val })}
             />
 
             <ToggleControl
-              label={__('Compact Layout', 'bookpoint')}
+              label={__('Compact Layout', 'bookpoint-booking')}
               checked={!!attributes.compact}
               onChange={(val) => setAttributes({ compact: !!val })}
             />
@@ -109,16 +109,16 @@ registerBlockType(metadata.name, {
         </InspectorControls>
 
         <div style={{ padding: '14px', border: '1px solid #ddd', borderRadius: '6px' }}>
-          <strong>{__('BookPoint – Booking Form', 'bookpoint')}</strong>
+          <strong>{__('BookPoint Ã¢â‚¬â€œ Booking Form', 'bookpoint-booking')}</strong>
 
           {serviceId > 0 ? (
             <p style={{ marginTop: '8px' }}>
-              {__('This block will render the booking form for:', 'bookpoint')}{' '}
+              {__('This block will render the booking form for:', 'bookpoint-booking')}{' '}
               <code>{selectedLabel || `#${serviceId}`}</code>
             </p>
           ) : (
             <Notice status="warning" isDismissible={false}>
-              {__('Please choose a service in the block settings.', 'bookpoint')}
+              {__('Please choose a service in the block settings.', 'bookpoint-booking')}
             </Notice>
           )}
         </div>

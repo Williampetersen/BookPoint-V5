@@ -1,4 +1,4 @@
-const KNOWN_ICON_NAMES = new Set([
+﻿const KNOWN_ICON_NAMES = new Set([
   "agents",
   "bookings",
   "calendar",
@@ -14,7 +14,7 @@ const KNOWN_ICON_NAMES = new Set([
 ]);
 
 const baseIconsUrl = () => {
-  const admin = window.BP_ADMIN || {};
+  const admin = window.pointlybooking_ADMIN || {};
   const legacy = window.bpAdmin || {};
   const base =
     admin.publicIconsUrl ||
@@ -27,7 +27,7 @@ export function iconDataUri(name, { active = false, theme = "light" } = {}) {
   const base = baseIconsUrl();
   if (!base) return "";
   const build =
-    (window.BP_ADMIN && window.BP_ADMIN.iconsBuild) ||
+    (window.pointlybooking_ADMIN && window.pointlybooking_ADMIN.iconsBuild) ||
     (window.bpAdmin && window.bpAdmin.iconsBuild) ||
     "";
 

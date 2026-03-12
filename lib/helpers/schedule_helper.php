@@ -1,10 +1,10 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_ScheduleHelper {
+final class POINTLYBOOKING_ScheduleHelper {
 
   public static function future_days_limit() : int {
-    $n = (int) BP_SettingsHelper::get_with_default('bp_future_days_limit');
+    $n = (int) POINTLYBOOKING_SettingsHelper::get_with_default('pointlybooking_future_days_limit');
     return max(1, min(365, $n));
   }
 
@@ -22,24 +22,42 @@ final class BP_ScheduleHelper {
     return ($date_ymd <= $max_ymd);
   }
 
+  private static function valid_hhmm(string $value): bool {
+    return preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $value) === 1;
+  }
+
+  private static function parse_hhmm_range(string $value): ?array {
+    if (!preg_match('/^((?:[01]\d|2[0-3]):[0-5]\d)\-((?:[01]\d|2[0-3]):[0-5]\d)$/', $value, $m)) {
+      return null;
+    }
+
+    $open = $m[1];
+    $close = $m[2];
+    if (self::to_minutes($close) <= self::to_minutes($open)) {
+      return null;
+    }
+
+    return [$open, $close];
+  }
+
   public static function get_day_schedule(string $date_ymd) : array {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_ymd)) return [];
 
     $dt = new DateTime($date_ymd, wp_timezone());
     $weekday = (int)$dt->format('w');
 
-    $raw = (string)BP_SettingsHelper::get_with_default('bp_schedule_' . $weekday);
+    $raw = (string)POINTLYBOOKING_SettingsHelper::get_with_default('pointlybooking_schedule_' . $weekday);
     $raw = trim($raw);
     if ($raw === '') return [];
 
-    if (!preg_match('/^\d{2}:\d{2}\-\d{2}:\d{2}$/', $raw)) return [];
-
-    [$open, $close] = explode('-', $raw);
+    $parsed = self::parse_hhmm_range($raw);
+    if ($parsed === null) return [];
+    [$open, $close] = $parsed;
     return ['open' => $open, 'close' => $close];
   }
 
   public static function get_break_ranges() : array {
-    $raw = (string)BP_SettingsHelper::get_with_default('bp_breaks');
+    $raw = (string)POINTLYBOOKING_SettingsHelper::get_with_default('pointlybooking_breaks');
     $raw = trim($raw);
     if ($raw === '') return [];
 
@@ -47,8 +65,9 @@ final class BP_ScheduleHelper {
     $ranges = [];
 
     foreach ($parts as $p) {
-      if (!preg_match('/^\d{2}:\d{2}\-\d{2}:\d{2}$/', $p)) continue;
-      [$a, $b] = explode('-', $p);
+      $parsed = self::parse_hhmm_range($p);
+      if ($parsed === null) continue;
+      [$a, $b] = $parsed;
       $ranges[] = ['start' => $a, 'end' => $b];
     }
 
@@ -57,12 +76,12 @@ final class BP_ScheduleHelper {
 
   private static function schedule_table(): string {
     global $wpdb;
-    return $wpdb->prefix . 'bp_schedules';
+    return $wpdb->prefix . 'pointlybooking_schedules';
   }
 
   private static function schedule_settings_table(): string {
     global $wpdb;
-    return $wpdb->prefix . 'bp_schedule_settings';
+    return $wpdb->prefix . 'pointlybooking_schedule_settings';
   }
 
   private static function table_exists(string $table): bool {
@@ -70,18 +89,36 @@ final class BP_ScheduleHelper {
     return (string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table)) === $table;
   }
 
+  private static function prepare_with_table(string $query, string $table, array $args = []): string {
+    global $wpdb;
+    if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
+      return $wpdb->prepare($query, array_merge([$table], $args));
+    }
+
+    $safe_table = preg_replace('/[^A-Za-z0-9_]/', '', $table);
+    $query = preg_replace('/%i/', '`' . $safe_table . '`', $query, 1);
+    if (empty($args)) {
+      return (string) $query;
+    }
+
+    return $wpdb->prepare($query, $args);
+  }
+
   public static function get_schedule_settings(): array {
     global $wpdb;
     $t = self::schedule_settings_table();
 
     $defaults = [
-      'slot_interval_minutes' => (int)BP_SettingsHelper::get('slot_interval_minutes', 30),
-      'timezone' => (string)(BP_SettingsHelper::get('timezone', '') ?: 'Europe/Copenhagen'),
+      'slot_interval_minutes' => (int)POINTLYBOOKING_SettingsHelper::get('slot_interval_minutes', 30),
+      'timezone' => (string)(POINTLYBOOKING_SettingsHelper::get('timezone', '') ?: 'Europe/Copenhagen'),
     ];
 
     if (!self::table_exists($t)) return $defaults;
 
-    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id=%d", 1), ARRAY_A);
+    $row = $wpdb->get_row(
+      self::prepare_with_table("SELECT * FROM %i WHERE id=%d", $t, [1]),
+      ARRAY_A
+    );
     if (!$row) {
       $wpdb->insert($t, [
         'id' => 1,
@@ -107,7 +144,7 @@ final class BP_ScheduleHelper {
     $slot_interval_minutes = max(5, min(120, $slot_interval_minutes));
     $timezone = trim($timezone) ?: 'Europe/Copenhagen';
 
-    $exists = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$t} WHERE id=%d", 1));
+    $exists = (int)$wpdb->get_var(self::prepare_with_table("SELECT COUNT(*) FROM %i WHERE id=%d", $t, [1]));
     $now = current_time('mysql');
     if ($exists > 0) {
       $updated = $wpdb->update($t, [
@@ -148,7 +185,7 @@ final class BP_ScheduleHelper {
       $et = isset($b['end']) ? $b['end'] : ($b['end_time'] ?? '');
       $st = substr(trim((string)$st), 0, 5);
       $et = substr(trim((string)$et), 0, 5);
-      if (!preg_match('/^\d{2}:\d{2}$/', $st) || !preg_match('/^\d{2}:\d{2}$/', $et)) continue;
+      if (!self::valid_hhmm($st) || !self::valid_hhmm($et)) continue;
       if (self::to_minutes($et) <= self::to_minutes($st)) continue;
       $out[] = ['start' => $st, 'end' => $et];
     }
@@ -162,17 +199,25 @@ final class BP_ScheduleHelper {
 
     $rows = [];
     if ($agent_id > 0) {
-      $rows = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM {$t} WHERE agent_id=%d AND day_of_week=%d ORDER BY start_time ASC",
-        $agent_id, $weekday
-      ), ARRAY_A) ?: [];
+      $rows = $wpdb->get_results(
+        self::prepare_with_table(
+          "SELECT * FROM %i WHERE agent_id=%d AND day_of_week=%d ORDER BY start_time ASC",
+          $t,
+          [$agent_id, $weekday]
+        ),
+        ARRAY_A
+      ) ?: [];
     }
 
     if (empty($rows)) {
-      $rows = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM {$t} WHERE agent_id IS NULL AND day_of_week=%d ORDER BY start_time ASC",
-        $weekday
-      ), ARRAY_A) ?: [];
+      $rows = $wpdb->get_results(
+        self::prepare_with_table(
+          "SELECT * FROM %i WHERE agent_id IS NULL AND day_of_week=%d ORDER BY start_time ASC",
+          $t,
+          [$weekday]
+        ),
+        ARRAY_A
+      ) ?: [];
     }
 
     return $rows;
@@ -187,7 +232,7 @@ final class BP_ScheduleHelper {
       if ((int)($r['is_enabled'] ?? 1) !== 1) continue;
       $st = substr((string)($r['start_time'] ?? ''), 0, 5);
       $et = substr((string)($r['end_time'] ?? ''), 0, 5);
-      if (!preg_match('/^\d{2}:\d{2}$/', $st) || !preg_match('/^\d{2}:\d{2}$/', $et)) continue;
+      if (!self::valid_hhmm($st) || !self::valid_hhmm($et)) continue;
       if (self::to_minutes($et) <= self::to_minutes($st)) continue;
 
       $breaks = [];
@@ -238,7 +283,7 @@ final class BP_ScheduleHelper {
   }
 
   public static function time_in_break(string $time_hm) : bool {
-    if (!preg_match('/^\d{2}:\d{2}$/', $time_hm)) return false;
+    if (!self::valid_hhmm($time_hm)) return false;
 
     foreach (self::get_break_ranges() as $r) {
       if ($time_hm >= $r['start'] && $time_hm < $r['end']) {
@@ -268,21 +313,21 @@ final class BP_ScheduleHelper {
     $raw = trim($raw);
     if ($raw === '') return [];
 
-    if (!preg_match('/^\d{2}:\d{2}\-\d{2}:\d{2}$/', $raw)) return [];
-
-    [$open, $close] = explode('-', $raw);
+    $parsed = self::parse_hhmm_range($raw);
+    if ($parsed === null) return [];
+    [$open, $close] = $parsed;
     return ['open' => $open, 'close' => $close];
   }
 
   // weekday: 1=Mon .. 7=Sun
   public static function weekday_from_date(string $date) : int {
     $ts = strtotime($date);
-    return $ts ? (int)date('N', $ts) : 1;
+    return $ts ? (int)gmdate('N', $ts) : 1;
   }
 
   public static function get_working_hours(int $agent_id, int $weekday) : array {
     global $wpdb;
-    $t = $wpdb->prefix . 'bp_agent_working_hours';
+    $t = $wpdb->prefix . 'pointlybooking_agent_working_hours';
 
     // Prefer new schedules table if available
     $sched_rows = self::get_schedule_rows($agent_id, $weekday);
@@ -292,7 +337,7 @@ final class BP_ScheduleHelper {
         if ((int)($r['is_enabled'] ?? 1) !== 1) continue;
         $st = substr((string)($r['start_time'] ?? ''), 0, 5);
         $et = substr((string)($r['end_time'] ?? ''), 0, 5);
-        if (!preg_match('/^\d{2}:\d{2}$/', $st) || !preg_match('/^\d{2}:\d{2}$/', $et)) continue;
+        if (!self::valid_hhmm($st) || !self::valid_hhmm($et)) continue;
         $out[] = ['start_time' => $st, 'end_time' => $et];
       }
       if (!empty($out)) return $out;
@@ -305,13 +350,17 @@ final class BP_ScheduleHelper {
       ];
     }
 
-    $rows = $wpdb->get_results($wpdb->prepare(
-      "SELECT start_time, end_time
-       FROM {$t}
-       WHERE agent_id=%d AND weekday=%d AND is_enabled=1
-       ORDER BY start_time ASC",
-      $agent_id, $weekday
-    ), ARRAY_A);
+    $rows = $wpdb->get_results(
+      self::prepare_with_table(
+        "SELECT start_time, end_time
+         FROM %i
+         WHERE agent_id=%d AND weekday=%d AND is_enabled=1
+         ORDER BY start_time ASC",
+        $t,
+        [$agent_id, $weekday]
+      ),
+      ARRAY_A
+    );
 
     if (!empty($rows)) return $rows;
 
@@ -349,25 +398,29 @@ final class BP_ScheduleHelper {
 
   public static function get_breaks(int $agent_id, string $date) : array {
     global $wpdb;
-    $t = $wpdb->prefix . 'bp_agent_breaks';
+    $t = $wpdb->prefix . 'pointlybooking_agent_breaks';
 
     $table_exists = (string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t)) === $t;
     if (!$table_exists) return [];
 
-    $rows = $wpdb->get_results($wpdb->prepare(
-      "SELECT start_time, end_time
-       FROM {$t}
-       WHERE agent_id=%d AND break_date=%s
-       ORDER BY start_time ASC",
-      $agent_id, $date
-    ), ARRAY_A);
+    $rows = $wpdb->get_results(
+      self::prepare_with_table(
+        "SELECT start_time, end_time
+         FROM %i
+         WHERE agent_id=%d AND break_date=%s
+         ORDER BY start_time ASC",
+        $t,
+        [$agent_id, $date]
+      ),
+      ARRAY_A
+    );
 
     return $rows ?: [];
   }
 
   public static function time_to_seconds(string $hms) : int {
-    if (preg_match('/^\d{2}:\d{2}$/', $hms)) $hms .= ':00';
-    if (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $hms)) return 0;
+    if (preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $hms)) $hms .= ':00';
+    if (!preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/', $hms)) return 0;
     [$h, $m, $s] = array_map('intval', explode(':', $hms));
     return $h * 3600 + $m * 60 + $s;
   }
@@ -386,37 +439,59 @@ final class BP_ScheduleHelper {
 
   public static function is_date_closed(string $date, int $agent_id = 0) : bool {
     global $wpdb;
-    $t = $wpdb->prefix . 'bp_holidays';
+    $t = $wpdb->prefix . 'pointlybooking_holidays';
 
     $date = substr($date, 0, 10);
 
     $agent_id = (int)$agent_id;
-    $agent_sql = $agent_id > 0 ? "AND (agent_id IS NULL OR agent_id = {$agent_id})" : "AND agent_id IS NULL";
+    if ($agent_id > 0) {
+      $sql = self::prepare_with_table(
+        "SELECT COUNT(*)
+         FROM %i
+         WHERE (is_enabled=1 OR is_enabled IS NULL)
+           AND (agent_id IS NULL OR agent_id = %d)
+           AND (
+             (%s BETWEEN start_date AND end_date)
+             OR (
+               (is_recurring=1 OR is_recurring_yearly=1)
+               AND (
+                 DATE_FORMAT(%s, '%%m-%%d') BETWEEN DATE_FORMAT(start_date,'%%m-%%d') AND DATE_FORMAT(end_date,'%%m-%%d')
+               )
+             )
+           )",
+        $t,
+        [$agent_id, $date, $date]
+      );
+    } else {
+      $sql = self::prepare_with_table(
+        "SELECT COUNT(*)
+         FROM %i
+         WHERE (is_enabled=1 OR is_enabled IS NULL)
+           AND agent_id IS NULL
+           AND (
+             (%s BETWEEN start_date AND end_date)
+             OR (
+               (is_recurring=1 OR is_recurring_yearly=1)
+               AND (
+                 DATE_FORMAT(%s, '%%m-%%d') BETWEEN DATE_FORMAT(start_date,'%%m-%%d') AND DATE_FORMAT(end_date,'%%m-%%d')
+               )
+             )
+           )",
+        $t,
+        [$date, $date]
+      );
+    }
 
-    $count = (int)$wpdb->get_var($wpdb->prepare("
-      SELECT COUNT(*)
-      FROM {$t}
-      WHERE (is_enabled=1 OR is_enabled IS NULL)
-        {$agent_sql}
-        AND (
-          (%s BETWEEN start_date AND end_date)
-          OR (
-            (is_recurring=1 OR is_recurring_yearly=1)
-            AND (
-              DATE_FORMAT(%s, '%%m-%%d') BETWEEN DATE_FORMAT(start_date,'%%m-%%d') AND DATE_FORMAT(end_date,'%%m-%%d')
-            )
-          )
-        )
-    ", $date, $date));
+    $count = (int)$wpdb->get_var($sql);
 
     return $count > 0;
   }
 
   public static function get_service_rules(int $service_id) : array {
     global $wpdb;
-    $t = $wpdb->prefix . 'bp_services';
+    $t = $wpdb->prefix . 'pointlybooking_services';
 
-    $cols = $wpdb->get_col("SHOW COLUMNS FROM {$t}") ?: [];
+    $cols = $wpdb->get_col(self::prepare_with_table("SHOW COLUMNS FROM %i", $t)) ?: [];
     $has_duration_minutes = in_array('duration_minutes', $cols, true);
     $has_duration = in_array('duration', $cols, true);
     $has_buffer_before_minutes = in_array('buffer_before_minutes', $cols, true);
@@ -424,7 +499,10 @@ final class BP_ScheduleHelper {
     $has_buffer_before = in_array('buffer_before', $cols, true);
     $has_buffer_after = in_array('buffer_after', $cols, true);
 
-    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id=%d", $service_id), ARRAY_A);
+    $row = $wpdb->get_row(
+      self::prepare_with_table("SELECT * FROM %i WHERE id=%d", $t, [$service_id]),
+      ARRAY_A
+    );
 
     if (!$row) $row = [];
 
@@ -489,7 +567,7 @@ final class BP_ScheduleHelper {
     $end = strtotime($to);
 
     while ($cur <= $end) {
-      $date = date('Y-m-d', $cur);
+      $date = gmdate('Y-m-d', $cur);
       if (self::is_date_closed($date, $agent_id)) {
         $blocks[] = ['start' => $date . 'T00:00:00', 'end' => $date . 'T23:59:59'];
       } else {
@@ -539,3 +617,4 @@ final class BP_ScheduleHelper {
     return $blocks;
   }
 }
+

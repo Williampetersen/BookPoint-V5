@@ -2,9 +2,9 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $distDir = Join-Path $repoRoot 'dist'
-$outZip = Join-Path $distDir 'bookpoint-v5-plugin.zip'
+$outZip = Join-Path $distDir 'wpbookpoint-booking-free.zip'
 $stagingRoot = Join-Path $distDir ('.staging-' + [DateTime]::UtcNow.ToString('yyyyMMddHHmmssfff'))
-$pluginDirName = 'bookpoint-v5'
+$pluginDirName = 'pointly-booking'
 $stagingPluginDir = Join-Path $stagingRoot $pluginDirName
 
 New-Item -ItemType Directory -Force $distDir | Out-Null
@@ -39,9 +39,12 @@ function New-ZipFromDirectory([string]$SourceDir, [string]$ZipPath) {
   }
 }
 
-$includeDirs = @('lib', 'public', 'build', 'blocks')
+$includeDirs = @('lib', 'public', 'build', 'blocks', 'languages', 'src')
 $includeFiles = @(
   'bookpoint-v5.php',
+  'LICENSE.txt',
+  'package.json',
+  'package-lock.json',
   'uninstall.php',
   'readme.txt'
 )
@@ -74,15 +77,30 @@ Get-ChildItem -Path $stagingPluginDir -Recurse -File -Filter *.php | ForEach-Obj
   }
 }
 
+# Normalize line endings in text files to LF to avoid mixed-EOL warnings in Plugin Check.
+$lfExtensions = @('*.php', '*.txt', '*.md', '*.json', '*.js', '*.css', '*.jsx', '*.ts', '*.tsx')
+Get-ChildItem -Path $stagingPluginDir -Recurse -File -Include $lfExtensions | ForEach-Object {
+  try {
+    $text = [System.IO.File]::ReadAllText($_.FullName)
+    $normalized = $text -replace "`r`n", "`n"
+    if ($normalized -ne $text) {
+      [System.IO.File]::WriteAllText($_.FullName, $normalized, (New-Object System.Text.UTF8Encoding($false)))
+    }
+  } catch {
+    throw "Packaging failed while normalizing LF in: $($_.FullName) - $($_.Exception.Message)"
+  }
+}
+
 # Free (WP.org) package excludes Pro-only licensing/updater code.
 $excludePaths = @(
   (Join-Path $stagingPluginDir 'lib/helpers/license_helper.php'),
   (Join-Path $stagingPluginDir 'lib/helpers/license_gate_helper.php'),
-  (Join-Path $stagingPluginDir 'lib/helpers/updates_helper.php')
+  (Join-Path $stagingPluginDir 'lib/helpers/updates_helper.php'),
+  (Join-Path $stagingPluginDir 'assets')
 )
 foreach ($p in $excludePaths) {
   if (Test-Path $p) {
-    Remove-Item -Force $p -ErrorAction SilentlyContinue
+    Remove-Item -Recurse -Force $p -ErrorAction SilentlyContinue
   }
 }
 

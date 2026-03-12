@@ -1,15 +1,15 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_WebhookHelper {
+final class POINTLYBOOKING_WebhookHelper {
 
   public static function fire(string $event, array $payload) : void {
-    if ((int)BP_SettingsHelper::get('webhooks_enabled', 0) !== 1) return;
+    if ((int)POINTLYBOOKING_SettingsHelper::get('webhooks_enabled', 0) !== 1) return;
 
-    $url = (string)BP_SettingsHelper::get('webhooks_url_' . $event, '');
+    $url = (string)POINTLYBOOKING_SettingsHelper::get('webhooks_url_' . $event, '');
     if ($url === '') return;
 
-    $secret = (string)BP_SettingsHelper::get('webhooks_secret', '');
+    $secret = (string)POINTLYBOOKING_SettingsHelper::get('webhooks_secret', '');
     $body = [
       'event' => $event,
       'site' => home_url(),

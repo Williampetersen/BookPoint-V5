@@ -1,9 +1,9 @@
-param(
-  [string]$FtpHost = $env:BP_FTP_HOST,
+﻿param(
+  [string]$FtpHost = $env:POINTLYBOOKING_FTP_HOST,
   [int]$FtpPort = 21,
-  [string]$FtpUser = $env:BP_FTP_USER,
-  [string]$FtpPassword = $env:BP_FTP_PASS,
-  [string]$RemotePluginDir = $env:BP_FTP_REMOTE_PLUGIN_DIR,
+  [string]$FtpUser = $env:POINTLYBOOKING_FTP_USER,
+  [string]$FtpPassword = $env:POINTLYBOOKING_FTP_PASS,
+  [string]$RemotePluginDir = $env:POINTLYBOOKING_FTP_REMOTE_PLUGIN_DIR,
   [switch]$DryRun,
   [switch]$Fast
 )
@@ -16,9 +16,9 @@ function Require-Val([string]$name, [string]$val) {
   }
 }
 
-Require-Val "BP_FTP_HOST / -FtpHost" $FtpHost
-Require-Val "BP_FTP_USER / -FtpUser" $FtpUser
-Require-Val "BP_FTP_PASS / -FtpPassword" $FtpPassword
+Require-Val "POINTLYBOOKING_FTP_HOST / -FtpHost" $FtpHost
+Require-Val "POINTLYBOOKING_FTP_USER / -FtpUser" $FtpUser
+Require-Val "POINTLYBOOKING_FTP_PASS / -FtpPassword" $FtpPassword
 
 $defaultRemote = "/public_html/wp-content/plugins/bookpoint-v5"
 if ([string]::IsNullOrWhiteSpace($RemotePluginDir)) { $RemotePluginDir = $defaultRemote }

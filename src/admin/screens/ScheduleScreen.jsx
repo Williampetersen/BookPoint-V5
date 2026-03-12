@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 
 const DAYS = [
@@ -430,7 +430,7 @@ export default function ScheduleScreen({ embedded = false }) {
 
               <div className="bp-muted bp-text-xs">
                 Exceptions (holidays) override schedule.{" "}
-                <a className="bp-link" href="admin.php?page=bp_settings&tab=holidays">
+                <a className="bp-link" href="admin.php?page=pointlybooking_settings&tab=holidays">
                   Manage holidays
                 </a>
                 .

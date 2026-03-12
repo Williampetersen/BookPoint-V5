@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 
 export default function useBookingFormDesign(open) {
   const [loading, setLoading] = useState(false);
@@ -12,7 +12,7 @@ export default function useBookingFormDesign(open) {
     setLoading(true);
     setError('');
 
-    const url = `/wp-json/bp/v1/front/booking-form-design?_t=${Date.now()}`;
+    const url = `/wp-json/pointly-booking/v1/front/booking-form-design?_t=${Date.now()}`;
 
     fetch(url, { credentials: 'same-origin' })
       .then(async (r) => {

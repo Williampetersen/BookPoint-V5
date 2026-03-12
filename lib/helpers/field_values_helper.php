@@ -1,10 +1,10 @@
 <?php
 defined('ABSPATH') || exit;
 
-function bp_install_field_values_table() : void {
+function pointlybooking_install_field_values_table() : void {
   global $wpdb;
   $charset_collate = $wpdb->get_charset_collate();
-  $t = $wpdb->prefix . 'bp_field_values';
+  $t = $wpdb->prefix . 'pointlybooking_field_values';
 
   $sql = "CREATE TABLE {$t} (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -28,11 +28,11 @@ function bp_install_field_values_table() : void {
   dbDelta($sql);
 }
 
-class BP_FieldValuesHelper {
+class POINTLYBOOKING_FieldValuesHelper {
 
   public static function upsert($entity_type, $entity_id, $field_id, $field_key, $scope, $value){
     global $wpdb;
-    $t = $wpdb->prefix . 'bp_field_values';
+    $t = $wpdb->prefix . 'pointlybooking_field_values';
 
     $entity_type = sanitize_text_field($entity_type);
     $scope = sanitize_text_field($scope);
@@ -78,7 +78,7 @@ class BP_FieldValuesHelper {
 
   public static function delete_for_entity($entity_type, $entity_id){
     global $wpdb;
-    $t = $wpdb->prefix . 'bp_field_values';
+    $t = $wpdb->prefix . 'pointlybooking_field_values';
     $wpdb->delete($t, [
       'entity_type'=>sanitize_text_field($entity_type),
       'entity_id'=>(int)$entity_id,
@@ -87,7 +87,7 @@ class BP_FieldValuesHelper {
 
   public static function get_for_entity($entity_type, $entity_id){
     global $wpdb;
-    $t = $wpdb->prefix . 'bp_field_values';
+    $t = $wpdb->prefix . 'pointlybooking_field_values';
     $rows = $wpdb->get_results($wpdb->prepare("
       SELECT field_id, field_key, scope, value_long
       FROM {$t}

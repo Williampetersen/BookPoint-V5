@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 
 function normalizeCustomer(raw) {
@@ -143,7 +143,7 @@ export default function CustomersEditScreen() {
         const res = await bpFetch("/admin/customers", { method: "POST", body: payload });
         const newId = Number(res?.data?.customer?.id || 0) || 0;
         if (newId) {
-          window.location.href = `admin.php?page=bp_customers_edit&id=${newId}&saved=1`;
+          window.location.href = `admin.php?page=pointlybooking_customers_edit&id=${newId}&saved=1`;
           return;
         }
         setToast("Saved");
@@ -174,7 +174,7 @@ export default function CustomersEditScreen() {
     setError("");
     try {
       await bpFetch(`/admin/customers/${id}`, { method: "DELETE" });
-      window.location.href = "admin.php?page=bp_customers";
+      window.location.href = "admin.php?page=pointlybooking_customers";
     } catch (e) {
       setError(e?.message || "Delete failed");
     } finally {
@@ -210,7 +210,7 @@ export default function CustomersEditScreen() {
 
       {loading ? (
         <div className="bp-card bp-customer-edit__section">
-          <div className="bp-muted">Loading…</div>
+          <div className="bp-muted">Loadingâ€¦</div>
         </div>
       ) : (
         <div className="bp-customer-edit__grid">
@@ -271,7 +271,7 @@ export default function CustomersEditScreen() {
                   <input
                     className="bp-input"
                     style={{ maxWidth: 320 }}
-                    placeholder="Search fields…"
+                    placeholder="Search fieldsâ€¦"
                     value={fieldSearch}
                     onChange={(e) => setFieldSearch(e.target.value)}
                   />
@@ -314,7 +314,7 @@ export default function CustomersEditScreen() {
                             value={(v ?? "").toString()}
                             onChange={(e) => setCustomField(k, e.target.value)}
                           >
-                            <option value="">Select…</option>
+                            <option value="">Selectâ€¦</option>
                             {opts.map((o) => (
                               <option key={`${k}-${o.value}`} value={o.value}>
                                 {o.label}
@@ -414,7 +414,7 @@ export default function CustomersEditScreen() {
                       <a
                         key={b.id}
                         className="bp-tr"
-                        href={`admin.php?page=bp_bookings_edit&id=${b.id}`}
+                        href={`admin.php?page=pointlybooking_bookings_edit&id=${b.id}`}
                       >
                         <div>#{b.id}</div>
                         <div className="bp-muted">{b.start_datetime || "-"}</div>
@@ -447,7 +447,7 @@ export default function CustomersEditScreen() {
                 <div className="bp-customer-edit__name">{displayName}</div>
                 <div className="bp-muted">
                   {customer.email ? customer.email : " "}
-                  {customer.phone ? ` • ${customer.phone}` : ""}
+                  {customer.phone ? ` â€¢ ${customer.phone}` : ""}
                 </div>
               </div>
             </div>
@@ -458,7 +458,7 @@ export default function CustomersEditScreen() {
                 <div className="bp-customer-edit__statK">Bookings</div>
               </div>
               <div className="bp-customer-edit__stat">
-                <div className="bp-customer-edit__statV">{customer.created_at ? String(customer.created_at).slice(0, 10) : "—"}</div>
+                <div className="bp-customer-edit__statV">{customer.created_at ? String(customer.created_at).slice(0, 10) : "â€”"}</div>
                 <div className="bp-customer-edit__statK">Created</div>
               </div>
             </div>
@@ -478,7 +478,7 @@ export default function CustomersEditScreen() {
       )}
 
       <div className="bp-customer-edit__bar">
-        <a className="bp-btn bp-btn-ghost" href="admin.php?page=bp_customers">
+        <a className="bp-btn bp-btn-ghost" href="admin.php?page=pointlybooking_customers">
           Cancel
         </a>
         <button type="submit" className="bp-btn bp-btn-primary" disabled={saving}>

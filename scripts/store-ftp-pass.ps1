@@ -1,5 +1,5 @@
 param(
-  [string]$Path = (Join-Path $env:USERPROFILE ".bp_ftp_pass.enc"),
+  [string]$Path = (Join-Path $env:USERPROFILE ".pointlybooking_ftp_pass.enc"),
   [switch]$Force
 )
 

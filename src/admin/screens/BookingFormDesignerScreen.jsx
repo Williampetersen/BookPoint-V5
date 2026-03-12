@@ -114,10 +114,16 @@ function canonicalizeConfig(raw) {
 }
 
 function wpApiFetch(path, opts = {}) {
-  const admin = window.BP_ADMIN || window.bpAdmin || {};
-  const url = admin.restUrl
-    ? admin.restUrl.replace(/\/$/, "") + path
-    : window.location.origin + "/wp-json" + path;
+  const admin = window.pointlybooking_ADMIN || window.bpAdmin || {};
+  let base = "";
+  if (admin.restUrl) {
+    base = String(admin.restUrl).replace(/\/$/, "");
+  } else if (window.wpApiSettings?.root) {
+    base = String(window.wpApiSettings.root).replace(/\/$/, "") + "/pointly-booking/v1";
+  } else {
+    base = "/wp-json/pointly-booking/v1";
+  }
+  const url = base + path;
 
   const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
   const nonce = admin.nonce;
@@ -183,7 +189,7 @@ export default function BookingFormDesignerScreen() {
 
   const storageKey = useMemo(() => {
     const host = window.location.hostname || "site";
-    return `bp_design_form_draft_${host}`;
+    return `pointlybooking_design_form_draft_${host}`;
   }, []);
 
   const showToast = (msg) => {

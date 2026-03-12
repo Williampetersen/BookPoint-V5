@@ -1,6 +1,6 @@
-async function api(path, opts = {}) {
-  const base = window.BP_FRONT?.restUrl || '/wp-json/bp/v1';
-  const nonce = window.BP_FRONT?.nonce;
+﻿async function api(path, opts = {}) {
+  const base = window.pointlybooking_FRONT?.restUrl || '/wp-json/pointly-booking/v1';
+  const nonce = window.pointlybooking_FRONT?.nonce;
 
   const res = await fetch(`${base}${path}`, {
     ...opts,

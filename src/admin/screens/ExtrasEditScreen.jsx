@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
-import UpgradeToPro from "../components/UpgradeToPro";
 
 function normalizeExtra(raw, id) {
   const isActive =
@@ -32,7 +31,6 @@ function normalizeExtra(raw, id) {
 }
 
 export default function ExtrasEditScreen() {
-  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const params = new URLSearchParams(window.location.search);
   const id = Number(params.get("id") || 0) || 0;
 
@@ -66,11 +64,6 @@ export default function ExtrasEditScreen() {
     let alive = true;
 
     async function load() {
-      if (!isPro) {
-        setLoading(false);
-        setError("");
-        return;
-      }
       setLoading(true);
       setError("");
       try {
@@ -116,7 +109,7 @@ export default function ExtrasEditScreen() {
     return () => {
       alive = false;
     };
-  }, [id, isPro]);
+  }, [id]);
 
   useEffect(() => {
     const onBeforeUnload = (e) => {
@@ -211,7 +204,7 @@ export default function ExtrasEditScreen() {
         newId = Number(res?.data?.id || res?.data?.extra?.id || res?.id || 0) || 0;
         if (newId) {
           await bpFetch(`/admin/extras/${newId}/services`, { method: "PUT", body: { service_ids: extra.service_ids || [] } });
-          window.location.href = `admin.php?page=bp_extras_edit&id=${newId}`;
+          window.location.href = `admin.php?page=pointlybooking_extras_edit&id=${newId}`;
           return;
         }
       }
@@ -233,16 +226,12 @@ export default function ExtrasEditScreen() {
     setError("");
     try {
       await bpFetch(`/admin/extras/${id}`, { method: "DELETE" });
-      window.location.href = "admin.php?page=bp_extras";
+      window.location.href = "admin.php?page=pointlybooking_extras";
     } catch (e) {
       setError(e?.message || "Delete failed");
     } finally {
       setSaving(false);
     }
-  }
-
-  if (!isPro) {
-    return <UpgradeToPro feature="Service Extras" />;
   }
 
   return (
@@ -353,7 +342,7 @@ export default function ExtrasEditScreen() {
                         onClick={() => toggleService(s.id)}
                         title="Remove"
                       >
-                        {s.name || `Service #${s.id}`} ×
+                        {s.name || `Service #${s.id}`} Ãƒâ€”
                       </button>
                     ))}
                   </div>
@@ -445,7 +434,7 @@ export default function ExtrasEditScreen() {
         <div className="bp-extra-edit__bar">
           <a
             className="bp-top-btn"
-            href="admin.php?page=bp_extras"
+            href="admin.php?page=pointlybooking_extras"
             onClick={(e) => {
               if (!dirty) return;
               if (!window.confirm("You have unsaved changes. Leave anyway?")) e.preventDefault();

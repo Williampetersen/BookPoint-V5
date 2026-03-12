@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 const LABELS = {
   free: 'Free (no payment)',
@@ -40,7 +40,7 @@ export default function PaymentStep({
     ? enabledMethods
     : ['cash'];
 
-  const base = imagesBase || (window.BP_FRONT?.images || '').replace(/\/$/, '') + '/';
+  const base = imagesBase || (window.pointlybooking_FRONT?.images || '').replace(/\/$/, '') + '/';
 
   return (
     <div className="bp-step">

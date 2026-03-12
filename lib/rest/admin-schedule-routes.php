@@ -2,25 +2,25 @@
 defined('ABSPATH') || exit;
 
 add_action('rest_api_init', function () {
-  register_rest_route('bp/v1', '/admin/schedule', [
+  register_rest_route('pointly-booking/v1', '/admin/schedule', [
     'methods' => 'GET',
-    'callback' => 'bp_rest_admin_schedule_get',
-    'permission_callback' => function () { return current_user_can('bp_manage_settings') || current_user_can('bp_manage_bookings'); },
+    'callback' => 'pointlybooking_rest_admin_schedule_get',
+    'permission_callback' => function () { return current_user_can('pointlybooking_manage_settings') || current_user_can('pointlybooking_manage_bookings'); },
     'args' => [
       'agent_id' => ['required' => false],
     ],
   ]);
 
-  register_rest_route('bp/v1', '/admin/schedule', [
+  register_rest_route('pointly-booking/v1', '/admin/schedule', [
     'methods' => ['POST','PUT'],
-    'callback' => 'bp_rest_admin_schedule_save',
-    'permission_callback' => function () { return current_user_can('bp_manage_settings') || current_user_can('bp_manage_bookings'); },
+    'callback' => 'pointlybooking_rest_admin_schedule_save',
+    'permission_callback' => function () { return current_user_can('pointlybooking_manage_settings') || current_user_can('pointlybooking_manage_bookings'); },
   ]);
 
-  register_rest_route('bp/v1', '/admin/schedule/unavailable', [
+  register_rest_route('pointly-booking/v1', '/admin/schedule/unavailable', [
     'methods' => 'GET',
-    'callback' => 'bp_rest_admin_unavailable_blocks',
-    'permission_callback' => function () { return current_user_can('bp_manage_bookings'); },
+    'callback' => 'pointlybooking_rest_admin_unavailable_blocks',
+    'permission_callback' => function () { return current_user_can('pointlybooking_manage_bookings'); },
     'args' => [
       'start' => ['required'=>true],
       'end'   => ['required'=>true],
@@ -29,11 +29,11 @@ add_action('rest_api_init', function () {
   ]);
 });
 
-function bp_rest_admin_schedule_get(WP_REST_Request $req) {
+function pointlybooking_rest_admin_schedule_get(WP_REST_Request $req) {
   global $wpdb;
 
   $agent_id = (int)$req->get_param('agent_id');
-  $t = $wpdb->prefix . 'bp_schedules';
+  $t = $wpdb->prefix . 'pointlybooking_schedules';
 
   $schedule = [];
   for ($d = 1; $d <= 7; $d++) $schedule[(string)$d] = [];
@@ -87,7 +87,7 @@ function bp_rest_admin_schedule_get(WP_REST_Request $req) {
     // Fallback from legacy settings
     for ($d = 1; $d <= 7; $d++) {
       $legacy_key = ($d === 7) ? 0 : $d;
-      $raw = (string)BP_SettingsHelper::get_with_default('bp_schedule_' . $legacy_key);
+      $raw = (string)POINTLYBOOKING_SettingsHelper::get_with_default('pointlybooking_schedule_' . $legacy_key);
       $raw = trim($raw);
       if ($raw === '' || !preg_match('/^\d{2}:\d{2}\-\d{2}:\d{2}$/', $raw)) continue;
       [$open, $close] = explode('-', $raw);
@@ -95,7 +95,7 @@ function bp_rest_admin_schedule_get(WP_REST_Request $req) {
         'start_time' => $open,
         'end_time' => $close,
         'is_enabled' => true,
-        'breaks' => BP_ScheduleHelper::get_break_ranges(),
+        'breaks' => POINTLYBOOKING_ScheduleHelper::get_break_ranges(),
       ];
     }
   }
@@ -105,14 +105,18 @@ function bp_rest_admin_schedule_get(WP_REST_Request $req) {
     'data' => [
       'agent_id' => $agent_id,
       'schedule' => $schedule,
-      'settings' => BP_ScheduleHelper::get_schedule_settings(),
+      'settings' => POINTLYBOOKING_ScheduleHelper::get_schedule_settings(),
     ],
   ], 200);
 }
 
-function bp_rest_admin_schedule_save(WP_REST_Request $req) {
+function pointlybooking_rest_admin_schedule_save(WP_REST_Request $req) {
   global $wpdb;
-  $t = $wpdb->prefix . 'bp_schedules';
+  $t = $wpdb->prefix . 'pointlybooking_schedules';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+    return new WP_REST_Response(['status'=>'error','message'=>'Invalid schedules table'], 500);
+  }
+  $table_sql = '`' . $t . '`';
 
   $body = $req->get_json_params();
   if (!is_array($body) || empty($body)) {
@@ -134,9 +138,9 @@ function bp_rest_admin_schedule_save(WP_REST_Request $req) {
   }
 
   if ($agent_id > 0) {
-    $wpdb->query($wpdb->prepare("DELETE FROM {$t} WHERE agent_id=%d", $agent_id));
+    $wpdb->query($wpdb->prepare("DELETE FROM {$table_sql} WHERE agent_id=%d", $agent_id));
   } else {
-    $wpdb->query("DELETE FROM {$t} WHERE agent_id IS NULL");
+    $wpdb->query("DELETE FROM {$table_sql} WHERE agent_id IS NULL");
   }
 
   $now = current_time('mysql');
@@ -150,7 +154,7 @@ function bp_rest_admin_schedule_save(WP_REST_Request $req) {
       $et = substr(trim((string)($it['end_time'] ?? '')), 0, 5);
       $enabled = !empty($it['is_enabled']) ? 1 : 0;
       if (!preg_match('/^\d{2}:\d{2}$/', $st) || !preg_match('/^\d{2}:\d{2}$/', $et)) continue;
-      if (BP_ScheduleHelper::to_minutes($et) <= BP_ScheduleHelper::to_minutes($st)) continue;
+      if (POINTLYBOOKING_ScheduleHelper::to_minutes($et) <= POINTLYBOOKING_ScheduleHelper::to_minutes($st)) continue;
 
       $breaks = $it['breaks'] ?? [];
       if (!is_array($breaks)) $breaks = [];
@@ -161,7 +165,7 @@ function bp_rest_admin_schedule_save(WP_REST_Request $req) {
         $bst = substr(trim((string)$bst), 0, 5);
         $bet = substr(trim((string)$bet), 0, 5);
         if (!preg_match('/^\d{2}:\d{2}$/', $bst) || !preg_match('/^\d{2}:\d{2}$/', $bet)) continue;
-        if (BP_ScheduleHelper::to_minutes($bet) <= BP_ScheduleHelper::to_minutes($bst)) continue;
+        if (POINTLYBOOKING_ScheduleHelper::to_minutes($bet) <= POINTLYBOOKING_ScheduleHelper::to_minutes($bst)) continue;
         $clean_breaks[] = ['start' => $bst, 'end' => $bet];
       }
 
@@ -181,8 +185,8 @@ function bp_rest_admin_schedule_save(WP_REST_Request $req) {
   if (is_array($settings)) {
     $slot = (int)($settings['slot_interval_minutes'] ?? 30);
     $timezone = (string)($settings['timezone'] ?? 'Europe/Copenhagen');
-    BP_ScheduleHelper::set_schedule_settings($slot, $timezone);
-    BP_SettingsHelper::set('bp_slot_interval_minutes', $slot);
+    POINTLYBOOKING_ScheduleHelper::set_schedule_settings($slot, $timezone);
+    POINTLYBOOKING_SettingsHelper::set('pointlybooking_slot_interval_minutes', $slot);
   }
 
   if (!empty($wpdb->last_error)) {
@@ -192,7 +196,7 @@ function bp_rest_admin_schedule_save(WP_REST_Request $req) {
   return new WP_REST_Response(['status'=>'success','data'=>['saved'=>true]], 200);
 }
 
-function bp_rest_admin_unavailable_blocks(WP_REST_Request $req) {
+function pointlybooking_rest_admin_unavailable_blocks(WP_REST_Request $req) {
   $start = sanitize_text_field($req->get_param('start'));
   $end   = sanitize_text_field($req->get_param('end'));
   $agent_id = (int)$req->get_param('agent_id');
@@ -205,7 +209,7 @@ function bp_rest_admin_unavailable_blocks(WP_REST_Request $req) {
     return new WP_REST_Response(['status'=>'success','data'=>[]], 200);
   }
 
-  $blocks = BP_ScheduleHelper::build_unavailable_blocks($agent_id, $from, $to);
+  $blocks = POINTLYBOOKING_ScheduleHelper::build_unavailable_blocks($agent_id, $from, $to);
 
   // FullCalendar background events
   $events = array_map(function($b){

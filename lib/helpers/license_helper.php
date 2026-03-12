@@ -1,13 +1,13 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_LicenseHelper {
+final class POINTLYBOOKING_LicenseHelper {
 
   // Default license server used in your distributed plugin build.
   // Locked to the official license server (not user-configurable).
   const API_BASE_DEFAULT = 'https://wpbookpoint.com';
   // Legacy (previously user-configurable) override option. Kept only to clear old values.
-  const OPTION_API_BASE = 'bp_license_server_base_url';
+  const OPTION_API_BASE = 'pointlybooking_license_server_base_url';
 
   private static function body_snippet(string $body, int $limit = 600): string {
     $body = (string) $body;
@@ -57,13 +57,13 @@ final class BP_LicenseHelper {
         'Accept-Language' => 'en-US,en;q=0.9',
         'Cache-Control' => 'no-cache',
         'Pragma' => 'no-cache',
-        'X-BookPoint' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? (string) BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
+        'X-BookPoint' => defined('POINTLYBOOKING_Core_Plugin::VERSION') ? (string) POINTLYBOOKING_Core_Plugin::VERSION : 'unknown',
       ],
       'user-agent' => self::http_user_agent(),
       'body' => wp_json_encode($payload),
     ];
 
-    return (array) apply_filters('bp_license_http_args', $args, $url, $payload);
+    return (array) apply_filters('pointlybooking_license_http_args', $args, $url, $payload);
   }
 
   private static function http_args_form(string $url, array $payload): array {
@@ -78,13 +78,13 @@ final class BP_LicenseHelper {
         'Accept-Language' => 'en-US,en;q=0.9',
         'Cache-Control' => 'no-cache',
         'Pragma' => 'no-cache',
-        'X-BookPoint' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? (string) BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
+        'X-BookPoint' => defined('POINTLYBOOKING_Core_Plugin::VERSION') ? (string) POINTLYBOOKING_Core_Plugin::VERSION : 'unknown',
       ],
       'user-agent' => self::http_user_agent(),
       'body' => $payload, // array => WP will encode
     ];
 
-    return (array) apply_filters('bp_license_http_args', $args, $url, $payload);
+    return (array) apply_filters('pointlybooking_license_http_args', $args, $url, $payload);
   }
 
   private static function looks_like_waf_block(int $httpCode, string $contentType, string $body): bool {
@@ -228,12 +228,12 @@ final class BP_LicenseHelper {
         'Cache-Control' => 'no-cache',
         'Pragma' => 'no-cache',
         'X-BP-Payload' => $packedPayload,
-        'X-BookPoint' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? (string) BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
+        'X-BookPoint' => defined('POINTLYBOOKING_Core_Plugin::VERSION') ? (string) POINTLYBOOKING_Core_Plugin::VERSION : 'unknown',
       ],
       'user-agent' => self::http_user_agent(),
     ];
 
-    $res = wp_remote_get($url, (array) apply_filters('bp_license_http_args', $args, $url, ['p' => $packedPayload]));
+    $res = wp_remote_get($url, (array) apply_filters('pointlybooking_license_http_args', $args, $url, ['p' => $packedPayload]));
 
     if (is_wp_error($res)) {
       $attempts[] = [
@@ -298,7 +298,7 @@ final class BP_LicenseHelper {
   public static function set_saved_api_base(string $base) : void {
     // No longer user-configurable; always clear any previously saved override.
     delete_option(self::OPTION_API_BASE);
-    delete_transient('bp_license_check_cache');
+    delete_transient('pointlybooking_license_check_cache');
   }
 
   public static function api_base() : string {
@@ -322,17 +322,17 @@ final class BP_LicenseHelper {
   }
 
   public static function api_ajax_validate_url() : string {
-    return self::api_base() . '/wp-admin/admin-ajax.php?action=bp_ls_validate';
+    return self::api_base() . '/wp-admin/admin-ajax.php?action=pointlybooking_ls_validate';
   }
 
   public static function api_ajax_deactivate_url() : string {
-    return self::api_base() . '/wp-admin/admin-ajax.php?action=bp_ls_deactivate';
+    return self::api_base() . '/wp-admin/admin-ajax.php?action=pointlybooking_ls_deactivate';
   }
 
   public static function api_public_validate_urls() : array {
     $base = self::api_base();
     return [
-      $base . '/?bp_ls_public=validate',
+      $base . '/?pointlybooking_ls_public=validate',
       $base . '/bookpoint-license/validate',
     ];
   }
@@ -340,7 +340,7 @@ final class BP_LicenseHelper {
   public static function api_public_deactivate_urls() : array {
     $base = self::api_base();
     return [
-      $base . '/?bp_ls_public=deactivate',
+      $base . '/?pointlybooking_ls_public=deactivate',
       $base . '/bookpoint-license/deactivate',
     ];
   }
@@ -348,21 +348,21 @@ final class BP_LicenseHelper {
   public static function api_public_ping_urls() : array {
     $base = self::api_base();
     return [
-      $base . '/?bp_ls_public=ping',
+      $base . '/?pointlybooking_ls_public=ping',
       $base . '/bookpoint-license/ping',
     ];
   }
 
   public static function get_key() : string {
-    return (string) get_option('bp_license_key', '');
+    return (string) get_option('pointlybooking_license_key', '');
   }
 
   public static function get_instance_id() : string {
-    return (string) get_option('bp_license_instance_id', '');
+    return (string) get_option('pointlybooking_license_instance_id', '');
   }
 
   public static function status() : string {
-    return (string) get_option('bp_license_status', 'unset');
+    return (string) get_option('pointlybooking_license_status', 'unset');
   }
 
   private static function ping_attempts(): array {
@@ -382,12 +382,12 @@ final class BP_LicenseHelper {
           'Accept-Language' => 'en-US,en;q=0.9',
           'Cache-Control' => 'no-cache',
           'Pragma' => 'no-cache',
-          'X-BookPoint' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? (string) BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
+          'X-BookPoint' => defined('POINTLYBOOKING_Core_Plugin::VERSION') ? (string) POINTLYBOOKING_Core_Plugin::VERSION : 'unknown',
         ],
         'user-agent' => self::http_user_agent(),
       ];
 
-      $res = wp_remote_get($url, (array) apply_filters('bp_license_http_args', $args, $url, []));
+      $res = wp_remote_get($url, (array) apply_filters('pointlybooking_license_http_args', $args, $url, []));
       if (is_wp_error($res)) {
         $attempts[] = [
           'mode' => 'ping',
@@ -425,13 +425,13 @@ final class BP_LicenseHelper {
   }
 
   public static function set_key(string $key) : void {
-    update_option('bp_license_key', trim($key), false);
-    update_option('bp_license_status', 'unset', false);
-    update_option('bp_license_instance_id', '', false);
-    update_option('bp_license_licensed_domain', '', false);
-    update_option('bp_license_expires_at', '', false);
-    update_option('bp_license_plan', '', false);
-    delete_transient('bp_license_check_cache');
+    update_option('pointlybooking_license_key', trim($key), false);
+    update_option('pointlybooking_license_status', 'unset', false);
+    update_option('pointlybooking_license_instance_id', '', false);
+    update_option('pointlybooking_license_licensed_domain', '', false);
+    update_option('pointlybooking_license_expires_at', '', false);
+    update_option('pointlybooking_license_plan', '', false);
+    delete_transient('pointlybooking_license_check_cache');
   }
 
   public static function activate() : array {
@@ -442,19 +442,19 @@ final class BP_LicenseHelper {
   public static function deactivate() : array {
     $key = self::get_key();
     if ($key === '') {
-      update_option('bp_license_status', 'unset', false);
+      update_option('pointlybooking_license_status', 'unset', false);
       return ['ok' => false, 'status' => 'unset', 'message' => 'No key'];
     }
 
     $deactivate_url = self::api_deactivate_url();
-    update_option('bp_license_last_request_url', $deactivate_url, false);
-    update_option('bp_license_last_error', '', false);
+    update_option('pointlybooking_license_last_request_url', $deactivate_url, false);
+    update_option('pointlybooking_license_last_error', '', false);
 
     $payload = [
       'license_key' => $key,
       'site' => home_url(),
       'plugin' => 'bookpoint',
-      'version' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
+      'version' => defined('POINTLYBOOKING_Core_Plugin::VERSION') ? POINTLYBOOKING_Core_Plugin::VERSION : 'unknown',
       'instance_id' => self::get_instance_id(),
     ];
 
@@ -473,7 +473,7 @@ final class BP_LicenseHelper {
 
     if (is_wp_error($res)) {
       $msg = $res->get_error_message();
-      update_option('bp_license_last_error', $msg, false);
+      update_option('pointlybooking_license_last_error', $msg, false);
       $out = [
         'ok' => false,
         'status' => self::status(),
@@ -486,7 +486,7 @@ final class BP_LicenseHelper {
           'attempts' => $attempts,
         ],
       ];
-      update_option('bp_license_data_json', wp_json_encode($out), false);
+      update_option('pointlybooking_license_data_json', wp_json_encode($out), false);
       return $out;
     }
 
@@ -541,7 +541,7 @@ final class BP_LicenseHelper {
           $homeHost = (string) (parse_url(home_url(), PHP_URL_HOST) ?? '');
         }
 
-        if ($baseHost !== '' && $homeHost !== '' && strcasecmp($baseHost, $homeHost) === 0 && !class_exists('BP_License_Server')) {
+        if ($baseHost !== '' && $homeHost !== '' && strcasecmp($baseHost, $homeHost) === 0 && !class_exists('POINTLYBOOKING_License_Server')) {
           $msg = 'License server URL is set to this site. Set it to your store domain (the site running BookPoint License Server).';
         } else {
           $msg = 'License server route not found. Make sure the BookPoint License Server plugin is installed and active on the server URL.';
@@ -564,14 +564,14 @@ final class BP_LicenseHelper {
           'ping_attempts' => $isBlocked ? ($pingAttempts ?? []) : [],
         ],
       ];
-      update_option('bp_license_last_error', (string) $out['message'], false);
-      update_option('bp_license_data_json', wp_json_encode($out), false);
+      update_option('pointlybooking_license_last_error', (string) $out['message'], false);
+      update_option('pointlybooking_license_data_json', wp_json_encode($out), false);
       return $out;
     }
 
     // Local state: mark unset so user must activate again.
-    update_option('bp_license_status', 'unset', false);
-    delete_transient('bp_license_check_cache');
+    update_option('pointlybooking_license_status', 'unset', false);
+    delete_transient('pointlybooking_license_check_cache');
 
     return [
       'ok' => (bool)($data['ok'] ?? false),
@@ -584,24 +584,24 @@ final class BP_LicenseHelper {
   public static function validate(bool $force = false) : array {
     $key = self::get_key();
     if ($key === '') {
-      update_option('bp_license_status', 'unset', false);
+      update_option('pointlybooking_license_status', 'unset', false);
       return ['ok' => false, 'status' => 'unset', 'message' => 'No key'];
     }
 
     if (!$force) {
-      $cached = get_transient('bp_license_check_cache');
+      $cached = get_transient('pointlybooking_license_check_cache');
       if (is_array($cached)) return $cached;
     }
 
     $validate_url = self::api_validate_url();
-    update_option('bp_license_last_request_url', $validate_url, false);
-    update_option('bp_license_last_error', '', false);
+    update_option('pointlybooking_license_last_request_url', $validate_url, false);
+    update_option('pointlybooking_license_last_error', '', false);
 
     $payload = [
       'license_key' => $key,
       'site' => home_url(),
       'plugin' => 'bookpoint',
-      'version' => defined('BPV5_BookPoint_Core_Plugin::VERSION') ? BPV5_BookPoint_Core_Plugin::VERSION : 'unknown',
+      'version' => defined('POINTLYBOOKING_Core_Plugin::VERSION') ? POINTLYBOOKING_Core_Plugin::VERSION : 'unknown',
       'instance_id' => self::get_instance_id(),
     ];
 
@@ -620,7 +620,7 @@ final class BP_LicenseHelper {
 
     if (is_wp_error($res)) {
       $msg = $res->get_error_message();
-      update_option('bp_license_last_error', $msg, false);
+      update_option('pointlybooking_license_last_error', $msg, false);
       $out = [
         'ok' => false,
         'status' => self::status(),
@@ -633,8 +633,8 @@ final class BP_LicenseHelper {
           'attempts' => $attempts,
         ],
       ];
-      update_option('bp_license_data_json', wp_json_encode($out), false);
-      set_transient('bp_license_check_cache', $out, 10 * MINUTE_IN_SECONDS);
+      update_option('pointlybooking_license_data_json', wp_json_encode($out), false);
+      set_transient('pointlybooking_license_check_cache', $out, 10 * MINUTE_IN_SECONDS);
       return $out;
     }
 
@@ -690,7 +690,7 @@ final class BP_LicenseHelper {
           $homeHost = (string) (parse_url(home_url(), PHP_URL_HOST) ?? '');
         }
 
-        if ($baseHost !== '' && $homeHost !== '' && strcasecmp($baseHost, $homeHost) === 0 && !class_exists('BP_License_Server')) {
+        if ($baseHost !== '' && $homeHost !== '' && strcasecmp($baseHost, $homeHost) === 0 && !class_exists('POINTLYBOOKING_License_Server')) {
           $msg = 'License server URL is set to this site. Set it to your store domain (the site running BookPoint License Server).';
         } else {
           $msg = 'License server route not found. Make sure the BookPoint License Server plugin is installed and active on the server URL.';
@@ -713,32 +713,32 @@ final class BP_LicenseHelper {
           'ping_attempts' => $isBlocked ? ($pingAttempts ?? []) : [],
         ],
       ];
-      update_option('bp_license_last_error', (string) $out['message'], false);
-      update_option('bp_license_data_json', wp_json_encode($out), false);
-      set_transient('bp_license_check_cache', $out, 10 * MINUTE_IN_SECONDS);
+      update_option('pointlybooking_license_last_error', (string) $out['message'], false);
+      update_option('pointlybooking_license_data_json', wp_json_encode($out), false);
+      set_transient('pointlybooking_license_check_cache', $out, 10 * MINUTE_IN_SECONDS);
       return $out;
     }
 
     $status = strtolower(sanitize_text_field($data['status'] ?? 'invalid'));
     $message = sanitize_text_field($data['message'] ?? '');
 
-    update_option('bp_license_status', $status, false);
-    update_option('bp_license_checked_at', time(), false);
-    update_option('bp_license_last_error', $message, false);
-    update_option('bp_license_data_json', wp_json_encode($data), false);
+    update_option('pointlybooking_license_status', $status, false);
+    update_option('pointlybooking_license_checked_at', time(), false);
+    update_option('pointlybooking_license_last_error', $message, false);
+    update_option('pointlybooking_license_data_json', wp_json_encode($data), false);
 
     // Optional metadata if the license server provides it.
     $plan = sanitize_text_field($data['plan'] ?? '');
     $expires_at = sanitize_text_field($data['expires_at'] ?? ($data['expires'] ?? ''));
     $licensed_domain = sanitize_text_field($data['licensed_domain'] ?? ($data['domain'] ?? ''));
     $instance_id = sanitize_text_field($data['instance_id'] ?? '');
-    update_option('bp_license_plan', $plan, false);
-    update_option('bp_license_expires_at', $expires_at, false);
-    update_option('bp_license_licensed_domain', $licensed_domain, false);
-    update_option('bp_license_instance_id', $instance_id, false);
+    update_option('pointlybooking_license_plan', $plan, false);
+    update_option('pointlybooking_license_expires_at', $expires_at, false);
+    update_option('pointlybooking_license_licensed_domain', $licensed_domain, false);
+    update_option('pointlybooking_license_instance_id', $instance_id, false);
 
     $out = ['ok' => ($status === 'valid'), 'status' => $status, 'message' => $message, 'raw' => $data];
-    set_transient('bp_license_check_cache', $out, 6 * HOUR_IN_SECONDS);
+    set_transient('pointlybooking_license_check_cache', $out, 6 * HOUR_IN_SECONDS);
 
     return $out;
   }

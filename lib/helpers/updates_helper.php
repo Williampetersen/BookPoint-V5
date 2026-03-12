@@ -1,7 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_UpdatesHelper {
+final class POINTLYBOOKING_UpdatesHelper {
 
   public static function init() : void {
     add_filter('pre_set_site_transient_update_plugins', [__CLASS__, 'check_updates']);
@@ -9,16 +9,16 @@ final class BP_UpdatesHelper {
   }
 
   private static function plugin_basename() : string {
-    return plugin_basename(BP_PLUGIN_FILE);
+    return plugin_basename(POINTLYBOOKING_PLUGIN_FILE);
   }
 
   public static function check_updates($transient) {
     if (!is_object($transient) || empty($transient->checked)) return $transient;
 
-    $current = defined('BPV5_BookPoint_Core_Plugin::VERSION') ? BPV5_BookPoint_Core_Plugin::VERSION : '0.0.0';
-    $key = BP_LicenseHelper::get_key();
+    $current = defined('POINTLYBOOKING_Core_Plugin::VERSION') ? POINTLYBOOKING_Core_Plugin::VERSION : '0.0.0';
+    $key = POINTLYBOOKING_LicenseHelper::get_key();
 
-    $res = wp_remote_get(BP_LicenseHelper::api_updates_url() . '?' . http_build_query([
+    $res = wp_remote_get(POINTLYBOOKING_LicenseHelper::api_updates_url() . '?' . http_build_query([
       'plugin' => 'bookpoint',
       'version' => $current,
       'site' => home_url(),
@@ -52,10 +52,10 @@ final class BP_UpdatesHelper {
     if ($action !== 'plugin_information') return $false;
     if (empty($args->slug) || $args->slug !== 'bookpoint-v5') return $false;
 
-    $current = defined('BPV5_BookPoint_Core_Plugin::VERSION') ? BPV5_BookPoint_Core_Plugin::VERSION : '0.0.0';
-    $key = BP_LicenseHelper::get_key();
+    $current = defined('POINTLYBOOKING_Core_Plugin::VERSION') ? POINTLYBOOKING_Core_Plugin::VERSION : '0.0.0';
+    $key = POINTLYBOOKING_LicenseHelper::get_key();
 
-    $res = wp_remote_get(BP_LicenseHelper::api_updates_url() . '?' . http_build_query([
+    $res = wp_remote_get(POINTLYBOOKING_LicenseHelper::api_updates_url() . '?' . http_build_query([
       'info' => 1,
       'plugin' => 'bookpoint',
       'version' => $current,

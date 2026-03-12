@@ -1,4 +1,3 @@
-@import url('https://fonts.cdnfonts.com/css/sofia-pro');
 
 :root {
   --bp-font-family: 'Sofia Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
@@ -1542,63 +1541,6 @@
   .bp-tools-formGrid{grid-template-columns:1fr}
 }
 
-/* License (Settings tab) */
-.bp-license{min-width:0}
-.bp-license-grid{display:grid;grid-template-columns:1fr;gap:14px}
-.bp-license-proBanner{border:1px solid rgba(15,23,42,.10);border-radius:16px;overflow:hidden}
-.bp-license-proBanner.is-valid{border-color:rgba(34,197,94,.25);background:linear-gradient(180deg, rgba(34,197,94,.10), rgba(34,197,94,.04))}
-.bp-license-proBanner.is-invalid{border-color:rgba(239,68,68,.25);background:linear-gradient(180deg, rgba(239,68,68,.10), rgba(239,68,68,.04))}
-.bp-license-proBannerBody{padding:14px;display:flex;gap:12px;align-items:flex-start}
-.bp-license-proBannerActions{margin-left:auto;display:flex;align-items:center}
-.bp-license-proDot{width:10px;height:10px;border-radius:999px;flex:0 0 10px;margin-top:6px}
-.bp-license-proDot.is-valid{background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.55);animation:bp-glow-green 1.6s ease-out infinite}
-.bp-license-proDot.is-invalid{background:#ef4444;box-shadow:0 0 0 0 rgba(239,68,68,.55);animation:bp-glow-red 1.6s ease-out infinite}
-.bp-license-statusBody{padding:14px;display:grid;gap:12px}
-.bp-license-pill{display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:16px;padding:12px;border:1px solid rgba(15,23,42,.10);background:#fff}
-.bp-license-pill .k{font-size:11px;font-weight:900;color:#64748b}
-.bp-license-pill .v{font-size:13px;font-weight:950;color:#0f172a;text-transform:uppercase;letter-spacing:.4px}
-.bp-license-pill.is-valid{border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.06)}
-.bp-license-pill.is-valid .v{color:#166534}
-.bp-license-pill.is-expired{border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.08)}
-.bp-license-pill.is-expired .v{color:#92400e}
-.bp-license-pill.is-invalid{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.06)}
-.bp-license-pill.is-invalid .v{color:#991b1b}
-.bp-license-pill.is-unset{border-color:rgba(100,116,139,.18);background:rgba(100,116,139,.08)}
-.bp-license-pill.is-unset .v{color:#334155}
-
-.bp-license-kvGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.bp-license-kv{border:1px solid rgba(15,23,42,.08);border-radius:14px;padding:10px;background:#fff}
-.bp-license-kv .k{font-size:11px;font-weight:900;color:#64748b}
-.bp-license-kv .v{font-size:12px;font-weight:950;color:#0f172a;margin-top:6px;word-break:break-word}
-.bp-license-kvRow{border:1px solid rgba(15,23,42,.08);border-radius:14px;padding:10px;background:#fafbff;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.bp-license-kvRow .k{font-size:11px;font-weight:900;color:#64748b}
-.bp-license-kvRow .v{font-size:12px;font-weight:950;color:#0f172a;text-align:right}
-
-.bp-license-error{border:1px solid rgba(239,68,68,.20);border-radius:14px;padding:12px;background:rgba(239,68,68,.06)}
-.bp-license-error.is-valid{border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.08)}
-.bp-license-error.is-expired{border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.08)}
-.bp-license-error.is-disabled{border-color:rgba(100,116,139,.25);background:rgba(100,116,139,.08)}
-.bp-license-error.is-unset{border-color:rgba(148,163,184,.25);background:rgba(148,163,184,.08)}
-.bp-license-pre{margin-top:10px;background:#0b1220;color:#e5e7eb;border-radius:14px;padding:12px;overflow:auto;font-size:12px;line-height:1.45;max-height:320px}
-
-.bp-license-help{border:1px solid rgba(15,23,42,.08);border-radius:14px;padding:12px;background:#fff}
-.bp-license-helpRow{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.bp-license-code{background:#f1f5f9;padding:6px 10px;border-radius:10px;font-size:12px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-
-.bp-license-manageBody{padding:14px;display:grid;gap:12px}
-.bp-license-keyRow{display:flex;gap:10px;align-items:center}
-.bp-license-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-
-@media (min-width: 1024px){
-  .bp-license-grid{grid-template-columns:1fr 420px;align-items:start}
-}
-
-@media (max-width: 560px){
-  .bp-license-kvGrid{grid-template-columns:1fr}
-  .bp-license-keyRow{flex-direction:column;align-items:stretch}
-  .bp-license-actions{justify-content:stretch}
-  .bp-license-actions .bp-btn{width:100%}
-}
 @keyframes bp-glow-green{
   0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}
   70%{box-shadow:0 0 0 12px rgba(34,197,94,0)}
@@ -1846,13 +1788,6 @@
 }
 .bp-app-mode .bp-shell {
   margin: 0 !important;
-}
-.bp-app-mode html.wp-toolbar,
-.bp-app-mode body.wp-toolbar {
-  padding-top: 0 !important;
-}
-.bp-app-mode #wpadminbar {
-  display: none !important;
 }
 .bp-brand{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .bp-app-mode .bp-brand{margin-bottom:12px}

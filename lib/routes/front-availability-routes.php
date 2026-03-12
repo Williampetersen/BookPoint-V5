@@ -2,20 +2,20 @@
 if (!defined('ABSPATH')) exit;
 
 add_action('rest_api_init', function () {
-  register_rest_route('bp/v1', '/front/availability/month', [
+  register_rest_route('pointly-booking/v1', '/front/availability/month', [
     'methods'  => 'POST',
-    'callback' => 'bp_front_availability_month',
+    'callback' => 'pointlybooking_front_availability_month',
     'permission_callback' => '__return_true',
   ]);
 
-  register_rest_route('bp/v1', '/front/availability/day', [
+  register_rest_route('pointly-booking/v1', '/front/availability/day', [
     'methods'  => 'POST',
-    'callback' => 'bp_front_availability_day',
+    'callback' => 'pointlybooking_front_availability_day',
     'permission_callback' => '__return_true',
   ]);
 });
 
-function bp_front_availability_month(WP_REST_Request $req) {
+function pointlybooking_front_availability_month(WP_REST_Request $req) {
   $p = $req->get_json_params();
   if (!is_array($p)) $p = [];
 
@@ -31,13 +31,13 @@ function bp_front_availability_month(WP_REST_Request $req) {
     return new WP_REST_Response(['ok' => false, 'message' => 'service_id and agent_id are required'], 400);
   }
 
-  $cache_key = 'bp_av_month_' . md5(json_encode([$service_id, $agent_id, $location_id, $month]));
+  $cache_key = 'pointlybooking_av_month_' . md5(json_encode([$service_id, $agent_id, $location_id, $month]));
   $cached = get_transient($cache_key);
   if ($cached !== false) {
     return new WP_REST_Response(['ok' => true, 'data' => $cached], 200);
   }
 
-  if (!function_exists('bp_rest_public_availability_slots')) {
+  if (!function_exists('pointlybooking_rest_public_availability_slots')) {
     return new WP_REST_Response(['ok' => false, 'message' => 'Availability handler missing'], 500);
   }
 
@@ -46,17 +46,17 @@ function bp_front_availability_month(WP_REST_Request $req) {
   if ($start_ts === false) {
     return new WP_REST_Response(['ok' => false, 'message' => 'Invalid month'], 400);
   }
-  $days_in_month = (int)date('t', $start_ts);
+  $days_in_month = (int)gmdate('t', $start_ts);
 
   $days = [];
   for ($d = 1; $d <= $days_in_month; $d++) {
     $date = sprintf('%s-%02d', $month, $d);
 
-    $r = new WP_REST_Request('GET', '/bp/v1/public/availability-slots');
+    $r = new WP_REST_Request('GET', '/pointly-booking/v1/public/availability-slots');
     $r->set_param('service_id', $service_id);
     $r->set_param('agent_id', $agent_id);
     $r->set_param('date', $date);
-    $resp = bp_rest_public_availability_slots($r);
+    $resp = pointlybooking_rest_public_availability_slots($r);
 
     $count = 0;
     if ($resp instanceof WP_REST_Response) {
@@ -81,7 +81,7 @@ function bp_front_availability_month(WP_REST_Request $req) {
   return new WP_REST_Response(['ok' => true, 'data' => $payload], 200);
 }
 
-function bp_front_availability_day(WP_REST_Request $req) {
+function pointlybooking_front_availability_day(WP_REST_Request $req) {
   $p = $req->get_json_params();
   if (!is_array($p)) $p = [];
 
@@ -97,21 +97,21 @@ function bp_front_availability_day(WP_REST_Request $req) {
     return new WP_REST_Response(['ok' => false, 'message' => 'service_id and agent_id are required'], 400);
   }
 
-  $cache_key = 'bp_av_day_' . md5(json_encode([$service_id, $agent_id, $location_id, $date]));
+  $cache_key = 'pointlybooking_av_day_' . md5(json_encode([$service_id, $agent_id, $location_id, $date]));
   $cached = get_transient($cache_key);
   if ($cached !== false) {
     return new WP_REST_Response(['ok' => true, 'slots' => $cached], 200);
   }
 
-  if (!function_exists('bp_rest_public_availability_slots')) {
+  if (!function_exists('pointlybooking_rest_public_availability_slots')) {
     return new WP_REST_Response(['ok' => false, 'message' => 'Availability handler missing'], 500);
   }
 
-  $r = new WP_REST_Request('GET', '/bp/v1/public/availability-slots');
+  $r = new WP_REST_Request('GET', '/pointly-booking/v1/public/availability-slots');
   $r->set_param('service_id', $service_id);
   $r->set_param('agent_id', $agent_id);
   $r->set_param('date', $date);
-  $resp = bp_rest_public_availability_slots($r);
+  $resp = pointlybooking_rest_public_availability_slots($r);
 
   $normalized = [];
   if ($resp instanceof WP_REST_Response) {
@@ -125,10 +125,10 @@ function bp_front_availability_day(WP_REST_Request $req) {
         $end_ts = strtotime($end);
         if ($start_ts) {
           $normalized[] = [
-            'time' => date('H:i', $start_ts),
-            'label' => $s['label'] ?? (date('H:i', $start_ts) . ($end_ts ? ' - ' . date('H:i', $end_ts) : '')),
-            'start' => date('H:i', $start_ts),
-            'end' => $end_ts ? date('H:i', $end_ts) : '',
+            'time' => gmdate('H:i', $start_ts),
+            'label' => $s['label'] ?? (gmdate('H:i', $start_ts) . ($end_ts ? ' - ' . gmdate('H:i', $end_ts) : '')),
+            'start' => gmdate('H:i', $start_ts),
+            'end' => $end_ts ? gmdate('H:i', $end_ts) : '',
           ];
         }
       }
@@ -138,3 +138,4 @@ function bp_front_availability_day(WP_REST_Request $req) {
   set_transient($cache_key, $normalized, 60);
   return new WP_REST_Response(['ok' => true, 'slots' => $normalized], 200);
 }
+

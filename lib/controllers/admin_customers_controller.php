@@ -1,12 +1,12 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_AdminCustomersController extends BP_Controller {
+final class POINTLYBOOKING_AdminCustomersController extends POINTLYBOOKING_Controller {
 
   public function index() : void {
-    $this->require_cap('bp_manage_customers');
+    $this->require_cap('pointlybooking_manage_customers');
 
-    $items = BP_CustomerModel::all(300);
+    $items = POINTLYBOOKING_CustomerModel::all(300);
 
     $this->render('admin/customers_index', [
       'items' => $items,
@@ -14,19 +14,19 @@ final class BP_AdminCustomersController extends BP_Controller {
   }
 
   public function view() : void {
-    $this->require_cap('bp_manage_customers');
+    $this->require_cap('pointlybooking_manage_customers');
 
-    $id = isset($_GET['id']) ? absint($_GET['id']) : 0;
+    $id = isset($_GET['id']) ? absint(wp_unslash($_GET['id'])) : 0;
     if ($id <= 0) {
-      wp_die(__('Invalid customer.', 'bookpoint'));
+      wp_die(esc_html__('Invalid customer.', 'bookpoint-booking'));
     }
 
-    $customer = BP_CustomerModel::find($id);
+    $customer = POINTLYBOOKING_CustomerModel::find($id);
     if (!$customer) {
-      wp_die(__('Customer not found.', 'bookpoint'));
+      wp_die(esc_html__('Customer not found.', 'bookpoint-booking'));
     }
 
-    $bookings = BP_BookingModel::find_by_customer($id);
+    $bookings = POINTLYBOOKING_BookingModel::find_by_customer($id);
 
     $this->render('admin/customers_view', [
       'customer' => $customer,
@@ -35,25 +35,25 @@ final class BP_AdminCustomersController extends BP_Controller {
   }
 
   public function gdpr_delete() : void {
-    $this->require_cap('bp_manage_customers');
-    check_admin_referer('bp_admin');
+    $this->require_cap('pointlybooking_manage_customers');
+    check_admin_referer('pointlybooking_admin');
 
-    $id = absint($_GET['id'] ?? 0);
+    $id = absint(wp_unslash($_GET['id'] ?? 0));
     if ($id <= 0) {
-      wp_safe_redirect(admin_url('admin.php?page=bp_customers'));
+      wp_safe_redirect(admin_url('admin.php?page=pointlybooking_customers'));
       exit;
     }
 
-    BP_CustomerModel::anonymize($id);
-    BP_BookingModel::detach_customer($id);
+    POINTLYBOOKING_CustomerModel::anonymize($id);
+    POINTLYBOOKING_BookingModel::detach_customer($id);
 
-    BP_AuditHelper::log('gdpr_customer_anonymized', [
+    POINTLYBOOKING_AuditHelper::log('gdpr_customer_anonymized', [
       'actor_type' => 'admin',
       'customer_id' => $id,
       'meta' => ['reason' => 'admin_action'],
     ]);
 
-    wp_safe_redirect(admin_url('admin.php?page=bp_customers&gdpr_deleted=1'));
+    wp_safe_redirect(admin_url('admin.php?page=pointlybooking_customers&gdpr_deleted=1'));
     exit;
   }
 }

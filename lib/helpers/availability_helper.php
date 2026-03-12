@@ -1,7 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_AvailabilityHelper {
+final class POINTLYBOOKING_AvailabilityHelper {
 
   public static function generate_slots_for_date(
     string $date_ymd,
@@ -21,7 +21,7 @@ final class BP_AvailabilityHelper {
 
     $slots = [];
     for ($t = $start_ts; $t < $end_ts; $t += $interval_minutes * 60) {
-      $hm = date('H:i', $t);
+      $hm = gmdate('H:i', $t);
 
       $in_break = false;
       foreach ($breaks as $br) {
@@ -47,7 +47,7 @@ final class BP_AvailabilityHelper {
   // Step 15: Count overlapping bookings
   public static function overlapping_count(int $service_id, string $start_dt, string $end_dt, int $agent_id = 0) : int {
     global $wpdb;
-    $table = $wpdb->prefix . 'bp_bookings';
+    $table = $wpdb->prefix . 'pointlybooking_bookings';
 
     // Step 16: Filter by agent_id if provided
     if ($agent_id > 0) {
@@ -73,7 +73,7 @@ final class BP_AvailabilityHelper {
 
   public static function overlapping_count_excluding_booking(int $service_id, string $start_dt, string $end_dt, int $agent_id = 0, int $exclude_booking_id = 0) : int {
     global $wpdb;
-    $table = $wpdb->prefix . 'bp_bookings';
+    $table = $wpdb->prefix . 'pointlybooking_bookings';
 
     if ($agent_id > 0) {
       return (int) $wpdb->get_var($wpdb->prepare(
@@ -105,14 +105,14 @@ final class BP_AvailabilityHelper {
   }
 
   public static function get_available_slots_for_date(int $service_id, string $date_ymd, int $duration_minutes, int $agent_id = 0, int $exclude_booking_id = 0) : array {
-    $service = BP_ServiceModel::find($service_id);
+    $service = POINTLYBOOKING_ServiceModel::find($service_id);
     if (!$service) return [];
 
-    $day_schedule = BP_ScheduleHelper::get_service_day_schedule($service, $date_ymd);
+    $day_schedule = POINTLYBOOKING_ScheduleHelper::get_service_day_schedule($service, $date_ymd);
     if (empty($day_schedule)) return [];
 
-    $interval = BP_ScheduleHelper::get_slot_interval();
-    $breaks = BP_ScheduleHelper::get_break_ranges();
+    $interval = POINTLYBOOKING_ScheduleHelper::get_slot_interval();
+    $breaks = POINTLYBOOKING_ScheduleHelper::get_break_ranges();
 
     $slots = self::generate_slots_for_date(
       $date_ymd,
@@ -134,14 +134,14 @@ final class BP_AvailabilityHelper {
       $start_ts_adj = $start_ts - ($buf_before * 60);
       $end_ts_adj   = $start_ts + ($duration_minutes * 60) + ($buf_after * 60);
 
-      $start_dt = date('Y-m-d H:i:s', $start_ts_adj);
-      $end_dt   = date('Y-m-d H:i:s', $end_ts_adj);
+      $start_dt = gmdate('Y-m-d H:i:s', $start_ts_adj);
+      $end_dt   = gmdate('Y-m-d H:i:s', $end_ts_adj);
 
       if (self::is_slot_available_excluding_booking($service_id, $start_dt, $end_dt, $capacity, $agent_id, $exclude_booking_id)) {
         $out[] = [
-          'start' => date('Y-m-d H:i:s', $start_ts),
-          'end' => date('Y-m-d H:i:s', $start_ts + ($duration_minutes * 60)),
-          'label' => date('H:i', $start_ts),
+          'start' => gmdate('Y-m-d H:i:s', $start_ts),
+          'end' => gmdate('Y-m-d H:i:s', $start_ts + ($duration_minutes * 60)),
+          'label' => gmdate('H:i', $start_ts),
         ];
       }
     }
@@ -152,15 +152,15 @@ final class BP_AvailabilityHelper {
   public static function get_timeslots_for_date(int $service_id, string $date_ymd, int $agent_id = 0) : array {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_ymd)) return [];
 
-    $service = BP_ServiceModel::find($service_id);
+    $service = POINTLYBOOKING_ServiceModel::find($service_id);
     if (!$service) return [];
 
-    if (!class_exists('BP_ScheduleHelper')) return [];
-    if (BP_ScheduleHelper::is_date_closed($date_ymd, $agent_id)) return [];
+    if (!class_exists('POINTLYBOOKING_ScheduleHelper')) return [];
+    if (POINTLYBOOKING_ScheduleHelper::is_date_closed($date_ymd, $agent_id)) return [];
 
-    $rules = BP_ScheduleHelper::get_service_rules($service_id);
-    $interval = BP_ScheduleHelper::get_slot_interval();
-    $windows = BP_ScheduleHelper::get_day_windows($agent_id, $date_ymd);
+    $rules = POINTLYBOOKING_ScheduleHelper::get_service_rules($service_id);
+    $interval = POINTLYBOOKING_ScheduleHelper::get_slot_interval();
+    $windows = POINTLYBOOKING_ScheduleHelper::get_day_windows($agent_id, $date_ymd);
     if (empty($windows)) return [];
 
     $duration_minutes = (int)$rules['duration'];
@@ -181,15 +181,15 @@ final class BP_AvailabilityHelper {
       $breaks = $w['breaks'] ?? [];
 
       for ($t = $start_ts; $t + ($duration_minutes * 60) <= $end_ts; $t += $interval * 60) {
-        $hm = date('H:i', $t);
+        $hm = gmdate('H:i', $t);
 
         // Skip if overlaps break
-        $slot_start_min = BP_ScheduleHelper::to_minutes($hm);
+        $slot_start_min = POINTLYBOOKING_ScheduleHelper::to_minutes($hm);
         $slot_end_min = $slot_start_min + $duration_minutes;
         $in_break = false;
         foreach ($breaks as $br) {
-          $bs = BP_ScheduleHelper::to_minutes($br['start'] ?? '');
-          $be = BP_ScheduleHelper::to_minutes($br['end'] ?? '');
+          $bs = POINTLYBOOKING_ScheduleHelper::to_minutes($br['start'] ?? '');
+          $be = POINTLYBOOKING_ScheduleHelper::to_minutes($br['end'] ?? '');
           if ($slot_start_min < $be && $slot_end_min > $bs) { $in_break = true; break; }
         }
         if ($in_break) continue;
@@ -197,8 +197,8 @@ final class BP_AvailabilityHelper {
         $start_ts_adj = $t - ($buf_before * 60);
         $end_ts_adj   = $t + ($duration_minutes * 60) + ($buf_after * 60);
 
-        $start_dt = date('Y-m-d H:i:s', $start_ts_adj);
-        $end_dt   = date('Y-m-d H:i:s', $end_ts_adj);
+        $start_dt = gmdate('Y-m-d H:i:s', $start_ts_adj);
+        $end_dt   = gmdate('Y-m-d H:i:s', $end_ts_adj);
 
         if (self::is_slot_available($service_id, $start_dt, $end_dt, $capacity, $agent_id)) {
           $slots[] = $hm;
@@ -234,8 +234,8 @@ final class BP_AvailabilityHelper {
       $start_ts_adj = $start_ts - ($buffer_before * 60);
       $end_ts_adj   = $start_ts + ($duration_minutes * 60) + ($buffer_after * 60);
 
-      $start_dt = date('Y-m-d H:i:s', $start_ts_adj);
-      $end_dt   = date('Y-m-d H:i:s', $end_ts_adj);
+      $start_dt = gmdate('Y-m-d H:i:s', $start_ts_adj);
+      $end_dt   = gmdate('Y-m-d H:i:s', $end_ts_adj);
 
       if (self::is_slot_available($service_id, $start_dt, $end_dt, $capacity, $agent_id)) {
         $out[] = $hm;
@@ -245,4 +245,5 @@ final class BP_AvailabilityHelper {
     return $out;
   }
 }
+
 

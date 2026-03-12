@@ -1,16 +1,16 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_AuditHelper {
+final class POINTLYBOOKING_AuditHelper {
 
   public static function log(string $event, array $data = []) : void {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'bp_audit_log';
+    $table = $wpdb->prefix . 'pointlybooking_audit_log';
 
     $actor_type = $data['actor_type'] ?? (is_user_logged_in() ? 'admin' : 'customer');
     $wp_user_id = is_user_logged_in() ? get_current_user_id() : null;
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $ip = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'] ?? ''));
 
     $wpdb->insert($table, [
       'event' => $event,

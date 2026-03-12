@@ -1,7 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_Locations_Migrations_Helper {
+final class POINTLYBOOKING_Locations_Migrations_Helper {
 
   public static function ensure_tables(): void {
     global $wpdb;
@@ -9,9 +9,9 @@ final class BP_Locations_Migrations_Helper {
 
     $charset = $wpdb->get_charset_collate();
 
-    $locations = $wpdb->prefix . 'bp_locations';
-    $categories = $wpdb->prefix . 'bp_location_categories';
-    $map = $wpdb->prefix . 'bp_location_agents';
+    $locations = $wpdb->prefix . 'pointlybooking_locations';
+    $categories = $wpdb->prefix . 'pointlybooking_location_categories';
+    $map = $wpdb->prefix . 'pointlybooking_location_agents';
 
     $sql_locations = "CREATE TABLE {$locations} (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

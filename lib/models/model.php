@@ -1,7 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-abstract class BP_Model {
+abstract class POINTLYBOOKING_Model {
   abstract public static function table() : string;
 
   protected static function now_mysql() : string {

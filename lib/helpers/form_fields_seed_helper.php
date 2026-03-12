@@ -1,12 +1,12 @@
 <?php
 defined('ABSPATH') || exit;
 
-class BP_FormFieldsSeedHelper {
+class POINTLYBOOKING_FormFieldsSeedHelper {
 
   public static function ensure_defaults() : void {
     global $wpdb;
 
-    $table = $wpdb->prefix . 'bp_form_fields';
+    $table = $wpdb->prefix . 'pointlybooking_form_fields';
 
     // If table doesn't exist, stop (installer must create it)
     $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));

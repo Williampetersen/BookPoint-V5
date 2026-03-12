@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 
@@ -28,12 +28,12 @@ function InnerStripePay({ bookingId, onPaid, onBack }) {
         return;
       }
 
-      const res = await fetch("/wp-json/bp/v1/front/payment/stripe/confirm", {
+      const res = await fetch("/wp-json/pointly-booking/v1/front/payment/stripe/confirm", {
         method: "POST",
         credentials: "same-origin",
         headers: {
           "Content-Type": "application/json",
-          "X-WP-Nonce": window.BP_FRONT?.nonce || "",
+          "X-WP-Nonce": window.pointlybooking_FRONT?.nonce || "",
         },
         body: JSON.stringify({
           booking_id: bookingId,
@@ -83,7 +83,7 @@ export default function StepPayment({
   onPaid,
   onBack,
 }) {
-  const pk = window.BP_FRONT?.stripe_pk || "";
+  const pk = window.pointlybooking_FRONT?.stripe_pk || "";
   const stripePromise = useMemo(() => (pk ? loadStripe(pk) : null), [pk]);
 
   const [clientSecret, setClientSecret] = useState("");
@@ -98,12 +98,12 @@ export default function StepPayment({
     setErr("");
     setLoading(true);
 
-    fetch("/wp-json/bp/v1/front/payment/stripe/start", {
+    fetch("/wp-json/pointly-booking/v1/front/payment/stripe/start", {
       method: "POST",
       credentials: "same-origin",
       headers: {
         "Content-Type": "application/json",
-        "X-WP-Nonce": window.BP_FRONT?.nonce || "",
+        "X-WP-Nonce": window.pointlybooking_FRONT?.nonce || "",
       },
       body: JSON.stringify({ booking_id: bookingId }),
     })

@@ -1,11 +1,11 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_CustomerModel extends BP_Model {
+final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
 
   public static function table() : string {
     global $wpdb;
-    return $wpdb->prefix . 'bp_customers';
+    return $wpdb->prefix . 'pointlybooking_customers';
   }
 
   public static function find_by_email(string $email) : ?array {
@@ -15,7 +15,11 @@ final class BP_CustomerModel extends BP_Model {
     if ($email === '') return null;
 
     $row = $wpdb->get_row(
-      $wpdb->prepare("SELECT * FROM {$table} WHERE email = %s ORDER BY id DESC LIMIT 1", $email),
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT * FROM %i WHERE email = %s ORDER BY id DESC LIMIT 1",
+        [$table],
+        [$email]
+      ),
       ARRAY_A
     );
 
@@ -57,7 +61,11 @@ final class BP_CustomerModel extends BP_Model {
     $limit = max(1, min(500, $limit));
 
     return $wpdb->get_results(
-      $wpdb->prepare("SELECT * FROM {$table} ORDER BY id DESC LIMIT %d", $limit),
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT * FROM %i ORDER BY id DESC LIMIT %d",
+        [$table],
+        [$limit]
+      ),
       ARRAY_A
     ) ?: [];
   }
@@ -67,7 +75,11 @@ final class BP_CustomerModel extends BP_Model {
     $table = self::table();
 
     $row = $wpdb->get_row(
-      $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id),
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT * FROM %i WHERE id = %d",
+        [$table],
+        [$id]
+      ),
       ARRAY_A
     );
 
@@ -90,4 +102,3 @@ final class BP_CustomerModel extends BP_Model {
     return ($updated !== false);
   }
 }
-
