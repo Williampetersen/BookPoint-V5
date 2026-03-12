@@ -47,7 +47,7 @@ export default function HowToUseScreen() {
         <Item title="1) First time setup (admin)">
           <ol style={{ margin: "8px 0 0", paddingLeft: 18 }}>
             <li>Activate the plugin (Plugins → Installed Plugins).</li>
-            <li>If you use licensing, enter/activate your license in <b>BookPoint → Settings</b>.</li>
+            <li>Open <b>BookPoint → Settings</b> and configure your preferred defaults.</li>
             <li>Create at least 1 <b>Service</b> (and Categories/Extras if you use them).</li>
             <li>Create at least 1 <b>Agent</b> and connect agents to services.</li>
             <li>Configure <b>Schedule</b> + <b>Holidays</b> so availability is correct.</li>
@@ -58,12 +58,12 @@ export default function HowToUseScreen() {
 
         <Item title="2) Add the booking button (shortcode)">
           <div>The main shortcode is:</div>
-          <Code>[bookPoint]</Code>
+          <Code>[pointlybooking_booking_form]</Code>
 
           <div style={{ marginTop: 10 }}>
             Change the button text:
           </div>
-          <Code>[bookPoint label="Book Now"]</Code>
+          <Code>[pointlybooking_booking_form label="Book Now"]</Code>
 
           <div style={{ marginTop: 10 }}>
             If you already have your own button/link, you can trigger the wizard by adding this attribute:
@@ -116,7 +116,7 @@ export default function HowToUseScreen() {
           <div>
             Create a page called <b>My Bookings</b> (or any name) and add:
           </div>
-          <Code>[bookPoint_portal]</Code>
+          <Code>[pointlybooking_customer_portal]</Code>
           <div style={{ marginTop: 10 }}>
             Customers can enter their email, verify, and view their bookings.
           </div>
@@ -124,7 +124,7 @@ export default function HowToUseScreen() {
 
         <Item title="7) Quick troubleshooting">
           <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
-            <li>If the wizard does not open: confirm the page contains <code>[bookPoint]</code> and the site is not blocking JS.</li>
+            <li>If the wizard does not open: confirm the page contains <code>[pointlybooking_booking_form]</code> and the site is not blocking JS.</li>
             <li>If no times show: confirm Agent schedule + Holidays, and that the service has at least 1 active agent.</li>
             <li>If payments are missing: enable methods in Settings and verify keys (Stripe/PayPal/WooCommerce).</li>
           </ul>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import Shell from "./layout/Shell";
 
 // Screens
@@ -32,60 +32,60 @@ import HowToUseScreen from "./screens/HowToUseScreen";
 
 function resolveScreen(page) {
   switch(page){
-    case "bp_dashboard": return "dashboard";
+    case "pointlybooking_dashboard": return "dashboard";
     case "bp-bookings": return "bookings";
-    case "bp_bookings": return "bookings";
-    case "bp_bookings_edit": return "bookings-edit";
+    case "pointlybooking_bookings": return "bookings";
+    case "pointlybooking_bookings_edit": return "bookings-edit";
     case "bp-calendar": return "calendar";
-    case "bp_calendar": return "calendar";
+    case "pointlybooking_calendar": return "calendar";
     case "bp-schedule": return "schedule";
-    case "bp_schedule": return "schedule";
+    case "pointlybooking_schedule": return "schedule";
     case "bp-holidays": return "holidays";
-    case "bp_holidays": return "holidays";
+    case "pointlybooking_holidays": return "holidays";
 
     case "bp-services": return "services";
-    case "bp_services": return "services";
-    case "bp_services_edit": return "services-edit";
+    case "pointlybooking_services": return "services";
+    case "pointlybooking_services_edit": return "services-edit";
     case "bp-categories": return "categories";
-    case "bp_categories": return "categories";
-    case "bp_categories_edit": return "categories-edit";
+    case "pointlybooking_categories": return "categories";
+    case "pointlybooking_categories_edit": return "categories-edit";
     case "bp-extras": return "extras";
-    case "bp_extras": return "extras";
-    case "bp_extras_edit": return "extras-edit";
+    case "pointlybooking_extras": return "extras";
+    case "pointlybooking_extras_edit": return "extras-edit";
     case "bp-locations": return "locations";
-    case "bp_locations": return "locations";
+    case "pointlybooking_locations": return "locations";
     case "bp-locations-edit": return "locations-edit";
-    case "bp_locations_edit": return "locations-edit";
+    case "pointlybooking_locations_edit": return "locations-edit";
     case "bp-location-categories-edit": return "location-categories-edit";
-    case "bp_location_categories_edit": return "location-categories-edit";
+    case "pointlybooking_location_categories_edit": return "location-categories-edit";
     case "bp-promo-codes": return "promo";
-    case "bp_promo_codes": return "promo";
+    case "pointlybooking_promo_codes": return "promo";
     case "bp-form-fields": return "form-fields";
-    case "bp_form_fields": return "form-fields";
+    case "pointlybooking_form_fields": return "form-fields";
     case "bp-customers": return "customers";
-    case "bp_customers": return "customers";
-    case "bp_customers_edit": return "customers-edit";
+    case "pointlybooking_customers": return "customers";
+    case "pointlybooking_customers_edit": return "customers-edit";
     case "bp-agents": return "agents";
-    case "bp_agents": return "agents";
-    case "bp_agents_edit": return "agents-edit";
+    case "pointlybooking_agents": return "agents";
+    case "pointlybooking_agents_edit": return "agents-edit";
 
     case "bp-settings": return "settings";
-    case "bp_settings": return "settings";
+    case "pointlybooking_settings": return "settings";
     case "bp-notifications": return "notifications";
-    case "bp_notifications": return "notifications";
+    case "pointlybooking_notifications": return "notifications";
     case "bp-audit-log": return "audit";
-    case "bp_audit": return "audit";
+    case "pointlybooking_audit": return "audit";
     case "bp-tools": return "tools";
-    case "bp_tools": return "tools";
-    case "bp_design_form": return "design-form";
-    case "bp_how_to_use": return "how-to";
+    case "pointlybooking_tools": return "tools";
+    case "pointlybooking_design_form": return "design-form";
+    case "pointlybooking_how_to_use": return "how-to";
 
     default: return "dashboard";
   }
 }
 
 export default function AdminApp() {
-  const page = window.BP_ADMIN?.page || "bp_dashboard";
+  const page = window.pointlybooking_ADMIN?.page || "pointlybooking_dashboard";
   const screen = useMemo(() => resolveScreen(page), [page]);
 
   const [theme, setTheme] = useState("light");
@@ -93,7 +93,7 @@ export default function AdminApp() {
   useEffect(() => {
     setTheme("light");
     document.documentElement.classList.remove("bp-dark");
-    localStorage.setItem("bp_theme", "light");
+    localStorage.setItem("pointlybooking_theme", "light");
   }, []);
 
   function toggleTheme() {
@@ -142,7 +142,7 @@ function ComingSoon({ title }){
     <div className="bp-card">
       <div className="bp-card-label">Page</div>
       <div className="bp-card-value" style={{fontSize:18, marginTop:6}}>
-        {title} (UI shell active ✅)
+        {title} (UI shell active âœ…)
       </div>
       <div className="bp-muted" style={{marginTop:8}}>
         Next: we design and connect this page with Horizon UI layout.

@@ -12,7 +12,7 @@ This plugin runs on **your WooCommerce store site** (your own domain). It genera
 2. In WP Admin (your store site): **Plugins → Add New → Upload Plugin** → upload `dist/bookpoint-license-server.zip`
 3. Activate **BookPoint License Server**
 
-On activation, the plugin creates a DB table: `wp_bp_licenses` (prefix depends on your WP install).
+On activation, the plugin creates a DB table: `wp_pointlybooking_licenses` (prefix depends on your WP install).
 
 ## Sell a licensed product
 

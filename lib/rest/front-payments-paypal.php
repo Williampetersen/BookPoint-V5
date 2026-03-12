@@ -2,22 +2,22 @@
 defined('ABSPATH') || exit;
 
 add_action('rest_api_init', function () {
-  register_rest_route('bp/v1', '/front/payments/paypal/start', [
+  register_rest_route('pointly-booking/v1', '/front/payments/paypal/start', [
     'methods' => 'POST',
-    'callback' => 'bp_paypal_start',
+    'callback' => 'pointlybooking_paypal_start',
     'permission_callback' => '__return_true',
   ]);
 
-  register_rest_route('bp/v1', '/front/payments/paypal/capture', [
+  register_rest_route('pointly-booking/v1', '/front/payments/paypal/capture', [
     'methods' => 'POST',
-    'callback' => 'bp_paypal_capture',
+    'callback' => 'pointlybooking_paypal_capture',
     'permission_callback' => '__return_true',
   ]);
 });
 
-function bp_paypal_base(): string {
-  $mode = class_exists('BP_SettingsHelper')
-    ? (string)BP_SettingsHelper::get('payments_paypal_mode', 'test')
+function pointlybooking_paypal_base(): string {
+  $mode = class_exists('POINTLYBOOKING_SettingsHelper')
+    ? (string)POINTLYBOOKING_SettingsHelper::get('payments_paypal_mode', 'test')
     : 'test';
 
   return $mode === 'live'
@@ -25,17 +25,17 @@ function bp_paypal_base(): string {
     : 'https://api-m.sandbox.paypal.com';
 }
 
-function bp_paypal_token(): string {
-  $client = class_exists('BP_SettingsHelper')
-    ? (string)BP_SettingsHelper::get('payments_paypal_client_id', '')
+function pointlybooking_paypal_token(): string {
+  $client = class_exists('POINTLYBOOKING_SettingsHelper')
+    ? (string)POINTLYBOOKING_SettingsHelper::get('payments_paypal_client_id', '')
     : '';
-  $secret = class_exists('BP_SettingsHelper')
-    ? (string)BP_SettingsHelper::get('payments_paypal_secret', '')
+  $secret = class_exists('POINTLYBOOKING_SettingsHelper')
+    ? (string)POINTLYBOOKING_SettingsHelper::get('payments_paypal_secret', '')
     : '';
 
   if ($client === '' || $secret === '') return '';
 
-  $resp = wp_remote_post(bp_paypal_base() . '/v1/oauth2/token', [
+  $resp = wp_remote_post(pointlybooking_paypal_base() . '/v1/oauth2/token', [
     'headers' => [
       'Authorization' => 'Basic ' . base64_encode($client . ':' . $secret),
       'Content-Type' => 'application/x-www-form-urlencoded',
@@ -49,8 +49,8 @@ function bp_paypal_token(): string {
   return (string)($json['access_token'] ?? '');
 }
 
-function bp_paypal_start(WP_REST_Request $req) {
-  $token = bp_paypal_token();
+function pointlybooking_paypal_start(WP_REST_Request $req) {
+  $token = pointlybooking_paypal_token();
   if ($token === '') {
     return new WP_Error('no_token', 'PayPal credentials not configured.', ['status' => 400]);
   }
@@ -67,22 +67,31 @@ function bp_paypal_start(WP_REST_Request $req) {
     $currency = 'USD';
   }
 
-  $booking = bp_create_pending_payment_booking_from_payload($payload, 'paypal');
+  $booking = pointlybooking_create_pending_payment_booking_from_payload($payload, 'paypal');
   if (is_wp_error($booking)) return $booking;
   $booking_id = (int)($booking['booking_id'] ?? 0);
   if ($booking_id <= 0) {
     return new WP_Error('booking_fail', 'Could not create booking.', ['status' => 500]);
   }
+  $booking_row = POINTLYBOOKING_BookingModel::find($booking_id);
+  $manage_key = sanitize_text_field((string)($booking_row['manage_key'] ?? ''));
 
-  $return = class_exists('BP_SettingsHelper')
-    ? (string)BP_SettingsHelper::get('payments_paypal_return_url', '')
+  $return = class_exists('POINTLYBOOKING_SettingsHelper')
+    ? (string)POINTLYBOOKING_SettingsHelper::get('payments_paypal_return_url', '')
     : '';
-  $cancel = class_exists('BP_SettingsHelper')
-    ? (string)BP_SettingsHelper::get('payments_paypal_cancel_url', '')
+  $cancel = class_exists('POINTLYBOOKING_SettingsHelper')
+    ? (string)POINTLYBOOKING_SettingsHelper::get('payments_paypal_cancel_url', '')
     : '';
 
-  if ($return === '') $return = home_url('/?bp_payment=paypal_return');
-  if ($cancel === '') $cancel = home_url('/?bp_payment=paypal_cancel');
+  if ($return === '') $return = home_url('/?pointlybooking_payment=paypal_return');
+  if ($cancel === '') $cancel = home_url('/?pointlybooking_payment=paypal_cancel');
+
+  $return_args = ['booking_id' => $booking_id];
+  $cancel_args = ['booking_id' => $booking_id];
+  if ($manage_key !== '') {
+    $return_args['key'] = $manage_key;
+    $cancel_args['key'] = $manage_key;
+  }
 
   $order_body = [
     'intent' => 'CAPTURE',
@@ -95,14 +104,14 @@ function bp_paypal_start(WP_REST_Request $req) {
       'custom_id' => (string)$booking_id,
     ]],
     'application_context' => [
-      'return_url' => add_query_arg(['booking_id' => $booking_id], $return),
-      'cancel_url' => add_query_arg(['booking_id' => $booking_id], $cancel),
+      'return_url' => add_query_arg($return_args, $return),
+      'cancel_url' => add_query_arg($cancel_args, $cancel),
       'brand_name' => 'BookPoint',
       'user_action' => 'PAY_NOW',
     ],
   ];
 
-  $resp = wp_remote_post(bp_paypal_base() . '/v2/checkout/orders', [
+  $resp = wp_remote_post(pointlybooking_paypal_base() . '/v2/checkout/orders', [
     'headers' => [
       'Authorization' => 'Bearer ' . $token,
       'Content-Type' => 'application/json',
@@ -133,7 +142,7 @@ function bp_paypal_start(WP_REST_Request $req) {
   if ($order_id !== '') {
     global $wpdb;
     $wpdb->update(
-      $wpdb->prefix . 'bp_bookings',
+      $wpdb->prefix . 'pointlybooking_bookings',
       ['payment_provider_ref' => $order_id],
       ['id' => $booking_id],
       ['%s'],
@@ -146,11 +155,12 @@ function bp_paypal_start(WP_REST_Request $req) {
     'booking_id' => $booking_id,
     'approve_url' => $approve_url,
     'order_id' => $order_id,
+    'manage_key' => $manage_key,
   ]);
 }
 
-function bp_paypal_capture(WP_REST_Request $req) {
-  $token = bp_paypal_token();
+function pointlybooking_paypal_capture(WP_REST_Request $req) {
+  $token = pointlybooking_paypal_token();
   if ($token === '') {
     return new WP_Error('no_token', 'PayPal credentials not configured.', ['status' => 400]);
   }
@@ -160,11 +170,18 @@ function bp_paypal_capture(WP_REST_Request $req) {
 
   $order_id = sanitize_text_field($p['order_id'] ?? '');
   $booking_id = (int)($p['booking_id'] ?? 0);
-  if ($order_id === '' || $booking_id <= 0) {
-    return new WP_Error('bad', 'Missing order_id or booking_id', ['status' => 400]);
+  $manage_key = sanitize_text_field($p['key'] ?? ($p['manage_key'] ?? ''));
+  if ($order_id === '' || $booking_id <= 0 || $manage_key === '') {
+    return new WP_Error('bad', 'Missing order_id, booking_id, or booking key', ['status' => 400]);
   }
 
-  $resp = wp_remote_post(bp_paypal_base() . "/v2/checkout/orders/{$order_id}/capture", [
+  $booking = POINTLYBOOKING_BookingModel::find($booking_id);
+  $stored_key = (string)($booking['manage_key'] ?? '');
+  if ($stored_key === '' || !hash_equals($stored_key, $manage_key)) {
+    return new WP_Error('forbidden', 'Invalid booking key', ['status' => 403]);
+  }
+
+  $resp = wp_remote_post(pointlybooking_paypal_base() . "/v2/checkout/orders/{$order_id}/capture", [
     'headers' => [
       'Authorization' => 'Bearer ' . $token,
       'Content-Type' => 'application/json',
@@ -182,7 +199,7 @@ function bp_paypal_capture(WP_REST_Request $req) {
     return new WP_Error('paypal_error', $json['message'] ?? 'PayPal capture failed', ['status' => 500]);
   }
 
-  bp_confirm_booking_paid($booking_id, $order_id);
+  pointlybooking_confirm_booking_paid($booking_id, $order_id);
 
   return rest_ensure_response(['success' => true, 'booking_id' => $booking_id]);
 }

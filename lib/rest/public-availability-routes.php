@@ -2,20 +2,20 @@
 defined('ABSPATH') || exit;
 
 add_action('rest_api_init', function () {
-  register_rest_route('bp/v1', '/availability/timeslots', [
+  register_rest_route('pointly-booking/v1', '/availability/timeslots', [
     'methods'  => 'GET',
-    'callback' => 'bp_rest_public_timeslots',
+    'callback' => 'pointlybooking_rest_public_timeslots',
     'permission_callback' => '__return_true',
   ]);
 
-  register_rest_route('bp/v1', '/public/availability-slots', [
+  register_rest_route('pointly-booking/v1', '/public/availability-slots', [
     'methods'  => 'GET',
-    'callback' => 'bp_rest_public_availability_slots',
+    'callback' => 'pointlybooking_rest_public_availability_slots',
     'permission_callback' => '__return_true',
   ]);
 });
 
-function bp_rest_public_timeslots(WP_REST_Request $req) {
+function pointlybooking_rest_public_timeslots(WP_REST_Request $req) {
   $service_id = (int)($req->get_param('service_id') ?? 0);
   $agent_id   = (int)($req->get_param('agent_id') ?? 0);
   $date       = sanitize_text_field($req->get_param('date') ?? '');
@@ -29,15 +29,15 @@ function bp_rest_public_timeslots(WP_REST_Request $req) {
     return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid date'], 400);
   }
 
-  if (!class_exists('BP_AvailabilityHelper')) {
+  if (!class_exists('POINTLYBOOKING_AvailabilityHelper')) {
     return new WP_REST_Response(['status' => 'error', 'message' => 'Availability helper missing'], 500);
   }
 
-  if (class_exists('BP_ScheduleHelper') && !BP_ScheduleHelper::is_date_allowed($date)) {
+  if (class_exists('POINTLYBOOKING_ScheduleHelper') && !POINTLYBOOKING_ScheduleHelper::is_date_allowed($date)) {
     return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
   }
 
-  $slots = BP_AvailabilityHelper::get_timeslots_for_date($service_id, $date, $agent_id);
+  $slots = POINTLYBOOKING_AvailabilityHelper::get_timeslots_for_date($service_id, $date, $agent_id);
 
   return new WP_REST_Response([
     'status' => 'success',
@@ -50,7 +50,7 @@ function bp_rest_public_timeslots(WP_REST_Request $req) {
   ], 200);
 }
 
-function bp_rest_public_availability_slots(WP_REST_Request $req) {
+function pointlybooking_rest_public_availability_slots(WP_REST_Request $req) {
   $service_id = (int)($req->get_param('service_id') ?? 0);
   $agent_id   = (int)($req->get_param('agent_id') ?? 0);
   $date       = sanitize_text_field($req->get_param('date') ?? '');
@@ -64,23 +64,23 @@ function bp_rest_public_availability_slots(WP_REST_Request $req) {
     return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid date'], 400);
   }
 
-  $max_days = (int)apply_filters('bp_public_max_booking_days', 120);
+  $max_days = (int)apply_filters('pointlybooking_public_max_booking_days', 120);
   $ts = strtotime($date . ' 00:00:00');
   if ($ts === false) {
     return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid date'], 400);
   }
-  if ($ts < strtotime(date('Y-m-d') . ' 00:00:00')) {
+  if ($ts < strtotime(gmdate('Y-m-d') . ' 00:00:00')) {
     return new WP_REST_Response(['status' => 'success', 'data' => [], 'meta' => ['date' => $date]], 200);
   }
   if ($ts > strtotime('+' . $max_days . ' days')) {
     return new WP_REST_Response(['status' => 'success', 'data' => [], 'meta' => ['date' => $date]], 200);
   }
 
-  if (!class_exists('BP_ScheduleHelper')) {
+  if (!class_exists('POINTLYBOOKING_ScheduleHelper')) {
     return new WP_REST_Response(['status' => 'error', 'message' => 'Schedule helper missing'], 500);
   }
 
-  if (BP_ScheduleHelper::is_date_closed($date, $agent_id)) {
+  if (POINTLYBOOKING_ScheduleHelper::is_date_closed($date, $agent_id)) {
     return new WP_REST_Response(['status' => 'success', 'data' => [], 'meta' => [
       'date' => $date,
       'service_id' => $service_id,
@@ -88,12 +88,12 @@ function bp_rest_public_availability_slots(WP_REST_Request $req) {
     ]], 200);
   }
 
-  $rules = BP_ScheduleHelper::get_service_rules($service_id);
+  $rules = POINTLYBOOKING_ScheduleHelper::get_service_rules($service_id);
   $occupied = (int)$rules['occupied_min'];
   $capacity = (int)$rules['capacity'];
 
   $debug_meta = [];
-  $slots = bp_generate_slots_for_public($date, $agent_id, $service_id, $occupied, $capacity, $debug_meta);
+  $slots = pointlybooking_generate_slots_for_public($date, $agent_id, $service_id, $occupied, $capacity, $debug_meta);
 
   $debug = $req->get_param('debug');
   if ($debug) {
@@ -124,11 +124,11 @@ function bp_rest_public_availability_slots(WP_REST_Request $req) {
   ]], 200);
 }
 
-function bp_generate_slots_for_public(string $date, int $agent_id, int $service_id, int $occupied_min, int $capacity, array &$debug_meta = []): array {
+function pointlybooking_generate_slots_for_public(string $date, int $agent_id, int $service_id, int $occupied_min, int $capacity, array &$debug_meta = []): array {
   global $wpdb;
 
-  $t_book = $wpdb->prefix . 'bp_bookings';
-  $t_srv  = $wpdb->prefix . 'bp_services';
+  $t_book = $wpdb->prefix . 'pointlybooking_bookings';
+  $t_srv  = $wpdb->prefix . 'pointlybooking_services';
 
   $cols = $wpdb->get_col("SHOW COLUMNS FROM {$t_srv}") ?: [];
   $has_duration_minutes = in_array('duration_minutes', $cols, true);
@@ -143,20 +143,20 @@ function bp_generate_slots_for_public(string $date, int $agent_id, int $service_
   $buffer_after_expr = $has_buffer_after_minutes ? 's.buffer_after_minutes' : ($has_buffer_after ? 's.buffer_after' : '0');
 
   $step = 15;
-  if (class_exists('BP_SettingsHelper')) {
-    $step = intval(BP_SettingsHelper::get('slot_interval_minutes', 15));
+  if (class_exists('POINTLYBOOKING_SettingsHelper')) {
+    $step = intval(POINTLYBOOKING_SettingsHelper::get('slot_interval_minutes', 15));
   }
   if ($step < 5) $step = 5;
   if ($step > 60) $step = 60;
 
   $sched = [];
-  if (class_exists('BP_ScheduleHelper')) {
-    $sched = BP_ScheduleHelper::get_agent_weekly_schedule($agent_id);
+  if (class_exists('POINTLYBOOKING_ScheduleHelper')) {
+    $sched = POINTLYBOOKING_ScheduleHelper::get_agent_weekly_schedule($agent_id);
   }
   if (!is_array($sched)) $sched = [];
 
   $ts = strtotime($date.' 00:00:00');
-  $dow = strtolower(date('D', $ts));
+  $dow = strtolower(gmdate('D', $ts));
 
   $mapLong = [
     'monday'=>'mon','tuesday'=>'tue','wednesday'=>'wed','thursday'=>'thu','friday'=>'fri','saturday'=>'sat','sunday'=>'sun'
@@ -189,10 +189,10 @@ function bp_generate_slots_for_public(string $date, int $agent_id, int $service_
     if ($start_ts === false || $end_ts === false || $end_ts <= $start_ts) continue;
 
     for ($t = $start_ts; $t + ($occupied_min * 60) <= $end_ts; $t += $step * 60) {
-      $start_time = date('H:i:s', $t);
-      $end_time   = date('H:i:s', $t + ($occupied_min * 60));
+      $start_time = gmdate('H:i:s', $t);
+      $end_time   = gmdate('H:i:s', $t + ($occupied_min * 60));
 
-      if (!BP_ScheduleHelper::is_within_schedule($agent_id, $date, $start_time, $occupied_min)) {
+      if (!POINTLYBOOKING_ScheduleHelper::is_within_schedule($agent_id, $date, $start_time, $occupied_min)) {
         continue;
       }
 
@@ -253,3 +253,4 @@ function bp_generate_slots_for_public(string $date, int $agent_id, int $service_
 
   return $slots;
 }
+

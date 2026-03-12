@@ -1,16 +1,16 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_AgentModel extends BP_Model {
+final class POINTLYBOOKING_AgentModel extends POINTLYBOOKING_Model {
 
   public static function table() : string {
     global $wpdb;
-    return $wpdb->prefix . 'bp_agents';
+    return $wpdb->prefix . 'pointlybooking_agents';
   }
 
   public static function services_table(): string {
     global $wpdb;
-    return $wpdb->prefix . 'bp_agent_services';
+    return $wpdb->prefix . 'pointlybooking_agent_services';
   }
 
   public static function all(int $limit = 500, bool $only_active = false) : array {
@@ -18,13 +18,17 @@ final class BP_AgentModel extends BP_Model {
     $table = self::table();
     $limit = max(1, min(1000, $limit));
 
-    $cache_key = 'bp_agents_all_' . ($only_active ? 'active' : 'all');
+    $cache_key = 'pointlybooking_agents_all_' . ($only_active ? 'active' : 'all');
     $cached = get_transient($cache_key);
     if (is_array($cached)) return $cached;
 
     if ($only_active) {
       $list = $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM {$table} WHERE is_active = 1 ORDER BY id DESC LIMIT %d", $limit),
+        pointlybooking_prepare_query_with_identifiers(
+          "SELECT * FROM %i WHERE is_active = 1 ORDER BY id DESC LIMIT %d",
+          [$table],
+          [$limit]
+        ),
         ARRAY_A
       ) ?: [];
       set_transient($cache_key, $list, 5 * MINUTE_IN_SECONDS);
@@ -32,7 +36,11 @@ final class BP_AgentModel extends BP_Model {
     }
 
     $list = $wpdb->get_results(
-      $wpdb->prepare("SELECT * FROM {$table} ORDER BY id DESC LIMIT %d", $limit),
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT * FROM %i ORDER BY id DESC LIMIT %d",
+        [$table],
+        [$limit]
+      ),
       ARRAY_A
     ) ?: [];
     set_transient($cache_key, $list, 5 * MINUTE_IN_SECONDS);
@@ -44,7 +52,11 @@ final class BP_AgentModel extends BP_Model {
     $table = self::table();
 
     $row = $wpdb->get_row(
-      $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id),
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT * FROM %i WHERE id = %d",
+        [$table],
+        [$id]
+      ),
       ARRAY_A
     );
 
@@ -69,8 +81,8 @@ final class BP_AgentModel extends BP_Model {
     ], ['%s','%s','%s','%s','%d','%d','%s','%s','%s']);
 
     $id = (int)$wpdb->insert_id;
-    delete_transient('bp_agents_all_all');
-    delete_transient('bp_agents_all_active');
+    delete_transient('pointlybooking_agents_all_all');
+    delete_transient('pointlybooking_agents_all_active');
     return $id;
   }
 
@@ -92,8 +104,8 @@ final class BP_AgentModel extends BP_Model {
 
     $ok = ($updated !== false);
     if ($ok) {
-      delete_transient('bp_agents_all_all');
-      delete_transient('bp_agents_all_active');
+      delete_transient('pointlybooking_agents_all_all');
+      delete_transient('pointlybooking_agents_all_active');
     }
     return $ok;
   }
@@ -104,8 +116,8 @@ final class BP_AgentModel extends BP_Model {
     $deleted = $wpdb->delete($table, ['id' => $id], ['%d']);
     $ok = ($deleted !== false);
     if ($ok) {
-      delete_transient('bp_agents_all_all');
-      delete_transient('bp_agents_all_active');
+      delete_transient('pointlybooking_agents_all_all');
+      delete_transient('pointlybooking_agents_all_active');
     }
     return $ok;
   }
@@ -118,10 +130,13 @@ final class BP_AgentModel extends BP_Model {
   public static function get_service_ids_for_agent(int $agent_id): array {
     global $wpdb;
     $t = self::services_table();
-    $rows = $wpdb->get_col($wpdb->prepare(
-      "SELECT service_id FROM {$t} WHERE agent_id = %d",
-      $agent_id
-    ));
+    $rows = $wpdb->get_col(
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT service_id FROM %i WHERE agent_id = %d",
+        [$t],
+        [$agent_id]
+      )
+    );
     return array_map('intval', $rows ?: []);
   }
 

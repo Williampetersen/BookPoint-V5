@@ -1,11 +1,25 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_CategoryModel {
+final class POINTLYBOOKING_CategoryModel {
 
   public static function table(): string {
+    return pointlybooking_table('categories');
+  }
+
+  private static function prepare_with_table(string $query, string $table, array $args = []): string {
     global $wpdb;
-    return $wpdb->prefix . 'bp_categories';
+    if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
+      return $wpdb->prepare($query, array_merge([$table], $args));
+    }
+
+    $safe_table = preg_replace('/[^A-Za-z0-9_]/', '', $table);
+    $query = preg_replace('/%i/', '`' . $safe_table . '`', $query, 1);
+    if (empty($args)) {
+      return (string) $query;
+    }
+
+    return $wpdb->prepare($query, $args);
   }
 
   public static function all(array $args = []): array {
@@ -15,26 +29,35 @@ final class BP_CategoryModel {
     $q = trim((string)($args['q'] ?? ''));
     $is_active = isset($args['is_active']) && $args['is_active'] !== '' ? (int)$args['is_active'] : null;
 
-    $where = "WHERE 1=1";
+    $sql = "SELECT * FROM %i";
     $params = [];
+    $where_parts = [];
 
     if ($q !== '') {
-      $where .= " AND (name LIKE %s)";
+      $where_parts[] = "name LIKE %s";
       $params[] = '%' . $wpdb->esc_like($q) . '%';
     }
     if ($is_active !== null) {
-      $where .= " AND is_active = %d";
+      $where_parts[] = "is_active = %d";
       $params[] = $is_active;
     }
 
-    $sql = "SELECT * FROM {$t} {$where} ORDER BY sort_order ASC, id DESC LIMIT 500";
-    return $params ? $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) : $wpdb->get_results($sql, ARRAY_A);
+    if (!empty($where_parts)) {
+      $sql .= ' WHERE ' . implode(' AND ', $where_parts);
+    }
+    $sql .= " ORDER BY sort_order ASC, id DESC LIMIT %d";
+    $params[] = 500;
+
+    return $wpdb->get_results(
+      self::prepare_with_table($sql, $t, $params),
+      ARRAY_A
+    );
   }
 
   public static function find(int $id): ?array {
     global $wpdb;
     $t = self::table();
-    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id = %d", $id), ARRAY_A);
+    $row = $wpdb->get_row(self::prepare_with_table("SELECT * FROM %i WHERE id = %d", $t, [$id]), ARRAY_A);
     return $row ?: null;
   }
 

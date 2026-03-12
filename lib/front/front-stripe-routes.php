@@ -1,19 +1,40 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+if (!function_exists('pointlybooking_front_stripe_validate_manage_key')) {
+  function pointlybooking_front_stripe_validate_manage_key(int $booking_id, string $submitted_key): bool {
+    if ($booking_id <= 0 || $submitted_key === '') {
+      return false;
+    }
+
+    $booking = POINTLYBOOKING_BookingModel::find($booking_id);
+    $stored_key = sanitize_text_field((string)($booking['manage_key'] ?? ''));
+    if ($stored_key === '') {
+      return false;
+    }
+
+    return hash_equals($stored_key, $submitted_key);
+  }
+}
+
 add_action('rest_api_init', function () {
-  register_rest_route('bp/v1', '/front/payment/stripe/start', [
+  register_rest_route('pointly-booking/v1', '/front/payment/stripe/start', [
     'methods' => 'POST',
     'callback' => function (WP_REST_Request $req) {
       global $wpdb;
       $params = $req->get_json_params();
 
       $booking_id = isset($params['booking_id']) ? (int)$params['booking_id'] : 0;
+      $manage_key = sanitize_text_field(wp_unslash($params['key'] ?? ($params['manage_key'] ?? '')));
       if (!$booking_id) return new WP_Error('bad_request', 'Missing booking_id', ['status' => 400]);
+      if ($manage_key === '') return new WP_Error('bad_request', 'Missing booking key', ['status' => 400]);
 
-      $table = $wpdb->prefix . 'bp_bookings';
+      $table = $wpdb->prefix . 'pointlybooking_bookings';
       $booking = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $booking_id), ARRAY_A);
       if (!$booking) return new WP_Error('not_found', 'Booking not found', ['status' => 404]);
+      if (!pointlybooking_front_stripe_validate_manage_key($booking_id, $manage_key)) {
+        return new WP_Error('forbidden', 'Invalid booking key', ['status' => 403]);
+      }
 
       $amount = isset($booking['payment_amount']) && $booking['payment_amount'] !== null
         ? (float)$booking['payment_amount']
@@ -27,9 +48,9 @@ add_action('rest_api_init', function () {
         ? strtolower($booking['payment_currency'])
         : (!empty($booking['currency']) ? strtolower($booking['currency']) : 'dkk');
 
-      $secret = get_option('bp_stripe_secret_key', '');
+      $secret = get_option('pointlybooking_stripe_secret_key', '');
       if ($secret === '') {
-        $settings = get_option('bp_settings', []);
+        $settings = get_option('pointlybooking_settings', []);
         $mode = $settings['stripe_mode'] ?? 'test';
         $secret = ($mode === 'live')
           ? ($settings['stripe_live_secret_key'] ?? ($settings['payments_stripe_live_secret_key'] ?? ''))
@@ -77,12 +98,13 @@ add_action('rest_api_init', function () {
         'success' => true,
         'client_secret' => $body['client_secret'],
         'payment_intent_id' => $body['id'],
+        'manage_key' => $manage_key,
       ]);
     },
     'permission_callback' => '__return_true',
   ]);
 
-  register_rest_route('bp/v1', '/front/payment/stripe/confirm', [
+  register_rest_route('pointly-booking/v1', '/front/payment/stripe/confirm', [
     'methods' => 'POST',
     'callback' => function (WP_REST_Request $req) {
       global $wpdb;
@@ -90,14 +112,18 @@ add_action('rest_api_init', function () {
 
       $booking_id = isset($params['booking_id']) ? (int)$params['booking_id'] : 0;
       $payment_intent_id = isset($params['payment_intent_id']) ? sanitize_text_field($params['payment_intent_id']) : '';
+      $manage_key = sanitize_text_field(wp_unslash($params['key'] ?? ($params['manage_key'] ?? '')));
 
-      if (!$booking_id || !$payment_intent_id) {
-        return new WP_Error('bad_request', 'Missing booking_id or payment_intent_id', ['status' => 400]);
+      if (!$booking_id || !$payment_intent_id || $manage_key === '') {
+        return new WP_Error('bad_request', 'Missing booking_id, payment_intent_id, or booking key', ['status' => 400]);
+      }
+      if (!pointlybooking_front_stripe_validate_manage_key($booking_id, $manage_key)) {
+        return new WP_Error('forbidden', 'Invalid booking key', ['status' => 403]);
       }
 
-      $secret = get_option('bp_stripe_secret_key', '');
+      $secret = get_option('pointlybooking_stripe_secret_key', '');
       if ($secret === '') {
-        $settings = get_option('bp_settings', []);
+        $settings = get_option('pointlybooking_settings', []);
         $mode = $settings['stripe_mode'] ?? 'test';
         $secret = ($mode === 'live')
           ? ($settings['stripe_live_secret_key'] ?? ($settings['payments_stripe_live_secret_key'] ?? ''))
@@ -117,7 +143,7 @@ add_action('rest_api_init', function () {
       $body = json_decode(wp_remote_retrieve_body($resp), true);
       $pi_status = $body['status'] ?? '';
 
-      $table = $wpdb->prefix . 'bp_bookings';
+      $table = $wpdb->prefix . 'pointlybooking_bookings';
 
       if ($pi_status === 'succeeded') {
         $wpdb->update($table, [

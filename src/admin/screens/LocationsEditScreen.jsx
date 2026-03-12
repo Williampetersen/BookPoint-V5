@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
-import UpgradeToPro from "../components/UpgradeToPro";
 
 const DAYS = [
   { value: 0, label: "Sunday" },
@@ -38,7 +37,6 @@ function normalizeLocation(raw, id) {
 }
 
 export default function LocationsEditScreen() {
-  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const initialId = getQueryInt("id");
   const [locationId, setLocationId] = useState(initialId);
 
@@ -81,11 +79,6 @@ export default function LocationsEditScreen() {
     let alive = true;
 
     async function load() {
-      if (!isPro) {
-        setLoading(false);
-        setError("");
-        return;
-      }
       setLoading(true);
       setError("");
       try {
@@ -135,7 +128,7 @@ export default function LocationsEditScreen() {
     return () => {
       alive = false;
     };
-  }, [locationId, isPro]);
+  }, [locationId]);
 
   useEffect(() => {
     if (!toast) return;
@@ -270,7 +263,7 @@ export default function LocationsEditScreen() {
       }
 
       if (!locationId && id) {
-        window.history.replaceState(null, "", `admin.php?page=bp_locations_edit&id=${id}`);
+        window.history.replaceState(null, "", `admin.php?page=pointlybooking_locations_edit&id=${id}`);
       }
 
       setDirty(false);
@@ -290,7 +283,7 @@ export default function LocationsEditScreen() {
     setError("");
     try {
       await bpFetch(`/admin/locations/${locationId}`, { method: "DELETE" });
-      window.location.href = "admin.php?page=bp_locations";
+      window.location.href = "admin.php?page=pointlybooking_locations";
     } catch (e) {
       setError(e?.message || "Delete failed");
     } finally {
@@ -315,10 +308,6 @@ export default function LocationsEditScreen() {
     for (const s of services) m.set(Number(s.id), s);
     return m;
   }, [services]);
-
-  if (!isPro) {
-    return <UpgradeToPro feature="Locations" />;
-  }
 
   return (
     <div className="myplugin-page bp-location-edit">
@@ -363,7 +352,7 @@ export default function LocationsEditScreen() {
                       value={location.category_id || 0}
                       onChange={(e) => update({ category_id: Number(e.target.value) || 0 })}
                     >
-                      <option value={0}>—</option>
+                      <option value={0}>Ã¢â‚¬â€</option>
                       {categories.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name || `Category #${c.id}`}
@@ -378,7 +367,7 @@ export default function LocationsEditScreen() {
                     className="bp-textarea"
                     value={location.address}
                     onChange={(e) => update({ address: e.target.value })}
-                    placeholder="Street, city, zip…"
+                    placeholder="Street, city, zipÃ¢â‚¬Â¦"
                   />
                 </div>
               </div>
@@ -519,7 +508,7 @@ export default function LocationsEditScreen() {
                             ) : selectedServiceLabels.length ? (
                               <div className="bp-muted bp-text-sm" style={{ fontWeight: 850 }}>
                                 {selectedServiceLabels.join(", ")}
-                                {entry.services && entry.services.length > 3 ? "…" : ""}
+                                {entry.services && entry.services.length > 3 ? "Ã¢â‚¬Â¦" : ""}
                               </div>
                             ) : null}
                           </div>
@@ -574,7 +563,7 @@ export default function LocationsEditScreen() {
 
               <div className="bp-card bp-location-edit__sidecard">
                 <div className="bp-section-title">Tools</div>
-                <a className="bp-top-btn" href="admin.php?page=bp_location_categories_edit">
+                <a className="bp-top-btn" href="admin.php?page=pointlybooking_location_categories_edit">
                   Manage categories
                 </a>
 
@@ -593,7 +582,7 @@ export default function LocationsEditScreen() {
         <div className="bp-location-edit__bar">
           <a
             className="bp-top-btn"
-            href="admin.php?page=bp_locations"
+            href="admin.php?page=pointlybooking_locations"
             onClick={(e) => {
               if (!dirty) return;
               if (!window.confirm("You have unsaved changes. Leave anyway?")) e.preventDefault();

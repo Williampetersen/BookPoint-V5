@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 
-const clientSideSettings = typeof window !== 'undefined' ? window.BP_FRONT?.settings || null : null;
+const clientSideSettings = typeof window !== 'undefined' ? window.pointlybooking_FRONT?.settings || null : null;
 let cache = clientSideSettings;
 
 export default function useBpFrontSettings(open) {
@@ -17,7 +17,7 @@ export default function useBpFrontSettings(open) {
     let alive = true;
     setLoading(true);
 
-    const base = (typeof window !== 'undefined' ? window.BP_FRONT?.restUrl : '') || '/wp-json/bp/v1';
+    const base = (typeof window !== 'undefined' ? window.pointlybooking_FRONT?.restUrl : '') || '/wp-json/pointly-booking/v1';
     const url = `${String(base).replace(/\/$/, '')}/public/settings?_t=${Date.now()}`;
 
     fetch(url, { credentials: 'same-origin' })

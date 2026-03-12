@@ -1,10 +1,10 @@
 <?php
 defined('ABSPATH') || exit;
 
-function bp_install_form_fields_table() : void {
+function pointlybooking_install_form_fields_table() : void {
   global $wpdb;
   $charset_collate = $wpdb->get_charset_collate();
-  $t = $wpdb->prefix . 'bp_form_fields';
+  $t = $wpdb->prefix . 'pointlybooking_form_fields';
 
   $sql = "CREATE TABLE {$t} (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -39,9 +39,9 @@ function bp_install_form_fields_table() : void {
   dbDelta($sql);
 }
 
-function bp_seed_default_form_fields() : void {
+function pointlybooking_seed_default_form_fields() : void {
   global $wpdb;
-  $t = $wpdb->prefix . 'bp_form_fields';
+  $t = $wpdb->prefix . 'pointlybooking_form_fields';
 
   $now = current_time('mysql');
 

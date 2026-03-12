@@ -57,7 +57,7 @@ export default function InstantDateTimePicker({
 
     setLoading(true);
 
-    postJson("/wp-json/bp/v1/front/availability/month-slots", {
+    postJson("/wp-json/pointly-booking/v1/front/availability/month-slots", {
       service_id: serviceId,
       agent_id: agentId || 0,
       location_id: locationId || 0,

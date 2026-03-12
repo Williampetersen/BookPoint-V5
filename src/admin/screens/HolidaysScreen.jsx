@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
-import UpgradeToPro from "../components/UpgradeToPro";
 
 const monthName = (yyyyMmDd) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(yyyyMmDd || "").slice(0, 10));
@@ -36,7 +35,7 @@ const todayIso = () => toIso(new Date());
 function formatRange(start, end) {
   const s = String(start || "").slice(0, 10);
   const e = String(end || "").slice(0, 10);
-  return s && e && s !== e ? `${s} - ${e}` : s || e || "—";
+  return s && e && s !== e ? `${s} - ${e}` : s || e || "â€”";
 }
 
 function agentLabel(a) {
@@ -165,7 +164,6 @@ function HolidayModal({ agents, row, onClose, onSaved }) {
 }
 
 export default function HolidaysScreen({ embedded = false }) {
-  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const [rows, setRows] = useState([]);
   const [agents, setAgents] = useState([]);
 
@@ -189,7 +187,6 @@ export default function HolidaysScreen({ embedded = false }) {
   const pushToast = (type, msg) => setToast({ type, msg });
 
   const load = async () => {
-    if (!isPro) return;
     setLoading(true);
     try {
       const agentParam = filterAgentId ? `&agent_id=${encodeURIComponent(filterAgentId)}` : "";
@@ -203,14 +200,12 @@ export default function HolidaysScreen({ embedded = false }) {
   };
 
   useEffect(() => {
-    if (!isPro) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, filterAgentId, isPro]);
+  }, [year, filterAgentId]);
 
   useEffect(() => {
     (async () => {
-      if (!isPro) return;
       try {
         const res = await bpFetch("/admin/agents");
         setAgents(res?.data || []);
@@ -218,7 +213,7 @@ export default function HolidaysScreen({ embedded = false }) {
         setAgents([]);
       }
     })();
-  }, [isPro]);
+  }, []);
 
   const agentNameMap = useMemo(() => {
     const map = new Map();
@@ -336,10 +331,6 @@ export default function HolidaysScreen({ embedded = false }) {
 
   const wrapClass = embedded ? "bp-holidays bp-holidays--embedded" : "bp-content bp-holidays";
 
-  if (!isPro) {
-    return <UpgradeToPro feature="Holidays" />;
-  }
-
   return (
     <div className={wrapClass}>
       {toast ? (
@@ -436,7 +427,7 @@ export default function HolidaysScreen({ embedded = false }) {
                             </div>
                             <div className="bp-holidays__rowMeta">
                               <span className="bp-muted">{formatRange(r.start_date, r.end_date)}</span>
-                              <span className="bp-holidays__dot">•</span>
+                              <span className="bp-holidays__dot">â€¢</span>
                               <span className="bp-muted">{scope}</span>
                             </div>
                           </div>

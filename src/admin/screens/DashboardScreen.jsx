@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { bpFetch } from "../api/client";
 
 function Badge({ status }) {
@@ -61,7 +61,7 @@ export default function DashboardScreen() {
   });
 
   const rangeLabel = useMemo(() => {
-    if (preset === "custom") return `${from} – ${to}`;
+    if (preset === "custom") return `${from} â€“ ${to}`;
     return presetToRange(preset).label;
   }, [preset, from, to]);
 
@@ -171,7 +171,13 @@ export default function DashboardScreen() {
           </div>
 
           <div className="bp-dashboard__actions">
-            <button className="bp-primary-btn" onClick={() => alert("Next: open booking wizard")}>
+            <button
+              type="button"
+              className="bp-primary-btn"
+              onClick={() => {
+                window.location.href = "admin.php?page=pointlybooking_bookings_edit&new=1";
+              }}
+            >
               + Create Booking
             </button>
             <div className="bp-actions-menu">
@@ -186,8 +192,8 @@ export default function DashboardScreen() {
               </button>
               {actionsOpen ? (
                 <div className="bp-actions-pop" role="menu">
-                  <a role="menuitem" href="admin.php?page=bp_services">+ Add Service</a>
-                  <a role="menuitem" href="admin.php?page=bp_agents">+ Add Agent</a>
+                  <a role="menuitem" href="admin.php?page=pointlybooking_services">+ Add Service</a>
+                  <a role="menuitem" href="admin.php?page=pointlybooking_agents">+ Add Agent</a>
                 </div>
               ) : null}
             </div>
@@ -208,7 +214,7 @@ export default function DashboardScreen() {
                   aria-haspopup="dialog"
                   aria-expanded={rangeOpen}
                 >
-                  {rangeLabel} <span className="bp-range__caret" aria-hidden="true">▾</span>
+                  {rangeLabel} <span className="bp-range__caret" aria-hidden="true">â–¾</span>
                 </button>
 
                 <div className="bp-range__desktop">
@@ -368,10 +374,10 @@ export default function DashboardScreen() {
             <div className="bp-card bp-quick-card">
               <div className="bp-card-label">Quick Actions</div>
               <div className="bp-quick-actions">
-                <a className="bp-quick-link" href="admin.php?page=bp_bookings">Manage bookings</a>
-                <a className="bp-quick-link" href="admin.php?page=bp_calendar">Open calendar</a>
-                <a className="bp-quick-link" href="admin.php?page=bp_form_fields">Edit form fields</a>
-                <a className="bp-quick-link" href="admin.php?page=bp_settings">Settings</a>
+                <a className="bp-quick-link" href="admin.php?page=pointlybooking_bookings">Manage bookings</a>
+                <a className="bp-quick-link" href="admin.php?page=pointlybooking_calendar">Open calendar</a>
+                <a className="bp-quick-link" href="admin.php?page=pointlybooking_form_fields">Edit form fields</a>
+                <a className="bp-quick-link" href="admin.php?page=pointlybooking_settings">Settings</a>
               </div>
             </div>
 

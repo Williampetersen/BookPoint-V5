@@ -1,23 +1,23 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_RelationsHelper {
+final class POINTLYBOOKING_RelationsHelper {
 
   public static function service_categories_table(): string {
     global $wpdb;
-    return $wpdb->prefix . 'bp_service_categories';
+    return $wpdb->prefix . 'pointlybooking_service_categories';
   }
 
   public static function extra_services_table(): string {
     global $wpdb;
-    return $wpdb->prefix . 'bp_extra_services';
+    return $wpdb->prefix . 'pointlybooking_extra_services';
   }
 
   public static function migrate_legacy_relations(): array {
     global $wpdb;
 
-    $t_services = $wpdb->prefix . 'bp_services';
-    $t_extras   = $wpdb->prefix . 'bp_service_extras';
+    $t_services = $wpdb->prefix . 'pointlybooking_services';
+    $t_extras   = $wpdb->prefix . 'pointlybooking_service_extras';
     $map_sc     = self::service_categories_table();
     $map_es     = self::extra_services_table();
 
@@ -59,8 +59,8 @@ final class BP_RelationsHelper {
   public static function sync_relations(bool $sync_legacy_columns = true): array {
     global $wpdb;
 
-    $t_services = $wpdb->prefix . 'bp_services';
-    $t_extras   = $wpdb->prefix . 'bp_service_extras';
+    $t_services = $wpdb->prefix . 'pointlybooking_services';
+    $t_extras   = $wpdb->prefix . 'pointlybooking_service_extras';
     $map_sc     = self::service_categories_table();
     $map_es     = self::extra_services_table();
 

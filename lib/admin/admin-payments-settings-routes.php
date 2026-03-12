@@ -1,22 +1,28 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+if (!function_exists('pointlybooking_rest_can_manage_payments_settings')) {
+  function pointlybooking_rest_can_manage_payments_settings(): bool {
+    return current_user_can('manage_options');
+  }
+}
+
 add_action('rest_api_init', function () {
-  register_rest_route('bp/v1', '/admin/settings/payments', [
+  register_rest_route('pointly-booking/v1', '/admin/settings/payments', [
     'methods' => 'GET',
     'callback' => function () {
       if (!current_user_can('manage_options')) {
         return new WP_Error('forbidden', 'Forbidden', ['status' => 403]);
       }
 
-      $settings = get_option('bp_settings', []);
-      $payments = bp_payments_settings_from_all($settings);
+      $settings = get_option('pointlybooking_settings', []);
+      $payments = pointlybooking_payments_settings_from_all($settings);
       return rest_ensure_response(['success' => true, 'payments' => $payments]);
     },
-    'permission_callback' => '__return_true',
+    'permission_callback' => 'pointlybooking_rest_can_manage_payments_settings',
   ]);
 
-  register_rest_route('bp/v1', '/admin/settings/payments', [
+  register_rest_route('pointly-booking/v1', '/admin/settings/payments', [
     'methods' => 'POST',
     'callback' => function (WP_REST_Request $req) {
       if (!current_user_can('manage_options')) {
@@ -26,18 +32,18 @@ add_action('rest_api_init', function () {
       $body = $req->get_json_params();
       $values = isset($body['payments']) && is_array($body['payments']) ? $body['payments'] : [];
 
-      $settings = get_option('bp_settings', []);
-      $settings = bp_apply_payments_settings($settings, $values);
-      update_option('bp_settings', $settings, false);
+      $settings = get_option('pointlybooking_settings', []);
+      $settings = pointlybooking_apply_payments_settings($settings, $values);
+      update_option('pointlybooking_settings', $settings, false);
 
-      $payments = bp_payments_settings_from_all($settings);
+      $payments = pointlybooking_payments_settings_from_all($settings);
       return rest_ensure_response(['success' => true, 'payments' => $payments]);
     },
-    'permission_callback' => '__return_true',
+    'permission_callback' => 'pointlybooking_rest_can_manage_payments_settings',
   ]);
 });
 
-function bp_payments_settings_from_all($settings) {
+function pointlybooking_payments_settings_from_all($settings) {
   $enabled = $settings['payments_enabled_methods'] ?? ['cash', 'woocommerce', 'stripe', 'paypal', 'free'];
   if (!is_array($enabled)) $enabled = ['cash'];
 
@@ -81,7 +87,7 @@ function bp_payments_settings_from_all($settings) {
   ];
 }
 
-function bp_apply_payments_settings($settings, $values) {
+function pointlybooking_apply_payments_settings($settings, $values) {
   $known = ['cash', 'woocommerce', 'stripe', 'paypal', 'free'];
 
   $enabled = isset($values['enabled_methods']) && is_array($values['enabled_methods'])

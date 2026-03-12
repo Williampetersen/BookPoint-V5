@@ -1,11 +1,11 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_MigrationsHelper {
+final class POINTLYBOOKING_MigrationsHelper {
 
   const DB_VERSION = '1.6.0';
-  const OPT_DB_VERSION = 'bp_db_version';
-  const DB_VERSION_OPTION = 'BP_db_version';
+  const OPT_DB_VERSION = 'pointlybooking_db_version';
+  const DB_VERSION_OPTION = 'pointlybooking_db_version';
 
   public static function run(): void {
     $installed = (string) get_option(self::OPT_DB_VERSION, '0.0.0');
@@ -19,7 +19,7 @@ final class BP_MigrationsHelper {
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
     $charset = $wpdb->get_charset_collate();
-    $prefix  = $wpdb->prefix . 'bp_';
+    $prefix  = $wpdb->prefix . 'pointlybooking_';
 
     dbDelta("
       CREATE TABLE {$prefix}categories (
@@ -87,8 +87,8 @@ final class BP_MigrationsHelper {
       ) {$charset};
     ");
 
-    if (function_exists('bp_install_form_fields_table')) {
-      bp_install_form_fields_table();
+    if (function_exists('pointlybooking_install_form_fields_table')) {
+      pointlybooking_install_form_fields_table();
     }
 
     dbDelta("
@@ -208,36 +208,36 @@ final class BP_MigrationsHelper {
       ) {$charset};
     ");
 
-    self::maybe_add_column($wpdb->prefix . 'bp_services', 'category_id', 'BIGINT UNSIGNED NULL');
-    self::maybe_add_column($wpdb->prefix . 'bp_services', 'image_id', 'BIGINT UNSIGNED NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_services', 'category_id', 'BIGINT UNSIGNED NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_services', 'image_id', 'BIGINT UNSIGNED NULL');
 
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'category_id', 'BIGINT UNSIGNED NULL');
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'service_id', 'BIGINT UNSIGNED NULL');
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'extras_json', 'LONGTEXT NULL');
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'promo_code', 'VARCHAR(60) NULL');
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'discount_total', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00');
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'total_price', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00');
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'currency', "CHAR(3) NOT NULL DEFAULT 'USD'");
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'payment_method', "VARCHAR(30) NOT NULL DEFAULT 'cash'");
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'payment_status', "VARCHAR(30) NOT NULL DEFAULT 'unpaid'");
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'payment_provider_ref', 'VARCHAR(190) NULL');
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'payment_amount', 'DECIMAL(10,2) NULL');
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'payment_currency', 'CHAR(3) NULL');
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'customer_fields_json', 'LONGTEXT NULL');
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'booking_fields_json', 'LONGTEXT NULL');
-    self::maybe_add_column($wpdb->prefix . 'bp_bookings', 'custom_fields_json', 'LONGTEXT NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'category_id', 'BIGINT UNSIGNED NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'service_id', 'BIGINT UNSIGNED NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'extras_json', 'LONGTEXT NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'promo_code', 'VARCHAR(60) NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'discount_total', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'total_price', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'currency', "CHAR(3) NOT NULL DEFAULT 'USD'");
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'payment_method', "VARCHAR(30) NOT NULL DEFAULT 'cash'");
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'payment_status', "VARCHAR(30) NOT NULL DEFAULT 'unpaid'");
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'payment_provider_ref', 'VARCHAR(190) NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'payment_amount', 'DECIMAL(10,2) NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'payment_currency', 'CHAR(3) NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'customer_fields_json', 'LONGTEXT NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'booking_fields_json', 'LONGTEXT NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_bookings', 'custom_fields_json', 'LONGTEXT NULL');
 
-    self::maybe_add_column($wpdb->prefix . 'bp_customers', 'custom_fields_json', 'LONGTEXT NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_customers', 'custom_fields_json', 'LONGTEXT NULL');
 
-    self::maybe_add_index($wpdb->prefix . 'bp_bookings', 'service_id', 'service_id');
-    self::maybe_add_index($wpdb->prefix . 'bp_bookings', 'category_id', 'category_id');
+    self::maybe_add_index($wpdb->prefix . 'pointlybooking_bookings', 'service_id', 'service_id');
+    self::maybe_add_index($wpdb->prefix . 'pointlybooking_bookings', 'category_id', 'category_id');
 
-    self::maybe_add_column($wpdb->prefix . 'bp_agents', 'image_id', 'BIGINT UNSIGNED NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_agents', 'image_id', 'BIGINT UNSIGNED NULL');
 
-    self::maybe_add_column($wpdb->prefix . 'bp_holidays', 'agent_id', 'BIGINT UNSIGNED NULL');
-    self::maybe_add_column($wpdb->prefix . 'bp_holidays', 'is_recurring', 'TINYINT(1) NOT NULL DEFAULT 0');
-    self::maybe_add_column($wpdb->prefix . 'bp_holidays', 'created_at', 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
-    self::maybe_add_column($wpdb->prefix . 'bp_holidays', 'updated_at', 'DATETIME NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_holidays', 'agent_id', 'BIGINT UNSIGNED NULL');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_holidays', 'is_recurring', 'TINYINT(1) NOT NULL DEFAULT 0');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_holidays', 'created_at', 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
+    self::maybe_add_column($wpdb->prefix . 'pointlybooking_holidays', 'updated_at', 'DATETIME NULL');
 
     dbDelta("
       CREATE TABLE {$prefix}agent_services (
@@ -275,11 +275,11 @@ final class BP_MigrationsHelper {
       ) {$charset};
     ");
 
-    if (!get_option('bp_relations_migrated_1_4')) {
-      if (class_exists('BP_RelationsHelper')) {
-        BP_RelationsHelper::migrate_legacy_relations();
+    if (!get_option('pointlybooking_relations_migrated_1_4')) {
+      if (class_exists('POINTLYBOOKING_RelationsHelper')) {
+        POINTLYBOOKING_RelationsHelper::migrate_legacy_relations();
       }
-      update_option('bp_relations_migrated_1_4', 1, false);
+      update_option('pointlybooking_relations_migrated_1_4', 1, false);
     }
 
     update_option(self::OPT_DB_VERSION, self::DB_VERSION, false);
@@ -289,22 +289,22 @@ final class BP_MigrationsHelper {
     global $wpdb;
 
     $tables = [
-      $wpdb->prefix . 'bp_categories',
-      $wpdb->prefix . 'bp_service_extras',
-      $wpdb->prefix . 'bp_bundles',
-      $wpdb->prefix . 'bp_bundle_items',
-      $wpdb->prefix . 'bp_form_fields',
-      $wpdb->prefix . 'bp_field_values',
-      $wpdb->prefix . 'bp_promo_codes',
-      $wpdb->prefix . 'bp_holidays',
-      $wpdb->prefix . 'bp_schedules',
-      $wpdb->prefix . 'bp_schedule_settings',
-      $wpdb->prefix . 'bp_agent_services',
-      $wpdb->prefix . 'bp_service_categories',
-      $wpdb->prefix . 'bp_extra_services',
-      $wpdb->prefix . 'bp_workflows',
-      $wpdb->prefix . 'bp_workflow_actions',
-      $wpdb->prefix . 'bp_workflow_logs',
+      $wpdb->prefix . 'pointlybooking_categories',
+      $wpdb->prefix . 'pointlybooking_service_extras',
+      $wpdb->prefix . 'pointlybooking_bundles',
+      $wpdb->prefix . 'pointlybooking_bundle_items',
+      $wpdb->prefix . 'pointlybooking_form_fields',
+      $wpdb->prefix . 'pointlybooking_field_values',
+      $wpdb->prefix . 'pointlybooking_promo_codes',
+      $wpdb->prefix . 'pointlybooking_holidays',
+      $wpdb->prefix . 'pointlybooking_schedules',
+      $wpdb->prefix . 'pointlybooking_schedule_settings',
+      $wpdb->prefix . 'pointlybooking_agent_services',
+      $wpdb->prefix . 'pointlybooking_service_categories',
+      $wpdb->prefix . 'pointlybooking_extra_services',
+      $wpdb->prefix . 'pointlybooking_workflows',
+      $wpdb->prefix . 'pointlybooking_workflow_actions',
+      $wpdb->prefix . 'pointlybooking_workflow_logs',
     ];
 
     foreach ($tables as $table) {
@@ -314,9 +314,9 @@ final class BP_MigrationsHelper {
       }
     }
 
-    $service_table = $wpdb->prefix . 'bp_services';
-    $booking_table = $wpdb->prefix . 'bp_bookings';
-    $agent_table = $wpdb->prefix . 'bp_agents';
+    $service_table = $wpdb->prefix . 'pointlybooking_services';
+    $booking_table = $wpdb->prefix . 'pointlybooking_bookings';
+    $agent_table = $wpdb->prefix . 'pointlybooking_agents';
 
     $service_columns = ['category_id', 'image_id'];
     foreach ($service_columns as $col) {
@@ -343,7 +343,7 @@ final class BP_MigrationsHelper {
       if (!self::column_exists($booking_table, $col)) return true;
     }
 
-      if (!self::column_exists($wpdb->prefix . 'bp_customers', 'custom_fields_json')) return true;
+      if (!self::column_exists($wpdb->prefix . 'pointlybooking_customers', 'custom_fields_json')) return true;
       if (!self::column_exists($booking_table, 'custom_fields_json')) return true;
 
     if (!self::column_exists($agent_table, 'image_id')) return true;
@@ -353,8 +353,12 @@ final class BP_MigrationsHelper {
 
   private static function column_exists(string $table, string $column): bool {
     global $wpdb;
+    if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($column)) {
+      return false;
+    }
+    $table_sql = self::quote_sql_identifier($table);
     $exists = $wpdb->get_var($wpdb->prepare(
-      "SHOW COLUMNS FROM {$table} LIKE %s",
+      "SHOW COLUMNS FROM {$table_sql} LIKE %s",
       $column
     ));
     return !empty($exists);
@@ -367,10 +371,10 @@ final class BP_MigrationsHelper {
 
     $charset_collate = $wpdb->get_charset_collate();
 
-    $services = $wpdb->prefix . 'bp_services';
-    $customers = $wpdb->prefix . 'bp_customers';
-    $bookings = $wpdb->prefix . 'bp_bookings';
-    $settings = $wpdb->prefix . 'bp_settings';
+    $services = $wpdb->prefix . 'pointlybooking_services';
+    $customers = $wpdb->prefix . 'pointlybooking_customers';
+    $bookings = $wpdb->prefix . 'pointlybooking_bookings';
+    $settings = $wpdb->prefix . 'pointlybooking_settings';
 
     $sql_services = "CREATE TABLE $services (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -454,42 +458,30 @@ final class BP_MigrationsHelper {
     // Step 18: Service-Agent pivot
     self::migrate_create_service_agents_table();
 
-    if (function_exists('bp_install_form_fields_table')) {
-      bp_install_form_fields_table();
+    if (function_exists('pointlybooking_install_form_fields_table')) {
+      pointlybooking_install_form_fields_table();
     }
-    if (function_exists('bp_seed_default_form_fields')) {
-      bp_seed_default_form_fields();
+    if (function_exists('pointlybooking_seed_default_form_fields')) {
+      pointlybooking_seed_default_form_fields();
     }
-    if (function_exists('bp_install_field_values_table')) {
-      bp_install_field_values_table();
+    if (function_exists('pointlybooking_install_field_values_table')) {
+      pointlybooking_install_field_values_table();
     }
   }
 
   // Step 19: Ensure bookings have status + notes columns
   private static function migrate_booking_notes_status() : void {
     global $wpdb;
-    $table = $wpdb->prefix . 'bp_bookings';
-
-    $columns = $wpdb->get_col("DESC {$table}", 0);
-
-    if (!in_array('status', $columns, true)) {
-      $wpdb->query("ALTER TABLE {$table} ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'pending'");
-    }
-    if (!in_array('notes', $columns, true)) {
-      $wpdb->query("ALTER TABLE {$table} ADD COLUMN notes LONGTEXT NULL");
-    }
+    $table = $wpdb->prefix . 'pointlybooking_bookings';
+    self::maybe_add_column($table, 'status', "VARCHAR(30) NOT NULL DEFAULT 'pending'");
+    self::maybe_add_column($table, 'notes', 'LONGTEXT NULL');
   }
 
   // Step 21: Track manage token last used
   private static function migrate_booking_token_last_used() : void {
     global $wpdb;
-    $table = $wpdb->prefix . 'bp_bookings';
-
-    $columns = $wpdb->get_col("DESC {$table}", 0);
-
-    if (!in_array('manage_token_last_used_at', $columns, true)) {
-      $wpdb->query("ALTER TABLE {$table} ADD COLUMN manage_token_last_used_at DATETIME NULL");
-    }
+    $table = $wpdb->prefix . 'pointlybooking_bookings';
+    self::maybe_add_column($table, 'manage_token_last_used_at', 'DATETIME NULL');
   }
 
   private static function migrate_audit_table() : void {
@@ -497,7 +489,7 @@ final class BP_MigrationsHelper {
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-    $table = $wpdb->prefix . 'bp_audit_log';
+    $table = $wpdb->prefix . 'pointlybooking_audit_log';
     $charset = $wpdb->get_charset_collate();
 
     $sql = "CREATE TABLE {$table} (
@@ -523,14 +515,14 @@ final class BP_MigrationsHelper {
   private static function migrate_indexes() : void {
     global $wpdb;
 
-    $b = $wpdb->prefix . 'bp_bookings';
+    $b = $wpdb->prefix . 'pointlybooking_bookings';
     self::ensure_index($b, 'status');
     self::ensure_index($b, 'customer_id');
     self::ensure_index($b, 'agent_id');
     self::ensure_index($b, 'service_id');
     self::ensure_index($b, 'start_datetime');
 
-    $a = $wpdb->prefix . 'bp_audit_log';
+    $a = $wpdb->prefix . 'pointlybooking_audit_log';
     self::ensure_index($a, 'event');
     self::ensure_index($a, 'created_at');
     self::ensure_index($a, 'booking_id');
@@ -539,66 +531,85 @@ final class BP_MigrationsHelper {
 
   private static function ensure_index(string $table, string $column) : void {
     global $wpdb;
+    if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($column)) {
+      return;
+    }
+
+    $table_sql = self::quote_sql_identifier($table);
+    $column_sql = self::quote_sql_identifier($column);
 
     $exists = $wpdb->get_var($wpdb->prepare(
-      'SHOW INDEX FROM ' . $table . ' WHERE Column_name = %s',
+      "SHOW INDEX FROM {$table_sql} WHERE Column_name = %s",
       $column
     ));
 
     if ($exists) return;
 
-    $wpdb->query("ALTER TABLE {$table} ADD INDEX {$column} ({$column})");
+    $wpdb->query("ALTER TABLE {$table_sql} ADD INDEX {$column_sql} ({$column_sql})");
   }
 
   private static function maybe_add_column(string $table, string $column, string $definition): void {
     global $wpdb;
+    if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($column)) {
+      return;
+    }
+    if (!self::is_safe_column_definition($definition)) {
+      return;
+    }
+    $table_sql = self::quote_sql_identifier($table);
+    $column_sql = self::quote_sql_identifier($column);
     $exists = $wpdb->get_var($wpdb->prepare(
-      "SHOW COLUMNS FROM {$table} LIKE %s",
+      "SHOW COLUMNS FROM {$table_sql} LIKE %s",
       $column
     ));
     if (!$exists) {
-      $wpdb->query("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
+      $wpdb->query("ALTER TABLE {$table_sql} ADD COLUMN {$column_sql} {$definition}");
     }
   }
 
   private static function maybe_add_index(string $table, string $index_name, string $column): void {
     global $wpdb;
+    if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($index_name) || !self::is_safe_sql_identifier($column)) {
+      return;
+    }
+    $table_sql = self::quote_sql_identifier($table);
+    $index_sql = self::quote_sql_identifier($index_name);
+    $column_sql = self::quote_sql_identifier($column);
     $exists = $wpdb->get_var($wpdb->prepare(
-      "SHOW INDEX FROM {$table} WHERE Key_name = %s",
+      "SHOW INDEX FROM {$table_sql} WHERE Key_name = %s",
       $index_name
     ));
     if (!$exists) {
-      $wpdb->query("ALTER TABLE {$table} ADD INDEX {$index_name} ({$column})");
+      $wpdb->query("ALTER TABLE {$table_sql} ADD INDEX {$index_sql} ({$column_sql})");
     }
+  }
+
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
+  private static function is_safe_column_definition(string $definition): bool {
+    return preg_match("/^[A-Za-z0-9_(),\\s'\\.-]+$/", $definition) === 1;
   }
 
   private static function migrate_add_service_availability_fields() : void {
     global $wpdb;
-    $table = $wpdb->prefix . 'bp_services';
-
-    $columns = $wpdb->get_col("DESC {$table}", 0);
-
-    if (!in_array('use_global_schedule', $columns, true)) {
-      $wpdb->query("ALTER TABLE {$table} ADD COLUMN use_global_schedule TINYINT(1) NOT NULL DEFAULT 1");
-    }
-    if (!in_array('schedule_json', $columns, true)) {
-      $wpdb->query("ALTER TABLE {$table} ADD COLUMN schedule_json LONGTEXT NULL");
-    }
-    if (!in_array('buffer_before_minutes', $columns, true)) {
-      $wpdb->query("ALTER TABLE {$table} ADD COLUMN buffer_before_minutes INT NOT NULL DEFAULT 0");
-    }
-    if (!in_array('buffer_after_minutes', $columns, true)) {
-      $wpdb->query("ALTER TABLE {$table} ADD COLUMN buffer_after_minutes INT NOT NULL DEFAULT 0");
-    }
-    if (!in_array('capacity', $columns, true)) {
-      $wpdb->query("ALTER TABLE {$table} ADD COLUMN capacity INT NOT NULL DEFAULT 1");
-    }
+    $table = $wpdb->prefix . 'pointlybooking_services';
+    self::maybe_add_column($table, 'use_global_schedule', 'TINYINT(1) NOT NULL DEFAULT 1');
+    self::maybe_add_column($table, 'schedule_json', 'LONGTEXT NULL');
+    self::maybe_add_column($table, 'buffer_before_minutes', 'INT NOT NULL DEFAULT 0');
+    self::maybe_add_column($table, 'buffer_after_minutes', 'INT NOT NULL DEFAULT 0');
+    self::maybe_add_column($table, 'capacity', 'INT NOT NULL DEFAULT 1');
   }
 
   // Step 16: Create agents table
   private static function migrate_create_agents_table() : void {
     global $wpdb;
-    $table = $wpdb->prefix . 'bp_agents';
+    $table = $wpdb->prefix . 'pointlybooking_agents';
     $charset = $wpdb->get_charset_collate();
 
     $sql = "CREATE TABLE IF NOT EXISTS {$table} (
@@ -622,20 +633,15 @@ final class BP_MigrationsHelper {
   // Step 16: Add agent_id to bookings
   private static function migrate_add_agent_id_to_bookings() : void {
     global $wpdb;
-    $table = $wpdb->prefix . 'bp_bookings';
-
-    $columns = $wpdb->get_col("DESC {$table}", 0);
-
-    if (!in_array('agent_id', $columns, true)) {
-      $wpdb->query("ALTER TABLE {$table} ADD COLUMN agent_id BIGINT UNSIGNED NULL AFTER customer_id");
-      $wpdb->query("ALTER TABLE {$table} ADD INDEX agent_id (agent_id)");
-    }
+    $table = $wpdb->prefix . 'pointlybooking_bookings';
+    self::maybe_add_column($table, 'agent_id', 'BIGINT UNSIGNED NULL AFTER customer_id');
+    self::maybe_add_index($table, 'agent_id', 'agent_id');
   }
 
   // Step 18: Create service_agents pivot table
   private static function migrate_create_service_agents_table() : void {
     global $wpdb;
-    $table = $wpdb->prefix . 'bp_service_agents';
+    $table = $wpdb->prefix . 'pointlybooking_service_agents';
     $charset = $wpdb->get_charset_collate();
 
     $sql = "CREATE TABLE {$table} (
@@ -653,4 +659,3 @@ final class BP_MigrationsHelper {
     dbDelta($sql);
   }
 }
-

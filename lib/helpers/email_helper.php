@@ -1,7 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_EmailHelper {
+final class POINTLYBOOKING_EmailHelper {
 
   public static function admin_email() : string {
     return (string) get_option('admin_email');
@@ -11,8 +11,8 @@ final class BP_EmailHelper {
     $to = sanitize_email($to);
     if ($to === '') return false;
 
-    $from_name  = BP_SettingsHelper::get_with_default('bp_email_from_name');
-    $from_email = BP_SettingsHelper::get_with_default('bp_email_from_email');
+    $from_name  = POINTLYBOOKING_SettingsHelper::get_with_default('pointlybooking_email_from_name');
+    $from_email = POINTLYBOOKING_SettingsHelper::get_with_default('pointlybooking_email_from_email');
 
     $from_name  = sanitize_text_field($from_name ?: get_bloginfo('name'));
     $from_email = sanitize_email($from_email ?: get_option('admin_email'));
@@ -59,7 +59,9 @@ final class BP_EmailHelper {
   public static function booking_created_customer(array $booking, array $service, array $customer) : void {
     if (empty($customer['email'])) return;
 
-    $subject = sprintf(__('Your booking request: %s', 'bookpoint'), (string)($service['name'] ?? ''));
+    /* translators: %s: Service name. */
+    /* translators: %s: Service name. */
+    $subject = sprintf(__('Your booking request: %s', 'bookpoint-booking'), (string)($service['name'] ?? ''));
     $body = self::tpl_customer_created($booking, $service, $customer);
 
     self::send($customer['email'], $subject, $body);
@@ -69,7 +71,9 @@ final class BP_EmailHelper {
     $to = self::admin_email();
     if ($to === '') return;
 
-    $subject = sprintf(__('New booking: %s', 'bookpoint'), (string)($service['name'] ?? ''));
+    /* translators: %s: Service name. */
+    /* translators: %s: Service name. */
+    $subject = sprintf(__('New booking: %s', 'bookpoint-booking'), (string)($service['name'] ?? ''));
     $body = self::tpl_admin_created($booking, $service, $customer);
 
     self::send($to, $subject, $body);
@@ -78,18 +82,20 @@ final class BP_EmailHelper {
   public static function booking_status_changed_customer(array $booking, array $service, array $customer, string $old, string $new) : void {
     if (empty($customer['email'])) return;
 
-    $subject = sprintf(__('Booking status updated: %s', 'bookpoint'), (string)($service['name'] ?? ''));
+    /* translators: %s: Service name. */
+    /* translators: %s: Service name. */
+    $subject = sprintf(__('Booking status updated: %s', 'bookpoint-booking'), (string)($service['name'] ?? ''));
     $body = self::tpl_customer_status($booking, $service, $customer, $old, $new);
 
     self::send($customer['email'], $subject, $body);
   }
 
   public static function customer_booking_subject() : string {
-    return __('Your booking request', 'bookpoint');
+    return __('Your booking request', 'bookpoint-booking');
   }
 
   public static function admin_booking_subject() : string {
-    return __('New booking received', 'bookpoint');
+    return __('New booking received', 'bookpoint-booking');
   }
 
   public static function customer_template(array $booking, array $service, array $customer, string $manage_url) : string {
@@ -98,15 +104,15 @@ final class BP_EmailHelper {
     $end   = esc_html($booking['end_datetime'] ?? '-');
 
     $name = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? ''));
-    $name = $name ? esc_html($name) : esc_html__('Customer', 'bookpoint');
+    $name = $name ? esc_html($name) : esc_html__('Customer', 'bookpoint-booking');
 
     return "
       <p><strong>{$name}</strong>,</p>
-      <p>" . esc_html__('Your booking was created successfully.', 'bookpoint') . "</p>
-      <p><strong>" . esc_html__('Service:', 'bookpoint') . "</strong> {$service_name}<br>
-      <strong>" . esc_html__('Start:', 'bookpoint') . "</strong> {$start}<br>
-      <strong>" . esc_html__('End:', 'bookpoint') . "</strong> {$end}</p>
-      <p><a href=\"" . esc_url($manage_url) . "\">" . esc_html__('Manage your booking', 'bookpoint') . "</a></p>
+      <p>" . esc_html__('Your booking was created successfully.', 'bookpoint-booking') . "</p>
+      <p><strong>" . esc_html__('Service:', 'bookpoint-booking') . "</strong> {$service_name}<br>
+      <strong>" . esc_html__('Start:', 'bookpoint-booking') . "</strong> {$start}<br>
+      <strong>" . esc_html__('End:', 'bookpoint-booking') . "</strong> {$end}</p>
+      <p><a href=\"" . esc_url($manage_url) . "\">" . esc_html__('Manage your booking', 'bookpoint-booking') . "</a></p>
     ";
   }
 
@@ -116,23 +122,23 @@ final class BP_EmailHelper {
     $end   = esc_html($booking['end_datetime'] ?? '-');
 
     $name = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? ''));
-    $name = $name ? esc_html($name) : esc_html__('(No name)', 'bookpoint');
+    $name = $name ? esc_html($name) : esc_html__('(No name)', 'bookpoint-booking');
 
     $email = esc_html($customer['email'] ?? '-');
     $phone = esc_html($customer['phone'] ?? '-');
 
     return "
-      <p><strong>" . esc_html__('New booking received', 'bookpoint') . "</strong></p>
-      <p><strong>" . esc_html__('Service:', 'bookpoint') . "</strong> {$service_name}<br>
-      <strong>" . esc_html__('Start:', 'bookpoint') . "</strong> {$start}<br>
-      <strong>" . esc_html__('End:', 'bookpoint') . "</strong> {$end}<br>
-      <strong>" . esc_html__('Status:', 'bookpoint') . "</strong> " . esc_html($booking['status'] ?? '-') . "</p>
+      <p><strong>" . esc_html__('New booking received', 'bookpoint-booking') . "</strong></p>
+      <p><strong>" . esc_html__('Service:', 'bookpoint-booking') . "</strong> {$service_name}<br>
+      <strong>" . esc_html__('Start:', 'bookpoint-booking') . "</strong> {$start}<br>
+      <strong>" . esc_html__('End:', 'bookpoint-booking') . "</strong> {$end}<br>
+      <strong>" . esc_html__('Status:', 'bookpoint-booking') . "</strong> " . esc_html($booking['status'] ?? '-') . "</p>
 
-      <p><strong>" . esc_html__('Customer:', 'bookpoint') . "</strong> {$name}<br>
-      <strong>" . esc_html__('Email:', 'bookpoint') . "</strong> {$email}<br>
-      <strong>" . esc_html__('Phone:', 'bookpoint') . "</strong> {$phone}</p>
+      <p><strong>" . esc_html__('Customer:', 'bookpoint-booking') . "</strong> {$name}<br>
+      <strong>" . esc_html__('Email:', 'bookpoint-booking') . "</strong> {$email}<br>
+      <strong>" . esc_html__('Phone:', 'bookpoint-booking') . "</strong> {$phone}</p>
 
-      <p><a href=\"" . esc_url($manage_url) . "\">" . esc_html__('Manage link', 'bookpoint') . "</a></p>
+      <p><a href=\"" . esc_url($manage_url) . "\">" . esc_html__('Manage link', 'bookpoint-booking') . "</a></p>
     ";
   }
 
@@ -181,7 +187,7 @@ final class BP_EmailHelper {
       <p>Hi {$name},</p>
       <p>Your booking for <strong>{$svc}</strong> has been updated.</p>
       <p><strong>Date/Time:</strong> {$start}</p>
-      <p><strong>Status:</strong> {$oldE} → <strong>{$newE}</strong></p>
+      <p><strong>Status:</strong> {$oldE} -> <strong>{$newE}</strong></p>
     ";
   }
 }

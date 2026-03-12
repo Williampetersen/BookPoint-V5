@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import {
   fetchLocations,
   fetchCategories,
@@ -68,36 +68,49 @@ function toBoolEnabled(v) {
 }
 
 function getRestBase() {
-  const url = window.BP_FRONT?.restUrl || '/wp-json/bp/v1';
+  const url = window.pointlybooking_FRONT?.restUrl || '/wp-json/pointly-booking/v1';
   return url.replace(/\/$/, '');
 }
 
-async function paypalCapture(orderId, bookingId) {
+function extractManageKey(maybeUrl) {
+  if (!maybeUrl) return '';
+  try {
+    const parsed = new URL(maybeUrl, window.location.origin);
+    return parsed.searchParams.get('key') || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+async function paypalCapture(orderId, bookingId, bookingKey) {
   const r = await fetch(`${getRestBase()}/front/payments/paypal/capture`, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ order_id: orderId, booking_id: bookingId }),
+    body: JSON.stringify({ order_id: orderId, booking_id: bookingId, key: bookingKey }),
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j?.message || 'PayPal capture failed');
   return j;
 }
 
-async function fetchBookingStatus(id) {
-  const r = await fetch(`${getRestBase()}/front/bookings/${id}/status?_t=${Date.now()}`, {
+async function fetchBookingStatus(id, bookingKey) {
+  const params = new URLSearchParams({ _t: String(Date.now()) });
+  if (bookingKey) params.set('key', bookingKey);
+
+  const r = await fetch(`${getRestBase()}/front/bookings/${id}/status?${params.toString()}`, {
     credentials: 'same-origin',
-    headers: { 'X-WP-Nonce': window.BP_FRONT?.nonce || '' },
+    headers: { 'X-WP-Nonce': window.pointlybooking_FRONT?.nonce || '' },
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok || !j?.success) throw new Error(j?.message || 'Could not load booking status');
   return j.booking;
 }
 
-async function waitForConfirmed(bookingId) {
+async function waitForConfirmed(bookingId, bookingKey) {
   let last = null;
   for (let i = 0; i < 10; i++) {
-    const b = await fetchBookingStatus(bookingId);
+    const b = await fetchBookingStatus(bookingId, bookingKey);
     last = b;
     if (b?.status === 'confirmed' && b?.payment_status === 'paid') return b;
     await new Promise((res) => setTimeout(res, 1000));
@@ -107,9 +120,10 @@ async function waitForConfirmed(bookingId) {
 
 function clearPaymentQuery() {
   const url = new URL(window.location.href);
-  url.searchParams.delete('bp_payment');
+  url.searchParams.delete('pointlybooking_payment');
   url.searchParams.delete('booking_id');
   url.searchParams.delete('token');
+  url.searchParams.delete('key');
   window.history.replaceState({}, '', url.toString());
 }
 
@@ -188,9 +202,10 @@ export default function WizardModal({ open, onClose, brand }) {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentBookingId, setPaymentBookingId] = useState(0);
   const [bookingId, setBookingId] = useState(null);
+  const [bookingKey, setBookingKey] = useState('');
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
   const [createError, setCreateError] = useState(null);
-  const [returnState, setReturnState] = useState({ mode: '', bookingId: 0, token: '', action: '' });
+  const [returnState, setReturnState] = useState({ mode: '', bookingId: 0, token: '', key: '', action: '' });
   const [returnLoading, setReturnLoading] = useState(false);
   const [returnError, setReturnError] = useState('');
   const [confirmData, setConfirmData] = useState(null);
@@ -210,7 +225,6 @@ export default function WizardModal({ open, onClose, brand }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const isPro = Boolean(Number(window.BP_FRONT?.isPro || 0));
   const paymentEnabledMethods = Array.isArray(bpSettings?.payments_enabled_methods) && bpSettings.payments_enabled_methods.length
     ? bpSettings.payments_enabled_methods
     : ['free'];
@@ -218,17 +232,12 @@ export default function WizardModal({ open, onClose, brand }) {
   const steps = useMemo(() => {
     let nextSteps = baseSteps;
 
-    // Free build: hide Pro-only steps entirely (Locations, Extras, Payments).
-    if (!isPro) {
-      nextSteps = nextSteps.filter((s) => !['location', 'extras', 'payment'].includes(s.key));
-    }
-
     if (!paymentsActive) {
       nextSteps = nextSteps.filter((s) => s.key !== 'payment');
     }
 
     return nextSteps;
-  }, [baseSteps, isPro, paymentsActive]);
+  }, [baseSteps, paymentsActive]);
   const hasPaymentStep = useMemo(() => steps.some((s) => s.key === 'payment'), [steps]);
   const hasLocationStep = useMemo(() => steps.some((s) => s.key === 'location'), [steps]);
   const hasExtrasStep = useMemo(() => steps.some((s) => s.key === 'extras'), [steps]);
@@ -257,7 +266,7 @@ export default function WizardModal({ open, onClose, brand }) {
     if (!base) return '';
 
     const url = base + file;
-    const v = String(isSvg ? window.BP_FRONT?.iconsBuild : window.BP_FRONT?.imagesBuild || '').trim();
+    const v = String(isSvg ? window.pointlybooking_FRONT?.iconsBuild : window.pointlybooking_FRONT?.imagesBuild || '').trim();
     if (!v) return url;
     const sep = url.includes('?') ? '&' : '?';
     return `${url}${sep}v=${encodeURIComponent(v)}`;
@@ -311,9 +320,10 @@ export default function WizardModal({ open, onClose, brand }) {
     setPaymentMethod('');
     setPaymentBookingId(0);
     setBookingId(null);
+    setBookingKey('');
     setIsCreatingBooking(false);
     setCreateError(null);
-    setReturnState({ mode: '', bookingId: 0, token: '', action: '' });
+    setReturnState({ mode: '', bookingId: 0, token: '', key: '', action: '' });
     setReturnLoading(false);
     setReturnError('');
     setConfirmData(null);
@@ -349,9 +359,10 @@ export default function WizardModal({ open, onClose, brand }) {
     if (!open) return;
 
     const params = new URLSearchParams(window.location.search);
-    const bpPayment = params.get('bp_payment');
+    const bpPayment = params.get('pointlybooking_payment');
     const token = params.get('token') || '';
     const bookingId = Number(params.get('booking_id') || 0);
+    const key = params.get('key') || '';
 
     const stripeFlag = bpPayment === 'stripe_success' || bpPayment === 'stripe_cancel';
     const paypalFlag = bpPayment === 'paypal_return' || bpPayment === 'paypal_cancel';
@@ -363,6 +374,7 @@ export default function WizardModal({ open, onClose, brand }) {
         mode: 'stripe',
         bookingId,
         token: '',
+        key,
         action: bpPayment === 'stripe_cancel' ? 'cancel' : 'success',
       });
     } else if (paypalFlag) {
@@ -370,6 +382,7 @@ export default function WizardModal({ open, onClose, brand }) {
         mode: 'paypal',
         bookingId,
         token,
+        key,
         action: bpPayment === 'paypal_cancel' ? 'cancel' : 'success',
       });
     }
@@ -389,6 +402,8 @@ export default function WizardModal({ open, onClose, brand }) {
           await fetch(`${getRestBase()}/front/bookings/${returnState.bookingId}/payment-cancel`, {
             method: 'POST',
             credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: returnState.key }),
           });
           throw new Error('Payment cancelled.');
         }
@@ -398,16 +413,19 @@ export default function WizardModal({ open, onClose, brand }) {
             await fetch(`${getRestBase()}/front/bookings/${returnState.bookingId}/payment-cancel`, {
               method: 'POST',
               credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ key: returnState.key }),
             });
             throw new Error('Payment cancelled.');
           }
-          await paypalCapture(returnState.token, returnState.bookingId);
+          await paypalCapture(returnState.token, returnState.bookingId, returnState.key);
         }
 
-        const confirmed = await waitForConfirmed(returnState.bookingId);
+        const confirmed = await waitForConfirmed(returnState.bookingId, returnState.key);
         if (!alive) return;
 
         setBookingId(returnState.bookingId);
+        setBookingKey(returnState.key);
         setPaymentBookingId(returnState.bookingId);
         setAnswers((a) => ({ ...a, __booking: { booking_id: returnState.bookingId } }));
         if (confirmed?.status === 'confirmed' && confirmed?.payment_status === 'paid') {
@@ -426,6 +444,7 @@ export default function WizardModal({ open, onClose, brand }) {
         const message = e?.message || 'Payment failed';
         setReturnError(message);
         setBookingId(returnState.bookingId);
+        setBookingKey(returnState.key);
         setPaymentBookingId(returnState.bookingId);
         setAnswers((a) => ({ ...a, __booking: { booking_id: returnState.bookingId } }));
         setConfirmData({ booking: { id: returnState.bookingId }, paid: false, error: message });
@@ -454,7 +473,7 @@ export default function WizardModal({ open, onClose, brand }) {
       try {
         setLoading(true);
         const [locs, cats, fields] = await Promise.all([
-          (isPro && hasLocationStep) ? fetchLocations() : Promise.resolve([]),
+          hasLocationStep ? fetchLocations() : Promise.resolve([]),
           fetchCategories(),
           fetchFormFields(),
         ]);
@@ -467,7 +486,7 @@ export default function WizardModal({ open, onClose, brand }) {
         setLoading(false);
       }
     })();
-  }, [open, isPro, hasLocationStep]);
+  }, [open, hasLocationStep]);
 
   useEffect(() => {
     if (!open) return;
@@ -496,13 +515,13 @@ export default function WizardModal({ open, onClose, brand }) {
     setConfirmLoading(true);
     setConfirmError('');
 
-    fetchBookingStatus(bookingId)
+    fetchBookingStatus(bookingId, bookingKey)
       .then((b) => alive && setConfirmInfo(b))
       .catch((e) => alive && setConfirmError(e.message || 'Error'))
       .finally(() => alive && setConfirmLoading(false));
 
     return () => { alive = false; };
-  }, [open, currentStepKey, bookingId]);
+  }, [open, currentStepKey, bookingId, bookingKey]);
 
   useEffect(() => {
     if (!open) return;
@@ -524,7 +543,7 @@ export default function WizardModal({ open, onClose, brand }) {
       try {
         if (!serviceId) return;
         const [ex, ag] = await Promise.all([
-          (isPro && hasExtrasStep) ? fetchExtras({ service_id: serviceId }) : Promise.resolve([]),
+          hasExtrasStep ? fetchExtras({ service_id: serviceId }) : Promise.resolve([]),
           fetchAgents({ service_id: serviceId, location_id: locationId }),
         ]);
         setExtras(ex);
@@ -534,7 +553,7 @@ export default function WizardModal({ open, onClose, brand }) {
         setAgents([]);
       }
     })();
-  }, [open, serviceId, locationId, isPro, hasExtrasStep]);
+  }, [open, serviceId, locationId, hasExtrasStep]);
 
   function next() {
     setError('');
@@ -565,13 +584,13 @@ export default function WizardModal({ open, onClose, brand }) {
         booking_fields[k.slice(8)] = v;
       }
     });
-    const settingsCurrency = bpSettings?.currency || window.BP_FRONT?.currency || 'USD';
+    const settingsCurrency = bpSettings?.currency || window.pointlybooking_FRONT?.currency || 'USD';
 
     return {
-      location_id: isPro ? locationId : null,
+      location_id: locationId,
       category_ids: categoryIds,
       service_id: serviceId,
-      extra_ids: (isPro && hasExtrasStep) ? extraIds : [],
+      extra_ids: hasExtrasStep ? extraIds : [],
       agent_id: agentId,
       date,
       start_time: slot?.start_time || slot?.start || '',
@@ -579,7 +598,7 @@ export default function WizardModal({ open, onClose, brand }) {
       field_values: answers,
       customer_fields,
       booking_fields,
-      extras: (isPro && hasExtrasStep) ? extraIds : [],
+      extras: hasExtrasStep ? extraIds : [],
       total_price: totalAmount,
       currency: settingsCurrency,
     };
@@ -599,18 +618,20 @@ export default function WizardModal({ open, onClose, brand }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-WP-Nonce': window.BP_FRONT?.nonce || '',
+          'X-WP-Nonce': window.pointlybooking_FRONT?.nonce || '',
         },
         credentials: 'same-origin',
         body: JSON.stringify(payload),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok || !j?.success) {
-        throw new Error(j?.message || 'Could not create booking');
-      }
+        if (!res.ok || !j?.success) {
+          throw new Error(j?.message || 'Could not create booking');
+        }
 
-      setBookingId(j.booking_id);
-      return j.booking_id;
+        setBookingId(j.booking_id);
+        const createdKey = j.manage_key || extractManageKey(j.manage_url || '');
+        if (createdKey) setBookingKey(createdKey);
+        return j.booking_id;
     } catch (e) {
       setCreateError(e.message || 'Create booking failed');
       throw e;
@@ -636,6 +657,7 @@ export default function WizardModal({ open, onClose, brand }) {
         if (!res?.checkout_url) {
           throw new Error('Checkout URL missing');
         }
+        if (res?.manage_key) setBookingKey(res.manage_key);
         window.location.href = res.checkout_url;
         return;
       }
@@ -645,6 +667,7 @@ export default function WizardModal({ open, onClose, brand }) {
         if (!res?.checkout_url) {
           throw new Error('Stripe checkout URL missing');
         }
+        if (res?.manage_key) setBookingKey(res.manage_key);
         window.location.href = res.checkout_url;
         return;
       }
@@ -654,6 +677,7 @@ export default function WizardModal({ open, onClose, brand }) {
         if (!res?.approve_url) {
           throw new Error('PayPal approve URL missing');
         }
+        if (res?.manage_key) setBookingKey(res.manage_key);
         window.location.href = res.approve_url;
         return;
       }
@@ -664,6 +688,8 @@ export default function WizardModal({ open, onClose, brand }) {
 
       const res = await createBooking(payload);
       setBookingId(res?.booking_id || null);
+      const manageKey = res?.manage_key || extractManageKey(res?.manage_url || '');
+      if (manageKey) setBookingKey(manageKey);
       setPaymentBookingId(res?.booking_id || 0);
       setConfirmData({
         booking: res,
@@ -682,7 +708,7 @@ export default function WizardModal({ open, onClose, brand }) {
 
   if (!open) return null;
   if (designLoading && !designConfig) {
-    return <div className="bp-wizard-loading">Loading booking form…</div>;
+    return <div className="bp-wizard-loading">Loading booking formâ€¦</div>;
   }
   if (designError && !designConfig) {
     return <div className="bp-wizard-loading">Wizard error: {designError}</div>;
@@ -850,8 +876,8 @@ export default function WizardModal({ open, onClose, brand }) {
                 formFields={formFields}
                 answers={answers}
                 bookingId={bookingId}
-                showLocation={isPro && hasLocationStep}
-                showExtras={isPro && hasExtrasStep}
+                showLocation={hasLocationStep}
+                showExtras={hasExtrasStep}
                 showPayment={paymentsActive && hasPaymentStep}
                 hasPayment={paymentsActive && hasPaymentStep}
                 paymentMethodLabel={(paymentsActive && hasPaymentStep) ? (paymentLabelMap[paymentMethod] || paymentMethod || '-') : ''}
@@ -903,8 +929,8 @@ export default function WizardModal({ open, onClose, brand }) {
                 agentId={agentId}
                 date={date}
                 slot={slot}
-                showLocation={isPro && hasLocationStep}
-                showExtras={isPro && hasExtrasStep}
+                showLocation={hasLocationStep}
+                showExtras={hasExtrasStep}
               />
             </div>
           </aside>

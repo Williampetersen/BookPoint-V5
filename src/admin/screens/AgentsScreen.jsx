@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 
 export default function AgentsScreen() {
@@ -90,7 +90,7 @@ export default function AgentsScreen() {
           <div className="bp-muted">Manage team members, photos, and assignments.</div>
         </div>
         <div className="bp-head-actions">
-          <a className="bp-primary-btn" href="admin.php?page=bp_agents_edit">
+          <a className="bp-primary-btn" href="admin.php?page=pointlybooking_agents_edit">
             + New Agent
           </a>
         </div>
@@ -105,15 +105,15 @@ export default function AgentsScreen() {
       <div className="bp-cards" style={{ marginBottom: 14 }}>
         <div className="bp-card">
           <div className="bp-card-label">Total</div>
-          <div className="bp-card-value">{loading ? "…" : derived.counts.total}</div>
+          <div className="bp-card-value">{loading ? "â€¦" : derived.counts.total}</div>
         </div>
         <div className="bp-card">
           <div className="bp-card-label">Active</div>
-          <div className="bp-card-value">{loading ? "…" : derived.counts.active}</div>
+          <div className="bp-card-value">{loading ? "â€¦" : derived.counts.active}</div>
         </div>
         <div className="bp-card">
           <div className="bp-card-label">Inactive</div>
-          <div className="bp-card-value">{loading ? "…" : derived.counts.inactive}</div>
+          <div className="bp-card-value">{loading ? "â€¦" : derived.counts.inactive}</div>
         </div>
       </div>
 
@@ -233,8 +233,8 @@ export default function AgentsScreen() {
                   <div>
                     <div className="bp-entity-title">{a.name}</div>
                     <div className="bp-entity-sub">
-                      {a.email || "—"}
-                      {a.phone ? ` • ${a.phone}` : ""}
+                      {a.email || "â€”"}
+                      {a.phone ? ` â€¢ ${a.phone}` : ""}
                     </div>
                   </div>
                   <span className={`bp-status-pill ${a.isActive ? "active" : "inactive"}`}>{a.isActive ? "Active" : "Inactive"}</span>
@@ -252,7 +252,7 @@ export default function AgentsScreen() {
                 </div>
 
                 <div className="bp-entity-actions">
-                  <a className="bp-btn-sm" href={`admin.php?page=bp_agents_edit&id=${a.id}`}>
+                  <a className="bp-btn-sm" href={`admin.php?page=pointlybooking_agents_edit&id=${a.id}`}>
                     Edit
                   </a>
                 </div>

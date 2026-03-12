@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import WizardModal from './wizard/WizardModal';
 import './front.css';
@@ -7,8 +7,8 @@ function BookPointWidget({ label, mountEl }) {
   const [open, setOpen] = useState(false);
   const hideButton = mountEl?.getAttribute('data-bp-fallback') === '1';
 
-  const imagesBase = (window.BP_FRONT?.images || '').replace(/\/$/, '') + '/';
-  const iconsBase = (window.BP_FRONT?.icons || '').replace(/\/$/, '') + '/';
+  const imagesBase = (window.pointlybooking_FRONT?.images || '').replace(/\/$/, '') + '/';
+  const iconsBase = (window.pointlybooking_FRONT?.icons || '').replace(/\/$/, '') + '/';
   const brand = useMemo(() => ({
     imagesBase,
     iconsBase,
@@ -47,8 +47,8 @@ function attachOpenHandler(mountEl, setOpen) {
 }
 
 function getBrand() {
-  const imagesBase = (window.BP_FRONT?.images || '').replace(/\/$/, '') + '/';
-  const iconsBase = (window.BP_FRONT?.icons || '').replace(/\/$/, '') + '/';
+  const imagesBase = (window.pointlybooking_FRONT?.images || '').replace(/\/$/, '') + '/';
+  const iconsBase = (window.pointlybooking_FRONT?.icons || '').replace(/\/$/, '') + '/';
   return {
     imagesBase,
     iconsBase,

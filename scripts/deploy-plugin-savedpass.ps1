@@ -1,9 +1,9 @@
-param(
+﻿param(
   [string]$FtpHost = "linux9.unoeuro.com",
   [int]$FtpPort = 21,
   [string]$FtpUser = "wpbookpoint.com",
   [string]$RemotePluginDir = "/public_html/wp-content/plugins/bookpoint-v5",
-  [string]$PassFile = (Join-Path $env:USERPROFILE ".bp_ftp_pass.enc"),
+  [string]$PassFile = (Join-Path $env:USERPROFILE ".pointlybooking_ftp_pass.enc"),
   [switch]$CreatePassFileIfMissing,
   [switch]$DryRun,
   [switch]$Fast
@@ -39,10 +39,10 @@ $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePass)
 try {
   $plainPass = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
 
-  $env:BP_FTP_HOST = $FtpHost
-  $env:BP_FTP_USER = $FtpUser
-  $env:BP_FTP_PASS = $plainPass
-  $env:BP_FTP_REMOTE_PLUGIN_DIR = $RemotePluginDir
+  $env:POINTLYBOOKING_FTP_HOST = $FtpHost
+  $env:POINTLYBOOKING_FTP_USER = $FtpUser
+  $env:POINTLYBOOKING_FTP_PASS = $plainPass
+  $env:POINTLYBOOKING_FTP_REMOTE_PLUGIN_DIR = $RemotePluginDir
 
   $deployScript = Join-Path $PSScriptRoot "deploy-plugin.ps1"
   if (-not (Test-Path $deployScript)) { throw "Missing deploy script: $deployScript" }
@@ -56,5 +56,5 @@ try {
   $plainPass = $null
   $securePass = $null
   $enc = $null
-  $env:BP_FTP_PASS = ""
+  $env:POINTLYBOOKING_FTP_PASS = ""
 }

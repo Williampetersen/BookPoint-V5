@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 
 export default function ServicesScreen() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const defaultCurrency = (window.BP_ADMIN?.currency || "USD").toUpperCase();
+  const defaultCurrency = (window.pointlybooking_ADMIN?.currency || "USD").toUpperCase();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -90,7 +90,7 @@ export default function ServicesScreen() {
             <div className="bp-muted">Manage services, pricing, and availability.</div>
           </div>
           <div className="bp-head-actions">
-            <a className="bp-primary-btn" href="admin.php?page=bp_services_edit">
+            <a className="bp-primary-btn" href="admin.php?page=pointlybooking_services_edit">
               + New Service
             </a>
           </div>
@@ -167,7 +167,7 @@ export default function ServicesScreen() {
               const imageUrl = s.image_url || s.image || "";
               const initial = (name || "S").trim().charAt(0).toUpperCase();
               const typeDisplay = duration ? `${duration} min` : "???";
-              const editHref = `admin.php?page=bp_services_edit&id=${s.id}`;
+              const editHref = `admin.php?page=pointlybooking_services_edit&id=${s.id}`;
 
               return (
                 <a key={s.id} className="bp-entity-card bp-entity-card--link" href={editHref}>

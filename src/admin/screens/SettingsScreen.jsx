@@ -18,7 +18,6 @@ const SETTINGS_TABS = [
   { key: "notifications", label: "Notifications" },
   { key: "audit_log", label: "Audit Log" },
   { key: "tools", label: "Tools" },
-  { key: "license", label: "License" },
 ];
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -50,81 +49,10 @@ function currencyPreview(code, position) {
     : (needsSpace ? `${symbol} ${formatted}` : `${symbol}${formatted}`);
 }
 
-function ProUpgradePanel({ feature, description, pricingUrl }) {
-  return (
-    <div className="bp-license">
-      <div className="bp-card bp-license-proBanner is-invalid">
-        <div className="bp-license-proBannerBody">
-          <div className="bp-license-proDot is-invalid" aria-hidden="true" />
-          <div style={{ minWidth: 0 }}>
-            <div className="bp-section-title" style={{ margin: 0 }}>{feature} is a Pro feature</div>
-            <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
-              {description || "Upgrade to BookPoint Pro to unlock this feature."}
-            </div>
-          </div>
-          <div className="bp-license-proBannerActions">
-            <a className="bp-btn bp-btn-primary" href={pricingUrl} target="_blank" rel="noreferrer noopener">
-              View plans & pricing
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div className="bp-card">
-        <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
-          <div>
-            <div className="bp-section-title" style={{ margin: 0 }}>Upgrade to unlock</div>
-            <div className="bp-muted bp-text-xs">Install Pro, then activate your license key.</div>
-          </div>
-        </div>
-        <div style={{ padding: 14, display: "grid", gap: 10 }}>
-          <div className="bp-muted bp-text-xs">
-            1) Purchase a plan from{" "}
-            <a href={pricingUrl} target="_blank" rel="noreferrer noopener">wpbookpoint.com</a>.
-          </div>
-          <div className="bp-muted bp-text-xs">
-            2) Download the BookPoint Pro ZIP from your account/download link.
-          </div>
-          <div className="bp-muted bp-text-xs">
-            3) In WordPress: Plugins → Add New → Upload Plugin → choose the ZIP → Install Now → Activate.
-          </div>
-          <div className="bp-muted bp-text-xs">
-            4) Then go to Settings → License to paste and activate your license key.
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function SettingsScreen() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
-  const pricingUrl = "https://wpbookpoint.com/pricing/";
-  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
-  const [license, setLicense] = useState({
-    key: "",
-    status: "unset",
-    server_base_url: "",
-    server_base_effective: "",
-    checked_at: 0,
-    last_error: "",
-    plan: "",
-    expires_at: "",
-    licensed_domain: "",
-    instance_id: "",
-    data: "",
-  });
-  const [licenseSaving, setLicenseSaving] = useState(false);
-  const [licenseValidating, setLicenseValidating] = useState(false);
-  const [licenseActivating, setLicenseActivating] = useState(false);
-  const [licenseDeactivating, setLicenseDeactivating] = useState(false);
-  const [showLicenseKey, setShowLicenseKey] = useState(false);
-  const [showLicenseDetails, setShowLicenseDetails] = useState(false);
-  const licenseStatusKey = String(license.status || "unset").toLowerCase();
-  const isLicenseValid = licenseStatusKey === "valid";
-
   const [activeTab, setActiveTab] = useState(() => {
     const tab = new URLSearchParams(window.location.search).get("tab");
     return SETTINGS_TABS.find((t) => t.key === tab)?.key || "general";
@@ -162,7 +90,7 @@ export default function SettingsScreen() {
     { code: "CLP", name: "Chilean Peso" },
     { code: "CNY", name: "Chinese Yuan" },
     { code: "COP", name: "Colombian Peso" },
-    { code: "CRC", name: "Costa Rican ColÃ³n" },
+    { code: "CRC", name: "Costa Rican ColÃƒÂ³n" },
     { code: "CUC", name: "Cuban Convertible Peso" },
     { code: "CUP", name: "Cuban Peso" },
     { code: "CVE", name: "Cape Verdean Escudo" },
@@ -195,7 +123,7 @@ export default function SettingsScreen() {
     { code: "INR", name: "Indian Rupee" },
     { code: "IQD", name: "Iraqi Dinar" },
     { code: "IRR", name: "Iranian Rial" },
-    { code: "ISK", name: "Icelandic KrÃ³na" },
+    { code: "ISK", name: "Icelandic KrÃƒÂ³na" },
     { code: "JMD", name: "Jamaican Dollar" },
     { code: "JOD", name: "Jordanian Dinar" },
     { code: "JPY", name: "Japanese Yen" },
@@ -219,7 +147,7 @@ export default function SettingsScreen() {
     { code: "MGA", name: "Malagasy Ariary" },
     { code: "MKD", name: "Macedonian Denar" },
     { code: "MMK", name: "Myanmar Kyat" },
-    { code: "MNT", name: "Mongolian TÃ¶grÃ¶g" },
+    { code: "MNT", name: "Mongolian TÃƒÂ¶grÃƒÂ¶g" },
     { code: "MOP", name: "Macanese Pataca" },
     { code: "MRU", name: "Mauritanian Ouguiya" },
     { code: "MUR", name: "Mauritian Rupee" },
@@ -230,7 +158,7 @@ export default function SettingsScreen() {
     { code: "MZN", name: "Mozambican Metical" },
     { code: "NAD", name: "Namibian Dollar" },
     { code: "NGN", name: "Nigerian Naira" },
-    { code: "NIO", name: "Nicaraguan CÃ³rdoba" },
+    { code: "NIO", name: "Nicaraguan CÃƒÂ³rdoba" },
     { code: "NOK", name: "Norwegian Krone" },
     { code: "NPR", name: "Nepalese Rupee" },
     { code: "NZD", name: "New Zealand Dollar" },
@@ -240,8 +168,8 @@ export default function SettingsScreen() {
     { code: "PGK", name: "Papua New Guinean Kina" },
     { code: "PHP", name: "Philippine Peso" },
     { code: "PKR", name: "Pakistani Rupee" },
-    { code: "PLN", name: "Polish ZÅ‚oty" },
-    { code: "PYG", name: "Paraguayan GuaranÃ­" },
+    { code: "PLN", name: "Polish ZÃ…â€šoty" },
+    { code: "PYG", name: "Paraguayan GuaranÃƒÂ­" },
     { code: "QAR", name: "Qatari Riyal" },
     { code: "RON", name: "Romanian Leu" },
     { code: "RSD", name: "Serbian Dinar" },
@@ -258,14 +186,14 @@ export default function SettingsScreen() {
     { code: "SOS", name: "Somali Shilling" },
     { code: "SRD", name: "Surinamese Dollar" },
     { code: "SSP", name: "South Sudanese Pound" },
-    { code: "STN", name: "SÃ£o TomÃ© and PrÃ­ncipe Dobra" },
+    { code: "STN", name: "SÃƒÂ£o TomÃƒÂ© and PrÃƒÂ­ncipe Dobra" },
     { code: "SYP", name: "Syrian Pound" },
     { code: "SZL", name: "Swazi Lilangeni" },
     { code: "THB", name: "Thai Baht" },
     { code: "TJS", name: "Tajikistani Somoni" },
     { code: "TMT", name: "Turkmenistani Manat" },
     { code: "TND", name: "Tunisian Dinar" },
-    { code: "TOP", name: "Tongan PaÊ»anga" },
+    { code: "TOP", name: "Tongan PaÃŠÂ»anga" },
     { code: "TRY", name: "Turkish Lira" },
     { code: "TTD", name: "Trinidad and Tobago Dollar" },
     { code: "TWD", name: "New Taiwan Dollar" },
@@ -275,10 +203,10 @@ export default function SettingsScreen() {
     { code: "USD", name: "US Dollar" },
     { code: "UYU", name: "Uruguayan Peso" },
     { code: "UZS", name: "Uzbekistan Som" },
-    { code: "VES", name: "Venezuelan BolÃ­var" },
-    { code: "VND", name: "Vietnamese Äá»“ng" },
+    { code: "VES", name: "Venezuelan BolÃƒÂ­var" },
+    { code: "VND", name: "Vietnamese Ã„ÂÃ¡Â»â€œng" },
     { code: "VUV", name: "Vanuatu Vatu" },
-    { code: "WST", name: "Samoan TÄlÄ" },
+    { code: "WST", name: "Samoan TÃ„ÂlÃ„Â" },
     { code: "XAF", name: "Central African CFA Franc" },
     { code: "XCD", name: "East Caribbean Dollar" },
     { code: "XOF", name: "West African CFA Franc" },
@@ -290,11 +218,7 @@ export default function SettingsScreen() {
   ]), []);
 
   useEffect(() => {
-    loadSettings();
-    if (isPro) {
-      loadLicense();
-    }
-  }, []);
+    loadSettings();  }, []);
 
   const setTab = (key) => {
     const url = new URL(window.location.href);
@@ -306,8 +230,8 @@ export default function SettingsScreen() {
   async function loadSettings() {
     try {
       setLoading(true);
-      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/settings`, {
-        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce },
+      const resp = await fetch(`${window.pointlybooking_ADMIN?.restUrl}/admin/settings`, {
+        headers: { "X-WP-Nonce": window.pointlybooking_ADMIN?.nonce },
       });
       const json = await resp.json();
       setSettings(json.data || {});
@@ -317,21 +241,6 @@ export default function SettingsScreen() {
       setLoading(false);
     }
   }
-
-  async function loadLicense() {
-    try {
-      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license`, {
-        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce },
-      });
-      const json = await resp.json();
-      if (json.status === "success") {
-        setLicense(json.data || {});
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
   function updateSetting(key, value) {
     setSettings({ ...settings, [key]: value });
   }
@@ -352,10 +261,10 @@ export default function SettingsScreen() {
 
   async function saveSettings() {
     try {
-      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/settings`, {
+      const resp = await fetch(`${window.pointlybooking_ADMIN?.restUrl}/admin/settings`, {
         method: "POST",
         headers: {
-          "X-WP-Nonce": window.BP_ADMIN?.nonce,
+          "X-WP-Nonce": window.pointlybooking_ADMIN?.nonce,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(settings),
@@ -369,136 +278,6 @@ export default function SettingsScreen() {
       console.error(e);
     }
   }
-
-  async function saveLicense() {
-    try {
-      setLicenseSaving(true);
-      setShowLicenseDetails(false);
-      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license`, {
-        method: "POST",
-        headers: {
-          "X-WP-Nonce": window.BP_ADMIN?.nonce,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          key: String(license.key || "").trim(),
-        }),
-      });
-      const json = await resp.json();
-      if (json.status === "success") {
-        setLicense(json.data || {});
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLicenseSaving(false);
-    }
-  }
-
-  async function validateLicense() {
-    try {
-      setLicenseValidating(true);
-      setShowLicenseDetails(false);
-      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license/validate`, {
-        method: "POST",
-        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce, "Content-Type": "application/json" },
-        body: JSON.stringify({ key: license?.key || "" }),
-      });
-      const json = await resp.json();
-      if (json.status === "success") {
-        setLicense(json.data || {});
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLicenseValidating(false);
-    }
-  }
-
-  async function activateLicense() {
-    try {
-      setLicenseActivating(true);
-      setShowLicenseDetails(false);
-      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license/activate`, {
-        method: "POST",
-        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce, "Content-Type": "application/json" },
-        body: JSON.stringify({ key: license?.key || "" }),
-      });
-      const json = await resp.json();
-      if (json.status === "success") {
-        setLicense(json.data || {});
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLicenseActivating(false);
-    }
-  }
-
-  async function deactivateLicense() {
-    try {
-      setLicenseDeactivating(true);
-      setShowLicenseDetails(false);
-      const resp = await fetch(`${window.BP_ADMIN?.restUrl}/admin/license/deactivate`, {
-        method: "POST",
-        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce, "Content-Type": "application/json" },
-        body: JSON.stringify({ key: license?.key || "" }),
-      });
-      const json = await resp.json();
-      if (json.status === "success") {
-        setLicense(json.data || {});
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLicenseDeactivating(false);
-    }
-  }
-
-  const licenseMeta = useMemo(() => {
-    try {
-      const raw = license?.data;
-      if (!raw) return null;
-      if (typeof raw === "object") return raw;
-      return JSON.parse(String(raw));
-    } catch {
-      return null;
-    }
-  }, [license]);
-
-  const copyText = async (text) => {
-    const v = String(text || "");
-    try {
-      await navigator.clipboard.writeText(v);
-      return true;
-    } catch (_) {
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = v;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        ta.remove();
-        return true;
-      } catch {
-        return false;
-      }
-    }
-  };
-
-  const timeAgo = (unixSeconds) => {
-    const s = Number(unixSeconds) || 0;
-    if (!s) return "";
-    const diff = Math.max(0, Date.now() - s * 1000);
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 48) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
-  };
-
   // Advanced settings panel removed (keeps Settings clean and avoids accidental edits).
 
   function renderInput(key, value) {
@@ -593,8 +372,8 @@ export default function SettingsScreen() {
                       type="time"
                       step={300}
                       placeholder="09:00"
-                      value={getSetting("bp_open_time", "09:00")}
-                      onChange={(e) => updateSetting("bp_open_time", e.target.value)}
+                      value={getSetting("pointlybooking_open_time", "09:00")}
+                      onChange={(e) => updateSetting("pointlybooking_open_time", e.target.value)}
                       className="bp-input"
                     />
                   </div>
@@ -604,8 +383,8 @@ export default function SettingsScreen() {
                       type="time"
                       step={300}
                       placeholder="17:00"
-                      value={getSetting("bp_close_time", "17:00")}
-                      onChange={(e) => updateSetting("bp_close_time", e.target.value)}
+                      value={getSetting("pointlybooking_close_time", "17:00")}
+                      onChange={(e) => updateSetting("pointlybooking_close_time", e.target.value)}
                       className="bp-input"
                     />
                   </div>
@@ -627,8 +406,8 @@ export default function SettingsScreen() {
                       type="number"
                       min={1}
                       max={365}
-                      value={getSetting("bp_future_days_limit", 60)}
-                      onChange={(e) => updateSetting("bp_future_days_limit", parseInt(e.target.value || 60, 10))}
+                      value={getSetting("pointlybooking_future_days_limit", 60)}
+                      onChange={(e) => updateSetting("pointlybooking_future_days_limit", parseInt(e.target.value || 60, 10))}
                       className="bp-input"
                     />
                     <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
@@ -642,7 +421,7 @@ export default function SettingsScreen() {
                   <div className="bp-settings-field">
                     <label className="bp-label">Currency</label>
                     <select
-                      value={getSetting(["currency", "bp_default_currency"], "USD")}
+                      value={getSetting(["currency", "pointlybooking_default_currency"], "USD")}
                       onChange={(e) => updateSetting("currency", e.target.value)}
                       className="bp-input"
                     >
@@ -653,13 +432,13 @@ export default function SettingsScreen() {
                       ))}
                     </select>
                     <div className="bp-muted bp-settings-help">
-                      Preview: {currencyPreview(getSetting(["currency", "bp_default_currency"], "USD"), getSetting(["currency_position", "bp_currency_position"], "before"))}
+                      Preview: {currencyPreview(getSetting(["currency", "pointlybooking_default_currency"], "USD"), getSetting(["currency_position", "pointlybooking_currency_position"], "before"))}
                     </div>
                   </div>
                   <div className="bp-settings-field">
                     <label className="bp-label">Currency Position</label>
                     <select
-                      value={getSetting(["currency_position", "bp_currency_position"], "before")}
+                      value={getSetting(["currency_position", "pointlybooking_currency_position"], "before")}
                       onChange={(e) => updateSetting("currency_position", e.target.value)}
                       className="bp-input"
                     >
@@ -675,8 +454,8 @@ export default function SettingsScreen() {
                     <input
                       type="text"
                       placeholder="12:00-13:00,15:00-15:15"
-                      value={getSetting("bp_breaks", "12:00-13:00")}
-                      onChange={(e) => updateSetting("bp_breaks", e.target.value)}
+                      value={getSetting("pointlybooking_breaks", "12:00-13:00")}
+                      onChange={(e) => updateSetting("pointlybooking_breaks", e.target.value)}
                       className="bp-input"
                     />
                     <div className="bp-muted" style={{ fontSize: 12, marginTop: 6 }}>
@@ -693,8 +472,8 @@ export default function SettingsScreen() {
                       <input
                         type="text"
                         placeholder="09:00-17:00"
-                        value={getSetting(`bp_schedule_${index}`, "")}
-                        onChange={(e) => updateSetting(`bp_schedule_${index}`, e.target.value)}
+                        value={getSetting(`pointlybooking_schedule_${index}`, "")}
+                        onChange={(e) => updateSetting(`pointlybooking_schedule_${index}`, e.target.value)}
                         className="bp-input"
                       />
                     </div>
@@ -709,8 +488,8 @@ export default function SettingsScreen() {
                   <div className="bp-settings-field">
                     <label className="bp-label">Default status</label>
                     <select
-                      value={getSetting("bp_default_booking_status", "pending")}
-                      onChange={(e) => updateSetting("bp_default_booking_status", e.target.value)}
+                      value={getSetting("pointlybooking_default_booking_status", "pending")}
+                      onChange={(e) => updateSetting("pointlybooking_default_booking_status", e.target.value)}
                       className="bp-input"
                     >
                       {BOOKING_STATUS_OPTIONS.map((opt) => (
@@ -733,27 +512,11 @@ export default function SettingsScreen() {
           )}
 
           {activeTab === "payments" && (
-            isPro ? (
-              <PaymentsSettings />
-            ) : (
-              <ProUpgradePanel
-                feature="Payments"
-                pricingUrl={pricingUrl}
-                description="Online payments (Stripe/PayPal/WooCommerce) and payment settings are available in BookPoint Pro."
-              />
-            )
+            <PaymentsSettings />
           )}
 
           {activeTab === "holidays" && (
-            isPro ? (
-              <HolidaysScreen embedded />
-            ) : (
-              <ProUpgradePanel
-                feature="Holidays"
-                pricingUrl={pricingUrl}
-                description="Holiday management is available in BookPoint Pro."
-              />
-            )
+            <HolidaysScreen embedded />
           )}
 
           {activeTab === "form_fields" && (
@@ -761,15 +524,7 @@ export default function SettingsScreen() {
           )}
 
           {activeTab === "promo_codes" && (
-            isPro ? (
-              <PromoCodesScreen />
-            ) : (
-              <ProUpgradePanel
-                feature="Promo Codes"
-                pricingUrl={pricingUrl}
-                description="Discount codes and promotions are available in BookPoint Pro."
-              />
-            )
+            <PromoCodesScreen />
           )}
 
           {activeTab === "notifications" && (
@@ -782,259 +537,10 @@ export default function SettingsScreen() {
 
           {activeTab === "tools" && (
             <ToolsScreen />
-          )}
-
-          {activeTab === "license" && (
-            isPro ? (
-              <div className="bp-license">
-                <div className={`bp-card bp-license-proBanner ${isLicenseValid ? "is-valid" : "is-invalid"}`}>
-                  <div className="bp-license-proBannerBody">
-                    <div className={`bp-license-proDot ${isLicenseValid ? "is-valid" : "is-invalid"}`} aria-hidden="true" />
-                    <div style={{ minWidth: 0 }}>
-                      {isLicenseValid ? (
-                        <>
-                          <div className="bp-section-title" style={{ margin: 0 }}>BookPoint Pro is active</div>
-                          <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
-                            You’re running the Pro version with an active license. All premium features are unlocked.
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="bp-section-title" style={{ margin: 0 }}>Unlock BookPoint Pro</div>
-                          <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
-                            Activate your license to unlock all Pro features, get the best performance, and receive priority updates and support.
-                            Don’t have a license yet? Choose a plan and upgrade in minutes.
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    {!isLicenseValid ? (
-                      <div className="bp-license-proBannerActions">
-                        <a className="bp-btn bp-btn-primary" href={pricingUrl} target="_blank" rel="noreferrer noopener">
-                          View plans & pricing
-                        </a>
-                      </div>
-                    ) : (
-                      <div className="bp-license-proBannerActions">
-                        <a className="bp-btn" href={pricingUrl} target="_blank" rel="noreferrer noopener">
-                          Manage / renew
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="bp-license-grid">
-                  <div className="bp-card bp-license-status">
-                    <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
-                      <div>
-                        <div className="bp-section-title" style={{ margin: 0 }}>License Status</div>
-                        <div className="bp-muted bp-text-xs">Validation, plan, and support info.</div>
-                      </div>
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <button type="button" onClick={validateLicense} className="bp-btn" disabled={licenseValidating}>
-                          {licenseValidating ? "Validating..." : "Validate Now"}
-                        </button>
-                        <a className="bp-btn" href="admin.php?page=bp_settings&tab=tools">Diagnostics</a>
-                      </div>
-                    </div>
-
-                    <div className="bp-license-statusBody">
-                      <div className={`bp-license-pill is-${licenseStatusKey}`}>
-                        <span className="k">Status</span>
-                        <span className="v">{licenseStatusKey}</span>
-                      </div>
-
-                      <div className="bp-license-kvGrid">
-                        <div className="bp-license-kv">
-                          <div className="k">Plan</div>
-                          <div className="v">{license.plan || licenseMeta?.plan || "-"}</div>
-                        </div>
-                        <div className="bp-license-kv">
-                          <div className="k">Expires</div>
-                          <div className="v">{license.expires_at || licenseMeta?.expires_at || licenseMeta?.expires || "-"}</div>
-                        </div>
-                        <div className="bp-license-kv">
-                          <div className="k">Licensed Domain</div>
-                          <div className="v">{license.licensed_domain || licenseMeta?.licensed_domain || licenseMeta?.domain || "-"}</div>
-                        </div>
-                        <div className="bp-license-kv">
-                          <div className="k">Instance ID</div>
-                          <div className="v">{license.instance_id || licenseMeta?.instance_id || "-"}</div>
-                        </div>
-                      </div>
-
-                      <div className="bp-license-kvRow">
-                        <div className="k">Last checked</div>
-                        <div className="v">
-                          {license.checked_at ? (
-                            <span>
-                              {new Date(license.checked_at * 1000).toLocaleString()}{" "}
-                              <span className="bp-muted">({timeAgo(license.checked_at)})</span>
-                            </span>
-                          ) : (
-                            "-"
-                          )}
-                        </div>
-                      </div>
-
-                      {license.last_error ? (
-                        <div className={`bp-license-error is-${licenseStatusKey}`}>
-                          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                            <div style={{ minWidth: 0 }}>
-                              <div className="bp-label" style={{ margin: 0 }}>Server message</div>
-                              <div className="bp-muted bp-text-xs" style={{ marginTop: 4 }}>{license.last_error}</div>
-                            </div>
-                            <button className="bp-btn" type="button" onClick={() => setShowLicenseDetails((v) => !v)}>
-                              {showLicenseDetails ? "Hide" : "Details"}
-                            </button>
-                          </div>
-                          {showLicenseDetails && licenseMeta ? (
-                            <pre className="bp-license-pre">{JSON.stringify(licenseMeta, null, 2)}</pre>
-                          ) : null}
-                        </div>
-                      ) : null}
-
-                      <div className="bp-license-help">
-                        <div className="bp-section-title" style={{ margin: 0, fontSize: 14 }}>Support</div>
-                        <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
-                          If validation fails, copy these and send to support:
-                        </div>
-                        <div className="bp-license-helpRow">
-                          <code className="bp-license-code">{license.server_base_effective || "-"}</code>
-                          <button className="bp-btn" type="button" onClick={async () => { await copyText(license.server_base_effective || ""); }}>
-                            Copy Server
-                          </button>
-                        </div>
-                        <div className="bp-license-helpRow">
-                          <code className="bp-license-code">{window.location.origin}</code>
-                          <button className="bp-btn" type="button" onClick={async () => { await copyText(window.location.origin); }}>Copy</button>
-                        </div>
-                        <div className="bp-license-helpRow">
-                          <code className="bp-license-code">{window.location.hostname}</code>
-                          <button className="bp-btn" type="button" onClick={async () => { await copyText(window.location.hostname); }}>Copy</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bp-card bp-license-manage">
-                    <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
-                      <div>
-                        <div className="bp-section-title" style={{ margin: 0 }}>Manage License</div>
-                        <div className="bp-muted bp-text-xs">Paste key, then activate.</div>
-                      </div>
-                    </div>
-
-                    <div className="bp-license-manageBody">
-                      <div className="bp-license-field">
-                        <label className="bp-label">License key</label>
-                        <div className="bp-license-keyRow">
-                          <input
-                            type={showLicenseKey ? "text" : "password"}
-                            value={license.key || ""}
-                            onChange={(e) => setLicense({ ...license, key: e.target.value })}
-                            className="bp-input-field"
-                            placeholder="Paste your license key..."
-                            autoComplete="off"
-                          />
-                          <button type="button" className="bp-btn" onClick={() => setShowLicenseKey((v) => !v)}>
-                            {showLicenseKey ? "Hide" : "Show"}
-                          </button>
-                        </div>
-                        <div className="bp-muted bp-text-xs" style={{ marginTop: 8 }}>
-                          Tip: whitespace is trimmed on save.
-                        </div>
-                      </div>
-
-                      <div className="bp-license-actions">
-                        <button type="button" onClick={saveLicense} className="bp-btn bp-btn-primary" disabled={licenseSaving}>
-                          {licenseSaving ? "Saving..." : "Save Key"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={activateLicense}
-                          className="bp-btn"
-                          disabled={licenseActivating || licenseSaving || !license.key}
-                        >
-                          {licenseActivating ? "Activating..." : "Activate"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={deactivateLicense}
-                          className="bp-btn"
-                          disabled={licenseDeactivating || licenseSaving || !license.key}
-                        >
-                          {licenseDeactivating ? "Deactivating..." : "Deactivate"}
-                        </button>
-                        <button type="button" onClick={validateLicense} className="bp-btn" disabled={licenseValidating}>
-                          {licenseValidating ? "Validating..." : "Validate Now"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!license.key) return;
-                            if (!confirm("Remove license key from this site?")) return;
-                            setLicense({ ...license, key: "" });
-                            await saveLicense();
-                          }}
-                          className="bp-btn bp-btn-danger"
-                          disabled={licenseSaving || !license.key}
-                        >
-                          Remove Key
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bp-license">
-                <div className="bp-card bp-license-proBanner is-invalid">
-                  <div className="bp-license-proBannerBody">
-                    <div className="bp-license-proDot is-invalid" aria-hidden="true" />
-                    <div style={{ minWidth: 0 }}>
-                      <div className="bp-section-title" style={{ margin: 0 }}>Upgrade to BookPoint Pro</div>
-                      <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
-                        Locations, Service Extras, Promo Codes, Holidays, and Payments are Pro features. Install the Pro version to unlock them.
-                      </div>
-                    </div>
-                    <div className="bp-license-proBannerActions">
-                      <a className="bp-btn bp-btn-primary" href={pricingUrl} target="_blank" rel="noreferrer noopener">
-                        View plans & pricing
-                      </a>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bp-card">
-                  <div className="bp-card-head" style={{ padding: 14, borderBottom: "1px solid rgba(15,23,42,.06)" }}>
-                    <div>
-                      <div className="bp-section-title" style={{ margin: 0 }}>How to upgrade</div>
-                      <div className="bp-muted bp-text-xs">Install Pro, then activate your license key.</div>
-                    </div>
-                  </div>
-                  <div style={{ padding: 14, display: "grid", gap: 10 }}>
-                    <div className="bp-muted bp-text-xs">
-                      1) Purchase a plan from{" "}
-                      <a href={pricingUrl} target="_blank" rel="noreferrer noopener">wpbookpoint.com</a>.
-                    </div>
-                    <div className="bp-muted bp-text-xs">
-                      2) Download the BookPoint Pro ZIP from your account/download link.
-                    </div>
-                    <div className="bp-muted bp-text-xs">
-                      3) In WordPress: Plugins → Add New → Upload Plugin → choose the ZIP → Install Now → Activate.
-                    </div>
-                    <div className="bp-muted bp-text-xs">
-                      4) Come back to Settings → License to paste and activate your license key.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          )}
-        </div>
+          )}        </div>
       </div>
     </div>
   );
 }
+
 

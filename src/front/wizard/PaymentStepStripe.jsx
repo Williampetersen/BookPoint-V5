@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+﻿import React, { useMemo, useState, useEffect } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 
@@ -28,7 +28,7 @@ function InnerPay({ bookingId, onPaid, onError }) {
         return;
       }
 
-      const res = await fetch("/wp-json/bp/v1/front/payment/stripe/confirm", {
+      const res = await fetch("/wp-json/pointly-booking/v1/front/payment/stripe/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -79,7 +79,7 @@ export default function PaymentStepStripe({
     setErr("");
     setLoading(true);
     try {
-      const res = await fetch("/wp-json/bp/v1/front/payment/stripe/start", {
+      const res = await fetch("/wp-json/pointly-booking/v1/front/payment/stripe/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",

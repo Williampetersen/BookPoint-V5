@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { bpFetch } from "../api/client";
 import { bpEmit, bpOn } from "../lib/bpEvents";
 import BookingDrawer from "../components/BookingDrawer";
@@ -134,7 +134,7 @@ export default function CalendarScreen(){
       const status = (ev.status || "pending").toLowerCase();
       return {
         id: String(ev.id),
-        title: `${ev.service_name || "Service"} • ${ev.customer_name || "Customer"}`,
+        title: `${ev.service_name || "Service"} â€¢ ${ev.customer_name || "Customer"}`,
         start: ev.start,
         end: ev.end,
         classNames: [`bp-evt-${status}`],
@@ -264,7 +264,7 @@ export default function CalendarScreen(){
                 <label className="bp-filter-label">Search</label>
                 <input
                   className="bp-input"
-                  placeholder="Customer, email, agent…"
+                  placeholder="Customer, email, agentâ€¦"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
@@ -313,7 +313,7 @@ export default function CalendarScreen(){
                 </button>
               </div>
 
-              <a className="bp-primary-btn bp-cal-cta" href="admin.php?page=bp_bookings_edit">+ Booking</a>
+              <a className="bp-primary-btn bp-cal-cta" href="admin.php?page=pointlybooking_bookings_edit&new=1">+ Booking</a>
             </div>
           </div>
 

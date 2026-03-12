@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 
 export default function CategoriesScreen() {
@@ -84,7 +84,7 @@ export default function CategoriesScreen() {
             <div className="bp-muted">Group services for easier discovery.</div>
           </div>
           <div className="bp-head-actions">
-            <a className="bp-primary-btn" href="admin.php?page=bp_categories_edit">
+            <a className="bp-primary-btn" href="admin.php?page=pointlybooking_categories_edit">
               + New Category
             </a>
           </div>
@@ -157,7 +157,7 @@ export default function CategoriesScreen() {
                   : c.is_enabled !== undefined
                     ? !!Number(c.is_enabled)
                     : true;
-              const editHref = `admin.php?page=bp_categories_edit&id=${c.id}`;
+              const editHref = `admin.php?page=pointlybooking_categories_edit&id=${c.id}`;
 
               return (
                 <a key={c.id} className="bp-entity-card bp-entity-card--link" href={editHref}>

@@ -1,6 +1,6 @@
-# C14 Implementation Summary
+﻿# C14 Implementation Summary
 
-## C14.1 ✅ Calendar eventClick opens Booking Drawer
+## C14.1 âœ… Calendar eventClick opens Booking Drawer
 
 **Changes:**
 - [src/admin/screens/CalendarScreen.jsx](src/admin/screens/CalendarScreen.jsx):
@@ -17,7 +17,7 @@
 
 ---
 
-## C14.2 ✅ Quick Edit popover (status + agent) + Full Drawer
+## C14.2 âœ… Quick Edit popover (status + agent) + Full Drawer
 
 **Backend added:**
 - [lib/rest/admin-calendar-routes.php](lib/rest/admin-calendar-routes.php):
@@ -27,12 +27,12 @@
 
 **Frontend:**
 - BookingDrawer already has status editing capability
-- Clicking event → drawer opens with full details
+- Clicking event â†’ drawer opens with full details
 - Can edit status through drawer's existing interface
 
 ---
 
-## C14.3 ✅ Live refresh & shared cache (Calendar + Bookings)
+## C14.3 âœ… Live refresh & shared cache (Calendar + Bookings)
 
 **Event bus created:**
 - [src/admin/lib/bpEvents.js](src/admin/lib/bpEvents.js):
@@ -55,11 +55,11 @@
 
 ---
 
-## C14.4 ✅ Calendar visual polish (Horizon style)
+## C14.4 âœ… Calendar visual polish (Horizon style)
 
 **Event title format:**
 ```
-Service • Customer
+Service â€¢ Customer
 ```
 
 **Color classes based on status:**
@@ -98,21 +98,21 @@ Added in [public/admin-app.css](public/admin-app.css)
 
 ## Files Changed
 
-1. ✅ [src/admin/screens/CalendarScreen.jsx](src/admin/screens/CalendarScreen.jsx) - Added eventClick, event bus integration, improved event titles
-2. ✅ [src/admin/lib/bpEvents.js](src/admin/lib/bpEvents.js) - Created event bus
-3. ✅ [lib/rest/admin-calendar-routes.php](lib/rest/admin-calendar-routes.php) - Added POST /admin/bookings/{id}/status endpoint
-4. ✅ [public/admin-app.css](public/admin-app.css) - Added event color classes
-5. ✅ [build/admin.js](build/admin.js) - Rebuilt (316 KiB)
-6. ✅ [build/admin.asset.php](build/admin.asset.php) - Updated dependency manifest
+1. âœ… [src/admin/screens/CalendarScreen.jsx](src/admin/screens/CalendarScreen.jsx) - Added eventClick, event bus integration, improved event titles
+2. âœ… [src/admin/lib/bpEvents.js](src/admin/lib/bpEvents.js) - Created event bus
+3. âœ… [lib/rest/admin-calendar-routes.php](lib/rest/admin-calendar-routes.php) - Added POST /admin/bookings/{id}/status endpoint
+4. âœ… [public/admin-app.css](public/admin-app.css) - Added event color classes
+5. âœ… [build/admin.js](build/admin.js) - Rebuilt (316 KiB)
+6. âœ… [build/admin.asset.php](build/admin.asset.php) - Updated dependency manifest
 
 ---
 
 ## Testing
 
-1. **Calendar Display**: Hard refresh `wp-admin/?page=bp_calendar`
-2. **Click Event**: Click any booking → drawer opens with details
-3. **Drag/Drop**: Drag booking to new time → reschedule called, calendar refreshes
-4. **Status Change**: Change status in drawer → emits event, calendar refreshes
+1. **Calendar Display**: Hard refresh `wp-admin/?page=pointlybooking_calendar`
+2. **Click Event**: Click any booking â†’ drawer opens with details
+3. **Drag/Drop**: Drag booking to new time â†’ reschedule called, calendar refreshes
+4. **Status Change**: Change status in drawer â†’ emits event, calendar refreshes
 5. **Color Coding**: Events show correct colors by status
 
 ---

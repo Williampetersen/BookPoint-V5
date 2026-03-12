@@ -1,9 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
-import UpgradeToPro from "../components/UpgradeToPro";
 
 export default function LocationsScreen() {
-  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -14,14 +12,9 @@ export default function LocationsScreen() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
-    if (!isPro) {
-      setLoading(false);
-      setLocations([]);
-      return;
-    }
     loadLocations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPro]);
+  }, []);
 
   async function loadLocations() {
     try {
@@ -84,10 +77,6 @@ export default function LocationsScreen() {
     );
   }, [locations]);
 
-  if (!isPro) {
-    return <UpgradeToPro feature="Locations" />;
-  }
-
   return (
     <div className="myplugin-page bp-locations">
       <main className="myplugin-content">
@@ -97,10 +86,10 @@ export default function LocationsScreen() {
             <div className="bp-muted">Manage locations, images, and assignments.</div>
           </div>
           <div className="bp-head-actions">
-            <a className="bp-primary-btn" href="admin.php?page=bp_locations_edit">
+            <a className="bp-primary-btn" href="admin.php?page=pointlybooking_locations_edit">
               + New Location
             </a>
-            <a className="bp-top-btn" href="admin.php?page=bp_location_categories_edit">
+            <a className="bp-top-btn" href="admin.php?page=pointlybooking_location_categories_edit">
               Categories
             </a>
           </div>
@@ -171,7 +160,7 @@ export default function LocationsScreen() {
               const initial = (name || "L").trim().charAt(0).toUpperCase();
               const isActive =
                 l.status !== undefined ? String(l.status) === "active" : l.is_active !== undefined ? !!Number(l.is_active) : true;
-              const editHref = `admin.php?page=bp_locations_edit&id=${l.id}`;
+              const editHref = `admin.php?page=pointlybooking_locations_edit&id=${l.id}`;
 
               return (
                 <a key={l.id} className="bp-entity-card bp-entity-card--link" href={editHref}>
@@ -196,7 +185,7 @@ export default function LocationsScreen() {
                     ) : (
                       <div>
                         <div className="bp-entity-meta-label">Category</div>
-                        <div className="bp-entity-meta-value">—</div>
+                        <div className="bp-entity-meta-value">Ã¢â‚¬â€</div>
                       </div>
                     )}
                     <div>

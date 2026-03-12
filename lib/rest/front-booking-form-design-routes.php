@@ -2,16 +2,16 @@
 if (!defined('ABSPATH')) exit;
 
 add_action('rest_api_init', function () {
-  register_rest_route('bp/v1', '/front/booking-form-design', [
+  register_rest_route('pointly-booking/v1', '/front/booking-form-design', [
     'methods'  => 'GET',
-    'callback' => 'bp_front_get_booking_form_design',
+    'callback' => 'pointlybooking_front_get_booking_form_design',
     'permission_callback' => '__return_true',
   ]);
 });
 
-function bp_front_get_booking_form_design() {
-  if (function_exists('bp_booking_form_design_default')) {
-    $defaults = bp_booking_form_design_default();
+function pointlybooking_front_get_booking_form_design() {
+  if (function_exists('pointlybooking_booking_form_design_default')) {
+    $defaults = pointlybooking_booking_form_design_default();
   } else {
     $defaults = [
       'appearance' => [
@@ -45,11 +45,11 @@ function bp_front_get_booking_form_design() {
     ];
   }
 
-  $saved = get_option('bp_booking_form_design', null);
+  $saved = get_option('pointlybooking_booking_form_design', null);
   $config = (is_array($saved)) ? wp_parse_args($saved, $defaults) : $defaults;
 
-  if (function_exists('bp_booking_form_design_upgrade_step_images') && is_array($config)) {
-    $config = bp_booking_form_design_upgrade_step_images($config);
+  if (function_exists('pointlybooking_booking_form_design_upgrade_step_images') && is_array($config)) {
+    $config = pointlybooking_booking_form_design_upgrade_step_images($config);
   }
 
   return rest_ensure_response(['config' => $config]);

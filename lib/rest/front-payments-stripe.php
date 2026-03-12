@@ -2,37 +2,37 @@
 defined('ABSPATH') || exit;
 
 add_action('rest_api_init', function () {
-  register_rest_route('bp/v1', '/front/payments/stripe/start', [
+  register_rest_route('pointly-booking/v1', '/front/payments/stripe/start', [
     'methods' => 'POST',
-    'callback' => 'bp_stripe_start_checkout',
+    'callback' => 'pointlybooking_stripe_start_checkout',
     'permission_callback' => '__return_true',
   ]);
 
-  register_rest_route('bp/v1', '/webhooks/stripe', [
+  register_rest_route('pointly-booking/v1', '/webhooks/stripe', [
     'methods' => 'POST',
-    'callback' => 'bp_stripe_webhook',
+    'callback' => 'pointlybooking_stripe_webhook',
     'permission_callback' => '__return_true',
   ]);
 });
 
-function bp_stripe_secret_key(): string {
-  $mode = class_exists('BP_SettingsHelper')
-    ? (string)BP_SettingsHelper::get('payments_stripe_mode', 'test')
+function pointlybooking_stripe_secret_key(): string {
+  $mode = class_exists('POINTLYBOOKING_SettingsHelper')
+    ? (string)POINTLYBOOKING_SettingsHelper::get('payments_stripe_mode', 'test')
     : 'test';
 
   if ($mode === 'live') {
-    return (string)(class_exists('BP_SettingsHelper')
-      ? BP_SettingsHelper::get('payments_stripe_live_secret_key', '')
+    return (string)(class_exists('POINTLYBOOKING_SettingsHelper')
+      ? POINTLYBOOKING_SettingsHelper::get('payments_stripe_live_secret_key', '')
       : '');
   }
 
-  return (string)(class_exists('BP_SettingsHelper')
-    ? BP_SettingsHelper::get('payments_stripe_test_secret_key', '')
+  return (string)(class_exists('POINTLYBOOKING_SettingsHelper')
+    ? POINTLYBOOKING_SettingsHelper::get('payments_stripe_test_secret_key', '')
     : '');
 }
 
-function bp_stripe_start_checkout(WP_REST_Request $req) {
-  $secret = bp_stripe_secret_key();
+function pointlybooking_stripe_start_checkout(WP_REST_Request $req) {
+  $secret = pointlybooking_stripe_secret_key();
   if ($secret === '') {
     return new WP_Error('no_key', 'Stripe secret key not configured.', ['status' => 400]);
   }
@@ -49,30 +49,39 @@ function bp_stripe_start_checkout(WP_REST_Request $req) {
     $currency = 'usd';
   }
 
-  $booking = bp_create_pending_payment_booking_from_payload($payload, 'stripe');
+  $booking = pointlybooking_create_pending_payment_booking_from_payload($payload, 'stripe');
   if (is_wp_error($booking)) return $booking;
   $booking_id = (int)($booking['booking_id'] ?? 0);
   if ($booking_id <= 0) {
     return new WP_Error('booking_fail', 'Could not create booking.', ['status' => 500]);
   }
+  $booking_row = POINTLYBOOKING_BookingModel::find($booking_id);
+  $manage_key = sanitize_text_field((string)($booking_row['manage_key'] ?? ''));
 
-  $success = class_exists('BP_SettingsHelper')
-    ? (string)BP_SettingsHelper::get('payments_stripe_success_url', '')
+  $success = class_exists('POINTLYBOOKING_SettingsHelper')
+    ? (string)POINTLYBOOKING_SettingsHelper::get('payments_stripe_success_url', '')
     : '';
-  $cancel = class_exists('BP_SettingsHelper')
-    ? (string)BP_SettingsHelper::get('payments_stripe_cancel_url', '')
+  $cancel = class_exists('POINTLYBOOKING_SettingsHelper')
+    ? (string)POINTLYBOOKING_SettingsHelper::get('payments_stripe_cancel_url', '')
     : '';
 
-  if ($success === '') $success = home_url('/?bp_payment=stripe_success');
-  if ($cancel === '') $cancel = home_url('/?bp_payment=stripe_cancel');
+  if ($success === '') $success = home_url('/?pointlybooking_payment=stripe_success');
+  if ($cancel === '') $cancel = home_url('/?pointlybooking_payment=stripe_cancel');
+
+  $success_args = ['booking_id' => $booking_id];
+  $cancel_args = ['booking_id' => $booking_id];
+  if ($manage_key !== '') {
+    $success_args['key'] = $manage_key;
+    $cancel_args['key'] = $manage_key;
+  }
 
   $line_name = 'Booking #' . $booking_id;
   $unit_amount = (int)round($amount * 100);
 
   $body = [
     'mode' => 'payment',
-    'success_url' => add_query_arg(['booking_id' => $booking_id], $success),
-    'cancel_url' => add_query_arg(['booking_id' => $booking_id], $cancel),
+    'success_url' => add_query_arg($success_args, $success),
+    'cancel_url' => add_query_arg($cancel_args, $cancel),
     'client_reference_id' => (string)$booking_id,
     'metadata[booking_id]' => (string)$booking_id,
     'line_items[0][quantity]' => 1,
@@ -104,7 +113,7 @@ function bp_stripe_start_checkout(WP_REST_Request $req) {
   if ($session_id !== '') {
     global $wpdb;
     $wpdb->update(
-      $wpdb->prefix . 'bp_bookings',
+      $wpdb->prefix . 'pointlybooking_bookings',
       ['payment_provider_ref' => $session_id],
       ['id' => $booking_id],
       ['%s'],
@@ -116,10 +125,11 @@ function bp_stripe_start_checkout(WP_REST_Request $req) {
     'success' => true,
     'booking_id' => $booking_id,
     'checkout_url' => $json['url'] ?? '',
+    'manage_key' => $manage_key,
   ]);
 }
 
-function bp_stripe_verify_signature(string $payload, string $sig_header, string $secret, int $tolerance = 300): bool {
+function pointlybooking_stripe_verify_signature(string $payload, string $sig_header, string $secret, int $tolerance = 300): bool {
   if ($secret === '' || $sig_header === '') return false;
 
   $timestamp = 0;
@@ -143,12 +153,12 @@ function bp_stripe_verify_signature(string $payload, string $sig_header, string 
   return false;
 }
 
-function bp_stripe_webhook(WP_REST_Request $req) {
-  $settings = get_option('bp_settings', []);
+function pointlybooking_stripe_webhook(WP_REST_Request $req) {
+  $settings = get_option('pointlybooking_settings', []);
   $webhook_secret = $settings['stripe_webhook_secret'] ?? '';
 
   $raw = $req->get_body();
-  $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
+  $sig_header = isset($_SERVER['HTTP_STRIPE_SIGNATURE']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_STRIPE_SIGNATURE'])) : '';
   if (!$webhook_secret) {
     return new WP_Error('no_webhook_secret', 'Stripe webhook secret not configured.', ['status' => 400]);
   }
@@ -200,7 +210,7 @@ function bp_stripe_webhook(WP_REST_Request $req) {
     $provider_ref = sanitize_text_field($session['id'] ?? '');
 
     if ($booking_id > 0) {
-      bp_confirm_booking_paid($booking_id, $provider_ref);
+      pointlybooking_confirm_booking_paid($booking_id, $provider_ref);
     }
   }
 

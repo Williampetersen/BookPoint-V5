@@ -1,12 +1,12 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_Notifications_Helper {
+final class POINTLYBOOKING_Notifications_Helper {
 
-  private const WORKFLOW_TABLE = 'bp_workflows';
-  private const ACTION_TABLE = 'bp_workflow_actions';
-  private const LOG_TABLE = 'bp_workflow_logs';
-  public const CRON_HOOK = 'bp_run_workflow_event';
+  private const WORKFLOW_TABLE = 'pointlybooking_workflows';
+  private const ACTION_TABLE = 'pointlybooking_workflow_actions';
+  private const LOG_TABLE = 'pointlybooking_workflow_logs';
+  public const CRON_HOOK = 'pointlybooking_run_workflow_event';
   private const EVENTS = [
     'booking_created',
     'booking_updated',
@@ -91,7 +91,7 @@ final class BP_Notifications_Helper {
       return;
     }
 
-    $booking = BP_BookingModel::find($booking_id);
+    $booking = POINTLYBOOKING_BookingModel::find($booking_id);
     if (!$booking) {
       return;
     }
@@ -153,6 +153,9 @@ final class BP_Notifications_Helper {
       $where[] = 'event_key = %s';
       $params[] = $event;
     }
+    $where[] = '%d = %d';
+    $params[] = 1;
+    $params[] = 1;
 
     $page = max(1, (int)($filters['page'] ?? 1));
     $per = min(50, max(10, (int)($filters['per'] ?? 20)));
@@ -160,25 +163,32 @@ final class BP_Notifications_Helper {
 
     $where_sql = implode(' AND ', $where);
 
-    $sql_count = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
-    $count_sql = self::prepare_sql($sql_count, $params);
-    $total = (int)$wpdb->get_var($count_sql);
+    $total = (int)$wpdb->get_var(
+      $wpdb->prepare(
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is generated from $wpdb->prefix + hardcoded table key; $where_sql is built from hardcoded SQL fragments with placeholders.
+        "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}",
+        $params
+      )
+    );
 
     $action_table = self::table(self::ACTION_TABLE);
     $log_table = self::table(self::LOG_TABLE);
 
-    $sql_items = "SELECT w.*,
+    $rows = $wpdb->get_results(
+      $wpdb->prepare(
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table names are generated from $wpdb->prefix + hardcoded table keys; $where_sql is built from hardcoded SQL fragments with placeholders.
+        "SELECT w.*,
       (\n        SELECT COUNT(*) FROM {$action_table} a WHERE a.workflow_id = w.id\n      ) as actions_count,
       (\n        SELECT MAX(l.created_at) FROM {$log_table} l WHERE l.workflow_id = w.id\n      ) as last_run_at,
       (\n        SELECT l.status FROM {$log_table} l WHERE l.workflow_id = w.id ORDER BY l.id DESC LIMIT 1\n      ) as last_run_status
     FROM {$table} w
     WHERE {$where_sql}
     ORDER BY w.updated_at DESC, w.id DESC
-    LIMIT %d OFFSET %d";
-
-    $items_params = array_merge($params, [$per, $offset]);
-    $items_sql = self::prepare_sql($sql_items, $items_params);
-    $rows = $wpdb->get_results($items_sql, ARRAY_A) ?: [];
+    LIMIT %d OFFSET %d",
+        array_merge($params, [$per, $offset])
+      ),
+      ARRAY_A
+    ) ?: [];
 
     return [
       'items' => $rows,
@@ -427,7 +437,7 @@ final class BP_Notifications_Helper {
     $context = $payload['context'] ?? [];
 
     $to = self::render_template_value($config['to'] ?? '', $context);
-    $subject = self::render_template_value($config['subject'] ?? __('Booking Notification', 'bookpoint'), $context);
+    $subject = self::render_template_value($config['subject'] ?? __('Booking Notification', 'bookpoint-booking'), $context);
     $body = self::render_template_value($config['body'] ?? '', $context);
     $from_name = $config['from_name'] ?? null;
     $from_email = $config['from_email'] ?? null;
@@ -445,14 +455,19 @@ final class BP_Notifications_Helper {
       }
     }
 
-    $sent = BP_EmailHelper::send($to, $subject, $body, [
+    $sent = POINTLYBOOKING_EmailHelper::send($to, $subject, $body, [
       'from_name' => $from_name,
       'from_email' => $from_email,
       'attachments' => $attachments,
     ]);
 
     foreach ($attachments as $path) {
-      @unlink($path);
+      if (!is_string($path) || $path === '') {
+        continue;
+      }
+      if (function_exists('wp_delete_file')) {
+        wp_delete_file($path);
+      }
     }
 
     self::log(
@@ -494,9 +509,9 @@ final class BP_Notifications_Helper {
   }
 
   public static function build_payload_from_booking(string $event_key, array $booking): ?array {
-    $service = BP_ServiceModel::find((int)($booking['service_id'] ?? 0)) ?: [];
-    $customer = $booking['customer_id'] ? BP_CustomerModel::find((int)$booking['customer_id']) : [];
-    $agent = $booking['agent_id'] ? BP_AgentModel::find((int)$booking['agent_id']) : [];
+    $service = POINTLYBOOKING_ServiceModel::find((int)($booking['service_id'] ?? 0)) ?: [];
+    $customer = $booking['customer_id'] ? POINTLYBOOKING_CustomerModel::find((int)$booking['customer_id']) : [];
+    $agent = $booking['agent_id'] ? POINTLYBOOKING_AgentModel::find((int)$booking['agent_id']) : [];
 
     $pricing = self::build_pricing($booking, $service);
     $links = self::build_links($booking);
@@ -545,7 +560,7 @@ final class BP_Notifications_Helper {
     }
 
     $service_name = trim((string)($service['name'] ?? ''));
-    $service_name = $service_name === '' ? __('Service', 'bookpoint') : $service_name;
+    $service_name = $service_name === '' ? __('Service', 'bookpoint-booking') : $service_name;
 
     $context = [
       'site_name' => (string)get_bloginfo('name'),
@@ -556,10 +571,10 @@ final class BP_Notifications_Helper {
       'booking_notes' => (string)($booking['notes'] ?? ''),
       'start_datetime' => $start,
       'end_datetime' => $end,
-      'start_date' => $start_ts ? date('Y-m-d', $start_ts) : '',
-      'start_time' => $start_ts ? date('H:i', $start_ts) : '',
-      'end_date' => $end_ts ? date('Y-m-d', $end_ts) : '',
-      'end_time' => $end_ts ? date('H:i', $end_ts) : '',
+      'start_date' => $start_ts ? gmdate('Y-m-d', $start_ts) : '',
+      'start_time' => $start_ts ? gmdate('H:i', $start_ts) : '',
+      'end_date' => $end_ts ? gmdate('Y-m-d', $end_ts) : '',
+      'end_time' => $end_ts ? gmdate('H:i', $end_ts) : '',
       'booking_duration' => $duration,
       'customer_name' => $customer_name,
       'customer_email' => (string)($customer['email'] ?? ''),
@@ -594,63 +609,63 @@ final class BP_Notifications_Helper {
   private static function smart_variables_data(): array {
     $vars = [
       [
-        'label' => __('Site', 'bookpoint'),
+        'label' => __('Site', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'site_name', 'label' => __('Site name', 'bookpoint')],
-          ['key' => 'site_url', 'label' => __('Site URL', 'bookpoint')],
-          ['key' => 'admin_email', 'label' => __('Admin email', 'bookpoint')],
+          ['key' => 'site_name', 'label' => __('Site name', 'bookpoint-booking')],
+          ['key' => 'site_url', 'label' => __('Site URL', 'bookpoint-booking')],
+          ['key' => 'admin_email', 'label' => __('Admin email', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Appointment', 'bookpoint'),
+        'label' => __('Appointment', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'booking_id', 'label' => __('Booking ID', 'bookpoint')],
-          ['key' => 'booking_status', 'label' => __('Status', 'bookpoint')],
-          ['key' => 'start_date', 'label' => __('Start date', 'bookpoint')],
-          ['key' => 'start_time', 'label' => __('Start time', 'bookpoint')],
-          ['key' => 'end_date', 'label' => __('End date', 'bookpoint')],
-          ['key' => 'end_time', 'label' => __('End time', 'bookpoint')],
-          ['key' => 'booking_duration', 'label' => __('Duration (minutes)', 'bookpoint')],
+          ['key' => 'booking_id', 'label' => __('Booking ID', 'bookpoint-booking')],
+          ['key' => 'booking_status', 'label' => __('Status', 'bookpoint-booking')],
+          ['key' => 'start_date', 'label' => __('Start date', 'bookpoint-booking')],
+          ['key' => 'start_time', 'label' => __('Start time', 'bookpoint-booking')],
+          ['key' => 'end_date', 'label' => __('End date', 'bookpoint-booking')],
+          ['key' => 'end_time', 'label' => __('End time', 'bookpoint-booking')],
+          ['key' => 'booking_duration', 'label' => __('Duration (minutes)', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Customer', 'bookpoint'),
+        'label' => __('Customer', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'customer_name', 'label' => __('Name', 'bookpoint')],
-          ['key' => 'customer_email', 'label' => __('Email', 'bookpoint')],
-          ['key' => 'customer_phone', 'label' => __('Phone', 'bookpoint')],
+          ['key' => 'customer_name', 'label' => __('Name', 'bookpoint-booking')],
+          ['key' => 'customer_email', 'label' => __('Email', 'bookpoint-booking')],
+          ['key' => 'customer_phone', 'label' => __('Phone', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Agent', 'bookpoint'),
+        'label' => __('Agent', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'agent_name', 'label' => __('Name', 'bookpoint')],
-          ['key' => 'agent_email', 'label' => __('Email', 'bookpoint')],
-          ['key' => 'agent_phone', 'label' => __('Phone', 'bookpoint')],
+          ['key' => 'agent_name', 'label' => __('Name', 'bookpoint-booking')],
+          ['key' => 'agent_email', 'label' => __('Email', 'bookpoint-booking')],
+          ['key' => 'agent_phone', 'label' => __('Phone', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Service', 'bookpoint'),
+        'label' => __('Service', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'service_name', 'label' => __('Name', 'bookpoint')],
-          ['key' => 'service_duration', 'label' => __('Duration (minutes)', 'bookpoint')],
+          ['key' => 'service_name', 'label' => __('Name', 'bookpoint-booking')],
+          ['key' => 'service_duration', 'label' => __('Duration (minutes)', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Pricing', 'bookpoint'),
+        'label' => __('Pricing', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'subtotal', 'label' => __('Subtotal', 'bookpoint')],
-          ['key' => 'discount', 'label' => __('Discount', 'bookpoint')],
-          ['key' => 'tax', 'label' => __('Tax', 'bookpoint')],
-          ['key' => 'total', 'label' => __('Total', 'bookpoint')],
-          ['key' => 'promo_code', 'label' => __('Promo code', 'bookpoint')],
+          ['key' => 'subtotal', 'label' => __('Subtotal', 'bookpoint-booking')],
+          ['key' => 'discount', 'label' => __('Discount', 'bookpoint-booking')],
+          ['key' => 'tax', 'label' => __('Tax', 'bookpoint-booking')],
+          ['key' => 'total', 'label' => __('Total', 'bookpoint-booking')],
+          ['key' => 'promo_code', 'label' => __('Promo code', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Links', 'bookpoint'),
+        'label' => __('Links', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'manage_booking_url_customer', 'label' => __('Manage booking (customer)', 'bookpoint')],
-          ['key' => 'manage_booking_url_agent', 'label' => __('Manage booking (agent)', 'bookpoint')],
+          ['key' => 'manage_booking_url_customer', 'label' => __('Manage booking (customer)', 'bookpoint-booking')],
+          ['key' => 'manage_booking_url_agent', 'label' => __('Manage booking (agent)', 'bookpoint-booking')],
         ],
       ],
     ];
@@ -658,7 +673,7 @@ final class BP_Notifications_Helper {
     $custom = self::active_custom_fields();
     if ($custom) {
       $group = [
-        'label' => __('Custom fields', 'bookpoint'),
+        'label' => __('Custom fields', 'bookpoint-booking'),
         'variables' => [],
       ];
       foreach ($custom as $field) {
@@ -675,10 +690,10 @@ final class BP_Notifications_Helper {
   }
 
   private static function active_custom_fields(): array {
-    if (!class_exists('BP_FormFieldModel')) {
+    if (!class_exists('POINTLYBOOKING_FormFieldModel')) {
       return [];
     }
-    return BP_FormFieldModel::active_fields('booking');
+    return POINTLYBOOKING_FormFieldModel::active_fields('booking');
   }
 
   private static function build_pricing(array $booking, array $service): array {
@@ -704,9 +719,9 @@ final class BP_Notifications_Helper {
 
     return [
       'manage_booking_url_customer' => $manage_key
-        ? add_query_arg(['bp_manage_booking' => 1, 'key' => $manage_key], home_url('/'))
+        ? add_query_arg(['pointlybooking_manage_booking' => 1, 'key' => $manage_key], home_url('/'))
         : '',
-      'manage_booking_url_agent' => $id ? admin_url("admin.php?page=bp_bookings&view={$id}") : '',
+      'manage_booking_url_agent' => $id ? admin_url("admin.php?page=pointlybooking_bookings&view={$id}") : '',
     ];
   }
 
@@ -750,7 +765,7 @@ final class BP_Notifications_Helper {
     }
 
     $uid = uniqid('bp-wf-', true);
-    $summary = sanitize_text_field($service['name'] ?? __('Booking', 'bookpoint'));
+    $summary = sanitize_text_field($service['name'] ?? __('Booking', 'bookpoint-booking'));
     $description = sanitize_text_field($payload['context']['booking_status'] ?? '');
 
     $ics = "BEGIN:VCALENDAR\\r\\n";
@@ -769,17 +784,22 @@ final class BP_Notifications_Helper {
     $ics .= "END:VEVENT\\r\\n";
     $ics .= "END:VCALENDAR\\r\\n";
 
-    $tmp = function_exists('wp_tempnam') ? wp_tempnam(sys_get_temp_dir(), 'bp-wf-') : tempnam(sys_get_temp_dir(), 'bp-wf-');
+    $tmp = function_exists('wp_tempnam') ? wp_tempnam(sys_get_temp_dir(), 'pointlybooking-wf-') : tempnam(sys_get_temp_dir(), 'pointlybooking-wf-');
     if (!$tmp) {
       return null;
     }
 
-    file_put_contents($tmp, $ics);
+    if (file_put_contents($tmp, $ics) === false) {
+      if (function_exists('wp_delete_file')) {
+        wp_delete_file($tmp);
+      }
+      return null;
+    }
     return $tmp;
   }
 
   private static function render_template_value(string $value, array $context): string {
-    return bp_render_template($value, $context);
+    return pointlybooking_render_template($value, $context);
   }
 
   private static function log(int $workflow_id, string $event_key, string $entity_type, ?int $entity_id, string $status, string $message = ''): void {
@@ -800,25 +820,17 @@ final class BP_Notifications_Helper {
     global $wpdb;
     return $wpdb->prefix . $key;
   }
-
-  private static function prepare_sql(string $sql, array $params = []): string {
-    global $wpdb;
-    if (empty($params)) {
-      return $sql;
-    }
-    return $wpdb->prepare($sql, ...$params);
-  }
 }
 
-add_action(BP_Notifications_Helper::CRON_HOOK, function($workflow_id, $payload_json) {
-  BP_Notifications_Helper::handle_scheduled_event((int)$workflow_id, (string)$payload_json);
+add_action(POINTLYBOOKING_Notifications_Helper::CRON_HOOK, function($workflow_id, $payload_json) {
+  POINTLYBOOKING_Notifications_Helper::handle_scheduled_event((int)$workflow_id, (string)$payload_json);
 }, 10, 2);
 
-function bp_run_workflows(string $event_key, array $payload): void {
-  BP_Notifications_Helper::run_workflows($event_key, $payload);
+function pointlybooking_run_workflows(string $event_key, array $payload): void {
+  POINTLYBOOKING_Notifications_Helper::run_workflows($event_key, $payload);
 }
 
-function bp_render_template(string $text, array $context): string {
+function pointlybooking_render_template(string $text, array $context): string {
   if ($text === '') {
     return '';
   }
@@ -831,3 +843,4 @@ function bp_render_template(string $text, array $context): string {
     return isset($context[$key]) ? (string)$context[$key] : '';
   }, $text);
 }
+

@@ -2,16 +2,16 @@
 if (!defined('ABSPATH')) exit;
 
 add_action('rest_api_init', function () {
-  register_rest_route('bp/v1', '/admin/booking-form-design', [
+  register_rest_route('pointly-booking/v1', '/admin/booking-form-design', [
     [
       'methods'  => 'GET',
-      'callback' => 'bp_admin_get_booking_form_design',
-      'permission_callback' => 'bp_admin_can_manage',
+      'callback' => 'pointlybooking_admin_get_booking_form_design',
+      'permission_callback' => 'pointlybooking_admin_can_manage',
     ],
     [
       'methods'  => 'POST',
-      'callback' => 'bp_admin_save_booking_form_design',
-      'permission_callback' => 'bp_admin_can_manage',
+      'callback' => 'pointlybooking_admin_save_booking_form_design',
+      'permission_callback' => 'pointlybooking_admin_can_manage',
       'args' => [
         'config' => [
           'required' => true,
@@ -21,27 +21,27 @@ add_action('rest_api_init', function () {
     ],
   ]);
 
-  register_rest_route('bp/v1', '/admin/booking-form-design-reset', [
+  register_rest_route('pointly-booking/v1', '/admin/booking-form-design-reset', [
     'methods'  => 'POST',
     'callback' => function () {
-      if (!current_user_can('manage_options')) {
+      if (!pointlybooking_admin_can_manage()) {
         return new WP_Error('forbidden', 'Forbidden', ['status'=>403]);
       }
-      $cfg = bp_booking_form_design_default();
-      update_option('bp_booking_form_design', $cfg, false);
+      $cfg = pointlybooking_booking_form_design_default();
+      update_option('pointlybooking_booking_form_design', $cfg, false);
       return rest_ensure_response(['success'=>true,'config'=>$cfg]);
     },
-    'permission_callback' => '__return_true',
+    'permission_callback' => 'pointlybooking_admin_can_manage',
   ]);
 });
 
-function bp_admin_can_manage() {
-  return current_user_can('manage_options');
+function pointlybooking_admin_can_manage() {
+  return current_user_can('manage_options') || current_user_can('pointlybooking_manage_settings');
 }
 
-function bp_booking_form_design_default() {
-  if (function_exists('bp_default_design_from_file')) {
-    $file_design = bp_default_design_from_file();
+function pointlybooking_booking_form_design_default() {
+  if (function_exists('pointlybooking_default_design_from_file')) {
+    $file_design = pointlybooking_default_design_from_file();
     if (is_array($file_design)) {
       return $file_design;
     }
@@ -89,7 +89,7 @@ function bp_booking_form_design_default() {
   ];
 }
 
-function bp_booking_form_design_step_image_defaults(): array {
+function pointlybooking_booking_form_design_step_image_defaults(): array {
   return [
     'location' => 'locations.svg',
     'category' => 'categories.svg',
@@ -104,9 +104,9 @@ function bp_booking_form_design_step_image_defaults(): array {
   ];
 }
 
-function bp_booking_form_design_upgrade_step_images(array $config): array {
+function pointlybooking_booking_form_design_upgrade_step_images(array $config): array {
   $changed = false;
-  $defaults = bp_booking_form_design_step_image_defaults();
+  $defaults = pointlybooking_booking_form_design_step_image_defaults();
   $legacy = [
     'location-image.png' => true,
     'service-image.png' => true,
@@ -141,16 +141,16 @@ function bp_booking_form_design_upgrade_step_images(array $config): array {
   return $config;
 }
 
-function bp_admin_get_booking_form_design(\WP_REST_Request $req) {
-  $config = get_option('bp_booking_form_design', null);
+function pointlybooking_admin_get_booking_form_design(\WP_REST_Request $req) {
+  $config = get_option('pointlybooking_booking_form_design', null);
   if (!$config || !is_array($config)) {
-    $config = bp_booking_form_design_default();
-    update_option('bp_booking_form_design', $config, false);
+    $config = pointlybooking_booking_form_design_default();
+    update_option('pointlybooking_booking_form_design', $config, false);
   } else {
-    $upgraded = bp_booking_form_design_upgrade_step_images($config);
+    $upgraded = pointlybooking_booking_form_design_upgrade_step_images($config);
     if ($upgraded !== $config) {
       $config = $upgraded;
-      update_option('bp_booking_form_design', $config, false);
+      update_option('pointlybooking_booking_form_design', $config, false);
     }
   }
   return rest_ensure_response([
@@ -159,7 +159,7 @@ function bp_admin_get_booking_form_design(\WP_REST_Request $req) {
   ]);
 }
 
-function bp_admin_save_booking_form_design(\WP_REST_Request $req) {
+function pointlybooking_admin_save_booking_form_design(\WP_REST_Request $req) {
   $body = $req->get_json_params();
   $config = isset($body['config']) ? $body['config'] : null;
 
@@ -178,10 +178,11 @@ function bp_admin_save_booking_form_design(\WP_REST_Request $req) {
     ], 413);
   }
 
-  update_option('bp_booking_form_design', $config, false);
+  update_option('pointlybooking_booking_form_design', $config, false);
 
   return rest_ensure_response([
     'success' => true,
     'config' => $config,
   ]);
 }
+

@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
 
-const defaultCurrency = (window.BP_ADMIN?.currency || "USD").toUpperCase();
+const defaultCurrency = (window.pointlybooking_ADMIN?.currency || "USD").toUpperCase();
 
 function toMoneyNumber(v) {
   const n = Number(v);
@@ -236,7 +236,7 @@ export default function ServicesEditScreen() {
 
       // if creating, redirect into edit URL so refresh works and future saves patch
       if (!id && newId) {
-        window.location.href = `admin.php?page=bp_services_edit&id=${newId}`;
+        window.location.href = `admin.php?page=pointlybooking_services_edit&id=${newId}`;
       }
     } catch (e) {
       console.error(e);
@@ -253,7 +253,7 @@ export default function ServicesEditScreen() {
     setError("");
     try {
       await bpFetch(`/admin/services/${id}`, { method: "DELETE" });
-      window.location.href = "admin.php?page=bp_services";
+      window.location.href = "admin.php?page=pointlybooking_services";
     } catch (e) {
       setError(e?.message || "Delete failed");
     } finally {
@@ -417,7 +417,7 @@ export default function ServicesEditScreen() {
 
                 <div className="bp-service-edit__cats">
                   {catsLoading ? (
-                    <div className="bp-muted" style={{ padding: 10 }}>Loading categories…</div>
+                    <div className="bp-muted" style={{ padding: 10 }}>Loading categoriesâ€¦</div>
                   ) : filteredCategories.length === 0 ? (
                     <div className="bp-muted" style={{ padding: 10 }}>No categories.</div>
                   ) : (
@@ -448,7 +448,7 @@ export default function ServicesEditScreen() {
                         onClick={() => toggleCategory(c.id)}
                         title="Remove"
                       >
-                        {c.name} ×
+                        {c.name} Ã—
                       </button>
                     ))}
                   </div>
@@ -496,7 +496,7 @@ export default function ServicesEditScreen() {
                   </button>
                 </div>
                 <div className="bp-muted bp-text-sm" style={{ marginTop: 8, fontWeight: 800 }}>
-                  Inactive services won’t be selectable for new bookings.
+                  Inactive services wonâ€™t be selectable for new bookings.
                 </div>
               </div>
 
@@ -520,7 +520,7 @@ export default function ServicesEditScreen() {
         <div className="bp-service-edit__bar">
           <a
             className="bp-top-btn"
-            href="admin.php?page=bp_services"
+            href="admin.php?page=pointlybooking_services"
             onClick={(e) => {
               if (!dirty) return;
               if (!window.confirm("You have unsaved changes. Leave anyway?")) e.preventDefault();

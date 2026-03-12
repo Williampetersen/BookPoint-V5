@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
-import UpgradeToPro from "../components/UpgradeToPro";
 
 function getQueryInt(key) {
   const params = new URLSearchParams(window.location.search);
@@ -11,7 +10,6 @@ function getQueryInt(key) {
 }
 
 export default function LocationCategoryEditScreen() {
-  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
   const initialId = getQueryInt("id");
   const [categoryId, setCategoryId] = useState(initialId);
   const [loading, setLoading] = useState(true);
@@ -22,14 +20,9 @@ export default function LocationCategoryEditScreen() {
   const [edit, setEdit] = useState(null);
 
   useEffect(() => {
-    if (!isPro) {
-      setLoading(false);
-      setEdit(null);
-      return;
-    }
     loadCategory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryId, isPro]);
+  }, [categoryId]);
 
   async function loadCategory() {
     setLoading(true);
@@ -87,13 +80,13 @@ export default function LocationCategoryEditScreen() {
           const rows = list?.data || [];
           const latest = rows.sort((a, b) => (b.id || 0) - (a.id || 0))[0];
           if (latest?.id) {
-            window.location.href = `admin.php?page=bp_location_categories_edit&id=${latest.id}`;
+            window.location.href = `admin.php?page=pointlybooking_location_categories_edit&id=${latest.id}`;
             return;
           }
         } catch (e) {
           // ignore, fallback to list
         }
-        window.location.href = "admin.php?page=bp_locations";
+        window.location.href = "admin.php?page=pointlybooking_locations";
         return;
       }
     } catch (e) {
@@ -110,15 +103,11 @@ export default function LocationCategoryEditScreen() {
     setError("");
     try {
       await bpFetch(`/admin/location-categories/${categoryId}`, { method: "DELETE" });
-      window.location.href = "admin.php?page=bp_locations";
+      window.location.href = "admin.php?page=pointlybooking_locations";
     } catch (e) {
       setError(e.message || "Delete failed");
       setSaving(false);
     }
-  }
-
-  if (!isPro) {
-    return <UpgradeToPro feature="Locations" />;
   }
 
   return (
@@ -129,7 +118,7 @@ export default function LocationCategoryEditScreen() {
           <div className="bp-muted">Manage category profile and photo.</div>
         </div>
         <div className="bp-head-actions">
-          <a className="bp-top-btn" href="admin.php?page=bp_locations">Back to Locations</a>
+          <a className="bp-top-btn" href="admin.php?page=pointlybooking_locations">Back to Locations</a>
         </div>
       </div>
 
@@ -183,7 +172,7 @@ export default function LocationCategoryEditScreen() {
                 Delete
               </button>
             ) : null}
-            <a className="button" href="admin.php?page=bp_locations">Back</a>
+            <a className="button" href="admin.php?page=pointlybooking_locations">Back</a>
             <button className="button button-primary" onClick={saveCategory} disabled={saving || !edit.name}>
               {saving ? "Saving..." : "Save Changes"}
             </button>

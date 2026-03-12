@@ -1,11 +1,11 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_PortalHelper {
+final class POINTLYBOOKING_PortalHelper {
 
   private static function key(string $email, string $suffix) : string {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    return 'bp_portal_' . md5(strtolower(trim($email)) . '|' . $ip . '|' . $suffix);
+    $ip = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'));
+    return 'pointlybooking_portal_' . md5(strtolower(trim($email)) . '|' . $ip . '|' . $suffix);
   }
 
   public static function send_otp(string $email) : bool {
@@ -14,11 +14,11 @@ final class BP_PortalHelper {
     $otp = (string) random_int(100000, 999999);
     set_transient(self::key($email, 'otp'), password_hash($otp, PASSWORD_DEFAULT), 10 * MINUTE_IN_SECONDS);
 
-    $subject = __('Your BookPoint login code', 'bookpoint');
-    $body = '<p>' . esc_html__('Your login code is:', 'bookpoint') . ' <strong>' . esc_html($otp) . '</strong></p>'
-          . '<p>' . esc_html__('It expires in 10 minutes.', 'bookpoint') . '</p>';
+    $subject = __('Your BookPoint login code', 'bookpoint-booking');
+    $body = '<p>' . esc_html__('Your login code is:', 'bookpoint-booking') . ' <strong>' . esc_html($otp) . '</strong></p>'
+          . '<p>' . esc_html__('It expires in 10 minutes.', 'bookpoint-booking') . '</p>';
 
-    return BP_EmailHelper::send($email, $subject, $body);
+    return POINTLYBOOKING_EmailHelper::send($email, $subject, $body);
   }
 
   public static function verify_otp(string $email, string $otp) : ?string {

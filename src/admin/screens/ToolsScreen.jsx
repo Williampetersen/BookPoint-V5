@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { bpFetch } from "../api/client";
 
 function downloadText(filename, text, type = "application/octet-stream;charset=utf-8") {
@@ -19,18 +19,18 @@ function fmtBool(ok) {
 
 function prettyTableName(raw) {
   const overrides = {
-    bp_audit_log: "Audit Log",
-    bp_service_agents: "Service Agents",
-    bp_service_categories: "Service Categories",
-    bp_service_extras: "Service Extras",
-    bp_promo_codes: "Promo Codes",
+    pointlybooking_audit_log: "Audit Log",
+    pointlybooking_service_agents: "Service Agents",
+    pointlybooking_service_categories: "Service Categories",
+    pointlybooking_service_extras: "Service Extras",
+    pointlybooking_promo_codes: "Promo Codes",
   };
 
   const name = String(raw || "").trim();
-  if (!name) return "—";
+  if (!name) return "â€”";
   if (overrides[name]) return overrides[name];
 
-  const cleaned = name.replace(/^bp_/, "").replace(/_/g, " ").trim();
+  const cleaned = name.replace(/^pointlybooking_/, "").replace(/_/g, " ").trim();
   return cleaned.replace(/\b([a-z])/g, (m) => m.toUpperCase());
 }
 
@@ -142,12 +142,12 @@ export default function ToolsScreen() {
   async function exportSettings() {
     setErr("");
     try {
-      const base = window.BP_ADMIN?.restUrl || "/wp-json/bp/v1";
+      const base = window.pointlybooking_ADMIN?.restUrl || "/wp-json/pointly-booking/v1";
       const url = base.replace(/\/$/, "") + "/admin/tools/export-settings";
       const res = await fetch(url, {
         method: "GET",
         credentials: "same-origin",
-        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce },
+        headers: { "X-WP-Nonce": window.pointlybooking_ADMIN?.nonce },
       });
       const text = await res.text();
       if (!res.ok) throw new Error("Export failed");
@@ -237,19 +237,19 @@ export default function ToolsScreen() {
         <div className="bp-tools-kpis">
           <div className="bp-tools-kpi">
             <div className="k">Plugin</div>
-            <div className="v">{status?.plugin_version || report?.plugin_version || "—"}</div>
+            <div className="v">{status?.plugin_version || report?.plugin_version || "â€”"}</div>
           </div>
           <div className="bp-tools-kpi">
             <div className="k">DB Version</div>
-            <div className="v">{status?.db_version || report?.db_version || "—"}</div>
+            <div className="v">{status?.db_version || report?.db_version || "â€”"}</div>
           </div>
           <div className="bp-tools-kpi">
             <div className="k">Tables</div>
-            <div className="v">{status ? `${status.tables_ok_count || 0}/${status.tables_total || 0}` : "—"}</div>
+            <div className="v">{status ? `${status.tables_ok_count || 0}/${status.tables_total || 0}` : "â€”"}</div>
           </div>
           <div className="bp-tools-kpi">
             <div className="k">WP / PHP</div>
-            <div className="v">{report ? `${report.wp_version || "—"} / ${report.php_version || "—"}` : "—"}</div>
+            <div className="v">{report ? `${report.wp_version || "â€”"} / ${report.php_version || "â€”"}` : "â€”"}</div>
           </div>
         </div>
 
@@ -359,7 +359,7 @@ export default function ToolsScreen() {
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button type="button" className="bp-btn bp-btn-primary" onClick={exportSettings}>Export settings</button>
               <label className="bp-btn" style={{ cursor: "pointer" }}>
-                Choose file…
+                Choose fileâ€¦
                 <input
                   type="file"
                   accept="application/json"
@@ -387,7 +387,7 @@ export default function ToolsScreen() {
               </button>
             </div>
             <div className="bp-muted bp-text-xs" style={{ marginTop: 8 }}>
-              Selected: {importFileName || "—"}
+              Selected: {importFileName || "â€”"}
             </div>
           </div>
         </div>

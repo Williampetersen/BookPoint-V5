@@ -1,19 +1,4 @@
-import React, { useEffect, useState } from 'react';
-
-function UpgradeNotice() {
-  const pricingUrl = 'https://wpbookpoint.com/pricing/';
-  return (
-    <div className="bp-card" style={{ padding: 18 }}>
-      <h2 style={{ marginTop: 0 }}>Payments require BookPoint Pro</h2>
-      <p className="bp-muted" style={{ marginBottom: 14 }}>
-        Payments (including cash) are disabled in the free version. Upgrade to BookPoint Pro to enable payment methods.
-      </p>
-      <a className="bp-btn bp-btn--primary" href={pricingUrl} target="_blank" rel="noreferrer noopener">
-        View plans & pricing
-      </a>
-    </div>
-  );
-}
+﻿import React, { useEffect, useState } from 'react';
 
 const METHODS = [
   { key: 'free', label: 'Free (No payment)' },
@@ -40,22 +25,34 @@ const METHOD_ICONS = {
 };
 
 function getPublicImagesBase() {
+  const pluginUrl = String(window.pointlybooking_ADMIN?.pluginUrl || window.bpAdmin?.pluginUrl || '').replace(/\/$/, '');
   const base =
-    window.BP_ADMIN?.publicImagesUrl ||
+    window.pointlybooking_ADMIN?.publicImagesUrl ||
     window.bpAdmin?.publicImagesUrl ||
-    (window.BP_ADMIN?.pluginUrl ? window.BP_ADMIN.pluginUrl.replace(/\/$/, '') + '/public/images' : '') ||
-    (window.bpAdmin?.pluginUrl ? window.bpAdmin.pluginUrl.replace(/\/$/, '') + '/public/images' : '') ||
-    `${window.location.origin}/wp-content/plugins/bookpoint-v5/public/images`;
+    (pluginUrl ? `${pluginUrl}/public/images` : '');
   return base.replace(/\/$/, '');
 }
 
 function getRestBase() {
-  const url = window.bpAdmin?.restUrl || window.BP_ADMIN?.restUrl || '/wp-json/bp/v1';
-  return url.replace(/\/$/, '');
+  const direct = window.bpAdmin?.restUrl || window.pointlybooking_ADMIN?.restUrl;
+  if (direct) return String(direct).replace(/\/$/, '');
+
+  const root = window.wpApiSettings?.root;
+  if (root) {
+    return String(root).replace(/\/$/, '') + '/pointly-booking/v1';
+  }
+
+  return '/wp-json/pointly-booking/v1';
 }
 
 function getNonce() {
-  return window.bpAdmin?.nonce || window.BP_ADMIN?.nonce || '';
+  return window.bpAdmin?.nonce || window.pointlybooking_ADMIN?.nonce || '';
+}
+
+function getStripeWebhookUrl() {
+  const restBase = getRestBase();
+  const wpJsonBase = restBase.replace(/\/bp\/v1$/, '');
+  return `${wpJsonBase}/pointly-booking/v1/webhooks/stripe`;
 }
 
 async function api(path, opts = {}) {
@@ -81,6 +78,7 @@ function PaymentsSettingsPro() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   const imagesBase = getPublicImagesBase();
+  const stripeWebhookUrl = getStripeWebhookUrl();
   const [state, setState] = useState({
     payments_enabled: 1,
     enabled_methods: ['cash', 'free'],
@@ -199,7 +197,7 @@ function PaymentsSettingsPro() {
     }
   };
 
-  if (loading) return <div className="bp-card bp-p-14">Loading…</div>;
+  if (loading) return <div className="bp-card bp-p-14">Loadingâ€¦</div>;
 
   return (
     <div className="bp-payments">
@@ -422,7 +420,7 @@ function PaymentsSettingsPro() {
                       placeholder="whsec_..."
                     />
                     <div className="bp-text-xs bp-muted bp-mt-6">
-                      Webhook URL: <strong>{window.location.origin}/wp-json/bp/v1/webhooks/stripe</strong>
+                      Webhook URL: <strong>{stripeWebhookUrl}</strong>
                     </div>
 
                     <div className="bp-mt-12">
@@ -552,7 +550,5 @@ function PaymentsSettingsPro() {
 }
 
 export default function PaymentsSettings() {
-  const isPro = Boolean(Number(window.BP_ADMIN?.isPro || 0));
-  if (!isPro) return <UpgradeNotice />;
   return <PaymentsSettingsPro />;
 }

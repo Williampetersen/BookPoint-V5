@@ -1,10 +1,10 @@
 <?php
 defined('ABSPATH') || exit;
 
-function bp_defaults_read_json_file(): array {
+function pointlybooking_defaults_read_json_file(): array {
   $paths = [
-    BP_PLUGIN_PATH . 'public/defaults.json',
-    BP_PLUGIN_PATH . 'public/default-settings.json',
+    POINTLYBOOKING_PLUGIN_PATH . 'public/defaults.json',
+    POINTLYBOOKING_PLUGIN_PATH . 'public/default-settings.json',
   ];
 
   foreach ($paths as $p) {
@@ -18,10 +18,10 @@ function bp_defaults_read_json_file(): array {
   return [];
 }
 
-function bp_default_settings_from_file(): ?array {
-  $data = bp_defaults_read_json_file();
-  if (isset($data['bp_settings']) && is_array($data['bp_settings'])) {
-    return $data['bp_settings'];
+function pointlybooking_default_settings_from_file(): ?array {
+  $data = pointlybooking_defaults_read_json_file();
+  if (isset($data['pointlybooking_settings']) && is_array($data['pointlybooking_settings'])) {
+    return $data['pointlybooking_settings'];
   }
   if (!empty($data)) {
     return $data;
@@ -29,13 +29,13 @@ function bp_default_settings_from_file(): ?array {
   return null;
 }
 
-function bp_default_design_from_file(): ?array {
-  $data = bp_defaults_read_json_file();
-  if (isset($data['bp_booking_form_design']) && is_array($data['bp_booking_form_design'])) {
-    return $data['bp_booking_form_design'];
+function pointlybooking_default_design_from_file(): ?array {
+  $data = pointlybooking_defaults_read_json_file();
+  if (isset($data['pointlybooking_booking_form_design']) && is_array($data['pointlybooking_booking_form_design'])) {
+    return $data['pointlybooking_booking_form_design'];
   }
 
-  $design_path = BP_PLUGIN_PATH . 'public/default-design.json';
+  $design_path = POINTLYBOOKING_PLUGIN_PATH . 'public/default-design.json';
   if (file_exists($design_path)) {
     $raw = file_get_contents($design_path);
     if ($raw !== false && trim($raw) !== '') {

@@ -1,4 +1,4 @@
-# BookPoint Save Not Working - Debug Checklist
+﻿# BookPoint Save Not Working - Debug Checklist
 
 Your code IS correctly structured. Follow these steps to identify the exact issue.
 
@@ -18,7 +18,7 @@ define('WP_DEBUG_DISPLAY', false);
 
 ### Then reproduce the problem:
 
-1. Go to **BookPoint → Services**
+1. Go to **BookPoint â†’ Services**
 2. Click **Add New**
 3. Fill in: Name = "Test Service", Duration = 60, Price = 0
 4. Click **Save**
@@ -51,16 +51,16 @@ define('WP_DEBUG_DISPLAY', false);
 ### Run these queries:
 
 ```sql
-SHOW TABLES LIKE '%bp_%';
+SHOW TABLES LIKE '%pointlybooking_%';
 ```
 
 **Expected result** - You should see:
 ```
-wp_bp_services
-wp_bp_agents
-wp_bp_bookings
-wp_bp_customers
-wp_bp_settings
+wp_pointlybooking_services
+wp_pointlybooking_agents
+wp_pointlybooking_bookings
+wp_pointlybooking_customers
+wp_pointlybooking_settings
 ```
 
 **If ANY table is missing:**
@@ -74,20 +74,20 @@ wp_bp_settings
 
 ## STEP 3: Verify Code Configuration
 
-### ✅ Check 1: Activation Hook (should run migrations)
+### âœ… Check 1: Activation Hook (should run migrations)
 
 **File**: `bookpoint-v5/bookpoint-v5.php` around line 101
 
 Should contain:
 ```php
-register_activation_hook(BP_PLUGIN_FILE, [__CLASS__, 'on_activate']);
+register_activation_hook(POINTLYBOOKING_PLUGIN_FILE, [__CLASS__, 'on_activate']);
 ```
 
-**Status**: ✅ CORRECT in your code
+**Status**: âœ… CORRECT in your code
 
 ---
 
-### ✅ Check 2: Migrations Run on Activation
+### âœ… Check 2: Migrations Run on Activation
 
 **File**: `bookpoint-v5/bookpoint-v5.php` around line 140
 
@@ -95,132 +95,132 @@ Should contain:
 ```php
 public static function on_activate() : void {
     self::includes();
-    BP_RolesHelper::add_capabilities();
-    BP_DatabaseHelper::install_or_update(self::DB_VERSION);
+    POINTLYBOOKING_RolesHelper::add_capabilities();
+    POINTLYBOOKING_DatabaseHelper::install_or_update(self::DB_VERSION);
 }
 ```
 
-**Status**: ✅ CORRECT in your code
+**Status**: âœ… CORRECT in your code
 
 ---
 
-### ✅ Check 3: Admin-Post Hook for Services
+### âœ… Check 3: Admin-Post Hook for Services
 
 **File**: `bookpoint-v5/bookpoint-v5.php` around line 108
 
 Should contain:
 ```php
-add_action('admin_post_bp_admin_services_save', [__CLASS__, 'handle_services_save']);
+add_action('admin_post_pointlybooking_admin_services_save', [__CLASS__, 'handle_services_save']);
 ```
 
-**Status**: ✅ CORRECT in your code
+**Status**: âœ… CORRECT in your code
 
 ---
 
-### ✅ Check 4: Admin-Post Hook for Agents
+### âœ… Check 4: Admin-Post Hook for Agents
 
 **File**: `bookpoint-v5/bookpoint-v5.php` around line 114
 
 Should contain:
 ```php
-add_action('admin_post_bp_admin_agents_save', [__CLASS__, 'handle_agents_save']);
+add_action('admin_post_pointlybooking_admin_agents_save', [__CLASS__, 'handle_agents_save']);
 ```
 
-**Status**: ✅ CORRECT in your code
+**Status**: âœ… CORRECT in your code
 
 ---
 
-### ✅ Check 5: Services Form Action Value
+### âœ… Check 5: Services Form Action Value
 
 **File**: `bookpoint-v5/lib/views/admin/services_edit.php` line 30
 
 Should contain:
 ```html
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-  <?php wp_nonce_field('bp_admin'); ?>
-  <input type="hidden" name="action" value="bp_admin_services_save">
+  <?php wp_nonce_field('pointlybooking_admin'); ?>
+  <input type="hidden" name="action" value="pointlybooking_admin_services_save">
 ```
 
-**Status**: ✅ CORRECT in your code
+**Status**: âœ… CORRECT in your code
 
 ---
 
-### ✅ Check 6: Agents Form Action Value
+### âœ… Check 6: Agents Form Action Value
 
 **File**: `bookpoint-v5/lib/views/admin/agents_edit.php` line 8-9
 
 Should contain:
 ```html
 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-  <?php wp_nonce_field('bp_admin'); ?>
-  <input type="hidden" name="action" value="bp_admin_agents_save">
+  <?php wp_nonce_field('pointlybooking_admin'); ?>
+  <input type="hidden" name="action" value="pointlybooking_admin_agents_save">
 ```
 
-**Status**: ✅ CORRECT in your code
+**Status**: âœ… CORRECT in your code
 
 ---
 
-### ✅ Check 7: Services Controller Nonce Check
+### âœ… Check 7: Services Controller Nonce Check
 
 **File**: `bookpoint-v5/lib/controllers/admin_services_controller.php` line 25-27
 
 Should contain:
 ```php
 public function save() : void {
-    $this->require_cap('bp_manage_services');
-    check_admin_referer('bp_admin');
+    $this->require_cap('pointlybooking_manage_services');
+    check_admin_referer('pointlybooking_admin');
 ```
 
-**Status**: ✅ CORRECT in your code
+**Status**: âœ… CORRECT in your code
 
 ---
 
-### ✅ Check 8: Agents Controller Nonce Check
+### âœ… Check 8: Agents Controller Nonce Check
 
 **File**: `bookpoint-v5/lib/controllers/admin_agents_controller.php` line 22-24
 
 Should contain:
 ```php
 public function save() : void {
-    $this->require_cap('bp_manage_settings');
-    check_admin_referer('bp_admin');
+    $this->require_cap('pointlybooking_manage_settings');
+    check_admin_referer('pointlybooking_admin');
 ```
 
-**Status**: ✅ CORRECT in your code
+**Status**: âœ… CORRECT in your code
 
 ---
 
-### ✅ Check 9: Services Controller Capability
+### âœ… Check 9: Services Controller Capability
 
 **File**: `bookpoint-v5/lib/controllers/admin_services_controller.php`
 
 Each method should start with:
 ```php
 public function save() : void {
-    $this->require_cap('bp_manage_services');
+    $this->require_cap('pointlybooking_manage_services');
 ```
 
-**Status**: ✅ CORRECT in your code
+**Status**: âœ… CORRECT in your code
 
 ---
 
-### ✅ Check 10: Agents Controller Capability
+### âœ… Check 10: Agents Controller Capability
 
 **File**: `bookpoint-v5/lib/controllers/admin_agents_controller.php`
 
 Each method should start with:
 ```php
 public function save() : void {
-    $this->require_cap('bp_manage_settings');
+    $this->require_cap('pointlybooking_manage_settings');
 ```
 
-**Status**: ✅ CORRECT in your code
+**Status**: âœ… CORRECT in your code
 
 ---
 
 ## STEP 4: Most Likely Problem - Database Not Created
 
-If you don't see the tables when you run `SHOW TABLES LIKE '%bp_%'`:
+If you don't see the tables when you run `SHOW TABLES LIKE '%pointlybooking_%'`:
 
 ### Quick Fix:
 
@@ -230,7 +230,7 @@ If you don't see the tables when you run `SHOW TABLES LIKE '%bp_%'`:
 4. Click **Activate**
 5. Check database again
 
-**Why this works**: Plugin activation triggers `register_activation_hook()` which calls `BP_DatabaseHelper::install_or_update()` which runs `BP_MigrationsHelper::create_tables()`
+**Why this works**: Plugin activation triggers `register_activation_hook()` which calls `POINTLYBOOKING_DatabaseHelper::install_or_update()` which runs `POINTLYBOOKING_MigrationsHelper::create_tables()`
 
 ---
 
@@ -244,7 +244,7 @@ In `bookpoint-v5/lib/controllers/admin_services_controller.php`, in the `save()`
 
 ```php
 public function save() : void {
-    $this->require_cap('bp_manage_services');
+    $this->require_cap('pointlybooking_manage_services');
 ```
 
 to:
@@ -256,9 +256,9 @@ public function save() : void {
     }
 ```
 
-If you now see the error message → capabilities are broken.
+If you now see the error message â†’ capabilities are broken.
 
-**Fix**: Verify `BP_RolesHelper::add_capabilities()` is being called in `on_activate()` 
+**Fix**: Verify `POINTLYBOOKING_RolesHelper::add_capabilities()` is being called in `on_activate()` 
 
 **Or**: Check if you're logged in as admin (super admin can bypass some cap checks)
 
@@ -270,11 +270,11 @@ In `bookpoint-v5/bookpoint-v5.php`, around line 420+, verify these methods exist
 
 ```php
 public static function handle_services_save() : void {
-    (new BP_AdminServicesController())->save();
+    (new POINTLYBOOKING_AdminServicesController())->save();
 }
 
 public static function handle_agents_save() : void {
-    (new BP_AdminAgentsController())->save();
+    (new POINTLYBOOKING_AdminAgentsController())->save();
 }
 ```
 
@@ -284,22 +284,22 @@ public static function handle_agents_save() : void {
 
 | Item | Expected | Your Code | Status |
 |------|----------|-----------|--------|
-| Activation hook | `register_activation_hook()` | ✅ Present line 101 | ✅ OK |
-| DB install/update | `BP_DatabaseHelper::install_or_update()` | ✅ Present line 140 | ✅ OK |
-| Services admin-post hook | `admin_post_bp_admin_services_save` | ✅ Present line 108 | ✅ OK |
-| Agents admin-post hook | `admin_post_bp_admin_agents_save` | ✅ Present line 114 | ✅ OK |
-| Services form action | `bp_admin_services_save` | ✅ Present | ✅ OK |
-| Agents form action | `bp_admin_agents_save` | ✅ Present | ✅ OK |
-| Services nonce | `bp_admin` | ✅ Present | ✅ OK |
-| Agents nonce | `bp_admin` | ✅ Present | ✅ OK |
-| Services capability | `bp_manage_services` | ✅ Present | ✅ OK |
-| Agents capability | `bp_manage_settings` | ✅ Present | ✅ OK |
+| Activation hook | `register_activation_hook()` | âœ… Present line 101 | âœ… OK |
+| DB install/update | `POINTLYBOOKING_DatabaseHelper::install_or_update()` | âœ… Present line 140 | âœ… OK |
+| Services admin-post hook | `admin_post_pointlybooking_admin_services_save` | âœ… Present line 108 | âœ… OK |
+| Agents admin-post hook | `admin_post_pointlybooking_admin_agents_save` | âœ… Present line 114 | âœ… OK |
+| Services form action | `pointlybooking_admin_services_save` | âœ… Present | âœ… OK |
+| Agents form action | `pointlybooking_admin_agents_save` | âœ… Present | âœ… OK |
+| Services nonce | `pointlybooking_admin` | âœ… Present | âœ… OK |
+| Agents nonce | `pointlybooking_admin` | âœ… Present | âœ… OK |
+| Services capability | `pointlybooking_manage_services` | âœ… Present | âœ… OK |
+| Agents capability | `pointlybooking_manage_settings` | âœ… Present | âœ… OK |
 
 **Conclusion**: Your code structure is 100% correct. The problem is most likely:
 
-1. **Database tables don't exist** → Reactivate plugin to run migrations
-2. **Permissions/capability issue** → Run Step 5 test above
-3. **PHP error in the code** → Check `/wp-content/debug.log` after enabling WP_DEBUG
+1. **Database tables don't exist** â†’ Reactivate plugin to run migrations
+2. **Permissions/capability issue** â†’ Run Step 5 test above
+3. **PHP error in the code** â†’ Check `/wp-content/debug.log` after enabling WP_DEBUG
 
 ---
 

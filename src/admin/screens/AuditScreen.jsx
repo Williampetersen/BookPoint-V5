@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 
 function humanizeEvent(ev) {
@@ -34,7 +34,7 @@ function formatActor(row) {
 function formatItem(row) {
   if (Number(row.booking_id) > 0) return `Booking #${row.booking_id}`;
   if (Number(row.customer_id) > 0) return `Customer #${row.customer_id}`;
-  return "—";
+  return "â€”";
 }
 
 function badgeClass(event) {
@@ -182,13 +182,13 @@ export default function AuditScreen() {
   const exportCsv = async () => {
     setErr("");
     try {
-      const base = window.BP_ADMIN?.restUrl || "/wp-json/bp/v1";
+      const base = window.pointlybooking_ADMIN?.restUrl || "/wp-json/pointly-booking/v1";
       const url = base.replace(/\/$/, "") + `/admin/audit-logs/export?limit=5000&${query}`;
 
       const res = await fetch(url, {
         method: "GET",
         credentials: "same-origin",
-        headers: { "X-WP-Nonce": window.BP_ADMIN?.nonce },
+        headers: { "X-WP-Nonce": window.pointlybooking_ADMIN?.nonce },
       });
       const text = await res.text();
       if (!res.ok) throw new Error("Export failed");
@@ -202,12 +202,12 @@ export default function AuditScreen() {
 
   const bookingLink = useMemo(() => {
     if (!selected || !Number(selected.booking_id)) return "";
-    return `admin.php?page=bp_bookings_edit&id=${Number(selected.booking_id)}`;
+    return `admin.php?page=pointlybooking_bookings_edit&id=${Number(selected.booking_id)}`;
   }, [selected]);
 
   const customerLink = useMemo(() => {
     if (!selected || !Number(selected.customer_id)) return "";
-    return `admin.php?page=bp_customers_edit&id=${Number(selected.customer_id)}`;
+    return `admin.php?page=pointlybooking_customers_edit&id=${Number(selected.customer_id)}`;
   }, [selected]);
 
   const FilterBar = (
@@ -219,7 +219,7 @@ export default function AuditScreen() {
             className="bp-input-field"
             value={q}
             onChange={(e) => { setQ(e.target.value); resetPage(); }}
-            placeholder="event, actor, IP, customer, meta…"
+            placeholder="event, actor, IP, customer, metaâ€¦"
           />
         </div>
         <div className="bp-audit-filterGrid">
@@ -266,7 +266,7 @@ export default function AuditScreen() {
         <div style={{ minWidth: 0 }}>
           <div className="bp-section-title" style={{ margin: 0 }}>{humanizeEvent(selected.event)}</div>
           <div className="bp-muted bp-text-xs" style={{ marginTop: 6 }}>
-            #{selected.id} · {selected.created_at ? new Date(selected.created_at).toLocaleString() : "—"}
+            #{selected.id} Â· {selected.created_at ? new Date(selected.created_at).toLocaleString() : "â€”"}
           </div>
         </div>
         <button type="button" className="bp-btn" onClick={() => { setSelectedId(0); setDrawerOpen(false); }}>Close</button>
@@ -286,12 +286,12 @@ export default function AuditScreen() {
         </div>
         <div className="bp-audit-kv">
           <div className="k">Type</div>
-          <div className="v">{selected.actor_type || "—"}</div>
+          <div className="v">{selected.actor_type || "â€”"}</div>
         </div>
         <div className="bp-audit-kv">
           <div className="k">Links</div>
           <div className="v">
-            {bookingLink ? <a className="bp-link" href={bookingLink}>Open booking</a> : <span className="bp-muted">—</span>}
+            {bookingLink ? <a className="bp-link" href={bookingLink}>Open booking</a> : <span className="bp-muted">â€”</span>}
             {" "}
             {customerLink ? <a className="bp-link" href={customerLink}>Open customer</a> : null}
           </div>
@@ -313,7 +313,7 @@ export default function AuditScreen() {
           </button>
         </div>
         <pre className="bp-audit-json__pre">
-          {detailsJson ? JSON.stringify(detailsJson, null, 2) : (selected.meta ? String(selected.meta) : "—")}
+          {detailsJson ? JSON.stringify(detailsJson, null, 2) : (selected.meta ? String(selected.meta) : "â€”")}
         </pre>
       </div>
     </div>
@@ -354,7 +354,7 @@ export default function AuditScreen() {
 
       <div className="bp-audit-layout">
         <div className="bp-audit-list">
-          {loading ? <div className="bp-muted" style={{ padding: 14 }}>Loading…</div> : null}
+          {loading ? <div className="bp-muted" style={{ padding: 14 }}>Loadingâ€¦</div> : null}
           {!loading && (data.items || []).length === 0 ? (
             <div className="bp-muted" style={{ padding: 14 }}>No audit logs found.</div>
           ) : null}
@@ -386,7 +386,7 @@ export default function AuditScreen() {
                       </div>
                       <div className="bp-audit-itemSub">
                         <span className="bp-audit-strong">{actor}</span>
-                        <span className="bp-audit-dot">·</span>
+                        <span className="bp-audit-dot">Â·</span>
                         <span className="bp-muted">{item}</span>
                       </div>
                     </div>

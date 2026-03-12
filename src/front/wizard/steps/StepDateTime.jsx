@@ -26,8 +26,8 @@ const isPastUTC = (date) => {
 const toHHMM = (t) => (t ? String(t).slice(0, 5) : '');
 
 async function bpPost(path, body, { signal } = {}) {
-  const base = window.BP_FRONT?.restUrl || '/wp-json/bp/v1';
-  const nonce = window.BP_FRONT?.nonce;
+  const base = window.pointlybooking_FRONT?.restUrl || '/wp-json/pointly-booking/v1';
+  const nonce = window.pointlybooking_FRONT?.nonce;
   const res = await fetch(`${base}${path}`, {
     method: 'POST',
     headers: {

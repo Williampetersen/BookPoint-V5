@@ -1,11 +1,27 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_PromoCodeModel {
+final class POINTLYBOOKING_PromoCodeModel {
 
   public static function table(): string {
+    return pointlybooking_table('promo_codes');
+  }
+
+  private static function prepare_with_table(string $query, string $table, array $args = []): string {
     global $wpdb;
-    return $wpdb->prefix . 'bp_promo_codes';
+
+    if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
+      return $wpdb->prepare($query, array_merge([$table], $args));
+    }
+
+    $safe_table = preg_replace('/[^A-Za-z0-9_]/', '', $table);
+    $query = preg_replace('/%i/', '`' . $safe_table . '`', $query, 1);
+
+    if (empty($args)) {
+      return (string) $query;
+    }
+
+    return $wpdb->prepare($query, $args);
   }
 
   public static function all(array $args = []): array {
@@ -27,14 +43,21 @@ final class BP_PromoCodeModel {
       $params[] = $is_active;
     }
 
-    $sql = "SELECT * FROM {$t} {$where} ORDER BY id DESC LIMIT 500";
-    return $params ? $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) : $wpdb->get_results($sql, ARRAY_A);
+    $params[] = 500;
+    return $wpdb->get_results(
+      self::prepare_with_table(
+        "SELECT * FROM %i {$where} ORDER BY id DESC LIMIT %d",
+        $t,
+        $params
+      ),
+      ARRAY_A
+    );
   }
 
   public static function find(int $id): ?array {
     global $wpdb;
     $t = self::table();
-    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id=%d", $id), ARRAY_A);
+    $row = $wpdb->get_row(self::prepare_with_table("SELECT * FROM %i WHERE id=%d", $t, [$id]), ARRAY_A);
     return $row ?: null;
   }
 
@@ -44,7 +67,7 @@ final class BP_PromoCodeModel {
     $code = strtoupper(trim($code));
     if ($code === '') return null;
 
-    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE code=%s LIMIT 1", $code), ARRAY_A);
+    $row = $wpdb->get_row(self::prepare_with_table("SELECT * FROM %i WHERE code=%s LIMIT 1", $t, [$code]), ARRAY_A);
     return $row ?: null;
   }
 
@@ -89,6 +112,6 @@ final class BP_PromoCodeModel {
   public static function increment_use(int $id): void {
     global $wpdb;
     $t = self::table();
-    $wpdb->query($wpdb->prepare("UPDATE {$t} SET uses_count = uses_count + 1 WHERE id=%d", $id));
+    $wpdb->query(self::prepare_with_table("UPDATE %i SET uses_count = uses_count + 1 WHERE id=%d", $t, [$id]));
   }
 }

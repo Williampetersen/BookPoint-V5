@@ -2,50 +2,50 @@
 defined('ABSPATH') || exit;
 
 add_action('rest_api_init', function(){
-  register_rest_route('bp/v1', '/admin/form-fields/all', [
+  register_rest_route('pointly-booking/v1', '/admin/form-fields/all', [
     'methods'=>'GET',
-    'callback'=>'bp_admin_get_form_fields_all_grouped',
-    'permission_callback'=>'bp_admin_can_manage_settings',
+    'callback'=>'pointlybooking_admin_get_form_fields_all_grouped',
+    'permission_callback'=>'pointlybooking_admin_can_manage_settings',
   ]);
 
-  register_rest_route('bp/v1', '/admin/form-fields', [
+  register_rest_route('pointly-booking/v1', '/admin/form-fields', [
     'methods'=>'GET',
-    'callback'=>'bp_admin_get_form_fields',
-    'permission_callback'=>'bp_admin_can_manage_settings',
+    'callback'=>'pointlybooking_admin_get_form_fields',
+    'permission_callback'=>'pointlybooking_admin_can_manage_settings',
   ]);
 
-  register_rest_route('bp/v1', '/admin/form-fields', [
+  register_rest_route('pointly-booking/v1', '/admin/form-fields', [
     'methods'=>'POST',
-    'callback'=>'bp_admin_create_form_field',
-    'permission_callback'=>'bp_admin_can_manage_settings',
+    'callback'=>'pointlybooking_admin_create_form_field',
+    'permission_callback'=>'pointlybooking_admin_can_manage_settings',
   ]);
 
-  register_rest_route('bp/v1', '/admin/form-fields/(?P<id>\d+)', [
+  register_rest_route('pointly-booking/v1', '/admin/form-fields/(?P<id>\d+)', [
     'methods'=>'PATCH',
-    'callback'=>'bp_admin_update_form_field',
-    'permission_callback'=>'bp_admin_can_manage_settings',
+    'callback'=>'pointlybooking_admin_update_form_field',
+    'permission_callback'=>'pointlybooking_admin_can_manage_settings',
   ]);
 
-  register_rest_route('bp/v1', '/admin/form-fields/(?P<id>\d+)', [
+  register_rest_route('pointly-booking/v1', '/admin/form-fields/(?P<id>\d+)', [
     'methods'=>'DELETE',
-    'callback'=>'bp_admin_delete_form_field',
-    'permission_callback'=>'bp_admin_can_manage_settings',
+    'callback'=>'pointlybooking_admin_delete_form_field',
+    'permission_callback'=>'pointlybooking_admin_can_manage_settings',
   ]);
 
-  register_rest_route('bp/v1', '/admin/form-fields/reorder', [
+  register_rest_route('pointly-booking/v1', '/admin/form-fields/reorder', [
     'methods'=>'POST',
-    'callback'=>'bp_admin_reorder_form_fields',
-    'permission_callback'=>'bp_admin_can_manage_settings',
+    'callback'=>'pointlybooking_admin_reorder_form_fields',
+    'permission_callback'=>'pointlybooking_admin_can_manage_settings',
   ]);
 });
 
-function bp_admin_can_manage_settings(){
-  return current_user_can('bp_manage_settings') || current_user_can('administrator');
+function pointlybooking_admin_can_manage_settings(){
+  return current_user_can('pointlybooking_manage_settings') || current_user_can('administrator');
 }
 
-function bp_admin_get_form_fields_all_grouped(WP_REST_Request $req){
+function pointlybooking_admin_get_form_fields_all_grouped(WP_REST_Request $req){
   global $wpdb;
-  $t = $wpdb->prefix.'bp_form_fields';
+  $t = $wpdb->prefix.'pointlybooking_form_fields';
 
   $rows = $wpdb->get_results("
     SELECT * FROM {$t}
@@ -79,9 +79,9 @@ function bp_admin_get_form_fields_all_grouped(WP_REST_Request $req){
   return new WP_REST_Response(['status'=>'success','data'=>$out], 200);
 }
 
-function bp_admin_get_form_fields(WP_REST_Request $req){
+function pointlybooking_admin_get_form_fields(WP_REST_Request $req){
   global $wpdb;
-  $t = $wpdb->prefix.'bp_form_fields';
+  $t = $wpdb->prefix.'pointlybooking_form_fields';
   $scope = sanitize_text_field($req->get_param('scope') ?? 'customer');
   if (!in_array($scope, ['booking','customer','form'], true)) $scope='customer';
 
@@ -105,9 +105,9 @@ function bp_admin_get_form_fields(WP_REST_Request $req){
   return new WP_REST_Response(['status'=>'success','data'=>$rows], 200);
 }
 
-function bp_admin_create_form_field(WP_REST_Request $req){
+function pointlybooking_admin_create_form_field(WP_REST_Request $req){
   global $wpdb;
-  $t = $wpdb->prefix.'bp_form_fields';
+  $t = $wpdb->prefix.'pointlybooking_form_fields';
   $p = $req->get_json_params();
   if (!is_array($p)) $p=[];
 
@@ -152,12 +152,12 @@ function bp_admin_create_form_field(WP_REST_Request $req){
   ], ['%s','%s','%s','%s','%s','%s','%s','%d','%d','%d','%d','%s','%s','%s','%s','%d','%d']);
 
   if (!$wpdb->insert_id) return new WP_REST_Response(['status'=>'error','message'=>'Insert failed'], 500);
-  return bp_admin_get_form_fields(new WP_REST_Request('GET','/bp/v1/admin/form-fields'));
+  return pointlybooking_admin_get_form_fields(new WP_REST_Request('GET','/pointly-booking/v1/admin/form-fields'));
 }
 
-function bp_admin_update_form_field(WP_REST_Request $req){
+function pointlybooking_admin_update_form_field(WP_REST_Request $req){
   global $wpdb;
-  $t = $wpdb->prefix.'bp_form_fields';
+  $t = $wpdb->prefix.'pointlybooking_form_fields';
   $id = (int)$req['id'];
 
   $p = $req->get_json_params();
@@ -226,17 +226,17 @@ function bp_admin_update_form_field(WP_REST_Request $req){
   return new WP_REST_Response(['status'=>'success'], 200);
 }
 
-function bp_admin_delete_form_field(WP_REST_Request $req){
+function pointlybooking_admin_delete_form_field(WP_REST_Request $req){
   global $wpdb;
-  $t = $wpdb->prefix.'bp_form_fields';
+  $t = $wpdb->prefix.'pointlybooking_form_fields';
   $id = (int)$req['id'];
   $wpdb->delete($t, ['id'=>$id], ['%d']);
   return new WP_REST_Response(['status'=>'success'], 200);
 }
 
-function bp_admin_reorder_form_fields(WP_REST_Request $req){
+function pointlybooking_admin_reorder_form_fields(WP_REST_Request $req){
   global $wpdb;
-  $t = $wpdb->prefix.'bp_form_fields';
+  $t = $wpdb->prefix.'pointlybooking_form_fields';
   $p = $req->get_json_params();
   $ids = $p['ids'] ?? [];
   if (!is_array($ids)) $ids=[];

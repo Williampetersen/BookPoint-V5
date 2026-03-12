@@ -1,22 +1,26 @@
 <?php
 defined('ABSPATH') || exit;
 
-final class BP_ServiceExtraModel {
+final class POINTLYBOOKING_ServiceExtraModel {
 
   public static function table(): string {
-    global $wpdb;
-    return $wpdb->prefix . 'bp_service_extras';
+    return pointlybooking_table('service_extras');
   }
 
   public static function map_table_services(): string {
-    global $wpdb;
-    return $wpdb->prefix . 'bp_extra_services';
+    return pointlybooking_table('extra_services');
   }
 
   public static function get_service_ids(int $extra_id): array {
     global $wpdb;
     $t = self::map_table_services();
-    $ids = $wpdb->get_col($wpdb->prepare("SELECT service_id FROM {$t} WHERE extra_id=%d", $extra_id));
+    $ids = $wpdb->get_col(
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT service_id FROM %i WHERE extra_id=%d",
+        [$t],
+        [$extra_id]
+      )
+    );
     return array_map('intval', $ids ?: []);
   }
 
@@ -36,58 +40,79 @@ final class BP_ServiceExtraModel {
   public static function all(array $args = []): array {
     global $wpdb;
     $t = self::table();
-    $services = $wpdb->prefix . 'bp_services';
+    $services = pointlybooking_table('services');
 
     $q = trim((string)($args['q'] ?? ''));
     $service_id = (int)($args['service_id'] ?? 0);
     $is_active = isset($args['is_active']) && $args['is_active'] !== '' ? (int)$args['is_active'] : null;
 
-    $where = "WHERE 1=1";
+    $where_clauses = ['1=1'];
     $params = [];
 
     if ($q !== '') {
-      $where .= " AND (e.name LIKE %s)";
+      $where_clauses[] = '(e.name LIKE %s)';
       $params[] = '%' . $wpdb->esc_like($q) . '%';
     }
     if ($service_id > 0) {
-      $where .= " AND e.service_id = %d";
+      $where_clauses[] = 'e.service_id = %d';
       $params[] = $service_id;
     }
     if ($is_active !== null) {
-      $where .= " AND e.is_active = %d";
+      $where_clauses[] = 'e.is_active = %d';
       $params[] = $is_active;
     }
 
-    $sql = "
-      SELECT e.*, s.name AS service_name
-      FROM {$t} e
-      LEFT JOIN {$services} s ON s.id = e.service_id
-      {$where}
-      ORDER BY e.sort_order ASC, e.id DESC
-      LIMIT 500
-    ";
-
-    return $params ? $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) : $wpdb->get_results($sql, ARRAY_A);
+    $params[] = 500;
+    $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
+    $sql = "SELECT e.*, s.name AS service_name
+        FROM %i e
+        LEFT JOIN %i s ON s.id = e.service_id
+        " . $where_sql . "
+        ORDER BY e.sort_order ASC, e.id DESC
+        LIMIT %d";
+    return $wpdb->get_results(
+      pointlybooking_prepare_query_with_identifiers(
+        $sql,
+        [$t, $services],
+        $params
+      ),
+      ARRAY_A
+    );
   }
 
   public static function by_service(int $service_id, bool $only_active = true): array {
     global $wpdb;
     $t = self::table();
-    $where = "WHERE service_id = %d";
+    $where_clauses = ['service_id = %d'];
     $params = [$service_id];
 
     if ($only_active) {
-      $where .= " AND is_active = 1";
+      $where_clauses[] = 'is_active = 1';
     }
 
-    $sql = "SELECT * FROM {$t} {$where} ORDER BY sort_order ASC, id ASC";
-    return $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+    $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
+    $sql = "SELECT * FROM %i " . $where_sql . " ORDER BY sort_order ASC, id ASC";
+    return $wpdb->get_results(
+      pointlybooking_prepare_query_with_identifiers(
+        $sql,
+        [$t],
+        $params
+      ),
+      ARRAY_A
+    );
   }
 
   public static function find(int $id): ?array {
     global $wpdb;
     $t = self::table();
-    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id = %d", $id), ARRAY_A);
+    $row = $wpdb->get_row(
+      pointlybooking_prepare_query_with_identifiers(
+        "SELECT * FROM %i WHERE id = %d",
+        [$t],
+        [$id]
+      ),
+      ARRAY_A
+    );
     return $row ?: null;
   }
 

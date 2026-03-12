@@ -1,5 +1,5 @@
-export async function bpPublicFetch(path) {
-  const base = window.BP_FRONT?.restUrl || '/wp-json/bp/v1';
+﻿export async function bpPublicFetch(path) {
+  const base = window.pointlybooking_FRONT?.restUrl || '/wp-json/pointly-booking/v1';
   const url = base.replace(/\/$/, '') + path;
 
   const res = await fetch(url, { method: 'GET', credentials: 'same-origin' });

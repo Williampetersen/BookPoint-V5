@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
 
@@ -269,7 +269,7 @@ export default function AgentsEditScreen() {
       setDirty(false);
 
       if (!id) {
-        window.location.href = `admin.php?page=bp_agents_edit&id=${newId}`;
+        window.location.href = `admin.php?page=pointlybooking_agents_edit&id=${newId}`;
       }
     } catch (e) {
       console.error(e);
@@ -296,7 +296,7 @@ export default function AgentsEditScreen() {
       {error ? <div className="bp-error">{error}</div> : null}
 
       {loading ? (
-        <div className="bp-card">Loading…</div>
+        <div className="bp-card">Loadingâ€¦</div>
       ) : (
         <div className="bp-agent-edit__grid">
           <section className="bp-agent-edit__main">
@@ -438,7 +438,7 @@ export default function AgentsEditScreen() {
 
               <div className="bp-agent-edit__services">
                 {servicesLoading ? (
-                  <div className="bp-muted">Loading services…</div>
+                  <div className="bp-muted">Loading servicesâ€¦</div>
                 ) : filteredServices.length === 0 ? (
                   <div className="bp-muted">No services found.</div>
                 ) : (
@@ -477,7 +477,7 @@ export default function AgentsEditScreen() {
                   Inactive
                 </button>
               </div>
-              <div className="bp-muted">Inactive agents won’t appear for booking selection.</div>
+              <div className="bp-muted">Inactive agents wonâ€™t appear for booking selection.</div>
             </div>
 
             <div className="bp-agent-edit__avatar">
@@ -506,7 +506,7 @@ export default function AgentsEditScreen() {
       )}
 
       <div className="bp-agent-edit__bar">
-        <a className="bp-btn bp-btn-ghost" href="admin.php?page=bp_agents">
+        <a className="bp-btn bp-btn-ghost" href="admin.php?page=pointlybooking_agents">
           Cancel
         </a>
         <button className="bp-btn bp-btn-primary" type="button" onClick={onSave} disabled={saving}>

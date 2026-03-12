@@ -2,16 +2,16 @@
 defined('ABSPATH') || exit;
 
 add_action('rest_api_init', function(){
-  register_rest_route('bp/v1', '/public/form-fields', [
+  register_rest_route('pointly-booking/v1', '/public/form-fields', [
     'methods'=>'GET',
-    'callback'=>'bp_public_get_form_fields',
+    'callback'=>'pointlybooking_public_get_form_fields',
     'permission_callback'=>'__return_true',
   ]);
 });
 
-function bp_public_get_form_fields(WP_REST_Request $req){
+function pointlybooking_public_get_form_fields(WP_REST_Request $req){
   global $wpdb;
-  $t = $wpdb->prefix.'bp_form_fields';
+  $t = $wpdb->prefix.'pointlybooking_form_fields';
 
   $rows = $wpdb->get_results("
     SELECT * FROM {$t}

@@ -1,13 +1,20 @@
 <?php
 defined('ABSPATH') || exit;
 
+if (!function_exists('pointlybooking_rest_can_manage_calendar_legacy')) {
+  function pointlybooking_rest_can_manage_calendar_legacy(): bool {
+    return current_user_can('pointlybooking_manage_bookings') || current_user_can('administrator');
+  }
+}
+
 add_action('rest_api_init', function(){
 
-  register_rest_route('bp/v1', '/admin/calendar-legacy', [
+  register_rest_route('pointly-booking/v1', '/admin/calendar-legacy', [
     'methods' => 'GET',
+    'permission_callback' => 'pointlybooking_rest_can_manage_calendar_legacy',
     'callback' => function(WP_REST_Request $req){
 
-      if (!current_user_can('bp_manage_bookings') && !current_user_can('administrator')) {
+      if (!current_user_can('pointlybooking_manage_bookings') && !current_user_can('administrator')) {
         return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
       }
 
@@ -20,7 +27,7 @@ add_action('rest_api_init', function(){
       }
 
       global $wpdb;
-      $t = $wpdb->prefix . 'bp_bookings';
+      $t = $wpdb->prefix . 'pointlybooking_bookings';
 
       $rows = $wpdb->get_results($wpdb->prepare("
         SELECT
@@ -43,7 +50,7 @@ add_action('rest_api_init', function(){
       foreach($rows as $r){
         $events[] = [
           'id' => (int)$r['id'],
-          'title' => trim(($r['service_name'] ?: 'Booking') . ' • ' . ($r['customer_name'] ?: 'Customer')),
+          'title' => trim(($r['service_name'] ?: 'Booking') . ' - ' . ($r['customer_name'] ?: 'Customer')),
           'start' => $r['start_datetime'],
           'end'   => $r['end_datetime'],
           'status'=> $r['status'] ?: 'pending',

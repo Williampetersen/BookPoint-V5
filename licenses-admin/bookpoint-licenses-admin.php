@@ -8,19 +8,19 @@
 
 defined('ABSPATH') || exit;
 
-final class BP_Licenses_Admin_Plugin {
+final class POINTLYBOOKING_Licenses_Admin_Plugin {
   const VERSION = '1.0.0';
 
-  const TABLE_SUFFIX = 'bp_licenses';
+  const TABLE_SUFFIX = 'pointlybooking_licenses';
 
-  const OPTION_UPDATES = 'bp_ls_updates';
+  const OPTION_UPDATES = 'pointlybooking_ls_updates';
 
   public static function init(): void {
     add_action('admin_menu', [__CLASS__, 'admin_menu']);
-    add_action('admin_post_bp_la_create', [__CLASS__, 'handle_create']);
-    add_action('admin_post_bp_la_toggle', [__CLASS__, 'handle_toggle']);
-    add_action('admin_post_bp_la_reset', [__CLASS__, 'handle_reset']);
-    add_action('admin_post_bp_la_save_updates', [__CLASS__, 'handle_save_updates']);
+    add_action('admin_post_pointlybooking_la_create', [__CLASS__, 'handle_create']);
+    add_action('admin_post_pointlybooking_la_toggle', [__CLASS__, 'handle_toggle']);
+    add_action('admin_post_pointlybooking_la_reset', [__CLASS__, 'handle_reset']);
+    add_action('admin_post_pointlybooking_la_save_updates', [__CLASS__, 'handle_save_updates']);
 
     add_action('rest_api_init', [__CLASS__, 'register_rest']);
   }
@@ -122,18 +122,18 @@ final class BP_Licenses_Admin_Plugin {
       'BookPoint Licenses admin',
       'BookPoint Licenses admin',
       'manage_options',
-      'bp_licenses_admin',
+      'pointlybooking_licenses_admin',
       [__CLASS__, 'render_admin_page'],
       'dashicons-admin-network',
       58
     );
 
     add_submenu_page(
-      'bp_licenses_admin',
+      'pointlybooking_licenses_admin',
       'Updates',
       'Updates',
       'manage_options',
-      'bp_licenses_admin_updates',
+      'pointlybooking_licenses_admin_updates',
       [__CLASS__, 'render_updates_page']
     );
   }
@@ -209,18 +209,18 @@ final class BP_Licenses_Admin_Plugin {
 
     echo '<h2>' . esc_html__('Create License', 'bookpoint') . '</h2>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
-    echo '<input type="hidden" name="action" value="bp_la_create">';
-    wp_nonce_field('bp_la_create');
+    echo '<input type="hidden" name="action" value="pointlybooking_la_create">';
+    wp_nonce_field('pointlybooking_la_create');
     echo '<table class="form-table" role="presentation">';
-    echo '<tr><th scope="row"><label for="bp_la_email">' . esc_html__('Customer email', 'bookpoint') . '</label></th>';
-    echo '<td><input id="bp_la_email" name="email" class="regular-text" type="email" placeholder="customer@example.com"></td></tr>';
-    echo '<tr><th scope="row"><label for="bp_la_plan">' . esc_html__('Plan', 'bookpoint') . '</label></th>';
-    echo '<td><input id="bp_la_plan" name="plan" class="regular-text" type="text" placeholder="pro"></td></tr>';
-    echo '<tr><th scope="row"><label for="bp_la_expires">' . esc_html__('Expires (YYYY-MM-DD)', 'bookpoint') . '</label></th>';
-    echo '<td><input id="bp_la_expires" name="expires" class="regular-text" type="text" placeholder="2027-02-04"> ';
+    echo '<tr><th scope="row"><label for="pointlybooking_la_email">' . esc_html__('Customer email', 'bookpoint') . '</label></th>';
+    echo '<td><input id="pointlybooking_la_email" name="email" class="regular-text" type="email" placeholder="customer@example.com"></td></tr>';
+    echo '<tr><th scope="row"><label for="pointlybooking_la_plan">' . esc_html__('Plan', 'bookpoint') . '</label></th>';
+    echo '<td><input id="pointlybooking_la_plan" name="plan" class="regular-text" type="text" placeholder="pro"></td></tr>';
+    echo '<tr><th scope="row"><label for="pointlybooking_la_expires">' . esc_html__('Expires (YYYY-MM-DD)', 'bookpoint') . '</label></th>';
+    echo '<td><input id="pointlybooking_la_expires" name="expires" class="regular-text" type="text" placeholder="2027-02-04"> ';
     echo '<span class="description">' . esc_html__('Leave empty for never expires.', 'bookpoint') . '</span></td></tr>';
-    echo '<tr><th scope="row"><label for="bp_la_limit">' . esc_html__('Activation limit', 'bookpoint') . '</label></th>';
-    echo '<td><input id="bp_la_limit" name="limit" class="small-text" type="number" min="1" step="1" value="1"></td></tr>';
+    echo '<tr><th scope="row"><label for="pointlybooking_la_limit">' . esc_html__('Activation limit', 'bookpoint') . '</label></th>';
+    echo '<td><input id="pointlybooking_la_limit" name="limit" class="small-text" type="number" min="1" step="1" value="1"></td></tr>';
     echo '</table>';
     submit_button(__('Create License', 'bookpoint'));
     echo '</form>';
@@ -228,11 +228,11 @@ final class BP_Licenses_Admin_Plugin {
     echo '<hr>';
 
     echo '<form method="get" style="margin:12px 0;">';
-    echo '<input type="hidden" name="page" value="bp_licenses_admin">';
+    echo '<input type="hidden" name="page" value="pointlybooking_licenses_admin">';
     echo '<input type="search" name="s" value="' . esc_attr($q) . '" placeholder="' . esc_attr__('Search key, email, domain...', 'bookpoint') . '" style="min-width:320px;"> ';
     echo '<button class="button">' . esc_html__('Search', 'bookpoint') . '</button>';
     if ($q !== '') {
-      echo ' <a class="button" href="' . esc_url(admin_url('admin.php?page=bp_licenses_admin')) . '">' . esc_html__('Clear', 'bookpoint') . '</a>';
+      echo ' <a class="button" href="' . esc_url(admin_url('admin.php?page=pointlybooking_licenses_admin')) . '">' . esc_html__('Clear', 'bookpoint') . '</a>';
     }
     echo '</form>';
 
@@ -264,12 +264,12 @@ final class BP_Licenses_Admin_Plugin {
       $act = sprintf('%d/%d', (int)($r['activations_count'] ?? 0), (int)($r['activations_limit'] ?? 1));
 
       $toggleUrl = wp_nonce_url(
-        admin_url('admin-post.php?action=bp_la_toggle&id=' . $id),
-        'bp_la_toggle_' . $id
+        admin_url('admin-post.php?action=pointlybooking_la_toggle&id=' . $id),
+        'pointlybooking_la_toggle_' . $id
       );
       $resetUrl = wp_nonce_url(
-        admin_url('admin-post.php?action=bp_la_reset&id=' . $id),
-        'bp_la_reset_' . $id
+        admin_url('admin-post.php?action=pointlybooking_la_reset&id=' . $id),
+        'pointlybooking_la_reset_' . $id
       );
 
       echo '<tr>';
@@ -307,33 +307,33 @@ final class BP_Licenses_Admin_Plugin {
     }
 
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
-    echo '<input type="hidden" name="action" value="bp_la_save_updates">';
-    wp_nonce_field('bp_la_save_updates');
+    echo '<input type="hidden" name="action" value="pointlybooking_la_save_updates">';
+    wp_nonce_field('pointlybooking_la_save_updates');
 
     echo '<table class="form-table" role="presentation">';
-    echo '<tr><th scope="row"><label for="bp_la_latest_version">' . esc_html__('Latest version', 'bookpoint') . '</label></th>';
-    echo '<td><input name="latest_version" id="bp_la_latest_version" class="regular-text" value="' . esc_attr((string)$cfg['latest_version']) . '" placeholder="1.2.3"></td></tr>';
+    echo '<tr><th scope="row"><label for="pointlybooking_la_latest_version">' . esc_html__('Latest version', 'bookpoint') . '</label></th>';
+    echo '<td><input name="latest_version" id="pointlybooking_la_latest_version" class="regular-text" value="' . esc_attr((string)$cfg['latest_version']) . '" placeholder="1.2.3"></td></tr>';
 
-    echo '<tr><th scope="row"><label for="bp_la_package_url">' . esc_html__('Package URL (ZIP)', 'bookpoint') . '</label></th>';
-    echo '<td><input name="package_url" id="bp_la_package_url" class="large-text" value="' . esc_attr((string)$cfg['package_url']) . '" placeholder="https://example.com/bookpoint-v5.zip"></td></tr>';
+    echo '<tr><th scope="row"><label for="pointlybooking_la_package_url">' . esc_html__('Package URL (ZIP)', 'bookpoint') . '</label></th>';
+    echo '<td><input name="package_url" id="pointlybooking_la_package_url" class="large-text" value="' . esc_attr((string)$cfg['package_url']) . '" placeholder="https://example.com/bookpoint-v5.zip"></td></tr>';
 
-    echo '<tr><th scope="row"><label for="bp_la_requires">' . esc_html__('Requires WP', 'bookpoint') . '</label></th>';
-    echo '<td><input name="requires" id="bp_la_requires" class="regular-text" value="' . esc_attr((string)$cfg['requires']) . '" placeholder="6.0"></td></tr>';
+    echo '<tr><th scope="row"><label for="pointlybooking_la_requires">' . esc_html__('Requires WP', 'bookpoint') . '</label></th>';
+    echo '<td><input name="requires" id="pointlybooking_la_requires" class="regular-text" value="' . esc_attr((string)$cfg['requires']) . '" placeholder="6.0"></td></tr>';
 
-    echo '<tr><th scope="row"><label for="bp_la_tested">' . esc_html__('Tested up to', 'bookpoint') . '</label></th>';
-    echo '<td><input name="tested" id="bp_la_tested" class="regular-text" value="' . esc_attr((string)$cfg['tested']) . '" placeholder="6.5"></td></tr>';
+    echo '<tr><th scope="row"><label for="pointlybooking_la_tested">' . esc_html__('Tested up to', 'bookpoint') . '</label></th>';
+    echo '<td><input name="tested" id="pointlybooking_la_tested" class="regular-text" value="' . esc_attr((string)$cfg['tested']) . '" placeholder="6.5"></td></tr>';
 
-    echo '<tr><th scope="row"><label for="bp_la_homepage">' . esc_html__('Homepage', 'bookpoint') . '</label></th>';
-    echo '<td><input name="homepage" id="bp_la_homepage" class="large-text" value="' . esc_attr((string)$cfg['homepage']) . '"></td></tr>';
+    echo '<tr><th scope="row"><label for="pointlybooking_la_homepage">' . esc_html__('Homepage', 'bookpoint') . '</label></th>';
+    echo '<td><input name="homepage" id="pointlybooking_la_homepage" class="large-text" value="' . esc_attr((string)$cfg['homepage']) . '"></td></tr>';
 
     $desc = (string)($cfg['sections']['description'] ?? '');
     $changelog = (string)($cfg['sections']['changelog'] ?? '');
 
-    echo '<tr><th scope="row"><label for="bp_la_desc">' . esc_html__('Description', 'bookpoint') . '</label></th>';
-    echo '<td><textarea name="desc" id="bp_la_desc" class="large-text" rows="4">' . esc_textarea($desc) . '</textarea></td></tr>';
+    echo '<tr><th scope="row"><label for="pointlybooking_la_desc">' . esc_html__('Description', 'bookpoint') . '</label></th>';
+    echo '<td><textarea name="desc" id="pointlybooking_la_desc" class="large-text" rows="4">' . esc_textarea($desc) . '</textarea></td></tr>';
 
-    echo '<tr><th scope="row"><label for="bp_la_changelog">' . esc_html__('Changelog', 'bookpoint') . '</label></th>';
-    echo '<td><textarea name="changelog" id="bp_la_changelog" class="large-text" rows="6">' . esc_textarea($changelog) . '</textarea></td></tr>';
+    echo '<tr><th scope="row"><label for="pointlybooking_la_changelog">' . esc_html__('Changelog', 'bookpoint') . '</label></th>';
+    echo '<td><textarea name="changelog" id="pointlybooking_la_changelog" class="large-text" rows="6">' . esc_textarea($changelog) . '</textarea></td></tr>';
     echo '</table>';
 
     submit_button(__('Save Updates Settings', 'bookpoint'));
@@ -343,7 +343,7 @@ final class BP_Licenses_Admin_Plugin {
 
   public static function handle_create(): void {
     if (!current_user_can('manage_options')) wp_die('Forbidden');
-    check_admin_referer('bp_la_create');
+    check_admin_referer('pointlybooking_la_create');
 
     $email = sanitize_email((string)($_POST['email'] ?? ''));
     $plan = sanitize_text_field((string)($_POST['plan'] ?? ''));
@@ -379,19 +379,19 @@ final class BP_Licenses_Admin_Plugin {
         'last_seen_ip' => '',
       ]);
       if ($ok) {
-        wp_safe_redirect(admin_url('admin.php?page=bp_licenses_admin&created=1'));
+        wp_safe_redirect(admin_url('admin.php?page=pointlybooking_licenses_admin&created=1'));
         exit;
       }
     }
 
-    wp_safe_redirect(admin_url('admin.php?page=bp_licenses_admin&created=0'));
+    wp_safe_redirect(admin_url('admin.php?page=pointlybooking_licenses_admin&created=0'));
     exit;
   }
 
   public static function handle_toggle(): void {
     if (!current_user_can('manage_options')) wp_die('Forbidden');
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-    check_admin_referer('bp_la_toggle_' . $id);
+    check_admin_referer('pointlybooking_la_toggle_' . $id);
 
     $lic = self::get_license_by_id($id);
     if ($lic) {
@@ -399,14 +399,14 @@ final class BP_Licenses_Admin_Plugin {
       self::update_license($id, ['is_disabled' => $new]);
     }
 
-    wp_safe_redirect(admin_url('admin.php?page=bp_licenses_admin&updated=1'));
+    wp_safe_redirect(admin_url('admin.php?page=pointlybooking_licenses_admin&updated=1'));
     exit;
   }
 
   public static function handle_reset(): void {
     if (!current_user_can('manage_options')) wp_die('Forbidden');
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-    check_admin_referer('bp_la_reset_' . $id);
+    check_admin_referer('pointlybooking_la_reset_' . $id);
 
     self::update_license($id, [
       'activated_domain' => '',
@@ -415,12 +415,12 @@ final class BP_Licenses_Admin_Plugin {
       'activations_count' => 0,
     ]);
 
-    wp_safe_redirect(admin_url('admin.php?page=bp_licenses_admin&updated=1'));
+    wp_safe_redirect(admin_url('admin.php?page=pointlybooking_licenses_admin&updated=1'));
     exit;
   }
   public static function handle_save_updates(): void {
     if (!current_user_can('manage_options')) wp_die('Forbidden');
-    check_admin_referer('bp_la_save_updates');
+    check_admin_referer('pointlybooking_la_save_updates');
 
     $cfg = self::get_updates_config();
     $cfg['latest_version'] = sanitize_text_field((string)($_POST['latest_version'] ?? ''));
@@ -435,7 +435,7 @@ final class BP_Licenses_Admin_Plugin {
 
     update_option(self::OPTION_UPDATES, $cfg, false);
 
-    wp_safe_redirect(admin_url('admin.php?page=bp_licenses_admin_updates&saved=1'));
+    wp_safe_redirect(admin_url('admin.php?page=pointlybooking_licenses_admin_updates&saved=1'));
     exit;
   }
 
@@ -702,5 +702,5 @@ final class BP_Licenses_Admin_Plugin {
   }
 }
 
-register_activation_hook(__FILE__, ['BP_Licenses_Admin_Plugin', 'activate_plugin']);
-add_action('plugins_loaded', ['BP_Licenses_Admin_Plugin', 'init']);
+register_activation_hook(__FILE__, ['POINTLYBOOKING_Licenses_Admin_Plugin', 'activate_plugin']);
+add_action('plugins_loaded', ['POINTLYBOOKING_Licenses_Admin_Plugin', 'init']);

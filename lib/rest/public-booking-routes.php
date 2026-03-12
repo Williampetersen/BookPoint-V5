@@ -2,21 +2,21 @@
 defined('ABSPATH') || exit;
 
 add_action('rest_api_init', function(){
-  register_rest_route('bp/v1', '/public/bookings', [
+  register_rest_route('pointly-booking/v1', '/public/bookings', [
     'methods' => 'POST',
-    'callback' => 'bp_public_create_booking',
+    'callback' => 'pointlybooking_public_create_booking',
     'permission_callback' => '__return_true',
   ]);
 });
 
-if (!function_exists('bp_public_create_booking')) {
-function bp_public_create_booking(WP_REST_Request $req){
+if (!function_exists('pointlybooking_public_create_booking')) {
+function pointlybooking_public_create_booking(WP_REST_Request $req){
   $p = $req->get_json_params();
   if (!is_array($p)) $p = [];
 
   $allowed_methods = ['cash', 'free', 'woocommerce', 'stripe', 'paypal'];
-  $default_method = class_exists('BP_SettingsHelper')
-    ? (string)BP_SettingsHelper::get('payments_default_method', 'cash')
+  $default_method = class_exists('POINTLYBOOKING_SettingsHelper')
+    ? (string)POINTLYBOOKING_SettingsHelper::get('payments_default_method', 'cash')
     : 'cash';
   if (!in_array($default_method, $allowed_methods, true)) $default_method = 'cash';
 
@@ -33,7 +33,7 @@ function bp_public_create_booking(WP_REST_Request $req){
     'payment_status' => $payment_method === 'free' ? 'paid' : 'unpaid',
   ];
 
-  $result = bp_insert_booking_from_payload($p, $overrides);
+  $result = pointlybooking_insert_booking_from_payload($p, $overrides);
   if (is_wp_error($result)) return $result;
 
   return new WP_REST_Response(['status' => 'success', 'data' => [
@@ -43,8 +43,8 @@ function bp_public_create_booking(WP_REST_Request $req){
 }
 }
 
-if (!function_exists('bp_insert_booking_from_payload')) {
-function bp_insert_booking_from_payload(array $p, array $overrides = []) {
+if (!function_exists('pointlybooking_insert_booking_from_payload')) {
+function pointlybooking_insert_booking_from_payload(array $p, array $overrides = []) {
   global $wpdb;
 
   $service_id = (int)($p['service_id'] ?? 0);
@@ -73,13 +73,15 @@ function bp_insert_booking_from_payload(array $p, array $overrides = []) {
     }
   }
 
-  $t_fields = $wpdb->prefix . 'bp_form_fields';
-  $fields = $wpdb->get_results("\
-    SELECT id, field_key, name_key, label, scope, type, is_required, required
+  $t_fields = pointlybooking_table('form_fields');
+  $fields = $wpdb->get_results(
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is generated from hardcoded suffix via pointlybooking_table().
+    "SELECT id, field_key, name_key, label, scope, type, is_required, required
     FROM {$t_fields}
     WHERE is_enabled=1 AND show_in_wizard=1
-    ORDER BY scope ASC, sort_order ASC
-  ", ARRAY_A) ?: [];
+    ORDER BY scope ASC, sort_order ASC",
+    ARRAY_A
+  ) ?: [];
 
   foreach ($fields as $f) {
     $is_required = (int)($f['is_required'] ?? $f['required'] ?? 0);
@@ -128,11 +130,11 @@ function bp_insert_booking_from_payload(array $p, array $overrides = []) {
     return new WP_Error('email_required', 'Email required', ['status' => 400]);
   }
 
-  if (class_exists('BP_ScheduleHelper') && BP_ScheduleHelper::is_date_closed($date, $agent_id)) {
+  if (class_exists('POINTLYBOOKING_ScheduleHelper') && POINTLYBOOKING_ScheduleHelper::is_date_closed($date, $agent_id)) {
     return new WP_Error('date_closed', 'Date is closed', ['status' => 400]);
   }
 
-  $service = BP_ServiceModel::find($service_id);
+  $service = POINTLYBOOKING_ServiceModel::find($service_id);
   if (!$service) {
     return new WP_Error('service_not_found', 'Service not found', ['status' => 404]);
   }
@@ -156,28 +158,28 @@ function bp_insert_booking_from_payload(array $p, array $overrides = []) {
     return new WP_Error('invalid_datetime', 'Invalid date/time', ['status' => 400]);
   }
   $end_ts = $start_ts + ($duration * 60);
-  $end_dt = date('Y-m-d H:i:s', $end_ts);
+  $end_dt = gmdate('Y-m-d H:i:s', $end_ts);
 
-  $start_dt_adj = date('Y-m-d H:i:s', $start_ts - ($buf_before * 60));
-  $end_dt_adj = date('Y-m-d H:i:s', $start_ts + ($duration * 60) + ($buf_after * 60));
+  $start_dt_adj = gmdate('Y-m-d H:i:s', $start_ts - ($buf_before * 60));
+  $end_dt_adj = gmdate('Y-m-d H:i:s', $start_ts + ($duration * 60) + ($buf_after * 60));
 
-  if (class_exists('BP_ScheduleHelper') && method_exists('BP_ScheduleHelper','is_within_schedule')) {
-    if (!BP_ScheduleHelper::is_within_schedule($agent_id, $date, $start_time, $occupied)) {
+  if (class_exists('POINTLYBOOKING_ScheduleHelper') && method_exists('POINTLYBOOKING_ScheduleHelper','is_within_schedule')) {
+    if (!POINTLYBOOKING_ScheduleHelper::is_within_schedule($agent_id, $date, $start_time, $occupied)) {
       return new WP_Error('outside_schedule', 'Outside schedule', ['status' => 400]);
     }
   }
 
-  if (!BP_AvailabilityHelper::is_slot_available($service_id, $start_dt_adj, $end_dt_adj, $capacity, $agent_id)) {
+  if (!POINTLYBOOKING_AvailabilityHelper::is_slot_available($service_id, $start_dt_adj, $end_dt_adj, $capacity, $agent_id)) {
     return new WP_Error('time_conflict', 'Time conflict', ['status' => 409]);
   }
 
-  $existing = BP_CustomerModel::find_by_email($email);
+  $existing = POINTLYBOOKING_CustomerModel::find_by_email($email);
   $customer_fields_json = $customer_fields ? wp_json_encode($customer_fields) : null;
   $booking_fields_json = $booking_fields ? wp_json_encode($booking_fields) : null;
 
   if ($existing) {
     $customer_id = (int)$existing['id'];
-    $wpdb->update(BP_CustomerModel::table(), [
+    $wpdb->update(POINTLYBOOKING_CustomerModel::table(), [
       'first_name' => $first_name,
       'last_name' => $last_name,
       'phone' => $phone,
@@ -185,7 +187,7 @@ function bp_insert_booking_from_payload(array $p, array $overrides = []) {
       'updated_at' => current_time('mysql'),
     ], ['id' => $customer_id], ['%s','%s','%s','%s','%s'], ['%d']);
   } else {
-    $customer_id = BP_CustomerModel::create([
+    $customer_id = POINTLYBOOKING_CustomerModel::create([
       'first_name' => $first_name,
       'last_name'  => $last_name,
       'email'      => $email,
@@ -209,7 +211,7 @@ function bp_insert_booking_from_payload(array $p, array $overrides = []) {
   $payment_amount = isset($overrides['payment_amount']) ? (float)$overrides['payment_amount'] : $total_price;
   $payment_currency = $overrides['payment_currency'] ?? $currency;
 
-  $booking_id = BP_BookingModel::create([
+  $booking_id = POINTLYBOOKING_BookingModel::create([
     'service_id'     => $service_id,
     'customer_id'    => $customer_id,
     'agent_id'       => $agent_id,
@@ -233,7 +235,7 @@ function bp_insert_booking_from_payload(array $p, array $overrides = []) {
     return new WP_Error('insert_failed', 'Insert failed', ['status' => 500]);
   }
 
-  $t_bookings = $wpdb->prefix . 'bp_bookings';
+  $t_bookings = $wpdb->prefix . 'pointlybooking_bookings';
   $extras_json = $extras ? wp_json_encode($extras) : null;
   $discount_total = isset($p['discount_total']) ? (float)$p['discount_total'] : null;
 
@@ -246,7 +248,7 @@ function bp_insert_booking_from_payload(array $p, array $overrides = []) {
     $wpdb->update($t_bookings, $update, ['id' => $booking_id], $formats, ['%d']);
   }
 
-  if (class_exists('BP_FieldValuesHelper') && $fields) {
+  if (class_exists('POINTLYBOOKING_FieldValuesHelper') && $fields) {
     foreach ($fields as $f) {
       $scope = $f['scope'];
       $field_key = $f['field_key'];
@@ -264,14 +266,14 @@ function bp_insert_booking_from_payload(array $p, array $overrides = []) {
       elseif ($type === 'textarea') $raw = sanitize_textarea_field($raw);
       else $raw = sanitize_text_field($raw);
 
-      BP_FieldValuesHelper::upsert('booking', $booking_id, (int)$f['id'], $field_key, $scope, $raw);
+      POINTLYBOOKING_FieldValuesHelper::upsert('booking', $booking_id, (int)$f['id'], $field_key, $scope, $raw);
     }
   }
 
-  $row = BP_BookingModel::find($booking_id);
+  $row = POINTLYBOOKING_BookingModel::find($booking_id);
   $manage_key = $row['manage_key'] ?? '';
   $manage_url = add_query_arg([
-    'bp_manage_booking' => 1,
+    'pointlybooking_manage_booking' => 1,
     'key' => $manage_key,
   ], home_url('/'));
 
@@ -281,3 +283,4 @@ function bp_insert_booking_from_payload(array $p, array $overrides = []) {
   ];
 }
 }
+

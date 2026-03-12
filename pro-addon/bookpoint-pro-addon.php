@@ -3,20 +3,24 @@
  * Plugin Name: BookPoint Pro Add-on
  * Description: Enables Pro features for the BookPoint plugin.
  * Version: 6.1.8
- * Author: William
+ * Author: WP-BookPoint
+ * Author URI: https://wpbookpoint.com/
+ * Plugin URI: https://wpbookpoint.com/
  * Text Domain: bookpoint
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 defined('ABSPATH') || exit;
 
-if (!defined('BP_IS_PRO')) {
-  define('BP_IS_PRO', true);
+if (!defined('POINTLYBOOKING_IS_PRO')) {
+  define('POINTLYBOOKING_IS_PRO', true);
 }
 
 // Bootstrap Pro helpers after the free plugin has initialized.
 add_action('plugins_loaded', function () {
   // If the free plugin is not active, show a notice and stop.
-  if (!defined('BP_PLUGIN_FILE')) {
+  if (!defined('POINTLYBOOKING_PLUGIN_FILE')) {
     add_action('admin_notices', function () {
       if (!current_user_can('activate_plugins')) return;
       echo '<div class="notice notice-error"><p>';
@@ -39,8 +43,7 @@ add_action('plugins_loaded', function () {
     }
   }
 
-  if (class_exists('BP_UpdatesHelper')) {
-    BP_UpdatesHelper::init();
+  if (class_exists('POINTLYBOOKING_UpdatesHelper')) {
+    POINTLYBOOKING_UpdatesHelper::init();
   }
 }, 30);
-
