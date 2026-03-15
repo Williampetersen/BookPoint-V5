@@ -6,7 +6,7 @@
   "category": "widgets",
   "icon": "calendar-alt",
   "description": "Insert the BookPoint booking form.",
-  "textdomain": "bookpoint-booking",
+  "textdomain": "pointly-booking",
   "attributes": {
     "serviceId": {
       "type": "number",

@@ -308,8 +308,7 @@ final class POINTLYBOOKING_MigrationsHelper {
     ];
 
     foreach ($tables as $table) {
-      $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
-      if ($found !== $table) {
+      if (!pointlybooking_db_table_exists($table)) {
         return true;
       }
     }
@@ -352,16 +351,10 @@ final class POINTLYBOOKING_MigrationsHelper {
   }
 
   private static function column_exists(string $table, string $column): bool {
-    global $wpdb;
     if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($column)) {
       return false;
     }
-    $table_sql = self::quote_sql_identifier($table);
-    $exists = $wpdb->get_var($wpdb->prepare(
-      "SHOW COLUMNS FROM {$table_sql} LIKE %s",
-      $column
-    ));
-    return !empty($exists);
+    return pointlybooking_db_column_exists($table, $column);
   }
 
   public static function create_tables() : void {
@@ -534,36 +527,79 @@ final class POINTLYBOOKING_MigrationsHelper {
     if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($column)) {
       return;
     }
+    $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+    $audit_table = $wpdb->prefix . 'pointlybooking_audit_log';
+    $exists = null;
 
-    $table_sql = self::quote_sql_identifier($table);
-    $column_sql = self::quote_sql_identifier($column);
+    if ($table === $bookings_table) {
+      if (!in_array($column, ['status', 'customer_id', 'agent_id', 'service_id', 'start_datetime'], true)) {
+        return;
+      }
+      $exists = pointlybooking_db_column_index_exists($bookings_table, $column);
+      if ($exists) {
+        return;
+      }
+      // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- ALTER TABLE cannot use value placeholders; each branch targets a hardcoded plugin table with a sanitized WordPress prefix.
+      if ($column === 'status') {
+        $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `status` (`status`)");
+        return;
+      }
+      if ($column === 'customer_id') {
+        $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `customer_id` (`customer_id`)");
+        return;
+      }
+      if ($column === 'agent_id') {
+        $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `agent_id` (`agent_id`)");
+        return;
+      }
+      if ($column === 'service_id') {
+        $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `service_id` (`service_id`)");
+        return;
+      }
+      if ($column === 'start_datetime') {
+        $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `start_datetime` (`start_datetime`)");
+        return;
+      }
+      // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+    }
 
-    $exists = $wpdb->get_var($wpdb->prepare(
-      "SHOW INDEX FROM {$table_sql} WHERE Column_name = %s",
-      $column
-    ));
-
-    if ($exists) return;
-
-    $wpdb->query("ALTER TABLE {$table_sql} ADD INDEX {$column_sql} ({$column_sql})");
+    if ($table === $audit_table) {
+      if (!in_array($column, ['event', 'created_at', 'booking_id', 'customer_id'], true)) {
+        return;
+      }
+      $exists = pointlybooking_db_column_index_exists($audit_table, $column);
+      if ($exists) {
+        return;
+      }
+      // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- ALTER TABLE cannot use value placeholders; each branch targets a hardcoded plugin table with a sanitized WordPress prefix.
+      if ($column === 'event') {
+        $wpdb->query("ALTER TABLE {$audit_table} ADD INDEX `event` (`event`)");
+        return;
+      }
+      if ($column === 'created_at') {
+        $wpdb->query("ALTER TABLE {$audit_table} ADD INDEX `created_at` (`created_at`)");
+        return;
+      }
+      if ($column === 'booking_id') {
+        $wpdb->query("ALTER TABLE {$audit_table} ADD INDEX `booking_id` (`booking_id`)");
+        return;
+      }
+      if ($column === 'customer_id') {
+        $wpdb->query("ALTER TABLE {$audit_table} ADD INDEX `customer_id` (`customer_id`)");
+      }
+      // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+    }
   }
 
   private static function maybe_add_column(string $table, string $column, string $definition): void {
-    global $wpdb;
     if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($column)) {
       return;
     }
     if (!self::is_safe_column_definition($definition)) {
       return;
     }
-    $table_sql = self::quote_sql_identifier($table);
-    $column_sql = self::quote_sql_identifier($column);
-    $exists = $wpdb->get_var($wpdb->prepare(
-      "SHOW COLUMNS FROM {$table_sql} LIKE %s",
-      $column
-    ));
-    if (!$exists) {
-      $wpdb->query("ALTER TABLE {$table_sql} ADD COLUMN {$column_sql} {$definition}");
+    if (!pointlybooking_db_column_exists($table, $column)) {
+      self::run_add_column_query($table, $column, $definition);
     }
   }
 
@@ -572,16 +608,176 @@ final class POINTLYBOOKING_MigrationsHelper {
     if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($index_name) || !self::is_safe_sql_identifier($column)) {
       return;
     }
-    $table_sql = self::quote_sql_identifier($table);
-    $index_sql = self::quote_sql_identifier($index_name);
-    $column_sql = self::quote_sql_identifier($column);
-    $exists = $wpdb->get_var($wpdb->prepare(
-      "SHOW INDEX FROM {$table_sql} WHERE Key_name = %s",
-      $index_name
-    ));
-    if (!$exists) {
-      $wpdb->query("ALTER TABLE {$table_sql} ADD INDEX {$index_sql} ({$column_sql})");
+    $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+    if ($table !== $bookings_table || !in_array($index_name, ['service_id', 'category_id', 'agent_id'], true) || $column !== $index_name) {
+      return;
     }
+
+    $exists = pointlybooking_db_index_exists($bookings_table, $index_name);
+    if (!$exists) {
+      self::run_add_index_query($table, $index_name, $column);
+    }
+  }
+
+  private static function run_add_column_query(string $table, string $column, string $definition): void {
+    global $wpdb;
+    $services_table = $wpdb->prefix . 'pointlybooking_services';
+    $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+    $customers_table = $wpdb->prefix . 'pointlybooking_customers';
+    $agents_table = $wpdb->prefix . 'pointlybooking_agents';
+    $holidays_table = $wpdb->prefix . 'pointlybooking_holidays';
+
+    // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- ALTER TABLE cannot use value placeholders; each branch targets a hardcoded plugin table with a sanitized WordPress prefix.
+    if ($table === $services_table && $column === 'category_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `category_id` BIGINT UNSIGNED NULL");
+      return;
+    }
+    if ($table === $services_table && $column === 'image_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `image_id` BIGINT UNSIGNED NULL");
+      return;
+    }
+    if ($table === $services_table && $column === 'use_global_schedule' && $definition === 'TINYINT(1) NOT NULL DEFAULT 1') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `use_global_schedule` TINYINT(1) NOT NULL DEFAULT 1");
+      return;
+    }
+    if ($table === $services_table && $column === 'schedule_json' && $definition === 'LONGTEXT NULL') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `schedule_json` LONGTEXT NULL");
+      return;
+    }
+    if ($table === $services_table && $column === 'buffer_before_minutes' && $definition === 'INT NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `buffer_before_minutes` INT NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $services_table && $column === 'buffer_after_minutes' && $definition === 'INT NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `buffer_after_minutes` INT NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $services_table && $column === 'capacity' && $definition === 'INT NOT NULL DEFAULT 1') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `capacity` INT NOT NULL DEFAULT 1");
+      return;
+    }
+
+    if ($table === $bookings_table && $column === 'category_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `category_id` BIGINT UNSIGNED NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'service_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `service_id` BIGINT UNSIGNED NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'extras_json' && $definition === 'LONGTEXT NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `extras_json` LONGTEXT NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'promo_code' && $definition === 'VARCHAR(60) NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `promo_code` VARCHAR(60) NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'discount_total' && $definition === 'DECIMAL(10,2) NOT NULL DEFAULT 0.00') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `discount_total` DECIMAL(10,2) NOT NULL DEFAULT 0.00");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'total_price' && $definition === 'DECIMAL(10,2) NOT NULL DEFAULT 0.00') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `total_price` DECIMAL(10,2) NOT NULL DEFAULT 0.00");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'currency' && $definition === "CHAR(3) NOT NULL DEFAULT 'USD'") {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `currency` CHAR(3) NOT NULL DEFAULT 'USD'");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'payment_method' && $definition === "VARCHAR(30) NOT NULL DEFAULT 'cash'") {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `payment_method` VARCHAR(30) NOT NULL DEFAULT 'cash'");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'payment_status' && $definition === "VARCHAR(30) NOT NULL DEFAULT 'unpaid'") {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `payment_status` VARCHAR(30) NOT NULL DEFAULT 'unpaid'");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'payment_provider_ref' && $definition === 'VARCHAR(190) NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `payment_provider_ref` VARCHAR(190) NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'payment_amount' && $definition === 'DECIMAL(10,2) NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `payment_amount` DECIMAL(10,2) NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'payment_currency' && $definition === 'CHAR(3) NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `payment_currency` CHAR(3) NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'customer_fields_json' && $definition === 'LONGTEXT NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `customer_fields_json` LONGTEXT NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'booking_fields_json' && $definition === 'LONGTEXT NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `booking_fields_json` LONGTEXT NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'custom_fields_json' && $definition === 'LONGTEXT NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `custom_fields_json` LONGTEXT NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'status' && $definition === "VARCHAR(30) NOT NULL DEFAULT 'pending'") {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `status` VARCHAR(30) NOT NULL DEFAULT 'pending'");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'notes' && $definition === 'LONGTEXT NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `notes` LONGTEXT NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'manage_token_last_used_at' && $definition === 'DATETIME NULL') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `manage_token_last_used_at` DATETIME NULL");
+      return;
+    }
+    if ($table === $bookings_table && $column === 'agent_id' && $definition === 'BIGINT UNSIGNED NULL AFTER customer_id') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `agent_id` BIGINT UNSIGNED NULL AFTER customer_id");
+      return;
+    }
+
+    if ($table === $customers_table && $column === 'custom_fields_json' && $definition === 'LONGTEXT NULL') {
+      $wpdb->query("ALTER TABLE {$customers_table} ADD COLUMN `custom_fields_json` LONGTEXT NULL");
+      return;
+    }
+
+    if ($table === $agents_table && $column === 'image_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      $wpdb->query("ALTER TABLE {$agents_table} ADD COLUMN `image_id` BIGINT UNSIGNED NULL");
+      return;
+    }
+
+    if ($table === $holidays_table && $column === 'agent_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `agent_id` BIGINT UNSIGNED NULL");
+      return;
+    }
+    if ($table === $holidays_table && $column === 'is_recurring' && $definition === 'TINYINT(1) NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `is_recurring` TINYINT(1) NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $holidays_table && $column === 'created_at' && $definition === 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP') {
+      $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
+      return;
+    }
+    if ($table === $holidays_table && $column === 'updated_at' && $definition === 'DATETIME NULL') {
+      $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `updated_at` DATETIME NULL");
+    }
+    // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+  }
+
+  private static function run_add_index_query(string $table, string $index_name, string $column): void {
+    global $wpdb;
+    $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+    // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- ALTER TABLE cannot use value placeholders; each branch targets a hardcoded plugin table with a sanitized WordPress prefix.
+    if ($table === $bookings_table && $index_name === 'service_id' && $column === 'service_id') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `service_id` (`service_id`)");
+      return;
+    }
+    if ($table === $bookings_table && $index_name === 'category_id' && $column === 'category_id') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `category_id` (`category_id`)");
+      return;
+    }
+    if ($table === $bookings_table && $index_name === 'agent_id' && $column === 'agent_id') {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `agent_id` (`agent_id`)");
+    }
+    // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
   }
 
   private static function is_safe_sql_identifier(string $identifier): bool {
@@ -593,7 +789,26 @@ final class POINTLYBOOKING_MigrationsHelper {
   }
 
   private static function is_safe_column_definition(string $definition): bool {
-    return preg_match("/^[A-Za-z0-9_(),\\s'\\.-]+$/", $definition) === 1;
+    return in_array($definition, [
+      'BIGINT UNSIGNED NULL',
+      'LONGTEXT NULL',
+      'VARCHAR(60) NULL',
+      'DECIMAL(10,2) NOT NULL DEFAULT 0.00',
+      "CHAR(3) NOT NULL DEFAULT 'USD'",
+      "VARCHAR(30) NOT NULL DEFAULT 'cash'",
+      "VARCHAR(30) NOT NULL DEFAULT 'unpaid'",
+      'VARCHAR(190) NULL',
+      'DECIMAL(10,2) NULL',
+      'CHAR(3) NULL',
+      'TINYINT(1) NOT NULL DEFAULT 0',
+      'TINYINT(1) NOT NULL DEFAULT 1',
+      'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
+      'DATETIME NULL',
+      "VARCHAR(30) NOT NULL DEFAULT 'pending'",
+      'INT NOT NULL DEFAULT 0',
+      'INT NOT NULL DEFAULT 1',
+      'BIGINT UNSIGNED NULL AFTER customer_id',
+    ], true);
   }
 
   private static function migrate_add_service_availability_fields() : void {
@@ -659,3 +874,4 @@ final class POINTLYBOOKING_MigrationsHelper {
     dbDelta($sql);
   }
 }
+

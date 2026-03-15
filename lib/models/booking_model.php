@@ -3,6 +3,14 @@ defined('ABSPATH') || exit;
 
 final class POINTLYBOOKING_BookingModel extends POINTLYBOOKING_Model {
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
   public static function table() : string {
     global $wpdb;
     return $wpdb->prefix . 'pointlybooking_bookings';
@@ -73,17 +81,16 @@ final class POINTLYBOOKING_BookingModel extends POINTLYBOOKING_Model {
 
   public static function find_by_manage_key(string $key) : ?array {
     global $wpdb;
-    $table = self::table();
+    $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
 
     $key = preg_replace('/[^a-f0-9]/', '', strtolower($key));
     if (strlen($key) !== 64) return null;
+    if (!self::is_safe_sql_identifier($bookings_table)) {
+      return null;
+    }
 
     $row = $wpdb->get_row(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT * FROM %i WHERE manage_key = %s LIMIT 1",
-        [$table],
-        [$key]
-      ),
+      $wpdb->prepare("SELECT * FROM {$bookings_table} WHERE manage_key = %s LIMIT 1", $key),
       ARRAY_A
     );
 
@@ -176,28 +183,34 @@ final class POINTLYBOOKING_BookingModel extends POINTLYBOOKING_Model {
   public static function all_with_relations(int $limit = 200) : array {
     global $wpdb;
 
-    $bookings = pointlybooking_table('bookings');
-    $services = pointlybooking_table('services');
-    $customers = pointlybooking_table('customers');
+    $bookings = $wpdb->prefix . 'pointlybooking_bookings';
+    $services = $wpdb->prefix . 'pointlybooking_services';
+    $customers = $wpdb->prefix . 'pointlybooking_customers';
+    if (
+      !self::is_safe_sql_identifier($bookings)
+      || !self::is_safe_sql_identifier($services)
+      || !self::is_safe_sql_identifier($customers)
+    ) {
+      return [];
+    }
+    $bookings_table = $bookings;
+    $services_table = $services;
+    $customers_table = $customers;
 
     $limit = max(1, min(500, $limit));
 
     return $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT
+      $wpdb->prepare("SELECT
           b.*,
           s.name AS service_name,
           c.first_name AS customer_first_name,
           c.last_name AS customer_last_name,
           c.email AS customer_email
-        FROM %i b
-        LEFT JOIN %i s ON s.id = b.service_id
-        LEFT JOIN %i c ON c.id = b.customer_id
+        FROM {$bookings_table} b
+        LEFT JOIN {$services_table} s ON s.id = b.service_id
+        LEFT JOIN {$customers_table} c ON c.id = b.customer_id
         ORDER BY b.id DESC
-        LIMIT %d",
-        [$bookings, $services, $customers],
-        [$limit]
-      ),
+        LIMIT %d", $limit),
       ARRAY_A
     ) ?: [];
   }
@@ -205,10 +218,22 @@ final class POINTLYBOOKING_BookingModel extends POINTLYBOOKING_Model {
   public static function admin_list(array $args = []) : array {
     global $wpdb;
 
-    $b = pointlybooking_table('bookings');
-    $s = pointlybooking_table('services');
-    $c = pointlybooking_table('customers');
-    $a = pointlybooking_table('agents');
+    $b = $wpdb->prefix . 'pointlybooking_bookings';
+    $s = $wpdb->prefix . 'pointlybooking_services';
+    $c = $wpdb->prefix . 'pointlybooking_customers';
+    $a = $wpdb->prefix . 'pointlybooking_agents';
+    if (
+      !self::is_safe_sql_identifier($b)
+      || !self::is_safe_sql_identifier($s)
+      || !self::is_safe_sql_identifier($c)
+      || !self::is_safe_sql_identifier($a)
+    ) {
+      return [];
+    }
+    $bookings_table = $b;
+    $services_table = $s;
+    $customers_table = $c;
+    $agents_table = $a;
 
     $q = trim((string)($args['q'] ?? ''));
     $status = trim((string)($args['status'] ?? ''));
@@ -216,62 +241,55 @@ final class POINTLYBOOKING_BookingModel extends POINTLYBOOKING_Model {
     $agent_id = absint($args['agent_id'] ?? 0);
     $date_from = trim((string)($args['date_from'] ?? ''));
     $date_to = trim((string)($args['date_to'] ?? ''));
+    $status_value = ($status !== '' && in_array($status, ['pending','confirmed','cancelled'], true)) ? $status : '';
+    $date_from_value = ($date_from !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) ? ($date_from . ' 00:00:00') : '';
+    $date_to_value = ($date_to !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) ? ($date_to . ' 23:59:59') : '';
+    $like = ($q !== '') ? ('%' . $wpdb->esc_like($q) . '%') : '';
 
-    $where_clauses = ['1=1'];
-    $params = [];
-
-    if ($status !== '' && in_array($status, ['pending','confirmed','cancelled'], true)) {
-      $where_clauses[] = 'b.status = %s';
-      $params[] = $status;
-    }
-    if ($service_id > 0) {
-      $where_clauses[] = 'b.service_id = %d';
-      $params[] = $service_id;
-    }
-    if ($agent_id > 0) {
-      $where_clauses[] = 'b.agent_id = %d';
-      $params[] = $agent_id;
-    }
-    if ($date_from !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) {
-      $where_clauses[] = 'b.start_datetime >= %s';
-      $params[] = $date_from . ' 00:00:00';
-    }
-    if ($date_to !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) {
-      $where_clauses[] = 'b.start_datetime <= %s';
-      $params[] = $date_to . ' 23:59:59';
-    }
-
-    if ($q !== '') {
-      $like = '%' . $wpdb->esc_like($q) . '%';
-      $where_clauses[] = "(
-        s.name LIKE %s OR
-        c.first_name LIKE %s OR c.last_name LIKE %s OR
-        c.email LIKE %s OR c.phone LIKE %s OR
-        a.first_name LIKE %s OR a.last_name LIKE %s
-      )";
-      array_push($params, $like, $like, $like, $like, $like, $like, $like);
-    }
-    $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
-
-    $sql = "SELECT
+    return $wpdb->get_results(
+      $wpdb->prepare(
+        "SELECT
           b.*,
           s.name AS service_name,
           CONCAT(IFNULL(c.first_name,''),' ',IFNULL(c.last_name,'')) AS customer_name,
           c.email AS customer_email,
           c.phone AS customer_phone,
           CONCAT(IFNULL(a.first_name,''),' ',IFNULL(a.last_name,'')) AS agent_name
-        FROM %i b
-        LEFT JOIN %i s ON s.id = b.service_id
-        LEFT JOIN %i c ON c.id = b.customer_id
-        LEFT JOIN %i a ON a.id = b.agent_id
-        " . $where_sql . "
+        FROM {$bookings_table} b
+        LEFT JOIN {$services_table} s ON s.id = b.service_id
+        LEFT JOIN {$customers_table} c ON c.id = b.customer_id
+        LEFT JOIN {$agents_table} a ON a.id = b.agent_id
+        WHERE (%d = 0 OR b.status = %s)
+          AND (%d = 0 OR b.service_id = %d)
+          AND (%d = 0 OR b.agent_id = %d)
+          AND (%d = 0 OR b.start_datetime >= %s)
+          AND (%d = 0 OR b.start_datetime <= %s)
+          AND (%d = 0 OR (
+            s.name LIKE %s OR
+            c.first_name LIKE %s OR c.last_name LIKE %s OR
+            c.email LIKE %s OR c.phone LIKE %s OR
+            a.first_name LIKE %s OR a.last_name LIKE %s
+          ))
         ORDER BY b.start_datetime DESC
-        LIMIT 500";
-    return $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        $sql,
-        [$b, $s, $c, $a],
-        $params
+        LIMIT 500",
+        $status_value !== '' ? 1 : 0,
+        $status_value,
+        $service_id > 0 ? 1 : 0,
+        $service_id,
+        $agent_id > 0 ? 1 : 0,
+        $agent_id,
+        $date_from_value !== '' ? 1 : 0,
+        $date_from_value,
+        $date_to_value !== '' ? 1 : 0,
+        $date_to_value,
+        $like !== '' ? 1 : 0,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like
       ),
       ARRAY_A
     ) ?: [];
@@ -284,10 +302,27 @@ final class POINTLYBOOKING_BookingModel extends POINTLYBOOKING_Model {
     $per_page = max(10, min(200, absint($args['per_page'] ?? 50)));
     $offset = ($page - 1) * $per_page;
 
-    $b = pointlybooking_table('bookings');
-    $s = pointlybooking_table('services');
-    $c = pointlybooking_table('customers');
-    $a = pointlybooking_table('agents');
+    $b = $wpdb->prefix . 'pointlybooking_bookings';
+    $s = $wpdb->prefix . 'pointlybooking_services';
+    $c = $wpdb->prefix . 'pointlybooking_customers';
+    $a = $wpdb->prefix . 'pointlybooking_agents';
+    if (
+      !self::is_safe_sql_identifier($b)
+      || !self::is_safe_sql_identifier($s)
+      || !self::is_safe_sql_identifier($c)
+      || !self::is_safe_sql_identifier($a)
+    ) {
+      return [
+        'items' => [],
+        'total' => 0,
+        'page' => $page,
+        'per_page' => $per_page,
+      ];
+    }
+    $bookings_table = $b;
+    $services_table = $s;
+    $customers_table = $c;
+    $agents_table = $a;
 
     $q = trim((string)($args['q'] ?? ''));
     $status = trim((string)($args['status'] ?? ''));
@@ -296,74 +331,96 @@ final class POINTLYBOOKING_BookingModel extends POINTLYBOOKING_Model {
     $date_from = trim((string)($args['date_from'] ?? ''));
     $date_to = trim((string)($args['date_to'] ?? ''));
 
-    $where_clauses = ['1=1'];
-    $params = [];
+    $status_value = ($status !== '' && in_array($status, ['pending','confirmed','cancelled'], true)) ? $status : '';
+    $date_from_value = ($date_from !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) ? ($date_from . ' 00:00:00') : '';
+    $date_to_value = ($date_to !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) ? ($date_to . ' 23:59:59') : '';
+    $like = ($q !== '') ? ('%' . $wpdb->esc_like($q) . '%') : '';
 
-    if ($status !== '' && in_array($status, ['pending','confirmed','cancelled'], true)) {
-      $where_clauses[] = 'b.status = %s';
-      $params[] = $status;
-    }
-    if ($service_id > 0) {
-      $where_clauses[] = 'b.service_id = %d';
-      $params[] = $service_id;
-    }
-    if ($agent_id > 0) {
-      $where_clauses[] = 'b.agent_id = %d';
-      $params[] = $agent_id;
-    }
-    if ($date_from !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) {
-      $where_clauses[] = 'b.start_datetime >= %s';
-      $params[] = $date_from . ' 00:00:00';
-    }
-    if ($date_to !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) {
-      $where_clauses[] = 'b.start_datetime <= %s';
-      $params[] = $date_to . ' 23:59:59';
-    }
-
-    if ($q !== '') {
-      $like = '%' . $wpdb->esc_like($q) . '%';
-      $where_clauses[] = "(
-        s.name LIKE %s OR
-        c.first_name LIKE %s OR c.last_name LIKE %s OR
-        c.email LIKE %s OR c.phone LIKE %s OR
-        a.first_name LIKE %s OR a.last_name LIKE %s
-      )";
-      array_push($params, $like, $like, $like, $like, $like, $like, $like);
-    }
-    $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
-
-    $total_sql = "SELECT COUNT(*) FROM %i b
-        LEFT JOIN %i s ON s.id = b.service_id
-        LEFT JOIN %i c ON c.id = b.customer_id
-        LEFT JOIN %i a ON a.id = b.agent_id
-        " . $where_sql;
     $total = (int)$wpdb->get_var(
-      pointlybooking_prepare_query_with_identifiers(
-        $total_sql,
-        [$b, $s, $c, $a],
-        $params
+      $wpdb->prepare(
+        "SELECT COUNT(*)
+         FROM {$bookings_table} b
+         LEFT JOIN {$services_table} s ON s.id = b.service_id
+         LEFT JOIN {$customers_table} c ON c.id = b.customer_id
+         LEFT JOIN {$agents_table} a ON a.id = b.agent_id
+         WHERE (%d = 0 OR b.status = %s)
+           AND (%d = 0 OR b.service_id = %d)
+           AND (%d = 0 OR b.agent_id = %d)
+           AND (%d = 0 OR b.start_datetime >= %s)
+           AND (%d = 0 OR b.start_datetime <= %s)
+           AND (%d = 0 OR (
+             s.name LIKE %s OR
+             c.first_name LIKE %s OR c.last_name LIKE %s OR
+             c.email LIKE %s OR c.phone LIKE %s OR
+             a.first_name LIKE %s OR a.last_name LIKE %s
+           ))",
+        $status_value !== '' ? 1 : 0,
+        $status_value,
+        $service_id > 0 ? 1 : 0,
+        $service_id,
+        $agent_id > 0 ? 1 : 0,
+        $agent_id,
+        $date_from_value !== '' ? 1 : 0,
+        $date_from_value,
+        $date_to_value !== '' ? 1 : 0,
+        $date_to_value,
+        $like !== '' ? 1 : 0,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like
       )
     );
 
-    $items_sql = "SELECT
+    $items = $wpdb->get_results(
+      $wpdb->prepare(
+        "SELECT
           b.*,
           s.name AS service_name,
           CONCAT(IFNULL(c.first_name,''),' ',IFNULL(c.last_name,'')) AS customer_name,
           c.email AS customer_email,
           c.phone AS customer_phone,
           CONCAT(IFNULL(a.first_name,''),' ',IFNULL(a.last_name,'')) AS agent_name
-        FROM %i b
-        LEFT JOIN %i s ON s.id = b.service_id
-        LEFT JOIN %i c ON c.id = b.customer_id
-        LEFT JOIN %i a ON a.id = b.agent_id
-        " . $where_sql . "
+        FROM {$bookings_table} b
+        LEFT JOIN {$services_table} s ON s.id = b.service_id
+        LEFT JOIN {$customers_table} c ON c.id = b.customer_id
+        LEFT JOIN {$agents_table} a ON a.id = b.agent_id
+        WHERE (%d = 0 OR b.status = %s)
+          AND (%d = 0 OR b.service_id = %d)
+          AND (%d = 0 OR b.agent_id = %d)
+          AND (%d = 0 OR b.start_datetime >= %s)
+          AND (%d = 0 OR b.start_datetime <= %s)
+          AND (%d = 0 OR (
+            s.name LIKE %s OR
+            c.first_name LIKE %s OR c.last_name LIKE %s OR
+            c.email LIKE %s OR c.phone LIKE %s OR
+            a.first_name LIKE %s OR a.last_name LIKE %s
+          ))
         ORDER BY b.start_datetime DESC
-        LIMIT %d OFFSET %d";
-    $items = $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        $items_sql,
-        [$b, $s, $c, $a],
-        array_merge($params, [$per_page, $offset])
+        LIMIT %d OFFSET %d",
+        $status_value !== '' ? 1 : 0,
+        $status_value,
+        $service_id > 0 ? 1 : 0,
+        $service_id,
+        $agent_id > 0 ? 1 : 0,
+        $agent_id,
+        $date_from_value !== '' ? 1 : 0,
+        $date_from_value,
+        $date_to_value !== '' ? 1 : 0,
+        $date_to_value,
+        $like !== '' ? 1 : 0,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $per_page,
+        $offset
       ),
       ARRAY_A
     ) ?: [];
@@ -426,14 +483,13 @@ final class POINTLYBOOKING_BookingModel extends POINTLYBOOKING_Model {
 
   public static function find(int $id) : ?array {
     global $wpdb;
-    $table = self::table();
+    $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+    if (!self::is_safe_sql_identifier($bookings_table)) {
+      return null;
+    }
 
     $row = $wpdb->get_row(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT * FROM %i WHERE id = %d",
-        [$table],
-        [$id]
-      ),
+      $wpdb->prepare("SELECT * FROM {$bookings_table} WHERE id = %d", $id),
       ARRAY_A
     );
 
@@ -443,23 +499,24 @@ final class POINTLYBOOKING_BookingModel extends POINTLYBOOKING_Model {
   public static function find_by_customer_email(string $email) : array {
     global $wpdb;
 
-    $b = pointlybooking_table('bookings');
-    $c = pointlybooking_table('customers');
+    $b = $wpdb->prefix . 'pointlybooking_bookings';
+    $c = $wpdb->prefix . 'pointlybooking_customers';
+    if (!self::is_safe_sql_identifier($b) || !self::is_safe_sql_identifier($c)) {
+      return [];
+    }
+    $bookings_table = $b;
+    $customers_table = $c;
 
     $email = sanitize_email($email);
     if ($email === '') return [];
 
     return $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT b.*
-        FROM %i b
-        INNER JOIN %i c ON c.id = b.customer_id
+      $wpdb->prepare("SELECT b.*
+        FROM {$bookings_table} b
+        INNER JOIN {$customers_table} c ON c.id = b.customer_id
         WHERE c.email = %s
         ORDER BY b.start_datetime DESC
-        LIMIT 200",
-        [$b, $c],
-        [$email]
-      ),
+        LIMIT 200", $email),
       ARRAY_A
     ) ?: [];
   }
@@ -479,15 +536,15 @@ final class POINTLYBOOKING_BookingModel extends POINTLYBOOKING_Model {
 
   public static function find_by_customer(int $customer_id) : array {
     global $wpdb;
-    $table = self::table();
+    $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+    if (!self::is_safe_sql_identifier($bookings_table)) {
+      return [];
+    }
 
     return $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT * FROM %i WHERE customer_id = %d ORDER BY start_datetime DESC",
-        [$table],
-        [$customer_id]
-      ),
+      $wpdb->prepare("SELECT * FROM {$bookings_table} WHERE customer_id = %d ORDER BY start_datetime DESC", $customer_id),
       ARRAY_A
     ) ?: [];
   }
 }
+

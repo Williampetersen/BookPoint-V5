@@ -16,6 +16,14 @@ final class POINTLYBOOKING_Notifications_Helper {
   ];
   private static string $last_error = '';
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . str_replace('`', '``', $identifier) . '`';
+  }
+
   public static function last_error(): string {
     return self::$last_error;
   }
@@ -131,61 +139,78 @@ final class POINTLYBOOKING_Notifications_Helper {
 
   public static function list_workflows(array $filters = []): array {
     global $wpdb;
-    $table = self::table(self::WORKFLOW_TABLE);
-
-    $where = ['1=1'];
-    $params = [];
-
-    $status = $filters['status'] ?? 'all';
-    if ($status !== 'all' && in_array($status, ['active', 'disabled'], true)) {
-      $where[] = 'status = %s';
-      $params[] = $status;
+    $table = $wpdb->prefix . self::WORKFLOW_TABLE;
+    $action_table = $wpdb->prefix . self::ACTION_TABLE;
+    $log_table = $wpdb->prefix . self::LOG_TABLE;
+    if (
+      !self::is_safe_sql_identifier($table) ||
+      !self::is_safe_sql_identifier($action_table) ||
+      !self::is_safe_sql_identifier($log_table)
+    ) {
+      return [
+        'items' => [],
+        'total' => 0,
+        'page' => 1,
+        'per_page' => 20,
+      ];
     }
+    $status = $filters['status'] ?? 'all';
+    $status_filter_enabled = ($status !== 'all' && in_array($status, ['active', 'disabled'], true)) ? 1 : 0;
+    $status_filter_value = $status_filter_enabled ? $status : 'active';
 
     $search = trim((string)($filters['search'] ?? ''));
-    if ($search !== '') {
-      $where[] = 'name LIKE %s';
-      $params[] = '%' . $wpdb->esc_like($search) . '%';
-    }
+    $search_filter_enabled = ($search !== '') ? 1 : 0;
+    $search_filter_value = $search_filter_enabled ? '%' . $wpdb->esc_like($search) . '%' : '';
 
     $event = trim((string)($filters['event'] ?? ''));
-    if ($event !== '' && in_array($event, self::EVENTS, true)) {
-      $where[] = 'event_key = %s';
-      $params[] = $event;
-    }
-    $where[] = '%d = %d';
-    $params[] = 1;
-    $params[] = 1;
+    $event_filter_enabled = ($event !== '' && in_array($event, self::EVENTS, true)) ? 1 : 0;
+    $event_filter_value = $event_filter_enabled ? $event : self::EVENTS[0];
 
     $page = max(1, (int)($filters['page'] ?? 1));
     $per = min(50, max(10, (int)($filters['per'] ?? 20)));
     $offset = ($page - 1) * $per;
 
-    $where_sql = implode(' AND ', $where);
-
     $total = (int)$wpdb->get_var(
       $wpdb->prepare(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is generated from $wpdb->prefix + hardcoded table key; $where_sql is built from hardcoded SQL fragments with placeholders.
-        "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}",
-        $params
+        "SELECT COUNT(*) FROM {$table}
+         WHERE (%d = 0 OR status = %s)
+           AND (%d = 0 OR name LIKE %s)
+           AND (%d = 0 OR event_key = %s)",
+        $status_filter_enabled,
+        $status_filter_value,
+        $search_filter_enabled,
+        $search_filter_value,
+        $event_filter_enabled,
+        $event_filter_value
       )
     );
 
-    $action_table = self::table(self::ACTION_TABLE);
-    $log_table = self::table(self::LOG_TABLE);
-
     $rows = $wpdb->get_results(
       $wpdb->prepare(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table names are generated from $wpdb->prefix + hardcoded table keys; $where_sql is built from hardcoded SQL fragments with placeholders.
         "SELECT w.*,
-      (\n        SELECT COUNT(*) FROM {$action_table} a WHERE a.workflow_id = w.id\n      ) as actions_count,
-      (\n        SELECT MAX(l.created_at) FROM {$log_table} l WHERE l.workflow_id = w.id\n      ) as last_run_at,
-      (\n        SELECT l.status FROM {$log_table} l WHERE l.workflow_id = w.id ORDER BY l.id DESC LIMIT 1\n      ) as last_run_status
-    FROM {$table} w
-    WHERE {$where_sql}
-    ORDER BY w.updated_at DESC, w.id DESC
-    LIMIT %d OFFSET %d",
-        array_merge($params, [$per, $offset])
+          (
+            SELECT COUNT(*) FROM {$action_table} a WHERE a.workflow_id = w.id
+          ) as actions_count,
+          (
+            SELECT MAX(l.created_at) FROM {$log_table} l WHERE l.workflow_id = w.id
+          ) as last_run_at,
+          (
+            SELECT l.status FROM {$log_table} l WHERE l.workflow_id = w.id ORDER BY l.id DESC LIMIT 1
+          ) as last_run_status
+        FROM {$table} w
+        WHERE (%d = 0 OR w.status = %s)
+          AND (%d = 0 OR w.name LIKE %s)
+          AND (%d = 0 OR w.event_key = %s)
+        ORDER BY w.updated_at DESC, w.id DESC
+        LIMIT %d OFFSET %d",
+        $status_filter_enabled,
+        $status_filter_value,
+        $search_filter_enabled,
+        $search_filter_value,
+        $event_filter_enabled,
+        $event_filter_value,
+        $per,
+        $offset
       ),
       ARRAY_A
     ) ?: [];
@@ -200,8 +225,15 @@ final class POINTLYBOOKING_Notifications_Helper {
 
   public static function get_workflow(int $workflow_id): ?array {
     global $wpdb;
-    $table = self::table(self::WORKFLOW_TABLE);
-    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $workflow_id), ARRAY_A);
+    $table = $wpdb->prefix . self::WORKFLOW_TABLE;
+    if (!self::is_safe_sql_identifier($table)) {
+      return null;
+    }
+
+    $row = $wpdb->get_row(
+      $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $workflow_id),
+      ARRAY_A
+    );
     if (!$row) {
       return null;
     }
@@ -212,7 +244,7 @@ final class POINTLYBOOKING_Notifications_Helper {
 
   public static function create_workflow(array $data) {
     global $wpdb;
-    $table = self::table(self::WORKFLOW_TABLE);
+    $table = $wpdb->prefix . self::WORKFLOW_TABLE;
 
     self::ensure_tables();
     self::$last_error = '';
@@ -241,7 +273,7 @@ final class POINTLYBOOKING_Notifications_Helper {
 
   public static function update_workflow(int $workflow_id, array $data): bool {
     global $wpdb;
-    $table = self::table(self::WORKFLOW_TABLE);
+    $table = $wpdb->prefix . self::WORKFLOW_TABLE;
 
     $payload = [];
     if (isset($data['name'])) {
@@ -278,9 +310,9 @@ final class POINTLYBOOKING_Notifications_Helper {
 
   public static function delete_workflow(int $workflow_id): bool {
     global $wpdb;
-    $workflow_table = self::table(self::WORKFLOW_TABLE);
-    $action_table = self::table(self::ACTION_TABLE);
-    $log_table = self::table(self::LOG_TABLE);
+    $workflow_table = $wpdb->prefix . self::WORKFLOW_TABLE;
+    $action_table = $wpdb->prefix . self::ACTION_TABLE;
+    $log_table = $wpdb->prefix . self::LOG_TABLE;
 
     $wpdb->delete($action_table, ['workflow_id' => $workflow_id], ['%d']);
     $wpdb->delete($log_table, ['workflow_id' => $workflow_id], ['%d']);
@@ -290,14 +322,16 @@ final class POINTLYBOOKING_Notifications_Helper {
 
   public static function create_action(int $workflow_id, array $data): ?array {
     global $wpdb;
-    $table = self::table(self::ACTION_TABLE);
+    $table = $wpdb->prefix . self::ACTION_TABLE;
+    if (!self::is_safe_sql_identifier($table)) {
+      return null;
+    }
 
     $config = isset($data['config']) && is_array($data['config']) ? $data['config'] : [];
 
-    $sort_order = (int)$wpdb->get_var($wpdb->prepare(
-      "SELECT IFNULL(MAX(sort_order), 0) + 1 FROM {$table} WHERE workflow_id = %d",
-      $workflow_id
-    ));
+    $sort_order = (int)$wpdb->get_var(
+      $wpdb->prepare("SELECT IFNULL(MAX(sort_order), 0) + 1 FROM {$table} WHERE workflow_id = %d", $workflow_id)
+    );
 
     $payload = [
       'workflow_id' => $workflow_id,
@@ -317,7 +351,7 @@ final class POINTLYBOOKING_Notifications_Helper {
 
   public static function update_action(int $action_id, array $data): bool {
     global $wpdb;
-    $table = self::table(self::ACTION_TABLE);
+    $table = $wpdb->prefix . self::ACTION_TABLE;
 
     $payload = [];
     if (isset($data['type'])) {
@@ -344,14 +378,21 @@ final class POINTLYBOOKING_Notifications_Helper {
 
   public static function delete_action(int $action_id): bool {
     global $wpdb;
-    $table = self::table(self::ACTION_TABLE);
+    $table = $wpdb->prefix . self::ACTION_TABLE;
     return (bool)$wpdb->delete($table, ['id' => $action_id], ['%d']);
   }
 
   public static function get_action(int $action_id): ?array {
     global $wpdb;
-    $table = self::table(self::ACTION_TABLE);
-    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $action_id), ARRAY_A);
+    $table = $wpdb->prefix . self::ACTION_TABLE;
+    if (!self::is_safe_sql_identifier($table)) {
+      return null;
+    }
+
+    $row = $wpdb->get_row(
+      $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $action_id),
+      ARRAY_A
+    );
     if (!$row) {
       return null;
     }
@@ -380,21 +421,29 @@ final class POINTLYBOOKING_Notifications_Helper {
 
   private static function fetch_workflows(string $event_key): array {
     global $wpdb;
-    $table = self::table(self::WORKFLOW_TABLE);
-    $rows = $wpdb->get_results($wpdb->prepare(
-      "SELECT * FROM {$table} WHERE event_key = %s AND status = 'active' ORDER BY updated_at DESC",
-      $event_key
-    ), ARRAY_A);
+    $table = $wpdb->prefix . self::WORKFLOW_TABLE;
+    if (!self::is_safe_sql_identifier($table)) {
+      return [];
+    }
+
+    $rows = $wpdb->get_results(
+      $wpdb->prepare("SELECT * FROM {$table} WHERE event_key = %s AND status = 'active' ORDER BY updated_at DESC", $event_key),
+      ARRAY_A
+    );
     return $rows ?: [];
   }
 
   private static function fetch_actions(int $workflow_id): array {
     global $wpdb;
-    $table = self::table(self::ACTION_TABLE);
-    $rows = $wpdb->get_results($wpdb->prepare(
-      "SELECT * FROM {$table} WHERE workflow_id = %d ORDER BY sort_order ASC",
-      $workflow_id
-    ), ARRAY_A);
+    $table = $wpdb->prefix . self::ACTION_TABLE;
+    if (!self::is_safe_sql_identifier($table)) {
+      return [];
+    }
+
+    $rows = $wpdb->get_results(
+      $wpdb->prepare("SELECT * FROM {$table} WHERE workflow_id = %d ORDER BY sort_order ASC", $workflow_id),
+      ARRAY_A
+    );
     if (!$rows) {
       return [];
     }
@@ -437,7 +486,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     $context = $payload['context'] ?? [];
 
     $to = self::render_template_value($config['to'] ?? '', $context);
-    $subject = self::render_template_value($config['subject'] ?? __('Booking Notification', 'bookpoint-booking'), $context);
+    $subject = self::render_template_value($config['subject'] ?? __('Booking Notification', 'pointly-booking'), $context);
     $body = self::render_template_value($config['body'] ?? '', $context);
     $from_name = $config['from_name'] ?? null;
     $from_email = $config['from_email'] ?? null;
@@ -560,7 +609,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     }
 
     $service_name = trim((string)($service['name'] ?? ''));
-    $service_name = $service_name === '' ? __('Service', 'bookpoint-booking') : $service_name;
+    $service_name = $service_name === '' ? __('Service', 'pointly-booking') : $service_name;
 
     $context = [
       'site_name' => (string)get_bloginfo('name'),
@@ -609,63 +658,63 @@ final class POINTLYBOOKING_Notifications_Helper {
   private static function smart_variables_data(): array {
     $vars = [
       [
-        'label' => __('Site', 'bookpoint-booking'),
+        'label' => __('Site', 'pointly-booking'),
         'variables' => [
-          ['key' => 'site_name', 'label' => __('Site name', 'bookpoint-booking')],
-          ['key' => 'site_url', 'label' => __('Site URL', 'bookpoint-booking')],
-          ['key' => 'admin_email', 'label' => __('Admin email', 'bookpoint-booking')],
+          ['key' => 'site_name', 'label' => __('Site name', 'pointly-booking')],
+          ['key' => 'site_url', 'label' => __('Site URL', 'pointly-booking')],
+          ['key' => 'admin_email', 'label' => __('Admin email', 'pointly-booking')],
         ],
       ],
       [
-        'label' => __('Appointment', 'bookpoint-booking'),
+        'label' => __('Appointment', 'pointly-booking'),
         'variables' => [
-          ['key' => 'booking_id', 'label' => __('Booking ID', 'bookpoint-booking')],
-          ['key' => 'booking_status', 'label' => __('Status', 'bookpoint-booking')],
-          ['key' => 'start_date', 'label' => __('Start date', 'bookpoint-booking')],
-          ['key' => 'start_time', 'label' => __('Start time', 'bookpoint-booking')],
-          ['key' => 'end_date', 'label' => __('End date', 'bookpoint-booking')],
-          ['key' => 'end_time', 'label' => __('End time', 'bookpoint-booking')],
-          ['key' => 'booking_duration', 'label' => __('Duration (minutes)', 'bookpoint-booking')],
+          ['key' => 'booking_id', 'label' => __('Booking ID', 'pointly-booking')],
+          ['key' => 'booking_status', 'label' => __('Status', 'pointly-booking')],
+          ['key' => 'start_date', 'label' => __('Start date', 'pointly-booking')],
+          ['key' => 'start_time', 'label' => __('Start time', 'pointly-booking')],
+          ['key' => 'end_date', 'label' => __('End date', 'pointly-booking')],
+          ['key' => 'end_time', 'label' => __('End time', 'pointly-booking')],
+          ['key' => 'booking_duration', 'label' => __('Duration (minutes)', 'pointly-booking')],
         ],
       ],
       [
-        'label' => __('Customer', 'bookpoint-booking'),
+        'label' => __('Customer', 'pointly-booking'),
         'variables' => [
-          ['key' => 'customer_name', 'label' => __('Name', 'bookpoint-booking')],
-          ['key' => 'customer_email', 'label' => __('Email', 'bookpoint-booking')],
-          ['key' => 'customer_phone', 'label' => __('Phone', 'bookpoint-booking')],
+          ['key' => 'customer_name', 'label' => __('Name', 'pointly-booking')],
+          ['key' => 'customer_email', 'label' => __('Email', 'pointly-booking')],
+          ['key' => 'customer_phone', 'label' => __('Phone', 'pointly-booking')],
         ],
       ],
       [
-        'label' => __('Agent', 'bookpoint-booking'),
+        'label' => __('Agent', 'pointly-booking'),
         'variables' => [
-          ['key' => 'agent_name', 'label' => __('Name', 'bookpoint-booking')],
-          ['key' => 'agent_email', 'label' => __('Email', 'bookpoint-booking')],
-          ['key' => 'agent_phone', 'label' => __('Phone', 'bookpoint-booking')],
+          ['key' => 'agent_name', 'label' => __('Name', 'pointly-booking')],
+          ['key' => 'agent_email', 'label' => __('Email', 'pointly-booking')],
+          ['key' => 'agent_phone', 'label' => __('Phone', 'pointly-booking')],
         ],
       ],
       [
-        'label' => __('Service', 'bookpoint-booking'),
+        'label' => __('Service', 'pointly-booking'),
         'variables' => [
-          ['key' => 'service_name', 'label' => __('Name', 'bookpoint-booking')],
-          ['key' => 'service_duration', 'label' => __('Duration (minutes)', 'bookpoint-booking')],
+          ['key' => 'service_name', 'label' => __('Name', 'pointly-booking')],
+          ['key' => 'service_duration', 'label' => __('Duration (minutes)', 'pointly-booking')],
         ],
       ],
       [
-        'label' => __('Pricing', 'bookpoint-booking'),
+        'label' => __('Pricing', 'pointly-booking'),
         'variables' => [
-          ['key' => 'subtotal', 'label' => __('Subtotal', 'bookpoint-booking')],
-          ['key' => 'discount', 'label' => __('Discount', 'bookpoint-booking')],
-          ['key' => 'tax', 'label' => __('Tax', 'bookpoint-booking')],
-          ['key' => 'total', 'label' => __('Total', 'bookpoint-booking')],
-          ['key' => 'promo_code', 'label' => __('Promo code', 'bookpoint-booking')],
+          ['key' => 'subtotal', 'label' => __('Subtotal', 'pointly-booking')],
+          ['key' => 'discount', 'label' => __('Discount', 'pointly-booking')],
+          ['key' => 'tax', 'label' => __('Tax', 'pointly-booking')],
+          ['key' => 'total', 'label' => __('Total', 'pointly-booking')],
+          ['key' => 'promo_code', 'label' => __('Promo code', 'pointly-booking')],
         ],
       ],
       [
-        'label' => __('Links', 'bookpoint-booking'),
+        'label' => __('Links', 'pointly-booking'),
         'variables' => [
-          ['key' => 'manage_booking_url_customer', 'label' => __('Manage booking (customer)', 'bookpoint-booking')],
-          ['key' => 'manage_booking_url_agent', 'label' => __('Manage booking (agent)', 'bookpoint-booking')],
+          ['key' => 'manage_booking_url_customer', 'label' => __('Manage booking (customer)', 'pointly-booking')],
+          ['key' => 'manage_booking_url_agent', 'label' => __('Manage booking (agent)', 'pointly-booking')],
         ],
       ],
     ];
@@ -673,7 +722,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     $custom = self::active_custom_fields();
     if ($custom) {
       $group = [
-        'label' => __('Custom fields', 'bookpoint-booking'),
+        'label' => __('Custom fields', 'pointly-booking'),
         'variables' => [],
       ];
       foreach ($custom as $field) {
@@ -765,7 +814,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     }
 
     $uid = uniqid('bp-wf-', true);
-    $summary = sanitize_text_field($service['name'] ?? __('Booking', 'bookpoint-booking'));
+    $summary = sanitize_text_field($service['name'] ?? __('Booking', 'pointly-booking'));
     $description = sanitize_text_field($payload['context']['booking_status'] ?? '');
 
     $ics = "BEGIN:VCALENDAR\\r\\n";
@@ -804,7 +853,7 @@ final class POINTLYBOOKING_Notifications_Helper {
 
   private static function log(int $workflow_id, string $event_key, string $entity_type, ?int $entity_id, string $status, string $message = ''): void {
     global $wpdb;
-    $table = self::table(self::LOG_TABLE);
+    $table = $wpdb->prefix . self::LOG_TABLE;
     $wpdb->insert($table, [
       'workflow_id' => $workflow_id,
       'event_key' => $event_key,
@@ -843,4 +892,5 @@ function pointlybooking_render_template(string $text, array $context): string {
     return isset($context[$key]) ? (string)$context[$key] : '';
   }, $text);
 }
+
 

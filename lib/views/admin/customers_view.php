@@ -1,24 +1,26 @@
-<?php defined('ABSPATH') || exit; ?>
+<?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+defined('ABSPATH') || exit; ?>
 
 <div class="wrap">
-  <h1><?php esc_html_e('Customer Details', 'bookpoint-booking'); ?></h1>
+  <h1><?php esc_html_e('Customer Details', 'pointly-booking'); ?></h1>
 
-  <p><strong><?php esc_html_e('Name:', 'bookpoint-booking'); ?></strong>
+  <p><strong><?php esc_html_e('Name:', 'pointly-booking'); ?></strong>
     <?php echo esc_html(trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? ''))); ?>
   </p>
 
-  <p><strong><?php esc_html_e('Email:', 'bookpoint-booking'); ?></strong>
+  <p><strong><?php esc_html_e('Email:', 'pointly-booking'); ?></strong>
     <?php echo esc_html($customer['email'] ?? '-'); ?>
   </p>
 
-  <p><strong><?php esc_html_e('Phone:', 'bookpoint-booking'); ?></strong>
+  <p><strong><?php esc_html_e('Phone:', 'pointly-booking'); ?></strong>
     <?php echo esc_html($customer['phone'] ?? '-'); ?>
   </p>
 
-  <h2><?php esc_html_e('Bookings', 'bookpoint-booking'); ?></h2>
+  <h2><?php esc_html_e('Bookings', 'pointly-booking'); ?></h2>
 
   <?php if (empty($bookings)) : ?>
-    <p><?php esc_html_e('No bookings for this customer.', 'bookpoint-booking'); ?></p>
+    <p><?php esc_html_e('No bookings for this customer.', 'pointly-booking'); ?></p>
   <?php else : ?>
     <ul>
       <?php foreach ($bookings as $b) : ?>
@@ -34,7 +36,7 @@
 
   <p>
     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=pointlybooking_customers')); ?>">
-      <?php esc_html_e('Back to Customers', 'bookpoint-booking'); ?>
+      <?php esc_html_e('Back to Customers', 'pointly-booking'); ?>
     </a>
   </p>
 </div>

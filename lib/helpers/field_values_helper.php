@@ -29,6 +29,13 @@ function pointlybooking_install_field_values_table() : void {
 }
 
 class POINTLYBOOKING_FieldValuesHelper {
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . str_replace('`', '``', $identifier) . '`';
+  }
 
   public static function upsert($entity_type, $entity_id, $field_id, $field_key, $scope, $value){
     global $wpdb;
@@ -47,12 +54,20 @@ class POINTLYBOOKING_FieldValuesHelper {
     }
 
     $now = current_time('mysql');
+    if (!self::is_safe_sql_identifier($t)) {
+      return 0;
+    }
 
-    $existing_id = (int)$wpdb->get_var($wpdb->prepare("
-      SELECT id FROM {$t}
-      WHERE entity_type=%s AND entity_id=%d AND field_id=%d
-      LIMIT 1
-    ", $entity_type, $entity_id, $field_id));
+    $existing_id = (int) $wpdb->get_var(
+      $wpdb->prepare(
+        "SELECT id FROM {$t}
+         WHERE entity_type=%s AND entity_id=%d AND field_id=%d
+         LIMIT 1",
+        $entity_type,
+        $entity_id,
+        $field_id
+      )
+    );
 
     if ($existing_id > 0) {
       $wpdb->update($t, [
@@ -88,12 +103,22 @@ class POINTLYBOOKING_FieldValuesHelper {
   public static function get_for_entity($entity_type, $entity_id){
     global $wpdb;
     $t = $wpdb->prefix . 'pointlybooking_field_values';
-    $rows = $wpdb->get_results($wpdb->prepare("
-      SELECT field_id, field_key, scope, value_long
-      FROM {$t}
-      WHERE entity_type=%s AND entity_id=%d
-      ORDER BY id ASC
-    ", sanitize_text_field($entity_type), (int)$entity_id), ARRAY_A) ?: [];
+    if (!self::is_safe_sql_identifier($t)) {
+      return [];
+    }
+
+    $rows = $wpdb->get_results(
+      $wpdb->prepare(
+        "SELECT field_id, field_key, scope, value_long
+         FROM {$t}
+         WHERE entity_type=%s AND entity_id=%d
+         ORDER BY id ASC",
+        sanitize_text_field($entity_type),
+        (int) $entity_id
+      ),
+      ARRAY_A
+    ) ?: [];
     return $rows;
   }
 }
+

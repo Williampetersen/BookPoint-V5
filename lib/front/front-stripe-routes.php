@@ -29,8 +29,14 @@ add_action('rest_api_init', function () {
       if (!$booking_id) return new WP_Error('bad_request', 'Missing booking_id', ['status' => 400]);
       if ($manage_key === '') return new WP_Error('bad_request', 'Missing booking key', ['status' => 400]);
 
-      $table = $wpdb->prefix . 'pointlybooking_bookings';
-      $booking = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $booking_id), ARRAY_A);
+      $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+      if (preg_match('/^[A-Za-z0-9_]+$/', $bookings_table) !== 1) {
+        return new WP_Error('config', 'Invalid bookings table', ['status' => 500]);
+      }
+      $booking = $wpdb->get_row(
+        $wpdb->prepare("SELECT * FROM {$bookings_table} WHERE id=%d", $booking_id),
+        ARRAY_A
+      );
       if (!$booking) return new WP_Error('not_found', 'Booking not found', ['status' => 404]);
       if (!pointlybooking_front_stripe_validate_manage_key($booking_id, $manage_key)) {
         return new WP_Error('forbidden', 'Invalid booking key', ['status' => 403]);
@@ -87,7 +93,7 @@ add_action('rest_api_init', function () {
         ]);
       }
 
-      $wpdb->update($table, [
+      $wpdb->update($bookings_table, [
         'payment_method' => 'stripe',
         'payment_status' => 'unpaid',
         'payment_provider_ref' => sanitize_text_field($body['id']),
@@ -143,10 +149,10 @@ add_action('rest_api_init', function () {
       $body = json_decode(wp_remote_retrieve_body($resp), true);
       $pi_status = $body['status'] ?? '';
 
-      $table = $wpdb->prefix . 'pointlybooking_bookings';
+      $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
 
       if ($pi_status === 'succeeded') {
-        $wpdb->update($table, [
+        $wpdb->update($bookings_table, [
           'payment_status' => 'paid',
           'status' => 'confirmed',
           'payment_provider_ref' => $payment_intent_id,
@@ -155,7 +161,7 @@ add_action('rest_api_init', function () {
         return rest_ensure_response(['success' => true, 'booking_status' => 'confirmed']);
       }
 
-      $wpdb->update($table, [
+      $wpdb->update($bookings_table, [
         'payment_status' => $pi_status ? $pi_status : 'unpaid',
       ], ['id' => $booking_id]);
 
@@ -168,3 +174,4 @@ add_action('rest_api_init', function () {
     'permission_callback' => '__return_true',
   ]);
 });
+

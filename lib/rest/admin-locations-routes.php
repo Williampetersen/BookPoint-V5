@@ -78,27 +78,6 @@ function pointlybooking_rest_can_manage_locations(): bool {
   return current_user_can('manage_options') || current_user_can('pointlybooking_manage_settings');
 }
 
-function pointlybooking_locations_prepare_identifier_sql(string $query, $identifiers, array $args = []): string {
-  global $wpdb;
-  $identifier_list = is_array($identifiers) ? array_values($identifiers) : [$identifiers];
-  $identifier_list = array_map('strval', $identifier_list);
-
-  if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
-    return $wpdb->prepare($query, array_merge($identifier_list, $args));
-  }
-
-  foreach ($identifier_list as $identifier) {
-    $safe_identifier = preg_replace('/[^A-Za-z0-9_]/', '', $identifier);
-    $query = preg_replace('/%i/', '`' . $safe_identifier . '`', $query, 1);
-  }
-
-  if (empty($args)) {
-    return (string) $query;
-  }
-
-  return $wpdb->prepare($query, $args);
-}
-
 function pointlybooking_locations_img_url($image_id, $size = 'thumbnail') {
   $id = (int)$image_id;
   if ($id <= 0) return '';
@@ -126,17 +105,20 @@ function pointlybooking_rest_admin_locations_list() {
   global $wpdb;
   pointlybooking_locations_require_tables();
 
-  $loc = pointlybooking_table('locations');
-  $cat = pointlybooking_table('location_categories');
+  $locations_table = $wpdb->prefix . 'pointlybooking_locations';
+  $categories_table = $wpdb->prefix . 'pointlybooking_location_categories';
+  if (
+    !preg_match('/^[A-Za-z0-9_]+$/', $locations_table)
+    || !preg_match('/^[A-Za-z0-9_]+$/', $categories_table)
+  ) {
+    return rest_ensure_response(['status' => 'success', 'data' => []]);
+  }
 
   $rows = $wpdb->get_results(
-    pointlybooking_locations_prepare_identifier_sql(
-      "SELECT l.*, c.name AS category_name, c.image_id AS category_image_id
-       FROM %i l
-       LEFT JOIN %i c ON c.id = l.category_id
+    "SELECT l.*, c.name AS category_name, c.image_id AS category_image_id
+       FROM {$locations_table} l
+       LEFT JOIN {$categories_table} c ON c.id = l.category_id
        ORDER BY l.id DESC",
-      [$loc, $cat]
-    ),
     ARRAY_A
   ) ?: [];
 
@@ -199,8 +181,13 @@ function pointlybooking_rest_admin_locations_get($req) {
   if ($id <= 0) return new WP_Error('pointlybooking_location_invalid', 'Invalid id', ['status' => 400]);
 
   $loc = $wpdb->prefix . 'pointlybooking_locations';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $loc)) {
+    return new WP_Error('pointlybooking_location_invalid_table', 'Invalid locations table', ['status' => 500]);
+  }
+
+  $locations_table = $loc;
   $row = $wpdb->get_row(
-    pointlybooking_locations_prepare_identifier_sql("SELECT * FROM %i WHERE id=%d", $loc, [$id]),
+    $wpdb->prepare("SELECT * FROM {$locations_table} WHERE id=%d", $id),
     ARRAY_A
   );
   if (!$row) return new WP_Error('pointlybooking_location_not_found', 'Location not found', ['status' => 404]);
@@ -277,8 +264,13 @@ function pointlybooking_rest_admin_locations_agents_get(WP_REST_Request $req) {
   if ($id <= 0) return new WP_Error('pointlybooking_location_invalid', 'Invalid id', ['status' => 400]);
 
   $map = $wpdb->prefix . 'pointlybooking_location_agents';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $map)) {
+    return new WP_Error('pointlybooking_location_invalid_table', 'Invalid location agents table', ['status' => 500]);
+  }
+
+  $map_table = $map;
   $rows = $wpdb->get_results(
-    pointlybooking_locations_prepare_identifier_sql("SELECT * FROM %i WHERE location_id=%d", $map, [$id]),
+    $wpdb->prepare("SELECT * FROM {$map_table} WHERE location_id=%d", $id),
     ARRAY_A
   ) ?: [];
 
@@ -332,11 +324,12 @@ function pointlybooking_rest_admin_location_categories_list() {
   pointlybooking_locations_require_tables();
 
   $t = $wpdb->prefix . 'pointlybooking_location_categories';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+    return rest_ensure_response(['status' => 'success', 'data' => []]);
+  }
+
   $rows = $wpdb->get_results(
-    pointlybooking_locations_prepare_identifier_sql(
-      "SELECT * FROM %i WHERE status='active' ORDER BY id DESC",
-      $t
-    ),
+    "SELECT * FROM {$t} WHERE status='active' ORDER BY id DESC",
     ARRAY_A
   ) ?: [];
 
@@ -416,3 +409,4 @@ function pointlybooking_rest_admin_location_categories_delete(WP_REST_Request $r
 
   return rest_ensure_response(['status' => 'success', 'data' => ['deleted' => true]]);
 }
+

@@ -28,7 +28,11 @@ if (!function_exists('pointlybooking_user_can_manage')) {
 
 if (!function_exists('pointlybooking_verify_admin_nonce')) {
   function pointlybooking_verify_admin_nonce(string $action, string $field = '_wpnonce'): bool {
-    $nonce = sanitize_text_field(wp_unslash($_REQUEST[$field] ?? ''));
+    $nonce = filter_input(INPUT_POST, $field, FILTER_UNSAFE_RAW);
+    if (!is_string($nonce) || $nonce === '') {
+      $nonce = filter_input(INPUT_GET, $field, FILTER_UNSAFE_RAW);
+    }
+    $nonce = sanitize_text_field(is_string($nonce) ? $nonce : '');
     if ($nonce === '') {
       return false;
     }
@@ -47,10 +51,10 @@ if (!function_exists('pointlybooking_get_uploaded_file_contents')) {
       return null;
     }
 
-    $tmp_name = isset($_FILES[$field]['tmp_name']) ? (string) wp_unslash($_FILES[$field]['tmp_name']) : '';
+    $tmp_name = isset($_FILES[$field]['tmp_name']) ? sanitize_text_field((string) wp_unslash($_FILES[$field]['tmp_name'])) : '';
     $name = isset($_FILES[$field]['name']) ? sanitize_file_name((string) wp_unslash($_FILES[$field]['name'])) : '';
-    $size = isset($_FILES[$field]['size']) ? (int) $_FILES[$field]['size'] : 0;
-    $error = isset($_FILES[$field]['error']) ? (int) $_FILES[$field]['error'] : UPLOAD_ERR_NO_FILE;
+    $size = isset($_FILES[$field]['size']) ? (int) wp_unslash($_FILES[$field]['size']) : 0;
+    $error = isset($_FILES[$field]['error']) ? (int) wp_unslash($_FILES[$field]['error']) : UPLOAD_ERR_NO_FILE;
 
     if ($error !== UPLOAD_ERR_OK || $tmp_name === '' || $name === '') {
       return null;
@@ -123,6 +127,105 @@ if (!function_exists('pointlybooking_build_csv')) {
   }
 }
 
+if (!function_exists('pointlybooking_db_table_exists')) {
+  function pointlybooking_db_table_exists(string $table): bool {
+    global $wpdb;
+
+    if (preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1) {
+      return false;
+    }
+
+    return (int) $wpdb->get_var(
+      $wpdb->prepare(
+        'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s',
+        $table
+      )
+    ) > 0;
+  }
+}
+
+if (!function_exists('pointlybooking_db_table_columns')) {
+  function pointlybooking_db_table_columns(string $table): array {
+    global $wpdb;
+
+    if (preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1) {
+      return [];
+    }
+
+    $columns = $wpdb->get_col(
+      $wpdb->prepare(
+        'SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s ORDER BY ORDINAL_POSITION ASC',
+        $table
+      )
+    );
+
+    return is_array($columns) ? $columns : [];
+  }
+}
+
+if (!function_exists('pointlybooking_db_column_exists')) {
+  function pointlybooking_db_column_exists(string $table, string $column): bool {
+    global $wpdb;
+
+    if (
+      preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1
+      || preg_match('/^[A-Za-z0-9_]+$/', $column) !== 1
+    ) {
+      return false;
+    }
+
+    return (int) $wpdb->get_var(
+      $wpdb->prepare(
+        'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
+        $table,
+        $column
+      )
+    ) > 0;
+  }
+}
+
+if (!function_exists('pointlybooking_db_index_exists')) {
+  function pointlybooking_db_index_exists(string $table, string $index_name): bool {
+    global $wpdb;
+
+    if (
+      preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1
+      || preg_match('/^[A-Za-z0-9_]+$/', $index_name) !== 1
+    ) {
+      return false;
+    }
+
+    return (int) $wpdb->get_var(
+      $wpdb->prepare(
+        'SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = %s',
+        $table,
+        $index_name
+      )
+    ) > 0;
+  }
+}
+
+if (!function_exists('pointlybooking_db_column_index_exists')) {
+  function pointlybooking_db_column_index_exists(string $table, string $column): bool {
+    global $wpdb;
+
+    if (
+      preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1
+      || preg_match('/^[A-Za-z0-9_]+$/', $column) !== 1
+    ) {
+      return false;
+    }
+
+    return (int) $wpdb->get_var(
+      $wpdb->prepare(
+        'SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
+        $table,
+        $column
+      )
+    ) > 0;
+  }
+}
+
 final class POINTLYBOOKING_DatabaseHelper {
 
   const DB_VERSION_OPTION = 'pointlybooking_db_version';
@@ -152,8 +255,7 @@ final class POINTLYBOOKING_DatabaseHelper {
     ];
 
     foreach ($tables as $table) {
-      $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
-      if ($found !== $table) {
+      if (!pointlybooking_db_table_exists($table)) {
         return true;
       }
     }

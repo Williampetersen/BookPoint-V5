@@ -8,21 +8,34 @@ final class POINTLYBOOKING_AdminBookingsController extends POINTLYBOOKING_Contro
     $has_filter_nonce = $this->has_valid_admin_filter_nonce();
 
     $args = [
-      'q' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['q'] ?? '')) : '',
-      'status' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['status'] ?? '')) : '',
-      'service_id' => $has_filter_nonce ? absint(wp_unslash($_GET['service_id'] ?? 0)) : 0,
-      'agent_id' => $has_filter_nonce ? absint(wp_unslash($_GET['agent_id'] ?? 0)) : 0,
-      'date_from' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['date_from'] ?? '')) : '',
-      'date_to' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['date_to'] ?? '')) : '',
+      'q' => $has_filter_nonce ? $this->query_text('q') : '',
+      'status' => $has_filter_nonce ? $this->query_text('status') : '',
+      'service_id' => $has_filter_nonce ? $this->query_absint('service_id') : 0,
+      'agent_id' => $has_filter_nonce ? $this->query_absint('agent_id') : 0,
+      'date_from' => $has_filter_nonce ? $this->query_text('date_from') : '',
+      'date_to' => $has_filter_nonce ? $this->query_text('date_to') : '',
     ];
 
     $paged = POINTLYBOOKING_BookingModel::admin_list_paged(array_merge($args, [
-      'page' => $has_filter_nonce ? absint(wp_unslash($_GET['paged'] ?? 1)) : 1,
-      'per_page' => $has_filter_nonce ? absint(wp_unslash($_GET['per_page'] ?? 50)) : 50,
+      'page' => $has_filter_nonce ? max(1, $this->query_absint('paged')) : 1,
+      'per_page' => $has_filter_nonce ? max(1, $this->query_absint('per_page')) : 50,
     ]));
     $items = $paged['items'] ?? [];
     $services = POINTLYBOOKING_ServiceModel::all();
     $agents = POINTLYBOOKING_AgentModel::all(500, true);
+    $export_args = array_merge($args, [
+      'action' => 'pointlybooking_admin_bookings_export_csv',
+      'page' => 'pointlybooking_bookings',
+      'paged' => (string) ($paged['page'] ?? 1),
+      'per_page' => (string) ($paged['per_page'] ?? 50),
+    ]);
+    if ($has_filter_nonce) {
+      $export_args['pointlybooking_filter_nonce'] = $this->query_text('pointlybooking_filter_nonce');
+    }
+    $export_url = wp_nonce_url(
+      add_query_arg($export_args, admin_url('admin-post.php')),
+      'pointlybooking_admin'
+    );
 
     $this->render('admin/bookings_index', [
       'items' => $items,
@@ -30,6 +43,8 @@ final class POINTLYBOOKING_AdminBookingsController extends POINTLYBOOKING_Contro
       'filters' => $args,
       'services' => $services,
       'agents' => $agents,
+      'updated_notice' => $this->query_text('updated') !== '',
+      'export_url' => $export_url,
     ]);
   }
 
@@ -37,7 +52,7 @@ final class POINTLYBOOKING_AdminBookingsController extends POINTLYBOOKING_Contro
     $this->require_cap('pointlybooking_manage_bookings');
     check_admin_referer('pointlybooking_admin');
 
-    $id = absint(wp_unslash($_GET['id'] ?? 0));
+    $id = $this->query_absint('id');
     if ($id <= 0) {
       wp_safe_redirect(admin_url('admin.php?page=pointlybooking_bookings'));
       exit;
@@ -68,7 +83,7 @@ final class POINTLYBOOKING_AdminBookingsController extends POINTLYBOOKING_Contro
     $this->require_cap('pointlybooking_manage_bookings');
     check_admin_referer('pointlybooking_admin');
 
-    $id = absint(wp_unslash($_GET['id'] ?? 0));
+    $id = $this->query_absint('id');
     if ($id <= 0) {
       wp_safe_redirect(admin_url('admin.php?page=pointlybooking_bookings'));
       exit;
@@ -99,8 +114,8 @@ final class POINTLYBOOKING_AdminBookingsController extends POINTLYBOOKING_Contro
     $this->require_cap('pointlybooking_manage_bookings');
     check_admin_referer('pointlybooking_admin');
 
-    $id = absint(wp_unslash($_POST['id'] ?? 0));
-    $notes = wp_kses_post(wp_unslash($_POST['notes'] ?? ''));
+    $id = $this->post_absint('id');
+    $notes = wp_kses_post($this->post_raw('notes'));
 
     if ($id > 0) {
       POINTLYBOOKING_BookingModel::update_notes($id, $notes);
@@ -116,12 +131,12 @@ final class POINTLYBOOKING_AdminBookingsController extends POINTLYBOOKING_Contro
     $has_filter_nonce = $this->has_valid_admin_filter_nonce();
 
     $args = [
-      'q' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['q'] ?? '')) : '',
-      'status' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['status'] ?? '')) : '',
-      'service_id' => $has_filter_nonce ? absint(wp_unslash($_GET['service_id'] ?? 0)) : 0,
-      'agent_id' => $has_filter_nonce ? absint(wp_unslash($_GET['agent_id'] ?? 0)) : 0,
-      'date_from' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['date_from'] ?? '')) : '',
-      'date_to' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['date_to'] ?? '')) : '',
+      'q' => $has_filter_nonce ? $this->query_text('q') : '',
+      'status' => $has_filter_nonce ? $this->query_text('status') : '',
+      'service_id' => $has_filter_nonce ? $this->query_absint('service_id') : 0,
+      'agent_id' => $has_filter_nonce ? $this->query_absint('agent_id') : 0,
+      'date_from' => $has_filter_nonce ? $this->query_text('date_from') : '',
+      'date_to' => $has_filter_nonce ? $this->query_text('date_to') : '',
     ];
 
     $rows = POINTLYBOOKING_BookingModel::admin_list($args);
@@ -156,12 +171,12 @@ final class POINTLYBOOKING_AdminBookingsController extends POINTLYBOOKING_Contro
     $has_filter_nonce = $this->has_valid_admin_filter_nonce();
 
     $args = [
-      'q' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['q'] ?? '')) : '',
-      'status' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['status'] ?? '')) : '',
-      'service_id' => $has_filter_nonce ? absint(wp_unslash($_GET['service_id'] ?? 0)) : 0,
-      'agent_id' => $has_filter_nonce ? absint(wp_unslash($_GET['agent_id'] ?? 0)) : 0,
-      'date_from' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['date_from'] ?? '')) : '',
-      'date_to' => $has_filter_nonce ? sanitize_text_field(wp_unslash($_GET['date_to'] ?? '')) : '',
+      'q' => $has_filter_nonce ? $this->query_text('q') : '',
+      'status' => $has_filter_nonce ? $this->query_text('status') : '',
+      'service_id' => $has_filter_nonce ? $this->query_absint('service_id') : 0,
+      'agent_id' => $has_filter_nonce ? $this->query_absint('agent_id') : 0,
+      'date_from' => $has_filter_nonce ? $this->query_text('date_from') : '',
+      'date_to' => $has_filter_nonce ? $this->query_text('date_to') : '',
     ];
 
     $rows = POINTLYBOOKING_BookingModel::admin_list($args);
@@ -228,8 +243,8 @@ final class POINTLYBOOKING_AdminBookingsController extends POINTLYBOOKING_Contro
     $this->require_cap('pointlybooking_manage_bookings');
     check_admin_referer('pointlybooking_admin');
 
-    $id = isset($_GET['id']) ? absint(wp_unslash($_GET['id'])) : 0;
-    $status = isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : '';
+    $id = $this->query_absint('id');
+    $status = $this->query_key('status');
 
     if ($id > 0 && $status !== '') {
       POINTLYBOOKING_BookingModel::update_status($id, $status);

@@ -2,15 +2,24 @@
 defined('ABSPATH') || exit;
 
 class POINTLYBOOKING_FormFieldsSeedHelper {
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . str_replace('`', '``', $identifier) . '`';
+  }
 
   public static function ensure_defaults() : void {
     global $wpdb;
 
     $table = $wpdb->prefix . 'pointlybooking_form_fields';
+    if (!self::is_safe_sql_identifier($table)) {
+      return;
+    }
 
     // If table doesn't exist, stop (installer must create it)
-    $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
-    if ($exists !== $table) return;
+    if (!pointlybooking_db_table_exists($table)) return;
 
     $now = current_time('mysql');
 
@@ -74,11 +83,13 @@ class POINTLYBOOKING_FormFieldsSeedHelper {
 
     foreach ($defaults as $f) {
       // Check if field exists by (field_key + scope)
-      $existing_id = (int)$wpdb->get_var($wpdb->prepare(
-        "SELECT id FROM {$table} WHERE field_key=%s AND scope=%s LIMIT 1",
-        $f['field_key'],
-        $f['scope']
-      ));
+      $existing_id = (int) $wpdb->get_var(
+        $wpdb->prepare(
+          "SELECT id FROM {$table} WHERE field_key=%s AND scope=%s LIMIT 1",
+          $f['field_key'],
+          $f['scope']
+        )
+      );
 
       if ($existing_id > 0) {
         // If it exists but disabled, force enable it
@@ -117,33 +128,35 @@ class POINTLYBOOKING_FormFieldsSeedHelper {
 
   private static function normalize_legacy_fields(string $table, string $now) : void {
     global $wpdb;
+    if (!self::is_safe_sql_identifier($table)) {
+      return;
+    }
 
     // Legacy rows where field_key is missing
-    $wpdb->query($wpdb->prepare(
-      "UPDATE {$table}
-       SET field_key = name_key,
-           is_required = CASE WHEN (is_required IS NULL OR is_required = 0) AND required = 1 THEN 1 ELSE is_required END,
-           is_enabled = CASE WHEN (is_enabled IS NULL OR is_enabled = 1) THEN is_active ELSE is_enabled END,
-           show_in_wizard = CASE WHEN show_in_wizard IS NULL THEN 1 ELSE show_in_wizard END,
-           step_key = CASE WHEN step_key IS NULL OR step_key = '' THEN 'details' ELSE step_key END,
-           options = CASE WHEN (options IS NULL OR options = '') AND options_json IS NOT NULL AND options_json <> '' THEN options_json ELSE options END,
-           updated_at = %s
-       WHERE (field_key IS NULL OR field_key = '')
-         AND name_key IS NOT NULL AND name_key <> ''",
-      $now
-    ));
+    $wpdb->query(
+      $wpdb->prepare("UPDATE {$table}
+         SET field_key = name_key,
+             is_required = CASE WHEN (is_required IS NULL OR is_required = 0) AND required = 1 THEN 1 ELSE is_required END,
+             is_enabled = CASE WHEN (is_enabled IS NULL OR is_enabled = 1) THEN is_active ELSE is_enabled END,
+             show_in_wizard = CASE WHEN show_in_wizard IS NULL THEN 1 ELSE show_in_wizard END,
+             step_key = CASE WHEN step_key IS NULL OR step_key = '' THEN 'details' ELSE step_key END,
+             options = CASE WHEN (options IS NULL OR options = '') AND options_json IS NOT NULL AND options_json <> '' THEN options_json ELSE options END,
+             updated_at = %s
+         WHERE (field_key IS NULL OR field_key = '')
+            AND name_key IS NOT NULL AND name_key <> ''", $now)
+    );
 
     // Newer rows missing legacy columns
-    $wpdb->query($wpdb->prepare(
-      "UPDATE {$table}
-       SET name_key = field_key,
-           required = CASE WHEN required IS NULL THEN is_required ELSE required END,
-           is_active = CASE WHEN is_active IS NULL THEN is_enabled ELSE is_active END,
-           options_json = CASE WHEN (options_json IS NULL OR options_json = '') AND options IS NOT NULL AND options <> '' THEN options ELSE options_json END,
-           updated_at = %s
-       WHERE (name_key IS NULL OR name_key = '')
-         AND field_key IS NOT NULL AND field_key <> ''",
-      $now
-    ));
+    $wpdb->query(
+      $wpdb->prepare("UPDATE {$table}
+         SET name_key = field_key,
+             required = CASE WHEN required IS NULL THEN is_required ELSE required END,
+             is_active = CASE WHEN is_active IS NULL THEN is_enabled ELSE is_active END,
+             options_json = CASE WHEN (options_json IS NULL OR options_json = '') AND options IS NOT NULL AND options <> '' THEN options ELSE options_json END,
+             updated_at = %s
+         WHERE (name_key IS NULL OR name_key = '')
+            AND field_key IS NOT NULL AND field_key <> ''", $now)
+    );
   }
 }
+

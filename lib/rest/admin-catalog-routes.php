@@ -34,29 +34,38 @@ add_action('rest_api_init', function () {
 
 function pointlybooking_rest_admin_services_list(WP_REST_Request $req) {
   global $wpdb;
-  $t = pointlybooking_table('services');
-  $cols = $wpdb->get_col(pointlybooking_prepare_query_with_identifiers("DESC %i", [$t]), 0);
+  $t = $wpdb->prefix . 'pointlybooking_services';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+    return new WP_REST_Response(['status'=>'success','data'=>[]], 200);
+  }
+
+  $services_table = $t;
+  $cols = pointlybooking_db_table_columns($services_table);
   if (!is_array($cols)) $cols = [];
   $has = function(string $col) use ($cols): bool { return in_array($col, $cols, true); };
 
-  $where_clauses = ['1=1'];
-  $params = [];
-  if ($req->get_param('q')) {
-    $where_clauses[] = 'name LIKE %s';
-    $params[] = '%' . $wpdb->esc_like(sanitize_text_field($req->get_param('q'))) . '%';
-  }
-  $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
+  $search = $req->get_param('q') ? '%' . $wpdb->esc_like(sanitize_text_field($req->get_param('q'))) . '%' : '';
+  $has_search = $search !== '' ? 1 : 0;
 
-  $order_sql = $has('sort_order') ? 'sort_order ASC, id DESC' : 'id DESC';
-  $sql = "SELECT * FROM %i " . $where_sql . " ORDER BY " . $order_sql;
-  $rows = $wpdb->get_results(
-    pointlybooking_prepare_query_with_identifiers(
-      $sql,
-      [$t],
-      $params
-    ),
-    ARRAY_A
-  ) ?: [];
+  if ($has('sort_order')) {
+    $rows = $wpdb->get_results(
+      $wpdb->prepare(
+        "SELECT * FROM {$services_table} WHERE (%d = 0 OR name LIKE %s) ORDER BY sort_order ASC, id DESC",
+        $has_search,
+        $search
+      ),
+      ARRAY_A
+    ) ?: [];
+  } else {
+    $rows = $wpdb->get_results(
+      $wpdb->prepare(
+        "SELECT * FROM {$services_table} WHERE (%d = 0 OR name LIKE %s) ORDER BY id DESC",
+        $has_search,
+        $search
+      ),
+      ARRAY_A
+    ) ?: [];
+  }
 
   foreach ($rows as &$r) {
     $r['image_id'] = (int)($r['image_id'] ?? 0);
@@ -107,14 +116,26 @@ function pointlybooking_rest_admin_availability_slots(WP_REST_Request $req) {
     return new WP_REST_Response(['status'=>'error','message'=>'Invalid date'], 400);
   }
 
-  $t_book = pointlybooking_table('bookings');
-  $t_srv  = pointlybooking_table('services');
-  $sCols = $wpdb->get_col(pointlybooking_prepare_query_with_identifiers("DESC %i", [$t_srv]), 0);
+  $t_book = $wpdb->prefix . 'pointlybooking_bookings';
+  $t_srv  = $wpdb->prefix . 'pointlybooking_services';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t_book) || !preg_match('/^[A-Za-z0-9_]+$/', $t_srv)) {
+    return new WP_REST_Response(['status'=>'success','data'=>[
+      'date'=>$date,
+      'service_id'=>$service_id,
+      'agent_id'=>$agent_id,
+      'duration_min'=>0,
+      'buffer_before'=>0,
+      'buffer_after'=>0,
+      'capacity'=>1,
+      'slots'=>[]
+    ]], 200);
+  }
+
+  $bookings_table = $t_book;
+  $services_table = $t_srv;
+  $sCols = pointlybooking_db_table_columns($services_table);
   if (!is_array($sCols)) $sCols = [];
   $hasS = function(string $col) use ($sCols): bool { return in_array($col, $sCols, true); };
-  $durationExpr = $hasS('duration_minutes') ? 'COALESCE(s.duration_minutes,30)' : ($hasS('duration') ? 'COALESCE(s.duration,30)' : '30');
-  $bufBeforeExpr = $hasS('buffer_before_minutes') ? 'COALESCE(s.buffer_before_minutes,0)' : ($hasS('buffer_before') ? 'COALESCE(s.buffer_before,0)' : '0');
-  $bufAfterExpr  = $hasS('buffer_after_minutes') ? 'COALESCE(s.buffer_after_minutes,0)' : ($hasS('buffer_after') ? 'COALESCE(s.buffer_after,0)' : '0');
 
   $rules = POINTLYBOOKING_ScheduleHelper::get_service_rules($service_id);
   $dur = (int)$rules['duration'];
@@ -135,67 +156,76 @@ function pointlybooking_rest_admin_availability_slots(WP_REST_Request $req) {
   }
 
   // helper to create slots for a specific agent
-  $make_slots_for_agent = function(int $aId) use ($wpdb, $date, $occupied, $capacity, $exclude_id, $durationExpr, $bufBeforeExpr, $bufAfterExpr) {
+  $make_slots_for_agent = function(int $aId) use ($wpdb, $date, $occupied, $capacity, $exclude_id, $hasS, $bookings_table, $services_table) {
     $weekday = POINTLYBOOKING_ScheduleHelper::weekday_from_date($date);
     $work = POINTLYBOOKING_ScheduleHelper::get_working_hours($aId, $weekday);
     if (empty($work)) return [];
 
     $breaks = POINTLYBOOKING_ScheduleHelper::get_breaks($aId, $date);
 
-    // Busy windows from existing bookings
-    $t_book = pointlybooking_table('bookings');
-    $t_srv  = pointlybooking_table('services');
-    $occupied_expr_sql = '(' . $durationExpr . ' + ' . $bufBeforeExpr . ' + ' . $bufAfterExpr . ')';
-
     if ($exclude_id > 0) {
-      $busy_sql = "SELECT
-            STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s') as start_dt,
-            DATE_ADD(
-              STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-              INTERVAL " . $occupied_expr_sql . " MINUTE
-            ) as end_dt
-          FROM %i b
-          LEFT JOIN %i s ON s.id = b.service_id
+      $rows = $wpdb->get_results(
+        $wpdb->prepare(
+          "SELECT
+            b.start_date,
+            b.start_time,
+            s.*
+          FROM {$bookings_table} b
+          LEFT JOIN {$services_table} s ON s.id = b.service_id
           WHERE b.start_date = %s
             AND b.agent_id = %d
             AND b.id <> %d
             AND b.status IN ('pending','confirmed')
-          ORDER BY b.start_time ASC";
-      $rows = $wpdb->get_results(
-        pointlybooking_prepare_query_with_identifiers(
-          $busy_sql,
-          [$t_book, $t_srv],
-          [$date, $aId, $exclude_id]
+          ORDER BY b.start_time ASC",
+          $date,
+          $aId,
+          $exclude_id
         ),
         ARRAY_A
       ) ?: [];
     } else {
-      $busy_sql = "SELECT
-            STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s') as start_dt,
-            DATE_ADD(
-              STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-              INTERVAL " . $occupied_expr_sql . " MINUTE
-            ) as end_dt
-          FROM %i b
-          LEFT JOIN %i s ON s.id = b.service_id
+      $rows = $wpdb->get_results(
+        $wpdb->prepare(
+          "SELECT
+            b.start_date,
+            b.start_time,
+            s.*
+          FROM {$bookings_table} b
+          LEFT JOIN {$services_table} s ON s.id = b.service_id
           WHERE b.start_date = %s
             AND b.agent_id = %d
             AND b.status IN ('pending','confirmed')
-          ORDER BY b.start_time ASC";
-      $rows = $wpdb->get_results(
-        pointlybooking_prepare_query_with_identifiers(
-          $busy_sql,
-          [$t_book, $t_srv],
-          [$date, $aId]
+          ORDER BY b.start_time ASC",
+          $date,
+          $aId
         ),
         ARRAY_A
       ) ?: [];
     }
 
-    $busy = [];
+    $busy_bookings = [];
     foreach ($rows as $r) {
-      $busy[] = ['start'=>strtotime($r['start_dt']), 'end'=>strtotime($r['end_dt'])];
+      $start_at = strtotime((string) (($r['start_date'] ?? '') . ' ' . ($r['start_time'] ?? '')));
+      if (!$start_at) {
+        continue;
+      }
+
+      $service_duration = $hasS('duration_minutes')
+        ? (int)($r['duration_minutes'] ?? 30)
+        : ($hasS('duration') ? (int)($r['duration'] ?? 30) : 30);
+      $service_buffer_before = $hasS('buffer_before_minutes')
+        ? (int)($r['buffer_before_minutes'] ?? 0)
+        : ($hasS('buffer_before') ? (int)($r['buffer_before'] ?? 0) : 0);
+      $service_buffer_after = $hasS('buffer_after_minutes')
+        ? (int)($r['buffer_after_minutes'] ?? 0)
+        : ($hasS('buffer_after') ? (int)($r['buffer_after'] ?? 0) : 0);
+
+      $busy_bookings[] = [
+        'start' => $start_at,
+        'end' => $start_at + (($service_duration + $service_buffer_before + $service_buffer_after) * 60),
+      ];
     }
+    $busy = $busy_bookings;
 
     $breakBusy = [];
     foreach ($breaks as $b) {
@@ -248,60 +278,11 @@ function pointlybooking_rest_admin_availability_slots(WP_REST_Request $req) {
           if ($conflictsBreak($t, $slot_end)) {
             continue;
           }
-          $start_iso_full = gmdate('Y-m-d\TH:i:s', $t);
-          $end_iso_full   = gmdate('Y-m-d\TH:i:s', $slot_end);
-
-          if ($exclude_id > 0) {
-            $overlap_sql = "SELECT COUNT(*)
-                FROM %i b
-                LEFT JOIN %i s ON s.id=b.service_id
-                WHERE b.start_date=%s
-                  AND b.agent_id=%d
-                  AND b.id <> %d
-                  AND b.status IN ('pending','confirmed')
-                  AND (
-                    STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s')
-                    < STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-                  )
-                  AND (
-                    DATE_ADD(
-                      STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-                      INTERVAL " . $occupied_expr_sql . " MINUTE
-                    )
-                    > STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-                  )";
-            $overlapCount = (int)$wpdb->get_var(
-              pointlybooking_prepare_query_with_identifiers(
-                $overlap_sql,
-                [$t_book, $t_srv],
-                [$date, $aId, $exclude_id, $end_iso_full, $start_iso_full]
-              )
-            );
-          } else {
-            $overlap_sql = "SELECT COUNT(*)
-                FROM %i b
-                LEFT JOIN %i s ON s.id=b.service_id
-                WHERE b.start_date=%s
-                  AND b.agent_id=%d
-                  AND b.status IN ('pending','confirmed')
-                  AND (
-                    STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s')
-                    < STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-                  )
-                  AND (
-                    DATE_ADD(
-                      STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-                      INTERVAL " . $occupied_expr_sql . " MINUTE
-                    )
-                    > STR_TO_DATE(%s, '%%Y-%%m-%%dT%%H:%%i:%%s')
-                  )";
-            $overlapCount = (int)$wpdb->get_var(
-              pointlybooking_prepare_query_with_identifiers(
-                $overlap_sql,
-                [$t_book, $t_srv],
-                [$date, $aId, $end_iso_full, $start_iso_full]
-              )
-            );
+          $overlapCount = 0;
+          foreach ($busy_bookings as $busy_window) {
+            if ($t < $busy_window['end'] && $slot_end > $busy_window['start']) {
+              $overlapCount++;
+            }
           }
 
           if ($overlapCount < $capacity) {
@@ -322,11 +303,22 @@ function pointlybooking_rest_admin_availability_slots(WP_REST_Request $req) {
   // Any agent: merge slots across agents
   if ($agent_id === 0) {
     $t_agents = $wpdb->prefix . 'pointlybooking_agents';
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $t_agents)) {
+      return new WP_REST_Response(['status'=>'success','data'=>[
+        'date'=>$date,
+        'service_id'=>$service_id,
+        'agent_id'=>0,
+        'duration_min'=>$dur,
+        'buffer_before'=>$rules['buffer_before'],
+        'buffer_after'=>$rules['buffer_after'],
+        'capacity'=>$capacity,
+        'slots'=>[]
+      ]], 200);
+    }
+
+    $agents_table = $t_agents;
     $agent_rows = $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT id, name FROM %i ORDER BY name ASC",
-        [$t_agents]
-      ),
+      "SELECT id, name FROM {$agents_table} ORDER BY name ASC",
       ARRAY_A
     ) ?: [];
 

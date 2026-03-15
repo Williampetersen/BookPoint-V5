@@ -16,14 +16,14 @@ final class POINTLYBOOKING_AdminCustomersController extends POINTLYBOOKING_Contr
   public function view() : void {
     $this->require_cap('pointlybooking_manage_customers');
 
-    $id = isset($_GET['id']) ? absint(wp_unslash($_GET['id'])) : 0;
+    $id = $this->query_absint('id');
     if ($id <= 0) {
-      wp_die(esc_html__('Invalid customer.', 'bookpoint-booking'));
+      wp_die(esc_html__('Invalid customer.', 'pointly-booking'));
     }
 
     $customer = POINTLYBOOKING_CustomerModel::find($id);
     if (!$customer) {
-      wp_die(esc_html__('Customer not found.', 'bookpoint-booking'));
+      wp_die(esc_html__('Customer not found.', 'pointly-booking'));
     }
 
     $bookings = POINTLYBOOKING_BookingModel::find_by_customer($id);
@@ -38,7 +38,7 @@ final class POINTLYBOOKING_AdminCustomersController extends POINTLYBOOKING_Contr
     $this->require_cap('pointlybooking_manage_customers');
     check_admin_referer('pointlybooking_admin');
 
-    $id = absint(wp_unslash($_GET['id'] ?? 0));
+    $id = $this->query_absint('id');
     if ($id <= 0) {
       wp_safe_redirect(admin_url('admin.php?page=pointlybooking_customers'));
       exit;

@@ -1,7 +1,9 @@
-<?php defined('ABSPATH') || exit;
+<?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+defined('ABSPATH') || exit;
 $pointlybooking_filters = $filters ?? [];
 require_once __DIR__ . '/legacy_shell.php';
-pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-booking'), esc_html__('Review system activity and changes.', 'bookpoint-booking'), '', 'audit');
+pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'pointly-booking'), esc_html__('Review system activity and changes.', 'pointly-booking'), '', 'audit');
 ?>
 
   <?php $pointlybooking_pagination_state = $pagination ?? ['page' => 1, 'per_page' => 50, 'total' => 0]; ?>
@@ -13,7 +15,7 @@ pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-book
     <input type="hidden" name="per_page" value="<?php echo esc_attr((string)($pointlybooking_pagination_state['per_page'] ?? 50)); ?>">
 
     <select name="event">
-      <option value=""><?php esc_html_e('All events', 'bookpoint-booking'); ?></option>
+      <option value=""><?php esc_html_e('All events', 'pointly-booking'); ?></option>
       <?php foreach (($events ?? []) as $ev) : ?>
         <option value="<?php echo esc_attr($ev); ?>" <?php selected(($pointlybooking_filters['event'] ?? ''), $ev); ?>>
           <?php echo esc_html($ev); ?>
@@ -22,7 +24,7 @@ pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-book
     </select>
 
     <select name="actor_type">
-      <option value=""><?php esc_html_e('All actors', 'bookpoint-booking'); ?></option>
+      <option value=""><?php esc_html_e('All actors', 'pointly-booking'); ?></option>
       <?php foreach (['admin','customer','system'] as $at) : ?>
         <option value="<?php echo esc_attr($at); ?>" <?php selected(($pointlybooking_filters['actor_type'] ?? ''), $at); ?>>
           <?php echo esc_html(ucfirst($at)); ?>
@@ -36,15 +38,19 @@ pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-book
     <input type="date" name="date_from" value="<?php echo esc_attr($pointlybooking_filters['date_from'] ?? ''); ?>">
     <input type="date" name="date_to" value="<?php echo esc_attr($pointlybooking_filters['date_to'] ?? ''); ?>">
 
-    <button class="button"><?php esc_html_e('Filter', 'bookpoint-booking'); ?></button>
-    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=pointlybooking_audit')); ?>"><?php esc_html_e('Reset', 'bookpoint-booking'); ?></a>
+    <button class="button"><?php esc_html_e('Filter', 'pointly-booking'); ?></button>
+    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=pointlybooking_audit')); ?>"><?php esc_html_e('Reset', 'pointly-booking'); ?></a>
   </form>
 
   <?php
     $total_pages = (int)ceil(($pointlybooking_pagination_state['total'] ?? 0) / max(1, (int)($pointlybooking_pagination_state['per_page'] ?? 50)));
+    $pointlybooking_paged_base = sanitize_text_field((string) wp_unslash($_SERVER['REQUEST_URI'] ?? ''));
+    if ($pointlybooking_paged_base === '') {
+      $pointlybooking_paged_base = admin_url('admin.php?page=pointlybooking_audit');
+    }
     if ($total_pages > 1) {
       echo wp_kses_post(paginate_links([
-        'base' => add_query_arg('paged', '%#%'),
+        'base' => add_query_arg('paged', '%#%', $pointlybooking_paged_base),
         'format' => '',
         'current' => max(1, (int)($pointlybooking_pagination_state['page'] ?? 1)),
         'total' => $total_pages,
@@ -55,19 +61,19 @@ pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-book
   <table class="widefat striped">
     <thead>
       <tr>
-        <th><?php esc_html_e('ID', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Time', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Event', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Actor', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Booking', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Customer', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Meta', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('IP', 'bookpoint-booking'); ?></th>
+        <th><?php esc_html_e('ID', 'pointly-booking'); ?></th>
+        <th><?php esc_html_e('Time', 'pointly-booking'); ?></th>
+        <th><?php esc_html_e('Event', 'pointly-booking'); ?></th>
+        <th><?php esc_html_e('Actor', 'pointly-booking'); ?></th>
+        <th><?php esc_html_e('Booking', 'pointly-booking'); ?></th>
+        <th><?php esc_html_e('Customer', 'pointly-booking'); ?></th>
+        <th><?php esc_html_e('Meta', 'pointly-booking'); ?></th>
+        <th><?php esc_html_e('IP', 'pointly-booking'); ?></th>
       </tr>
     </thead>
     <tbody>
       <?php if (empty($items)) : ?>
-        <tr><td colspan="8"><?php esc_html_e('No logs found.', 'bookpoint-booking'); ?></td></tr>
+        <tr><td colspan="8"><?php esc_html_e('No logs found.', 'pointly-booking'); ?></td></tr>
       <?php else : foreach ($items as $r) : ?>
         <tr>
           <td><?php echo esc_html((string) (int) ($r['id'] ?? 0)); ?></td>
@@ -95,7 +101,7 @@ pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-book
   <?php
     if ($total_pages > 1) {
       echo wp_kses_post(paginate_links([
-        'base' => add_query_arg('paged', '%#%'),
+        'base' => add_query_arg('paged', '%#%', $pointlybooking_paged_base),
         'format' => '',
         'current' => max(1, (int)($pointlybooking_pagination_state['page'] ?? 1)),
         'total' => $total_pages,

@@ -89,11 +89,16 @@ function pointlybooking_rest_admin_notifications_meta(\WP_REST_Request $request)
   }
 
   $t = POINTLYBOOKING_Notifications_Helper::table('pointlybooking_workflows');
-  $rows = $wpdb->get_results("
-    SELECT event_key, status, COUNT(*) as c
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+    return rest_ensure_response(['status' => 'success', 'data' => ['events' => [], 'counts' => []]]);
+  }
+
+  $rows = $wpdb->get_results(
+    "SELECT event_key, status, COUNT(*) as c
     FROM {$t}
-    GROUP BY event_key, status
-  ", ARRAY_A) ?: [];
+    GROUP BY event_key, status",
+    ARRAY_A
+  ) ?: [];
 
   $counts = [];
   foreach ($rows as $r) {
@@ -149,7 +154,7 @@ function pointlybooking_rest_admin_notifications_workflow_create(\WP_REST_Reques
   if (!$workflow) {
     $msg = method_exists('POINTLYBOOKING_Notifications_Helper', 'last_error') ? POINTLYBOOKING_Notifications_Helper::last_error() : '';
     if (!$msg) {
-      $msg = __('Could not create workflow.', 'bookpoint-booking');
+      $msg = __('Could not create workflow.', 'pointly-booking');
     }
     return new \WP_Error('pointlybooking_notifications_error', $msg, ['status' => 500]);
   }
@@ -161,7 +166,7 @@ function pointlybooking_rest_admin_notifications_workflow_get(\WP_REST_Request $
   $id = (int)$request['id'];
   $workflow = POINTLYBOOKING_Notifications_Helper::get_workflow($id);
   if (!$workflow) {
-    return new \WP_Error('pointlybooking_notifications_not_found', __('Workflow not found.', 'bookpoint-booking'), ['status' => 404]);
+    return new \WP_Error('pointlybooking_notifications_not_found', __('Workflow not found.', 'pointly-booking'), ['status' => 404]);
   }
   return rest_ensure_response(['status' => 'success', 'data' => $workflow]);
 }
@@ -179,7 +184,7 @@ function pointlybooking_rest_admin_notifications_workflow_update(\WP_REST_Reques
     'time_offset_minutes' => $body['time_offset_minutes'] ?? null,
   ]);
   if (!$updated) {
-    return new \WP_Error('pointlybooking_notifications_update_failed', __('Could not update workflow.', 'bookpoint-booking'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_update_failed', __('Could not update workflow.', 'pointly-booking'), ['status' => 500]);
   }
   return rest_ensure_response(['status' => 'success']);
 }
@@ -188,7 +193,7 @@ function pointlybooking_rest_admin_notifications_workflow_delete(\WP_REST_Reques
   $id = (int)$request['id'];
   $deleted = POINTLYBOOKING_Notifications_Helper::delete_workflow($id);
   if (!$deleted) {
-    return new \WP_Error('pointlybooking_notifications_delete_failed', __('Could not delete workflow.', 'bookpoint-booking'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_delete_failed', __('Could not delete workflow.', 'pointly-booking'), ['status' => 500]);
   }
   return rest_ensure_response(['status' => 'success']);
 }
@@ -197,18 +202,18 @@ function pointlybooking_rest_admin_notifications_workflow_test(\WP_REST_Request 
   $id = (int)$request['id'];
   $workflow = POINTLYBOOKING_Notifications_Helper::get_workflow($id);
   if (!$workflow) {
-    return new \WP_Error('pointlybooking_notifications_not_found', __('Workflow not found.', 'bookpoint-booking'), ['status' => 404]);
+    return new \WP_Error('pointlybooking_notifications_not_found', __('Workflow not found.', 'pointly-booking'), ['status' => 404]);
   }
 
   $booking_id = (int)($request->get_param('booking_id') ?? 0);
   $booking = $booking_id > 0 ? POINTLYBOOKING_BookingModel::find($booking_id) : pointlybooking_rest_admin_notifications_latest_booking_row();
   if (!$booking) {
-    return new \WP_Error('pointlybooking_notifications_booking_missing', __('Booking is required for a test.', 'bookpoint-booking'), ['status' => 400]);
+    return new \WP_Error('pointlybooking_notifications_booking_missing', __('Booking is required for a test.', 'pointly-booking'), ['status' => 400]);
   }
 
   $payload = POINTLYBOOKING_Notifications_Helper::build_payload_from_booking($workflow['event_key'], $booking);
   if (!$payload) {
-    return new \WP_Error('pointlybooking_notifications_payload', __('Could not build payload for booking.', 'bookpoint-booking'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_payload', __('Could not build payload for booking.', 'pointly-booking'), ['status' => 500]);
   }
 
   $actions = is_array($workflow['actions'] ?? null) ? $workflow['actions'] : [];
@@ -244,7 +249,7 @@ function pointlybooking_rest_admin_notifications_action_create(\WP_REST_Request 
     'config' => is_array($body['config'] ?? null) ? $body['config'] : [],
   ]);
   if (!$action) {
-    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not create action.', 'bookpoint-booking'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not create action.', 'pointly-booking'), ['status' => 500]);
   }
   return rest_ensure_response(['status' => 'success', 'data' => $action], 201);
 }
@@ -258,7 +263,7 @@ function pointlybooking_rest_admin_notifications_action_update(\WP_REST_Request 
     'config' => is_array($body['config'] ?? null) ? $body['config'] : null,
   ]);
   if (!$updated) {
-    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not update action.', 'bookpoint-booking'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not update action.', 'pointly-booking'), ['status' => 500]);
   }
   return rest_ensure_response(['status' => 'success']);
 }
@@ -267,7 +272,7 @@ function pointlybooking_rest_admin_notifications_action_delete(\WP_REST_Request 
   $id = (int)$request['id'];
   $deleted = POINTLYBOOKING_Notifications_Helper::delete_action($id);
   if (!$deleted) {
-    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not delete action.', 'bookpoint-booking'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not delete action.', 'pointly-booking'), ['status' => 500]);
   }
   return rest_ensure_response(['status' => 'success']);
 }
@@ -276,22 +281,22 @@ function pointlybooking_rest_admin_notifications_action_test(\WP_REST_Request $r
   $id = (int)$request['id'];
   $action = POINTLYBOOKING_Notifications_Helper::get_action($id);
   if (!$action) {
-    return new \WP_Error('pointlybooking_notifications_action_not_found', __('Action not found.', 'bookpoint-booking'), ['status' => 404]);
+    return new \WP_Error('pointlybooking_notifications_action_not_found', __('Action not found.', 'pointly-booking'), ['status' => 404]);
   }
   $workflow = POINTLYBOOKING_Notifications_Helper::get_workflow((int)$action['workflow_id']);
   if (!$workflow) {
-    return new \WP_Error('pointlybooking_notifications_workflow_missing', __('Workflow missing.', 'bookpoint-booking'), ['status' => 404]);
+    return new \WP_Error('pointlybooking_notifications_workflow_missing', __('Workflow missing.', 'pointly-booking'), ['status' => 404]);
   }
 
   $booking_id = (int)($request->get_param('booking_id') ?? 0);
   $booking = $booking_id > 0 ? POINTLYBOOKING_BookingModel::find($booking_id) : pointlybooking_rest_admin_notifications_latest_booking_row();
   if (!$booking) {
-    return new \WP_Error('pointlybooking_notifications_booking_missing', __('Booking is required for a test.', 'bookpoint-booking'), ['status' => 400]);
+    return new \WP_Error('pointlybooking_notifications_booking_missing', __('Booking is required for a test.', 'pointly-booking'), ['status' => 400]);
   }
 
   $payload = POINTLYBOOKING_Notifications_Helper::build_payload_from_booking($workflow['event_key'], $booking);
   if (!$payload) {
-    return new \WP_Error('pointlybooking_notifications_payload', __('Could not build payload for booking.', 'bookpoint-booking'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_payload', __('Could not build payload for booking.', 'pointly-booking'), ['status' => 500]);
   }
 
   $sent = POINTLYBOOKING_Notifications_Helper::test_action($id, $payload);
@@ -311,6 +316,14 @@ function pointlybooking_rest_smart_variables(\WP_REST_Request $request) {
 function pointlybooking_rest_admin_notifications_latest_booking_row(): ?array {
   global $wpdb;
   $table = $wpdb->prefix . 'pointlybooking_bookings';
-  $row = $wpdb->get_row("SELECT * FROM {$table} ORDER BY id DESC LIMIT 1", ARRAY_A);
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+    return null;
+  }
+
+  $row = $wpdb->get_row(
+    "SELECT * FROM {$table} ORDER BY id DESC LIMIT 1",
+    ARRAY_A
+  );
   return $row ?: null;
 }
+

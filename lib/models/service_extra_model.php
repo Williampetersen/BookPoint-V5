@@ -3,6 +3,14 @@ defined('ABSPATH') || exit;
 
 final class POINTLYBOOKING_ServiceExtraModel {
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
   public static function table(): string {
     return pointlybooking_table('service_extras');
   }
@@ -13,13 +21,12 @@ final class POINTLYBOOKING_ServiceExtraModel {
 
   public static function get_service_ids(int $extra_id): array {
     global $wpdb;
-    $t = self::map_table_services();
+    $extra_services_table = $wpdb->prefix . 'pointlybooking_extra_services';
+    if (!self::is_safe_sql_identifier($extra_services_table)) {
+      return [];
+    }
     $ids = $wpdb->get_col(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT service_id FROM %i WHERE extra_id=%d",
-        [$t],
-        [$extra_id]
-      )
+      $wpdb->prepare("SELECT service_id FROM {$extra_services_table} WHERE extra_id=%d", $extra_id)
     );
     return array_map('intval', $ids ?: []);
   }
@@ -39,42 +46,41 @@ final class POINTLYBOOKING_ServiceExtraModel {
 
   public static function all(array $args = []): array {
     global $wpdb;
-    $t = self::table();
-    $services = pointlybooking_table('services');
+    $t = $wpdb->prefix . 'pointlybooking_service_extras';
+    $services = $wpdb->prefix . 'pointlybooking_services';
+    if (!self::is_safe_sql_identifier($t) || !self::is_safe_sql_identifier($services)) {
+      return [];
+    }
+    $extras_table = $t;
+    $services_table = $services;
 
     $q = trim((string)($args['q'] ?? ''));
     $service_id = (int)($args['service_id'] ?? 0);
     $is_active = isset($args['is_active']) && $args['is_active'] !== '' ? (int)$args['is_active'] : null;
+    $like = '%' . $wpdb->esc_like($q) . '%';
+    $apply_q_filter = ($q !== '') ? 1 : 0;
+    $apply_service_filter = ($service_id > 0) ? 1 : 0;
+    $service_value = ($service_id > 0) ? $service_id : 0;
+    $apply_active_filter = ($is_active !== null) ? 1 : 0;
+    $active_value = ($is_active !== null) ? $is_active : 0;
 
-    $where_clauses = ['1=1'];
-    $params = [];
-
-    if ($q !== '') {
-      $where_clauses[] = '(e.name LIKE %s)';
-      $params[] = '%' . $wpdb->esc_like($q) . '%';
-    }
-    if ($service_id > 0) {
-      $where_clauses[] = 'e.service_id = %d';
-      $params[] = $service_id;
-    }
-    if ($is_active !== null) {
-      $where_clauses[] = 'e.is_active = %d';
-      $params[] = $is_active;
-    }
-
-    $params[] = 500;
-    $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
-    $sql = "SELECT e.*, s.name AS service_name
-        FROM %i e
-        LEFT JOIN %i s ON s.id = e.service_id
-        " . $where_sql . "
-        ORDER BY e.sort_order ASC, e.id DESC
-        LIMIT %d";
     return $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        $sql,
-        [$t, $services],
-        $params
+      $wpdb->prepare(
+        "SELECT e.*, s.name AS service_name
+        FROM {$extras_table} e
+        LEFT JOIN {$services_table} s ON s.id = e.service_id
+        WHERE (%d = 0 OR e.name LIKE %s)
+          AND (%d = 0 OR e.service_id = %d)
+          AND (%d = 0 OR e.is_active = %d)
+        ORDER BY e.sort_order ASC, e.id DESC
+        LIMIT %d",
+        $apply_q_filter,
+        $like,
+        $apply_service_filter,
+        $service_value,
+        $apply_active_filter,
+        $active_value,
+        500
       ),
       ARRAY_A
     );
@@ -82,21 +88,19 @@ final class POINTLYBOOKING_ServiceExtraModel {
 
   public static function by_service(int $service_id, bool $only_active = true): array {
     global $wpdb;
-    $t = self::table();
-    $where_clauses = ['service_id = %d'];
-    $params = [$service_id];
-
-    if ($only_active) {
-      $where_clauses[] = 'is_active = 1';
+    $service_extras_table = $wpdb->prefix . 'pointlybooking_service_extras';
+    if (!self::is_safe_sql_identifier($service_extras_table)) {
+      return [];
     }
-
-    $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
-    $sql = "SELECT * FROM %i " . $where_sql . " ORDER BY sort_order ASC, id ASC";
+    $active_only = $only_active ? 1 : 0;
     return $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        $sql,
-        [$t],
-        $params
+      $wpdb->prepare(
+        "SELECT * FROM {$service_extras_table}
+        WHERE service_id = %d
+          AND (%d = 0 OR is_active = 1)
+        ORDER BY sort_order ASC, id ASC",
+        $service_id,
+        $active_only
       ),
       ARRAY_A
     );
@@ -104,13 +108,12 @@ final class POINTLYBOOKING_ServiceExtraModel {
 
   public static function find(int $id): ?array {
     global $wpdb;
-    $t = self::table();
+    $service_extras_table = $wpdb->prefix . 'pointlybooking_service_extras';
+    if (!self::is_safe_sql_identifier($service_extras_table)) {
+      return null;
+    }
     $row = $wpdb->get_row(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT * FROM %i WHERE id = %d",
-        [$t],
-        [$id]
-      ),
+      $wpdb->prepare("SELECT * FROM {$service_extras_table} WHERE id = %d", $id),
       ARRAY_A
     );
     return $row ?: null;
@@ -150,3 +153,4 @@ final class POINTLYBOOKING_ServiceExtraModel {
     return (bool)$wpdb->delete($t, ['id' => $id], ['%d']);
   }
 }
+

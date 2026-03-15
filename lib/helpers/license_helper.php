@@ -533,13 +533,8 @@ final class POINTLYBOOKING_LicenseHelper {
         $base = self::api_base();
         $baseHost = '';
         $homeHost = '';
-        if (function_exists('wp_parse_url')) {
-          $baseHost = (string) (wp_parse_url($base, PHP_URL_HOST) ?? '');
-          $homeHost = (string) (wp_parse_url(home_url(), PHP_URL_HOST) ?? '');
-        } else {
-          $baseHost = (string) (parse_url($base, PHP_URL_HOST) ?? '');
-          $homeHost = (string) (parse_url(home_url(), PHP_URL_HOST) ?? '');
-        }
+        $baseHost = (string) (wp_parse_url($base, PHP_URL_HOST) ?? '');
+        $homeHost = (string) (wp_parse_url(home_url(), PHP_URL_HOST) ?? '');
 
         if ($baseHost !== '' && $homeHost !== '' && strcasecmp($baseHost, $homeHost) === 0 && !class_exists('POINTLYBOOKING_License_Server')) {
           $msg = 'License server URL is set to this site. Set it to your store domain (the site running BookPoint License Server).';
@@ -682,13 +677,8 @@ final class POINTLYBOOKING_LicenseHelper {
         $base = self::api_base();
         $baseHost = '';
         $homeHost = '';
-        if (function_exists('wp_parse_url')) {
-          $baseHost = (string) (wp_parse_url($base, PHP_URL_HOST) ?? '');
-          $homeHost = (string) (wp_parse_url(home_url(), PHP_URL_HOST) ?? '');
-        } else {
-          $baseHost = (string) (parse_url($base, PHP_URL_HOST) ?? '');
-          $homeHost = (string) (parse_url(home_url(), PHP_URL_HOST) ?? '');
-        }
+        $baseHost = (string) (wp_parse_url($base, PHP_URL_HOST) ?? '');
+        $homeHost = (string) (wp_parse_url(home_url(), PHP_URL_HOST) ?? '');
 
         if ($baseHost !== '' && $homeHost !== '' && strcasecmp($baseHost, $homeHost) === 0 && !class_exists('POINTLYBOOKING_License_Server')) {
           $msg = 'License server URL is set to this site. Set it to your store domain (the site running BookPoint License Server).';

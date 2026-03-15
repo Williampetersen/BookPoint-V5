@@ -19,11 +19,16 @@ add_action('rest_api_init', function(){
 
       global $wpdb;
       $t = $wpdb->prefix . 'pointlybooking_form_fields';
-      $rows = $wpdb->get_results("
-        SELECT *
+      if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+        return new WP_REST_Response(['status'=>'success','data'=>['form'=>[], 'customer'=>[], 'booking'=>[]]], 200);
+      }
+
+      $rows = $wpdb->get_results(
+        "SELECT *
         FROM {$t}
-        ORDER BY scope ASC, sort_order ASC, id ASC
-      ", ARRAY_A) ?: [];
+        ORDER BY scope ASC, sort_order ASC, id ASC",
+        ARRAY_A
+      ) ?: [];
 
       $out = ['form'=>[], 'customer'=>[], 'booking'=>[]];
       foreach($rows as $r){
@@ -59,12 +64,17 @@ add_action('rest_api_init', function(){
     'callback' => function(){
       global $wpdb;
       $t = $wpdb->prefix . 'pointlybooking_form_fields';
-      $rows = $wpdb->get_results("
-        SELECT *
+      if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+        return new WP_REST_Response(['status'=>'success','data'=>[]], 200);
+      }
+
+      $rows = $wpdb->get_results(
+        "SELECT *
         FROM {$t}
         WHERE is_enabled=1 AND show_in_wizard=1
-        ORDER BY scope ASC, sort_order ASC, id ASC
-      ", ARRAY_A) ?: [];
+        ORDER BY scope ASC, sort_order ASC, id ASC",
+        ARRAY_A
+      ) ?: [];
 
       foreach($rows as &$r){
         $r['id'] = (int)$r['id'];
@@ -91,14 +101,22 @@ add_action('rest_api_init', function(){
 
       global $wpdb;
       $t = $wpdb->prefix . 'pointlybooking_form_fields';
+      if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+        return new WP_REST_Response(['status'=>'success','data'=>[]], 200);
+      }
+
       $scope = sanitize_text_field($req->get_param('scope') ?? 'customer');
       if (!in_array($scope, ['customer','booking','form'], true)) $scope='customer';
 
-      $rows = $wpdb->get_results($wpdb->prepare("
-        SELECT * FROM {$t}
-        WHERE scope=%s
-        ORDER BY sort_order ASC, id ASC
-      ", $scope), ARRAY_A) ?: [];
+      $rows = $wpdb->get_results(
+        $wpdb->prepare(
+          "SELECT * FROM {$t}
+          WHERE scope=%s
+          ORDER BY sort_order ASC, id ASC",
+          $scope
+        ),
+        ARRAY_A
+      ) ?: [];
 
       foreach($rows as &$r){
         $r['id'] = (int)$r['id'];
@@ -272,3 +290,4 @@ add_action('rest_api_init', function(){
   ]);
 
 });
+

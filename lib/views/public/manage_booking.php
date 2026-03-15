@@ -10,7 +10,7 @@ defined('ABSPATH') || exit;
 ?>
 <div class="bp-wrap">
   <div class="bp-card">
-    <h2 class="bp-h2"><?php echo esc_html__('Manage Booking', 'bookpoint-booking'); ?></h2>
+    <h2 class="bp-h2"><?php echo esc_html__('Manage Booking', 'pointly-booking'); ?></h2>
 
   <?php if (!empty($message)) : ?>
     <div class="bp-msg ok">
@@ -19,23 +19,23 @@ defined('ABSPATH') || exit;
   <?php endif; ?>
 
   <?php if (!$booking) : ?>
-    <p><?php echo esc_html__('Booking not found.', 'bookpoint-booking'); ?></p>
+    <p><?php echo esc_html__('Booking not found.', 'pointly-booking'); ?></p>
     <?php return; ?>
   <?php endif; ?>
 
     <table class="bp-table">
       <tbody>
-        <tr><td><strong><?php echo esc_html__('Status:', 'bookpoint-booking'); ?></strong></td><td><span class="bp-badge"><?php echo esc_html($booking['status']); ?></span></td></tr>
-        <tr><td><strong><?php echo esc_html__('Service:', 'bookpoint-booking'); ?></strong></td><td><?php echo esc_html($service['name'] ?? '-'); ?></td></tr>
-        <tr><td><strong><?php echo esc_html__('Start:', 'bookpoint-booking'); ?></strong></td><td><?php echo esc_html($booking['start_datetime']); ?></td></tr>
-        <tr><td><strong><?php echo esc_html__('End:', 'bookpoint-booking'); ?></strong></td><td><?php echo esc_html($booking['end_datetime']); ?></td></tr>
+        <tr><td><strong><?php echo esc_html__('Status:', 'pointly-booking'); ?></strong></td><td><span class="bp-badge"><?php echo esc_html($booking['status']); ?></span></td></tr>
+        <tr><td><strong><?php echo esc_html__('Service:', 'pointly-booking'); ?></strong></td><td><?php echo esc_html($service['name'] ?? '-'); ?></td></tr>
+        <tr><td><strong><?php echo esc_html__('Start:', 'pointly-booking'); ?></strong></td><td><?php echo esc_html($booking['start_datetime']); ?></td></tr>
+        <tr><td><strong><?php echo esc_html__('End:', 'pointly-booking'); ?></strong></td><td><?php echo esc_html($booking['end_datetime']); ?></td></tr>
       </tbody>
     </table>
 
   <?php if (($booking['status'] ?? '') !== 'cancelled') : ?>
     <hr>
 
-    <h3 class="bp-h2" style="font-size:18px; margin-top:16px;"><?php esc_html_e('Reschedule', 'bookpoint-booking'); ?></h3>
+    <h3 class="bp-h2" style="font-size:18px; margin-top:16px;"><?php esc_html_e('Reschedule', 'pointly-booking'); ?></h3>
 
     <div class="bp-reschedule"
          data-service-id="<?php echo esc_attr((string) (int) ($booking['service_id'] ?? 0)); ?>"
@@ -43,14 +43,14 @@ defined('ABSPATH') || exit;
          data-exclude-booking-id="<?php echo esc_attr((string) (int) ($booking['id'] ?? 0)); ?>">
       <div class="bp-row">
         <div class="bp-field">
-          <label><?php esc_html_e('New date', 'bookpoint-booking'); ?></label>
+          <label><?php esc_html_e('New date', 'pointly-booking'); ?></label>
           <input type="date" class="bp-input bp-r-date" value="">
         </div>
 
         <div class="bp-field">
-          <label><?php esc_html_e('New time', 'bookpoint-booking'); ?></label>
+          <label><?php esc_html_e('New time', 'pointly-booking'); ?></label>
           <select class="bp-select bp-r-time">
-            <option value=""><?php esc_html_e('Select a time', 'bookpoint-booking'); ?></option>
+            <option value=""><?php esc_html_e('Select a time', 'pointly-booking'); ?></option>
           </select>
         </div>
       </div>
@@ -58,12 +58,12 @@ defined('ABSPATH') || exit;
       <form method="post" style="margin-top:12px;">
         <?php wp_nonce_field('pointlybooking_manage_booking'); ?>
         <input type="hidden" name="pointlybooking_manage_action" value="reschedule">
-        <input type="hidden" name="key" value="<?php echo esc_attr(sanitize_text_field(wp_unslash($_GET['key'] ?? ''))); ?>">
+        <input type="hidden" name="key" value="<?php echo esc_attr($manage_key ?? ''); ?>">
         <input type="hidden" name="pointlybooking_new_start" class="bp-new-start" value="">
         <input type="hidden" name="pointlybooking_new_end" class="bp-new-end" value="">
 
         <button type="submit" class="bp-btn" onclick="return confirm('Reschedule this booking?');">
-          <?php esc_html_e('Confirm Reschedule', 'bookpoint-booking'); ?>
+          <?php esc_html_e('Confirm Reschedule', 'pointly-booking'); ?>
         </button>
       </form>
 
@@ -74,12 +74,12 @@ defined('ABSPATH') || exit;
   <?php if ($booking['status'] !== 'cancelled') : ?>
     <p class="bp-actions">
       <a class="bp-btn secondary" href="<?php echo esc_url($cancel_url); ?>"
-         onclick="return confirm('<?php echo esc_js(__('Cancel this booking?', 'bookpoint-booking')); ?>');">
-        <?php echo esc_html__('Cancel Booking', 'bookpoint-booking'); ?>
+         onclick="return confirm('<?php echo esc_js(__('Cancel this booking?', 'pointly-booking')); ?>');">
+        <?php echo esc_html__('Cancel Booking', 'pointly-booking'); ?>
       </a>
     </p>
   <?php else : ?>
-    <p><?php echo esc_html__('This booking is already cancelled.', 'bookpoint-booking'); ?></p>
+    <p><?php echo esc_html__('This booking is already cancelled.', 'pointly-booking'); ?></p>
   <?php endif; ?>
   </div>
 </div>

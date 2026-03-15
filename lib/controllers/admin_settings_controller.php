@@ -60,47 +60,68 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
 
     check_admin_referer('pointlybooking_admin');
 
-    $tab = sanitize_text_field(wp_unslash($_POST['tab'] ?? 'general'));
+    $tab = $this->post_text('tab');
+    if ($tab === '') {
+      $tab = 'general';
+    }
     $errors = [];
 
     if ($tab === 'general') {
-      $open = sanitize_text_field(wp_unslash($_POST['open_time'] ?? '09:00'));
-      $close = sanitize_text_field(wp_unslash($_POST['close_time'] ?? '17:00'));
-      $interval = absint(wp_unslash($_POST['slot_interval_minutes'] ?? 15));
-      $currency = strtoupper(sanitize_key(wp_unslash($_POST['default_currency'] ?? 'usd')));
-      $currency_position = sanitize_text_field(wp_unslash($_POST['currency_position'] ?? 'before'));
-      $remove_data_on_uninstall = isset($_POST['pointlybooking_remove_data_on_uninstall']) ? 1 : 0;
+      $open = $this->post_text('open_time');
+      if ($open === '') {
+        $open = '09:00';
+      }
+      $close = $this->post_text('close_time');
+      if ($close === '') {
+        $close = '17:00';
+      }
+      $interval = $this->post_absint('slot_interval_minutes');
+      if ($interval <= 0) {
+        $interval = 15;
+      }
+      $currency = strtoupper($this->post_key('default_currency') ?: 'usd');
+      $currency_position = $this->post_text('currency_position');
+      if ($currency_position === '') {
+        $currency_position = 'before';
+      }
+      $remove_data_on_uninstall = $this->has_post_field('pointlybooking_remove_data_on_uninstall') ? 1 : 0;
 
-      $future_days_limit = absint(wp_unslash($_POST['future_days_limit'] ?? 60));
-      $breaks = sanitize_text_field(wp_unslash($_POST['breaks'] ?? '12:00-13:00'));
+      $future_days_limit = $this->post_absint('future_days_limit');
+      if ($future_days_limit <= 0) {
+        $future_days_limit = 60;
+      }
+      $breaks = $this->post_text('breaks');
+      if ($breaks === '') {
+        $breaks = '12:00-13:00';
+      }
       $schedule = [];
       for ($i = 0; $i < 7; $i++) {
-        $schedule[$i] = sanitize_text_field(wp_unslash($_POST['schedule_' . $i] ?? ''));
+        $schedule[$i] = $this->post_text('schedule_' . $i);
       }
 
       if (!preg_match('/^\d{2}:\d{2}$/', $open)) {
-        $errors['open_time'] = __('Open time must be HH:MM', 'bookpoint-booking');
+        $errors['open_time'] = __('Open time must be HH:MM', 'pointly-booking');
       }
       if (!preg_match('/^\d{2}:\d{2}$/', $close)) {
-        $errors['close_time'] = __('Close time must be HH:MM', 'bookpoint-booking');
+        $errors['close_time'] = __('Close time must be HH:MM', 'pointly-booking');
       }
       if ($interval < 5 || $interval > 120) {
-        $errors['slot_interval_minutes'] = __('Slot interval must be between 5 and 120 minutes.', 'bookpoint-booking');
+        $errors['slot_interval_minutes'] = __('Slot interval must be between 5 and 120 minutes.', 'pointly-booking');
       }
       if (!preg_match('/^[A-Z]{3}$/', $currency)) {
-        $errors['default_currency'] = __('Currency must be a 3-letter code.', 'bookpoint-booking');
+        $errors['default_currency'] = __('Currency must be a 3-letter code.', 'pointly-booking');
       }
       if (!in_array($currency_position, ['before','after'], true)) {
-        $errors['currency_position'] = __('Currency position must be before or after.', 'bookpoint-booking');
+        $errors['currency_position'] = __('Currency position must be before or after.', 'pointly-booking');
       }
 
       if ($future_days_limit < 1 || $future_days_limit > 365) {
-        $errors['future_days_limit'] = __('Future days limit must be between 1 and 365.', 'bookpoint-booking');
+        $errors['future_days_limit'] = __('Future days limit must be between 1 and 365.', 'pointly-booking');
       }
 
       for ($i = 0; $i < 7; $i++) {
         if (!empty($schedule[$i]) && !preg_match('/^\d{2}:\d{2}-\d{2}:\d{2}$/', $schedule[$i])) {
-          $errors['schedule_' . $i] = __('Schedule must be empty or HH:MM-HH:MM format', 'bookpoint-booking');
+          $errors['schedule_' . $i] = __('Schedule must be empty or HH:MM-HH:MM format', 'pointly-booking');
         }
       }
 
@@ -109,7 +130,7 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
         foreach ($break_ranges as $br) {
           $br = trim($br);
           if (!empty($br) && !preg_match('/^\d{2}:\d{2}-\d{2}:\d{2}$/', $br)) {
-            $errors['breaks'] = __('Each break must be HH:MM-HH:MM format, comma-separated', 'bookpoint-booking');
+            $errors['breaks'] = __('Each break must be HH:MM-HH:MM format, comma-separated', 'pointly-booking');
             break;
           }
         }
@@ -136,16 +157,25 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
     }
 
     if ($tab === 'emails') {
-      $email_enabled = isset($_POST['email_enabled']) ? 1 : 0;
-      $admin_email = sanitize_email(wp_unslash($_POST['admin_email'] ?? get_option('admin_email')));
-      $from_name = sanitize_text_field(wp_unslash($_POST['from_name'] ?? get_bloginfo('name')));
-      $from_email = sanitize_email(wp_unslash($_POST['from_email'] ?? get_option('admin_email')));
+      $email_enabled = $this->has_post_field('email_enabled') ? 1 : 0;
+      $admin_email = sanitize_email($this->post_raw('admin_email'));
+      if ($admin_email === '') {
+        $admin_email = sanitize_email((string) get_option('admin_email'));
+      }
+      $from_name = $this->post_text('from_name');
+      if ($from_name === '') {
+        $from_name = sanitize_text_field((string) get_bloginfo('name'));
+      }
+      $from_email = sanitize_email($this->post_raw('from_email'));
+      if ($from_email === '') {
+        $from_email = sanitize_email((string) get_option('admin_email'));
+      }
 
       if ($admin_email === '') {
-        $errors['admin_email'] = __('Admin email is invalid.', 'bookpoint-booking');
+        $errors['admin_email'] = __('Admin email is invalid.', 'pointly-booking');
       }
       if ($from_email === '') {
-        $errors['from_email'] = __('From email is invalid.', 'bookpoint-booking');
+        $errors['from_email'] = __('From email is invalid.', 'pointly-booking');
       }
 
       if (!empty($errors)) {
@@ -160,12 +190,12 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
     }
 
     if ($tab === 'webhooks') {
-      $webhooks_enabled = isset($_POST['webhooks_enabled']) ? 1 : 0;
-      $webhooks_secret = sanitize_text_field(wp_unslash($_POST['webhooks_secret'] ?? ''));
-      $webhooks_url_booking_created = esc_url_raw(wp_unslash($_POST['webhooks_url_booking_created'] ?? ''));
-      $webhooks_url_booking_status_changed = esc_url_raw(wp_unslash($_POST['webhooks_url_booking_status_changed'] ?? ''));
-      $webhooks_url_booking_updated = esc_url_raw(wp_unslash($_POST['webhooks_url_booking_updated'] ?? ''));
-      $webhooks_url_booking_cancelled = esc_url_raw(wp_unslash($_POST['webhooks_url_booking_cancelled'] ?? ''));
+      $webhooks_enabled = $this->has_post_field('webhooks_enabled') ? 1 : 0;
+      $webhooks_secret = $this->post_text('webhooks_secret');
+      $webhooks_url_booking_created = esc_url_raw($this->post_raw('webhooks_url_booking_created'));
+      $webhooks_url_booking_status_changed = esc_url_raw($this->post_raw('webhooks_url_booking_status_changed'));
+      $webhooks_url_booking_updated = esc_url_raw($this->post_raw('webhooks_url_booking_updated'));
+      $webhooks_url_booking_cancelled = esc_url_raw($this->post_raw('webhooks_url_booking_cancelled'));
 
       POINTLYBOOKING_SettingsHelper::set('webhooks_enabled', $webhooks_enabled);
       POINTLYBOOKING_SettingsHelper::set('webhooks_secret', $webhooks_secret);
@@ -175,7 +205,6 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
       POINTLYBOOKING_SettingsHelper::set('webhooks_url_booking_cancelled', $webhooks_url_booking_cancelled);
     }
 
-    $tab = sanitize_text_field(wp_unslash($_POST['tab'] ?? 'general'));
     wp_safe_redirect(admin_url('admin.php?page=pointlybooking_settings&tab=' . $tab . '&updated=1'));
     exit;
   }
@@ -185,14 +214,12 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
     check_admin_referer('pointlybooking_admin');
 
     global $wpdb;
-    $table = pointlybooking_table('settings');
+    $table = $wpdb->prefix . 'pointlybooking_settings';
+    if (preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1) {
+      wp_die(esc_html__('Invalid settings table.', 'pointly-booking'));
+    }
     $rows = $wpdb->get_results(
-      $wpdb->prepare(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is generated from hardcoded suffix via pointlybooking_table().
-        "SELECT setting_key, setting_value FROM {$table} WHERE %d=%d",
-        1,
-        1
-      ),
+      "SELECT setting_key, setting_value FROM {$table}",
       ARRAY_A
     ) ?: [];
 
@@ -202,7 +229,7 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
     }
 
     $payload = [
-      'plugin' => 'bookpoint-booking',
+      'plugin' => 'pointly-booking',
       'exported_at' => current_time('mysql'),
       'pointlybooking_settings' => $settings,
       'wp_options' => [
@@ -286,3 +313,4 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
   }
 
 }
+

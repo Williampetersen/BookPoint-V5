@@ -3,61 +3,56 @@ defined('ABSPATH') || exit;
 
 final class POINTLYBOOKING_CategoryModel {
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
   public static function table(): string {
     return pointlybooking_table('categories');
   }
 
-  private static function prepare_with_table(string $query, string $table, array $args = []): string {
-    global $wpdb;
-    if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
-      return $wpdb->prepare($query, array_merge([$table], $args));
-    }
-
-    $safe_table = preg_replace('/[^A-Za-z0-9_]/', '', $table);
-    $query = preg_replace('/%i/', '`' . $safe_table . '`', $query, 1);
-    if (empty($args)) {
-      return (string) $query;
-    }
-
-    return $wpdb->prepare($query, $args);
-  }
-
   public static function all(array $args = []): array {
     global $wpdb;
-    $t = self::table();
+    $categories_table = $wpdb->prefix . 'pointlybooking_categories';
+    if (!self::is_safe_sql_identifier($categories_table)) {
+      return [];
+    }
 
     $q = trim((string)($args['q'] ?? ''));
     $is_active = isset($args['is_active']) && $args['is_active'] !== '' ? (int)$args['is_active'] : null;
-
-    $sql = "SELECT * FROM %i";
-    $params = [];
-    $where_parts = [];
-
-    if ($q !== '') {
-      $where_parts[] = "name LIKE %s";
-      $params[] = '%' . $wpdb->esc_like($q) . '%';
-    }
-    if ($is_active !== null) {
-      $where_parts[] = "is_active = %d";
-      $params[] = $is_active;
-    }
-
-    if (!empty($where_parts)) {
-      $sql .= ' WHERE ' . implode(' AND ', $where_parts);
-    }
-    $sql .= " ORDER BY sort_order ASC, id DESC LIMIT %d";
-    $params[] = 500;
+    $like = '%' . $wpdb->esc_like($q) . '%';
+    $apply_q_filter = ($q !== '') ? 1 : 0;
+    $apply_active_filter = ($is_active !== null) ? 1 : 0;
+    $active_value = ($is_active !== null) ? $is_active : 0;
 
     return $wpdb->get_results(
-      self::prepare_with_table($sql, $t, $params),
+      $wpdb->prepare(
+        "SELECT * FROM {$categories_table}
+        WHERE (%d = 0 OR name LIKE %s)
+          AND (%d = 0 OR is_active = %d)
+        ORDER BY sort_order ASC, id DESC
+        LIMIT %d",
+        $apply_q_filter,
+        $like,
+        $apply_active_filter,
+        $active_value,
+        500
+      ),
       ARRAY_A
     );
   }
 
   public static function find(int $id): ?array {
     global $wpdb;
-    $t = self::table();
-    $row = $wpdb->get_row(self::prepare_with_table("SELECT * FROM %i WHERE id = %d", $t, [$id]), ARRAY_A);
+    $categories_table = $wpdb->prefix . 'pointlybooking_categories';
+    if (!self::is_safe_sql_identifier($categories_table)) {
+      return null;
+    }
+    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$categories_table} WHERE id = %d", $id), ARRAY_A);
     return $row ?: null;
   }
 
@@ -92,3 +87,4 @@ final class POINTLYBOOKING_CategoryModel {
     return (bool)$wpdb->delete($t, ['id' => $id], ['%d']);
   }
 }
+

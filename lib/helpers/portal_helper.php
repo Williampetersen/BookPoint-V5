@@ -14,9 +14,9 @@ final class POINTLYBOOKING_PortalHelper {
     $otp = (string) random_int(100000, 999999);
     set_transient(self::key($email, 'otp'), password_hash($otp, PASSWORD_DEFAULT), 10 * MINUTE_IN_SECONDS);
 
-    $subject = __('Your BookPoint login code', 'bookpoint-booking');
-    $body = '<p>' . esc_html__('Your login code is:', 'bookpoint-booking') . ' <strong>' . esc_html($otp) . '</strong></p>'
-          . '<p>' . esc_html__('It expires in 10 minutes.', 'bookpoint-booking') . '</p>';
+    $subject = __('Your BookPoint login code', 'pointly-booking');
+    $body = '<p>' . esc_html__('Your login code is:', 'pointly-booking') . ' <strong>' . esc_html($otp) . '</strong></p>'
+          . '<p>' . esc_html__('It expires in 10 minutes.', 'pointly-booking') . '</p>';
 
     return POINTLYBOOKING_EmailHelper::send($email, $subject, $body);
   }

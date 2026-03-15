@@ -3,38 +3,47 @@ defined('ABSPATH') || exit;
 
 final class POINTLYBOOKING_FormFieldModel {
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
   public static function table(): string {
     return pointlybooking_table('form_fields');
   }
 
   public static function all(string $scope, array $args = []): array {
     global $wpdb;
-    $t = self::table();
+    $form_fields_table = $wpdb->prefix . 'pointlybooking_form_fields';
+    if (!self::is_safe_sql_identifier($form_fields_table)) {
+      return [];
+    }
 
     $q = trim((string)($args['q'] ?? ''));
     $is_active = isset($args['is_active']) && $args['is_active'] !== '' ? (int)$args['is_active'] : null;
+    $like = '%' . $wpdb->esc_like($q) . '%';
+    $apply_q_filter = ($q !== '') ? 1 : 0;
+    $apply_active_filter = ($is_active !== null) ? 1 : 0;
+    $active_value = ($is_active !== null) ? $is_active : 0;
 
-    $where_clauses = ['scope = %s'];
-    $params = [$scope];
-
-    if ($q !== '') {
-      $where_clauses[] = '(label LIKE %s OR field_key LIKE %s OR name_key LIKE %s)';
-      $params[] = '%' . $wpdb->esc_like($q) . '%';
-      $params[] = '%' . $wpdb->esc_like($q) . '%';
-      $params[] = '%' . $wpdb->esc_like($q) . '%';
-    }
-    if ($is_active !== null) {
-      $where_clauses[] = "(CASE WHEN (field_key IS NULL OR field_key = '') THEN is_active ELSE is_enabled END) = %d";
-      $params[] = $is_active;
-    }
-
-    $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
-    $sql = "SELECT * FROM %i " . $where_sql . " ORDER BY sort_order ASC, id ASC LIMIT 500";
     return $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        $sql,
-        [$t],
-        $params
+      $wpdb->prepare(
+        "SELECT * FROM {$form_fields_table}
+        WHERE scope = %s
+          AND (%d = 0 OR (label LIKE %s OR field_key LIKE %s OR name_key LIKE %s))
+          AND (%d = 0 OR (CASE WHEN (field_key IS NULL OR field_key = '') THEN is_active ELSE is_enabled END) = %d)
+        ORDER BY sort_order ASC, id ASC
+        LIMIT 500",
+        $scope,
+        $apply_q_filter,
+        $like,
+        $like,
+        $like,
+        $apply_active_filter,
+        $active_value
       ),
       ARRAY_A
     );
@@ -42,13 +51,12 @@ final class POINTLYBOOKING_FormFieldModel {
 
   public static function find(int $id): ?array {
     global $wpdb;
-    $t = self::table();
+    $form_fields_table = $wpdb->prefix . 'pointlybooking_form_fields';
+    if (!self::is_safe_sql_identifier($form_fields_table)) {
+      return null;
+    }
     $row = $wpdb->get_row(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT * FROM %i WHERE id=%d",
-        [$t],
-        [$id]
-      ),
+      $wpdb->prepare("SELECT * FROM {$form_fields_table} WHERE id=%d", $id),
       ARRAY_A
     );
     return $row ?: null;
@@ -123,3 +131,4 @@ final class POINTLYBOOKING_FormFieldModel {
     return (bool)$wpdb->delete($t, ['id'=>$id], ['%d']);
   }
 }
+

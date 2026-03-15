@@ -42,6 +42,9 @@ function pointlybooking_install_form_fields_table() : void {
 function pointlybooking_seed_default_form_fields() : void {
   global $wpdb;
   $t = $wpdb->prefix . 'pointlybooking_form_fields';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+    return;
+  }
 
   $now = current_time('mysql');
 
@@ -55,11 +58,13 @@ function pointlybooking_seed_default_form_fields() : void {
 
   foreach ($defaults as $f) {
     // Check if field already exists
-    $exists = $wpdb->get_var($wpdb->prepare(
-      "SELECT id FROM {$t} WHERE field_key=%s AND scope=%s",
-      $f['field_key'],
-      $f['scope']
-    ));
+    $exists = $wpdb->get_var(
+      $wpdb->prepare(
+        "SELECT id FROM {$t} WHERE field_key=%s AND scope=%s",
+        $f['field_key'],
+        $f['scope']
+      )
+    );
 
     if ($exists) continue; // Skip if already exists
 
@@ -84,3 +89,4 @@ function pointlybooking_seed_default_form_fields() : void {
     ], ['%s','%s','%s','%s','%s','%s','%s','%d','%d','%d','%d','%s','%s','%s','%s','%d','%d']);
   }
 }
+

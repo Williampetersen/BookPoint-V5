@@ -1,4 +1,6 @@
-<?php defined('ABSPATH') || exit;
+<?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+defined('ABSPATH') || exit;
 require_once __DIR__ . '/legacy_shell.php';
 
 $id = (int)($item['id'] ?? 0);
@@ -17,10 +19,10 @@ if (!empty($item['options_json'])) {
 
 $types = ['text','email','tel','textarea','select','checkbox','radio','date'];
 
-$pointlybooking_actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp-form-fields&scope=' . $scope)) . '">' . esc_html__('Back to Form Fields', 'bookpoint-booking') . '</a>';
+$pointlybooking_actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp-form-fields&scope=' . $scope)) . '">' . esc_html__('Back to Form Fields', 'pointly-booking') . '</a>';
 pointlybooking_render_legacy_shell_start(
-  $id ? esc_html__('Edit Field', 'bookpoint-booking') : esc_html__('Add Field', 'bookpoint-booking'),
-  esc_html__('Manage the customer form fields used in the booking wizard.', 'bookpoint-booking'),
+  $id ? esc_html__('Edit Field', 'pointly-booking') : esc_html__('Add Field', 'pointly-booking'),
+  esc_html__('Manage the customer form fields used in the booking wizard.', 'pointly-booking'),
   $pointlybooking_actions_html,
   'form-fields'
 );
@@ -34,12 +36,12 @@ pointlybooking_render_legacy_shell_start(
 
     <table class="form-table" role="presentation">
       <tr>
-        <th><label><?php echo esc_html__('Label', 'bookpoint-booking'); ?></label></th>
+        <th><label><?php echo esc_html__('Label', 'pointly-booking'); ?></label></th>
         <td><input type="text" name="label" value="<?php echo esc_attr($label); ?>" class="regular-text" required></td>
       </tr>
 
       <tr>
-        <th><label><?php echo esc_html__('Key (unique)', 'bookpoint-booking'); ?></label></th>
+        <th><label><?php echo esc_html__('Key (unique)', 'pointly-booking'); ?></label></th>
         <td>
           <input type="text" name="name_key" value="<?php echo esc_attr($name_key); ?>" class="regular-text" required placeholder="e.g. company_name">
           <p class="description">Only lowercase/underscores recommended. Used as JSON key.</p>
@@ -47,7 +49,7 @@ pointlybooking_render_legacy_shell_start(
       </tr>
 
       <tr>
-        <th><label><?php echo esc_html__('Type', 'bookpoint-booking'); ?></label></th>
+        <th><label><?php echo esc_html__('Type', 'pointly-booking'); ?></label></th>
         <td>
           <select name="type">
             <?php foreach ($types as $t): ?>
@@ -58,7 +60,7 @@ pointlybooking_render_legacy_shell_start(
       </tr>
 
       <tr>
-        <th><label><?php echo esc_html__('Options', 'bookpoint-booking'); ?></label></th>
+        <th><label><?php echo esc_html__('Options', 'pointly-booking'); ?></label></th>
         <td>
           <textarea name="options_raw" class="large-text" rows="5" placeholder="For select/radio: one option per line"><?php echo esc_textarea($options_raw); ?></textarea>
           <p class="description">Used only for select/radio. One per line (stored as JSON).</p>
@@ -66,27 +68,27 @@ pointlybooking_render_legacy_shell_start(
       </tr>
 
       <tr>
-        <th><label><?php echo esc_html__('Sort Order', 'bookpoint-booking'); ?></label></th>
+        <th><label><?php echo esc_html__('Sort Order', 'pointly-booking'); ?></label></th>
         <td><input type="number" name="sort_order" value="<?php echo esc_attr((string)$sort_order); ?>" class="small-text"></td>
       </tr>
 
       <tr>
-        <th><label><?php echo esc_html__('Required', 'bookpoint-booking'); ?></label></th>
+        <th><label><?php echo esc_html__('Required', 'pointly-booking'); ?></label></th>
         <td><label><input type="checkbox" name="required" value="1" <?php checked($required, 1); ?>> Required</label></td>
       </tr>
 
       <tr>
-        <th><label><?php echo esc_html__('Active', 'bookpoint-booking'); ?></label></th>
+        <th><label><?php echo esc_html__('Active', 'pointly-booking'); ?></label></th>
         <td><label><input type="checkbox" name="is_active" value="1" <?php checked($is_active, 1); ?>> Enabled</label></td>
       </tr>
     </table>
 
     <p class="submit">
       <button type="submit" class="bp-btn bp-btn-primary">
-        <?php echo esc_html($id ? __('Save Changes', 'bookpoint-booking') : __('Create Field', 'bookpoint-booking')); ?>
+        <?php echo esc_html($id ? __('Save Changes', 'pointly-booking') : __('Create Field', 'pointly-booking')); ?>
       </button>
       <a class="bp-btn" href="<?php echo esc_url(admin_url('admin.php?page=bp-form-fields&scope=' . $scope)); ?>">
-        <?php echo esc_html__('Back', 'bookpoint-booking'); ?>
+        <?php echo esc_html__('Back', 'pointly-booking'); ?>
       </a>
     </p>
   </form>
