@@ -74,10 +74,14 @@ function pointlybooking_insert_booking_from_payload(array $p, array $overrides =
   }
 
   $t_fields = pointlybooking_table('form_fields');
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t_fields)) {
+    return new WP_Error('server_error', 'Invalid form fields table', ['status' => 500]);
+  }
+
+  $fields_table = $t_fields;
   $fields = $wpdb->get_results(
-    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is generated from hardcoded suffix via pointlybooking_table().
     "SELECT id, field_key, name_key, label, scope, type, is_required, required
-    FROM {$t_fields}
+    FROM {$fields_table}
     WHERE is_enabled=1 AND show_in_wizard=1
     ORDER BY scope ASC, sort_order ASC",
     ARRAY_A
@@ -283,4 +287,5 @@ function pointlybooking_insert_booking_from_payload(array $p, array $overrides =
   ];
 }
 }
+
 

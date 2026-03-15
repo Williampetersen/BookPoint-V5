@@ -1,0 +1,200 @@
+<?php
+defined('ABSPATH') || exit;
+
+final class POINTLYBOOKING_SettingsHelper {
+
+  const OPTION_KEY = 'pointlybooking_settings';
+
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . str_replace('`', '``', $identifier) . '`';
+  }
+
+  private static function get_option_all(): array {
+    $s = get_option(self::OPTION_KEY, []);
+    return is_array($s) ? $s : [];
+  }
+
+  private static function get_legacy(string $key, $default = null) {
+    global $wpdb;
+    $table = self::table();
+
+    $key = sanitize_key($key);
+    if ($key === '') return $default;
+    if (!self::is_safe_sql_identifier($table)) return $default;
+
+    $quoted_table = self::quote_sql_identifier($table);
+
+    $val = $wpdb->get_var(
+      $wpdb->prepare("SELECT setting_value FROM {$quoted_table} WHERE setting_key = %s LIMIT 1", $key)
+    );
+    if ($val === null) return $default;
+
+    return maybe_unserialize($val);
+  }
+
+  public static function table() : string {
+    global $wpdb;
+    return $wpdb->prefix . 'pointlybooking_settings';
+  }
+
+  public static function get(string $key, $default = null) {
+    $key = sanitize_key($key);
+    if ($key === '') return $default;
+
+    $s = self::get_option_all();
+    if (array_key_exists($key, $s)) return $s[$key];
+
+    $legacy_map = [
+      'slot_interval_minutes' => 'pointlybooking_slot_interval_minutes',
+      'currency' => 'pointlybooking_default_currency',
+      'currency_position' => 'pointlybooking_currency_position',
+    ];
+
+    if (isset($legacy_map[$key])) {
+      return self::get_legacy($legacy_map[$key], $default);
+    }
+
+    return self::get_legacy($key, $default);
+  }
+
+  public static function get_all(): array {
+    $s = self::get_option_all();
+
+    if (!array_key_exists('slot_interval_minutes', $s)) {
+      $s['slot_interval_minutes'] = (int)self::get_legacy('pointlybooking_slot_interval_minutes', 15);
+    }
+    if (!array_key_exists('currency', $s)) {
+      $s['currency'] = (string)self::get_legacy('pointlybooking_default_currency', 'USD');
+    }
+    if (!array_key_exists('currency_position', $s)) {
+      $s['currency_position'] = (string)self::get_legacy('pointlybooking_currency_position', 'before');
+    }
+
+    return $s;
+  }
+
+  public static function set_all($settings): void {
+    if (!is_array($settings)) $settings = [];
+    update_option(self::OPTION_KEY, $settings, false);
+  }
+
+  public static function merge($updates): array {
+    $s = self::get_option_all();
+    $merged = array_merge($s, is_array($updates) ? $updates : []);
+    update_option(self::OPTION_KEY, $merged, false);
+
+    if (isset($merged['slot_interval_minutes'])) {
+      self::set('pointlybooking_slot_interval_minutes', (int)$merged['slot_interval_minutes']);
+    }
+    if (isset($merged['currency'])) {
+      self::set('pointlybooking_default_currency', $merged['currency']);
+    }
+    if (isset($merged['currency_position'])) {
+      self::set('pointlybooking_currency_position', $merged['currency_position']);
+    }
+
+    return $merged;
+  }
+
+  public static function set(string $key, $value) : bool {
+    global $wpdb;
+    $table = self::table();
+
+    $key = sanitize_key($key);
+    if ($key === '') return false;
+    if (!self::is_safe_sql_identifier($table)) return false;
+
+    $value = maybe_serialize($value);
+    $now = current_time('mysql');
+    $quoted_table = self::quote_sql_identifier($table);
+
+    // Upsert
+    $exists = (int)$wpdb->get_var(
+      $wpdb->prepare("SELECT COUNT(*) FROM {$quoted_table} WHERE setting_key = %s", $key)
+    );
+    if ($exists > 0) {
+      $updated = $wpdb->update($table, [
+        'setting_value' => $value,
+        'updated_at' => $now,
+      ], [
+        'setting_key' => $key,
+      ], ['%s','%s'], ['%s']);
+      return ($updated !== false);
+    }
+
+    $inserted = $wpdb->insert($table, [
+      'setting_key' => $key,
+      'setting_value' => $value,
+      'updated_at' => $now,
+    ], ['%s','%s','%s']);
+
+    return ($inserted !== false);
+  }
+
+  public static function defaults() : array {
+    $defaults = [
+      'pointlybooking_open_time' => '09:00',
+      'pointlybooking_close_time' => '17:00',
+      'pointlybooking_slot_interval_minutes' => 15,
+      'pointlybooking_default_currency' => 'USD',
+      'pointlybooking_currency_position' => 'before',
+      'payments_enabled_methods' => ['cash','woocommerce','stripe','paypal','free'],
+      'payments_enabled' => 1,
+      'payments_default_method' => 'cash',
+      'payments_require_payment_to_confirm' => 1,
+      'payments_wc_product_id' => '',
+      'payments_stripe_mode' => 'checkout',
+      'payments_stripe_publishable_key' => '',
+      'payments_stripe_test_secret_key' => '',
+      'payments_stripe_live_secret_key' => '',
+      'stripe_test_publishable_key' => '',
+      'stripe_live_publishable_key' => '',
+      'payments_stripe_webhook_secret' => '',
+      'payments_stripe_success_url' => '',
+      'payments_stripe_cancel_url' => '',
+      'payments_paypal_client_id' => '',
+      'payments_paypal_secret' => '',
+      'payments_paypal_mode' => 'test',
+      'payments_paypal_return_url' => '',
+      'payments_paypal_cancel_url' => '',
+      'pointlybooking_email_enabled' => 1,
+      'pointlybooking_admin_email' => get_option('admin_email'),
+      'pointlybooking_email_from_name' => get_bloginfo('name'),
+      'pointlybooking_email_from_email' => get_option('admin_email'),
+      'pointlybooking_future_days_limit' => 60,
+      'pointlybooking_default_booking_status' => 'pending',
+      'pointlybooking_schedule_0' => '',
+      'pointlybooking_schedule_1' => '09:00-17:00',
+      'pointlybooking_schedule_2' => '09:00-17:00',
+      'pointlybooking_schedule_3' => '09:00-17:00',
+      'pointlybooking_schedule_4' => '09:00-17:00',
+      'pointlybooking_schedule_5' => '09:00-17:00',
+      'pointlybooking_schedule_6' => '',
+      'pointlybooking_breaks' => '12:00-13:00',
+      'webhooks_enabled' => 0,
+      'webhooks_secret' => '',
+      'webhooks_url_booking_created' => '',
+      'webhooks_url_booking_status_changed' => '',
+      'webhooks_url_booking_updated' => '',
+      'webhooks_url_booking_cancelled' => '',
+    ];
+
+    if (function_exists('pointlybooking_default_settings_from_file')) {
+      $file_defaults = pointlybooking_default_settings_from_file();
+      if (is_array($file_defaults)) {
+        $defaults = array_merge($defaults, $file_defaults);
+      }
+    }
+
+    return $defaults;
+  }
+
+  public static function get_with_default(string $key) {
+    $defaults = self::defaults();
+    return self::get($key, $defaults[$key] ?? null);
+  }
+}

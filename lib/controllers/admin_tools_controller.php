@@ -5,13 +5,13 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
 
   public function index() : void {
     if (!current_user_can('pointlybooking_manage_tools') && !current_user_can('pointlybooking_manage_settings')) {
-      wp_die(esc_html__('You do not have permission to access this page.', 'bookpoint-booking'));
+      wp_die(esc_html__('You do not have permission to access this page.', 'pointly-booking'));
     }
 
     global $wpdb;
 
     $result = null;
-    if (isset($_GET['run']) && sanitize_key(wp_unslash($_GET['run'])) === 'sync_relations') {
+    if ($this->query_key('run') === 'sync_relations') {
       check_admin_referer('pointlybooking_tools_sync_relations');
       $result = POINTLYBOOKING_RelationsHelper::sync_relations(true);
     }
@@ -29,7 +29,7 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
     $exists = [];
     foreach ($tables as $t) {
       $full = $wpdb->prefix . $t;
-      $exists[$t] = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $full)) === $full);
+      $exists[$t] = pointlybooking_db_table_exists($full);
     }
 
     $db_version = (string) get_option('pointlybooking_db_version', '');
@@ -47,7 +47,10 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
     $this->require_cap('pointlybooking_manage_tools');
     check_admin_referer('pointlybooking_admin');
 
-    $to = sanitize_email(wp_unslash($_POST['to'] ?? get_option('admin_email')));
+    $to = sanitize_email($this->post_raw('to'));
+    if ($to === '') {
+      $to = sanitize_email((string) get_option('admin_email'));
+    }
     if (!$to || !is_email($to)) {
       wp_safe_redirect(admin_url('admin.php?page=pointlybooking_tools&email_test=bad'));
       exit;
@@ -64,7 +67,10 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
     $this->require_cap('pointlybooking_manage_tools');
     check_admin_referer('pointlybooking_admin');
 
-    $event = sanitize_text_field(wp_unslash($_POST['event'] ?? 'booking_created'));
+    $event = $this->post_text('event');
+    if ($event === '') {
+      $event = 'booking_created';
+    }
     $payload = [
       'booking_id' => 999999,
       'status' => 'test',
@@ -83,10 +89,10 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
     $this->require_cap('pointlybooking_manage_tools');
     check_admin_referer('pointlybooking_admin');
 
-    $count_services = absint(wp_unslash($_POST['services'] ?? 3));
-    $count_agents = absint(wp_unslash($_POST['agents'] ?? 3));
-    $count_customers = absint(wp_unslash($_POST['customers'] ?? 5));
-    $count_bookings = absint(wp_unslash($_POST['bookings'] ?? 10));
+    $count_services = $this->post_absint('services') ?: 3;
+    $count_agents = $this->post_absint('agents') ?: 3;
+    $count_customers = $this->post_absint('customers') ?: 5;
+    $count_bookings = $this->post_absint('bookings') ?: 10;
 
     $result = POINTLYBOOKING_DemoHelper::generate($count_services, $count_agents, $count_customers, $count_bookings);
 
@@ -101,14 +107,12 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
     check_admin_referer('pointlybooking_admin');
 
     global $wpdb;
-    $table = pointlybooking_table('settings');
+    $table = $wpdb->prefix . 'pointlybooking_settings';
+    if (preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1) {
+      wp_die(esc_html__('Invalid settings table.', 'pointly-booking'));
+    }
     $rows = $wpdb->get_results(
-      $wpdb->prepare(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is generated from hardcoded suffix via pointlybooking_table().
-        "SELECT setting_key, setting_value FROM {$table} WHERE %d=%d",
-        1,
-        1
-      ),
+      "SELECT setting_key, setting_value FROM {$table}",
       ARRAY_A
     ) ?: [];
     $settings = [];
@@ -117,7 +121,7 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
     }
 
     $payload = [
-      'plugin' => 'bookpoint-booking',
+      'plugin' => 'pointly-booking',
       'exported_at' => current_time('mysql'),
       'pointlybooking_settings' => $settings,
       'wp_options' => [
@@ -190,3 +194,4 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
     exit;
   }
 }
+

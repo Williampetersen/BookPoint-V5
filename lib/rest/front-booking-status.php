@@ -17,10 +17,14 @@ function pointlybooking_rest_front_booking_access(WP_REST_Request $req) {
     return new WP_Error('forbidden', 'Invalid booking key', ['status' => 403]);
   }
 
-  $stored_key = $wpdb->get_var($wpdb->prepare(
-    "SELECT manage_key FROM {$wpdb->prefix}pointlybooking_bookings WHERE id=%d",
-    $id
-  ));
+  $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $bookings_table)) {
+    return new WP_Error('server_error', 'Invalid bookings table', ['status' => 500]);
+  }
+
+  $stored_key = $wpdb->get_var(
+    $wpdb->prepare("SELECT manage_key FROM {$bookings_table} WHERE id=%d", $id)
+  );
 
   if (!is_string($stored_key) || $stored_key === '' || !hash_equals($stored_key, $key)) {
     return new WP_Error('forbidden', 'Invalid booking key', ['status' => 403]);
@@ -36,10 +40,18 @@ add_action('rest_api_init', function () {
       global $wpdb;
 
       $id = absint($req['id']);
-      $row = $wpdb->get_row($wpdb->prepare(
-        "SELECT id, status, payment_method, payment_status, payment_provider_ref FROM {$wpdb->prefix}pointlybooking_bookings WHERE id=%d",
-        $id
-      ), ARRAY_A);
+      $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+      if (!preg_match('/^[A-Za-z0-9_]+$/', $bookings_table)) {
+        return new WP_Error('server_error', 'Invalid bookings table', ['status' => 500]);
+      }
+
+      $row = $wpdb->get_row(
+        $wpdb->prepare(
+          "SELECT id, status, payment_method, payment_status, payment_provider_ref FROM {$bookings_table} WHERE id=%d",
+          $id
+        ),
+        ARRAY_A
+      );
 
       if (!$row) {
         return new WP_Error('not_found', 'Booking not found', ['status' => 404]);
@@ -56,8 +68,15 @@ add_action('rest_api_init', function () {
       global $wpdb;
 
       $id = absint($req['id']);
-      $table = $wpdb->prefix . 'pointlybooking_bookings';
-      $row = $wpdb->get_row($wpdb->prepare("SELECT id, payment_status FROM {$table} WHERE id=%d", $id), ARRAY_A);
+      $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+      if (!preg_match('/^[A-Za-z0-9_]+$/', $bookings_table)) {
+        return new WP_Error('server_error', 'Invalid bookings table', ['status' => 500]);
+      }
+
+      $row = $wpdb->get_row(
+        $wpdb->prepare("SELECT id, payment_status FROM {$bookings_table} WHERE id=%d", $id),
+        ARRAY_A
+      );
       if (!$row) {
         return new WP_Error('not_found', 'Booking not found', ['status' => 404]);
       }
@@ -65,7 +84,7 @@ add_action('rest_api_init', function () {
         return new WP_Error('already_paid', 'Paid bookings cannot be cancelled here.', ['status' => 409]);
       }
 
-      $wpdb->update($table, [
+      $wpdb->update($bookings_table, [
         'payment_status' => 'cancelled',
         'status' => 'cancelled',
       ], ['id' => $id], ['%s', '%s'], ['%d']);
@@ -75,3 +94,4 @@ add_action('rest_api_init', function () {
     'permission_callback' => 'pointlybooking_rest_front_booking_access',
   ]);
 });
+

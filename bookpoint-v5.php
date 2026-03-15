@@ -6,7 +6,7 @@
  * Author: BookPoint Team
  * Author URI: https://wpbookpoint.com/
  * Plugin URI: https://wpbookpoint.com/download-for-free/
- * Text Domain: bookpoint-booking
+ * Text Domain: pointly-booking
  * Domain Path: /languages
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -46,14 +46,16 @@ if ($pointlybooking_existing_class !== '') {
         $pointlybooking_existing_display = ltrim((string) $pointlybooking_existing_display, '/\\');
       }
       /* translators: %s: Relative path to the already-loaded plugin file. */
-      $pointlybooking_details = "\n\n" . sprintf(__('Loaded from: %s', 'bookpoint-booking'), $pointlybooking_existing_display);
+      $pointlybooking_loaded_from = __('Loaded from: %s', 'pointly-booking');
+      $pointlybooking_details = "\n\n" . sprintf($pointlybooking_loaded_from, $pointlybooking_existing_display);
     }
 
     add_action('admin_notices', function () use ($pointlybooking_product, $pointlybooking_details) {
       if (!current_user_can('activate_plugins')) return;
+      /* translators: 1: Product name. 2: Product name. 3: Extra details about the loaded plugin path. */
+      $message_template = __('%1$s could not be loaded because another copy of BookPoint is already active. Please deactivate the other BookPoint plugin first, then activate %2$s.%3$s', 'pointly-booking');
       $message = sprintf(
-        /* translators: 1: Product name, 2: Product name, 3: Extra details about loaded path. */
-        __('%1$s could not be loaded because another copy of BookPoint is already active. Please deactivate the other BookPoint plugin first, then activate %2$s.%3$s', 'bookpoint-booking'),
+        $message_template,
         $pointlybooking_product,
         $pointlybooking_product,
         $pointlybooking_details
@@ -65,7 +67,8 @@ if ($pointlybooking_existing_class !== '') {
 }
 
 add_filter('admin_body_class', function($classes){
-  $page = sanitize_key(wp_unslash($_GET['page'] ?? ''));
+  $classes = is_string($classes) ? $classes : '';
+  $page = sanitize_key((string) filter_input(INPUT_GET, 'page', FILTER_UNSAFE_RAW));
   if ($page === '') return $classes;
   if (strpos($page, 'pointlybooking_') !== 0) return $classes;
   return $classes . ' bp-app-mode';
@@ -89,9 +92,6 @@ final class POINTLYBOOKING_Core_Plugin {
     self::includes();
     self::maybe_seed_capabilities();
     self::register_hooks();
-    if (class_exists('POINTLYBOOKING_UpdatesHelper')) {
-      POINTLYBOOKING_UpdatesHelper::init();
-    }
   }
 
   private static function maybe_seed_capabilities(): void {
@@ -127,9 +127,9 @@ final class POINTLYBOOKING_Core_Plugin {
 
   private static function load_textdomain() : void {
     load_plugin_textdomain(
-      'bookpoint-booking',
+      'pointly-booking',
       false,
-      dirname(plugin_basename(POINTLYBOOKING_PLUGIN_FILE)) . '/languages'
+      dirname(plugin_basename(__FILE__)) . '/languages'
     );
   }
 
@@ -309,7 +309,7 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_action('admin_init', function () {
       if (!is_admin()) return;
-      $page = sanitize_key(wp_unslash($_GET['page'] ?? ''));
+      $page = sanitize_key((string) filter_input(INPUT_GET, 'page', FILTER_UNSAFE_RAW));
       if ($page === '') return;
 
       $map = [
@@ -367,8 +367,8 @@ final class POINTLYBOOKING_Core_Plugin {
       if (!current_user_can('pointlybooking_manage_bookings')) wp_die('No permission');
       check_admin_referer('pointlybooking_admin');
 
-      $id = absint(wp_unslash($_POST['id'] ?? 0));
-      $status = sanitize_text_field(wp_unslash($_POST['status'] ?? ''));
+      $id = absint((string) filter_input(INPUT_POST, 'id', FILTER_UNSAFE_RAW));
+      $status = sanitize_text_field((string) filter_input(INPUT_POST, 'status', FILTER_UNSAFE_RAW));
 
       if ($id > 0 && in_array($status, ['confirmed', 'cancelled'], true)) {
         global $wpdb;
@@ -436,8 +436,8 @@ final class POINTLYBOOKING_Core_Plugin {
     $settings = admin_url('admin.php?page=pointlybooking_settings');
 
     $custom = [
-      '<a href="' . esc_url($dash) . '">' . esc_html__('Open BookPoint', 'bookpoint-booking') . '</a>',
-      '<a href="' . esc_url($settings) . '">' . esc_html__('Settings', 'bookpoint-booking') . '</a>',
+      '<a href="' . esc_url($dash) . '">' . esc_html__('Open BookPoint', 'pointly-booking') . '</a>',
+      '<a href="' . esc_url($settings) . '">' . esc_html__('Settings', 'pointly-booking') . '</a>',
     ];
 
     return array_merge($custom, $links);
@@ -461,7 +461,7 @@ final class POINTLYBOOKING_Core_Plugin {
           /* translators: %s: Plugin name. */
           __(
             '%s cannot be activated while another BookPoint plugin is installed. Please deactivate/remove the other BookPoint plugin first.',
-            'bookpoint-booking'
+            'pointly-booking'
           ),
           $product
         );
@@ -674,46 +674,25 @@ final class POINTLYBOOKING_Core_Plugin {
     return '`' . $identifier . '`';
   }
 
-  private static function prepare_with_identifiers(string $query, array $identifiers = [], array $args = []): string {
-    global $wpdb;
-
-    $identifiers = array_values(array_map('strval', $identifiers));
-    if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
-      return $wpdb->prepare($query, array_merge($identifiers, $args));
-    }
-
-    foreach ($identifiers as $identifier) {
-      $safe_identifier = preg_replace('/[^A-Za-z0-9_]/', '', $identifier);
-      $query = preg_replace('/%i/', '`' . $safe_identifier . '`', $query, 1);
-    }
-
-    if (empty($args)) {
-      return (string) $query;
-    }
-
-    return $wpdb->prepare($query, $args);
-  }
-
   private static function is_safe_column_definition(string $definition): bool {
     return preg_match("/^[A-Za-z0-9_(),\\s'\\.-]+$/", $definition) === 1;
   }
 
   private static function add_column_if_missing(string $table, string $column, string $definition) : void {
-    global $wpdb;
     if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($column)) {
       return;
     }
     if (!self::is_safe_column_definition($definition)) {
       return;
     }
-    $exists = $wpdb->get_var(self::prepare_with_identifiers("SHOW COLUMNS FROM %i LIKE %s", [$table], [$column]));
-    if (!$exists) {
-      $wpdb->query(self::prepare_with_identifiers("ALTER TABLE %i ADD COLUMN %i {$definition}", [$table, $column]));
+    if (!pointlybooking_db_column_exists($table, $column)) {
+      self::run_add_column_query($table, $column, $definition);
+    } else {
+      return;
     }
   }
 
   private static function add_index_if_missing(string $table, string $index, array $columns) : void {
-    global $wpdb;
     if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($index) || empty($columns)) {
       return;
     }
@@ -723,31 +702,143 @@ final class POINTLYBOOKING_Core_Plugin {
       }
     }
 
-    $exists = $wpdb->get_var(self::prepare_with_identifiers("SHOW INDEX FROM %i WHERE Key_name = %s", [$table], [$index]));
-    if (!$exists) {
-      $column_placeholders = implode(', ', array_fill(0, count($columns), '%i'));
-      $identifiers = array_merge([$table, $index], $columns);
-      $wpdb->query(self::prepare_with_identifiers("ALTER TABLE %i ADD INDEX %i ({$column_placeholders})", $identifiers));
+    if (!pointlybooking_db_index_exists($table, $index)) {
+      self::run_add_index_query($table, $index, $columns);
+    } else {
+      return;
     }
+  }
+
+  private static function run_add_column_query(string $table, string $column, string $definition): void {
+    global $wpdb;
+
+    $categories_table = $wpdb->prefix . 'pointlybooking_categories';
+    $services_table = $wpdb->prefix . 'pointlybooking_services';
+    $extras_table = $wpdb->prefix . 'pointlybooking_service_extras';
+    $agents_table = $wpdb->prefix . 'pointlybooking_agents';
+    $holidays_table = $wpdb->prefix . 'pointlybooking_holidays';
+
+    // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- ALTER TABLE cannot use value placeholders; each branch targets a hardcoded plugin table with a sanitized WordPress prefix.
+    if ($table === $categories_table && $column === 'image_id' && $definition === 'BIGINT UNSIGNED NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$categories_table} ADD COLUMN `image_id` BIGINT UNSIGNED NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $services_table && $column === 'image_id' && $definition === 'BIGINT UNSIGNED NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `image_id` BIGINT UNSIGNED NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $extras_table && $column === 'image_id' && $definition === 'BIGINT UNSIGNED NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$extras_table} ADD COLUMN `image_id` BIGINT UNSIGNED NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $agents_table && $column === 'image_id' && $definition === 'BIGINT UNSIGNED NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$agents_table} ADD COLUMN `image_id` BIGINT UNSIGNED NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $categories_table && $column === 'sort_order' && $definition === 'INT NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$categories_table} ADD COLUMN `sort_order` INT NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $services_table && $column === 'sort_order' && $definition === 'INT NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `sort_order` INT NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $extras_table && $column === 'sort_order' && $definition === 'INT NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$extras_table} ADD COLUMN `sort_order` INT NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $holidays_table && $column === 'agent_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `agent_id` BIGINT UNSIGNED NULL");
+      return;
+    }
+    if ($table === $holidays_table && $column === 'is_recurring' && $definition === 'TINYINT NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `is_recurring` TINYINT NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $holidays_table && $column === 'created_at' && $definition === 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP') {
+      $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
+      return;
+    }
+    if ($table === $holidays_table && $column === 'updated_at' && $definition === 'DATETIME NULL') {
+      $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `updated_at` DATETIME NULL");
+      return;
+    }
+    if ($table === $services_table && $column === 'buffer_before' && $definition === 'INT NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `buffer_before` INT NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $services_table && $column === 'buffer_after' && $definition === 'INT NOT NULL DEFAULT 0') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `buffer_after` INT NOT NULL DEFAULT 0");
+      return;
+    }
+    if ($table === $services_table && $column === 'capacity' && $definition === 'INT NOT NULL DEFAULT 1') {
+      $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `capacity` INT NOT NULL DEFAULT 1");
+    }
+    // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+  }
+
+  private static function run_add_index_query(string $table, string $index, array $columns): void {
+    global $wpdb;
+
+    $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+    $categories_table = $wpdb->prefix . 'pointlybooking_categories';
+    $services_table = $wpdb->prefix . 'pointlybooking_services';
+    $extras_table = $wpdb->prefix . 'pointlybooking_service_extras';
+    $holidays_table = $wpdb->prefix . 'pointlybooking_holidays';
+    $schedules_table = $wpdb->prefix . 'pointlybooking_schedules';
+
+    // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- ALTER TABLE cannot use value placeholders; each branch targets a hardcoded plugin table with a sanitized WordPress prefix.
+    if ($table === $bookings_table && $index === 'agent_start_date' && $columns === ['agent_id', 'start_date']) {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `agent_start_date` (`agent_id`, `start_date`)");
+      return;
+    }
+    if ($table === $bookings_table && $index === 'service_start_date' && $columns === ['service_id', 'start_date']) {
+      $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `service_start_date` (`service_id`, `start_date`)");
+      return;
+    }
+    if ($table === $categories_table && $index === 'sort_order' && $columns === ['sort_order']) {
+      $wpdb->query("ALTER TABLE {$categories_table} ADD INDEX `sort_order` (`sort_order`)");
+      return;
+    }
+    if ($table === $services_table && $index === 'sort_order' && $columns === ['sort_order']) {
+      $wpdb->query("ALTER TABLE {$services_table} ADD INDEX `sort_order` (`sort_order`)");
+      return;
+    }
+    if ($table === $extras_table && $index === 'sort_order' && $columns === ['sort_order']) {
+      $wpdb->query("ALTER TABLE {$extras_table} ADD INDEX `sort_order` (`sort_order`)");
+      return;
+    }
+    if ($table === $holidays_table && $index === 'agent_id' && $columns === ['agent_id']) {
+      $wpdb->query("ALTER TABLE {$holidays_table} ADD INDEX `agent_id` (`agent_id`)");
+      return;
+    }
+    if ($table === $schedules_table && $index === 'agent_day' && $columns === ['agent_id', 'day_of_week']) {
+      $wpdb->query("ALTER TABLE {$schedules_table} ADD INDEX `agent_day` (`agent_id`, `day_of_week`)");
+    }
+    // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
   }
 
   private static function seed_default_agent_hours() : void {
     global $wpdb;
-    $t_agents = pointlybooking_table('agents');
-    $t_hours  = pointlybooking_table('agent_working_hours');
+    $t_agents = $wpdb->prefix . 'pointlybooking_agents';
+    $t_hours  = $wpdb->prefix . 'pointlybooking_agent_working_hours';
+    if (!self::is_safe_sql_identifier($t_agents) || !self::is_safe_sql_identifier($t_hours)) {
+      return;
+    }
+    $agents_table = $t_agents;
+    $hours_table = $t_hours;
 
     $agents = $wpdb->get_results(
-      self::prepare_with_identifiers("SELECT id FROM %i ORDER BY id ASC", [$t_agents]),
+      "SELECT id FROM {$agents_table} ORDER BY id ASC",
       ARRAY_A
     ) ?: [];
     foreach ($agents as $a) {
       $aid = (int)$a['id'];
 
-      $exists = (int) $wpdb->get_var(
-        self::prepare_with_identifiers(
-          "SELECT COUNT(*) FROM %i WHERE agent_id=%d",
-          [$t_hours],
-          [$aid]
+        $exists = (int) $wpdb->get_var(
+        $wpdb->prepare(
+          "SELECT COUNT(*) FROM {$hours_table} WHERE agent_id=%d",
+          $aid
         )
       );
       if ($exists > 0) continue;
@@ -811,7 +902,7 @@ final class POINTLYBOOKING_Core_Plugin {
   public static function render_booking_form_block(array $attributes) : string {
     $service_id = isset($attributes['serviceId']) ? absint($attributes['serviceId']) : 0;
     if ($service_id <= 0) {
-      return '<p>' . esc_html__('BookPoint: Service ID is required.', 'bookpoint-booking') . '</p>';
+      return '<p>' . esc_html__('BookPoint: Service ID is required.', 'pointly-booking') . '</p>';
     }
 
     $default_date = isset($attributes['defaultDate']) ? sanitize_text_field($attributes['defaultDate']) : '';
@@ -901,10 +992,14 @@ final class POINTLYBOOKING_Core_Plugin {
         }
 
         global $wpdb;
-        $tA = pointlybooking_table('agents');
+        $tA = $wpdb->prefix . 'pointlybooking_agents';
+        if (!self::is_safe_sql_identifier($tA)) {
+          return new \WP_REST_Response(['status' => 'success', 'data' => []], 200);
+        }
+        $agents_table = $tA;
 
         $rows = $wpdb->get_results(
-          self::prepare_with_identifiers("SELECT * FROM %i ORDER BY id DESC", [$tA]),
+          "SELECT * FROM {$agents_table} ORDER BY id DESC",
           ARRAY_A
         ) ?: [];
 
@@ -938,10 +1033,22 @@ final class POINTLYBOOKING_Core_Plugin {
         }
 
         global $wpdb;
-        $b = pointlybooking_table('bookings');
-        $c = pointlybooking_table('customers');
-        $s = pointlybooking_table('services');
-        $a = pointlybooking_table('agents');
+        $b = $wpdb->prefix . 'pointlybooking_bookings';
+        $c = $wpdb->prefix . 'pointlybooking_customers';
+        $s = $wpdb->prefix . 'pointlybooking_services';
+        $a = $wpdb->prefix . 'pointlybooking_agents';
+        if (
+          !self::is_safe_sql_identifier($b)
+          || !self::is_safe_sql_identifier($c)
+          || !self::is_safe_sql_identifier($s)
+          || !self::is_safe_sql_identifier($a)
+        ) {
+          return new \WP_REST_Response(['status' => 'error', 'message' => 'Invalid table configuration'], 500);
+        }
+        $bookings_table = $b;
+        $customers_table = $c;
+        $services_table = $s;
+        $agents_table = $a;
 
         $q        = sanitize_text_field($req->get_param('q') ?? '');
         $status   = sanitize_text_field($req->get_param('status') ?? 'all');
@@ -952,79 +1059,135 @@ final class POINTLYBOOKING_Core_Plugin {
         $page   = max(1, (int)($req->get_param('page') ?? 1));
         $per    = min(50, max(10, (int)($req->get_param('per') ?? 20)));
         $offset = ($page - 1) * $per;
-
-        $where_clauses = ['1=1'];
-        $params = [];
-
-        if ($status && $status !== 'all') {
-          $where_clauses[] = 'LOWER(b.status) = %s';
-          $params[] = strtolower($status);
-        }
-
-        // date range filter
-        if ($dateFrom && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
-          $where_clauses[] = 'b.start_datetime >= %s';
-          $params[] = $dateFrom . " 00:00:00";
-        }
-        if ($dateTo && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
-          $where_clauses[] = 'b.start_datetime <= %s';
-          $params[] = $dateTo . " 23:59:59";
-        }
-
-        if ($q) {
-          $like = '%' . $wpdb->esc_like($q) . '%';
-          $where_clauses[] = "(
-            CONCAT(cust.first_name, ' ', cust.last_name) LIKE %s OR
-            cust.email LIKE %s OR
-            srv.name LIKE %s OR
-            ag.first_name LIKE %s OR
-            ag.last_name LIKE %s
-          )";
-          array_push($params, $like, $like, $like, $like, $like);
-        }
-
         $order = (strtolower($sort) === 'asc') ? 'ASC' : 'DESC';
-        $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
+        $status_value = ($status && $status !== 'all') ? strtolower($status) : '';
+        $date_from_value = ($dateFrom && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) ? ($dateFrom . ' 00:00:00') : '';
+        $date_to_value = ($dateTo && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) ? ($dateTo . ' 23:59:59') : '';
+        $like = $q ? ('%' . $wpdb->esc_like($q) . '%') : '';
 
-        // total count
-        $count_sql = "SELECT COUNT(*) FROM %i b
-             LEFT JOIN %i cust ON b.customer_id = cust.id
-             LEFT JOIN %i srv ON b.service_id = srv.id
-             LEFT JOIN %i ag ON b.agent_id = ag.id
-             " . $where_sql;
         $total = (int) $wpdb->get_var(
-          pointlybooking_prepare_query_with_identifiers(
-            $count_sql,
-            [$b, $c, $s, $a],
-            $params
+          $wpdb->prepare(
+            "SELECT COUNT(*)
+             FROM {$bookings_table} b
+             LEFT JOIN {$customers_table} cust ON b.customer_id = cust.id
+             LEFT JOIN {$services_table} srv ON b.service_id = srv.id
+             LEFT JOIN {$agents_table} ag ON b.agent_id = ag.id
+             WHERE (%d = 0 OR LOWER(b.status) = %s)
+               AND (%d = 0 OR b.start_datetime >= %s)
+               AND (%d = 0 OR b.start_datetime <= %s)
+               AND (%d = 0 OR (
+                 CONCAT(cust.first_name, ' ', cust.last_name) LIKE %s OR
+                 cust.email LIKE %s OR
+                 srv.name LIKE %s OR
+                 ag.first_name LIKE %s OR
+                 ag.last_name LIKE %s
+               ))",
+            $status_value !== '' ? 1 : 0,
+            $status_value,
+            $date_from_value !== '' ? 1 : 0,
+            $date_from_value,
+            $date_to_value !== '' ? 1 : 0,
+            $date_to_value,
+            $like !== '' ? 1 : 0,
+            $like,
+            $like,
+            $like,
+            $like,
+            $like
           )
         );
 
-        // rows
-        $list_sql = "SELECT
-               b.id,
-               b.start_datetime,
-               b.end_datetime,
-               b.status,
-               CONCAT(cust.first_name, ' ', cust.last_name) as customer_name,
-               cust.email as customer_email,
-               srv.name as service_name,
-               CONCAT(ag.first_name, ' ', ag.last_name) as agent_name
-             FROM %i b
-             LEFT JOIN %i cust ON b.customer_id = cust.id
-             LEFT JOIN %i srv ON b.service_id = srv.id
-             LEFT JOIN %i ag ON b.agent_id = ag.id
-             " . $where_sql . "
-             ORDER BY b.start_datetime " . (($order === 'ASC') ? 'ASC' : 'DESC') . "
-             LIMIT %d OFFSET %d";
-        $items = $wpdb->get_results(
-          pointlybooking_prepare_query_with_identifiers(
-            $list_sql,
-            [$b, $c, $s, $a],
-            array_merge($params, [$per, $offset])
-          ),
-          ARRAY_A
-        );
+        if ($order === 'ASC') {
+          $items = $wpdb->get_results(
+            $wpdb->prepare(
+              "SELECT
+                 b.id,
+                 b.start_datetime,
+                 b.end_datetime,
+                 b.status,
+                 CONCAT(cust.first_name, ' ', cust.last_name) as customer_name,
+                 cust.email as customer_email,
+                 srv.name as service_name,
+                 CONCAT(ag.first_name, ' ', ag.last_name) as agent_name
+               FROM {$bookings_table} b
+               LEFT JOIN {$customers_table} cust ON b.customer_id = cust.id
+               LEFT JOIN {$services_table} srv ON b.service_id = srv.id
+               LEFT JOIN {$agents_table} ag ON b.agent_id = ag.id
+               WHERE (%d = 0 OR LOWER(b.status) = %s)
+                 AND (%d = 0 OR b.start_datetime >= %s)
+                 AND (%d = 0 OR b.start_datetime <= %s)
+                 AND (%d = 0 OR (
+                   CONCAT(cust.first_name, ' ', cust.last_name) LIKE %s OR
+                   cust.email LIKE %s OR
+                   srv.name LIKE %s OR
+                   ag.first_name LIKE %s OR
+                   ag.last_name LIKE %s
+                 ))
+               ORDER BY b.start_datetime ASC
+               LIMIT %d OFFSET %d",
+              $status_value !== '' ? 1 : 0,
+              $status_value,
+              $date_from_value !== '' ? 1 : 0,
+              $date_from_value,
+              $date_to_value !== '' ? 1 : 0,
+              $date_to_value,
+              $like !== '' ? 1 : 0,
+              $like,
+              $like,
+              $like,
+              $like,
+              $like,
+              $per,
+              $offset
+            ),
+            ARRAY_A
+          );
+        } else {
+          $items = $wpdb->get_results(
+            $wpdb->prepare(
+              "SELECT
+                 b.id,
+                 b.start_datetime,
+                 b.end_datetime,
+                 b.status,
+                 CONCAT(cust.first_name, ' ', cust.last_name) as customer_name,
+                 cust.email as customer_email,
+                 srv.name as service_name,
+                 CONCAT(ag.first_name, ' ', ag.last_name) as agent_name
+               FROM {$bookings_table} b
+               LEFT JOIN {$customers_table} cust ON b.customer_id = cust.id
+               LEFT JOIN {$services_table} srv ON b.service_id = srv.id
+               LEFT JOIN {$agents_table} ag ON b.agent_id = ag.id
+               WHERE (%d = 0 OR LOWER(b.status) = %s)
+                 AND (%d = 0 OR b.start_datetime >= %s)
+                 AND (%d = 0 OR b.start_datetime <= %s)
+                 AND (%d = 0 OR (
+                   CONCAT(cust.first_name, ' ', cust.last_name) LIKE %s OR
+                   cust.email LIKE %s OR
+                   srv.name LIKE %s OR
+                   ag.first_name LIKE %s OR
+                   ag.last_name LIKE %s
+                 ))
+               ORDER BY b.start_datetime DESC
+               LIMIT %d OFFSET %d",
+              $status_value !== '' ? 1 : 0,
+              $status_value,
+              $date_from_value !== '' ? 1 : 0,
+              $date_from_value,
+              $date_to_value !== '' ? 1 : 0,
+              $date_to_value,
+              $like !== '' ? 1 : 0,
+              $like,
+              $like,
+              $like,
+              $like,
+              $like,
+              $per,
+              $offset
+            ),
+            ARRAY_A
+          );
+        }
         if (!$items) $items = [];
 
         return new \WP_REST_Response([
@@ -1058,15 +1221,29 @@ final class POINTLYBOOKING_Core_Plugin {
         global $wpdb;
         $id = (int) $req['id'];
 
-        $b = pointlybooking_table('bookings');
-        $c = pointlybooking_table('customers');
-        $s = pointlybooking_table('services');
-        $a = pointlybooking_table('agents');
-        $tFields   = pointlybooking_table('form_fields');
+        $b = $wpdb->prefix . 'pointlybooking_bookings';
+        $c = $wpdb->prefix . 'pointlybooking_customers';
+        $s = $wpdb->prefix . 'pointlybooking_services';
+        $a = $wpdb->prefix . 'pointlybooking_agents';
+        $tFields   = $wpdb->prefix . 'pointlybooking_form_fields';
+        if (
+          !self::is_safe_sql_identifier($b)
+          || !self::is_safe_sql_identifier($c)
+          || !self::is_safe_sql_identifier($s)
+          || !self::is_safe_sql_identifier($a)
+          || !self::is_safe_sql_identifier($tFields)
+        ) {
+          return new \WP_REST_Response(['status' => 'error', 'message' => 'Invalid table configuration'], 500);
+        }
+        $bookings_table = $b;
+        $customers_table = $c;
+        $services_table = $s;
+        $agents_table = $a;
+        $fields_table = $tFields;
 
         // Get booking with all JOINs for complete data
         $row = $wpdb->get_row(
-          pointlybooking_prepare_query_with_identifiers(
+          $wpdb->prepare(
             "SELECT
                b.*,
                CONCAT(cust.first_name, ' ', cust.last_name) as customer_name,
@@ -1075,13 +1252,12 @@ final class POINTLYBOOKING_Core_Plugin {
                srv.name as service_name,
                srv.price_cents as service_price_cents,
                CONCAT(ag.first_name, ' ', ag.last_name) as agent_name
-             FROM %i b
-             LEFT JOIN %i cust ON b.customer_id = cust.id
-             LEFT JOIN %i srv ON b.service_id = srv.id
-             LEFT JOIN %i ag ON b.agent_id = ag.id
+             FROM {$bookings_table} b
+             LEFT JOIN {$customers_table} cust ON b.customer_id = cust.id
+             LEFT JOIN {$services_table} srv ON b.service_id = srv.id
+             LEFT JOIN {$agents_table} ag ON b.agent_id = ag.id
              WHERE b.id = %d",
-            [$b, $c, $s, $a],
-            [$id]
+            $id
           ),
           ARRAY_A
         );
@@ -1148,14 +1324,12 @@ final class POINTLYBOOKING_Core_Plugin {
         // Form field definitions
         $field_defs = [];
         $t_fields_raw = $wpdb->prefix . 'pointlybooking_form_fields';
-        $like_form_fields = $wpdb->esc_like($t_fields_raw);
-        $has_form_fields = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $like_form_fields)) === $t_fields_raw);
+        $has_form_fields = pointlybooking_db_table_exists($t_fields_raw);
         if ($has_form_fields) {
           $defs = $wpdb->get_results(
-            self::prepare_with_identifiers(
-              "SELECT * FROM %i ORDER BY sort_order ASC, id ASC LIMIT %d",
-              [$tFields],
-              [100]
+            $wpdb->prepare(
+              "SELECT * FROM {$fields_table} ORDER BY sort_order ASC, id ASC LIMIT %d",
+              100
             ),
             ARRAY_A
           ) ?: [];
@@ -1322,8 +1496,8 @@ final class POINTLYBOOKING_Core_Plugin {
     $admin_app_cb = 'pointlybooking_render_admin_app';
 
     add_menu_page(
-      __('BookPoint', 'bookpoint-booking'),
-      __('BookPoint', 'bookpoint-booking'),
+      __('BookPoint', 'pointly-booking'),
+      __('BookPoint', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_dashboard',
       'pointlybooking_render_admin_app',
@@ -1336,8 +1510,8 @@ final class POINTLYBOOKING_Core_Plugin {
     if (current_user_can('manage_options')) {
       add_submenu_page(
         'options-general.php',
-        __('BookPoint', 'bookpoint-booking'),
-        __('BookPoint', 'bookpoint-booking'),
+        __('BookPoint', 'pointly-booking'),
+        __('BookPoint', 'pointly-booking'),
         'manage_options',
         'pointlybooking_dashboard',
         'pointlybooking_render_admin_app'
@@ -1345,8 +1519,8 @@ final class POINTLYBOOKING_Core_Plugin {
       // Guaranteed fallback access from Plugins screen in restrictive admin-menu environments.
       add_submenu_page(
         'plugins.php',
-        __('BookPoint', 'bookpoint-booking'),
-        __('BookPoint', 'bookpoint-booking'),
+        __('BookPoint', 'pointly-booking'),
+        __('BookPoint', 'pointly-booking'),
         'manage_options',
         'pointlybooking_dashboard',
         'pointlybooking_render_admin_app'
@@ -1355,16 +1529,16 @@ final class POINTLYBOOKING_Core_Plugin {
     if (function_exists('is_network_admin') && is_network_admin() && current_user_can('manage_network_options')) {
       add_submenu_page(
         'settings.php',
-        __('BookPoint', 'bookpoint-booking'),
-        __('BookPoint', 'bookpoint-booking'),
+        __('BookPoint', 'pointly-booking'),
+        __('BookPoint', 'pointly-booking'),
         'manage_network_options',
         'pointlybooking_dashboard',
         'pointlybooking_render_admin_app'
       );
       add_submenu_page(
         'plugins.php',
-        __('BookPoint', 'bookpoint-booking'),
-        __('BookPoint', 'bookpoint-booking'),
+        __('BookPoint', 'pointly-booking'),
+        __('BookPoint', 'pointly-booking'),
         'manage_network_options',
         'pointlybooking_dashboard',
         'pointlybooking_render_admin_app'
@@ -1373,8 +1547,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Dashboard', 'bookpoint-booking'),
-      __('Dashboard', 'bookpoint-booking'),
+      __('Dashboard', 'pointly-booking'),
+      __('Dashboard', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_dashboard',
       'pointlybooking_render_admin_app',
@@ -1383,8 +1557,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('How to Use', 'bookpoint-booking'),
-      __('How to Use', 'bookpoint-booking'),
+      __('How to Use', 'pointly-booking'),
+      __('How to Use', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_how_to_use',
       'pointlybooking_render_admin_app'
@@ -1392,8 +1566,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Bookings', 'bookpoint-booking'),
-      __('Bookings', 'bookpoint-booking'),
+      __('Bookings', 'pointly-booking'),
+      __('Bookings', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_bookings',
       'pointlybooking_render_admin_app'
@@ -1401,8 +1575,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Booking Edit', 'bookpoint-booking'),
-      __('Booking Edit', 'bookpoint-booking'),
+      __('Booking Edit', 'pointly-booking'),
+      __('Booking Edit', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_bookings_edit',
       'pointlybooking_render_admin_app'
@@ -1410,8 +1584,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Calendar', 'bookpoint-booking'),
-      __('Calendar', 'bookpoint-booking'),
+      __('Calendar', 'pointly-booking'),
+      __('Calendar', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_calendar',
       'pointlybooking_render_admin_app'
@@ -1419,8 +1593,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Schedule', 'bookpoint-booking'),
-      __('Schedule', 'bookpoint-booking'),
+      __('Schedule', 'pointly-booking'),
+      __('Schedule', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_schedule',
       'pointlybooking_render_admin_app'
@@ -1428,8 +1602,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Holidays', 'bookpoint-booking'),
-      __('Holidays', 'bookpoint-booking'),
+      __('Holidays', 'pointly-booking'),
+      __('Holidays', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_holidays',
       $admin_app_cb
@@ -1438,8 +1612,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Catalog', 'bookpoint-booking'),
-      __('Catalog', 'bookpoint-booking'),
+      __('Catalog', 'pointly-booking'),
+      __('Catalog', 'pointly-booking'),
       $cap('pointlybooking_manage_services'),
       'pointlybooking_catalog',
       'pointlybooking_render_admin_app_catalog'
@@ -1447,8 +1621,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Services', 'bookpoint-booking'),
-      __('Services', 'bookpoint-booking'),
+      __('Services', 'pointly-booking'),
+      __('Services', 'pointly-booking'),
       $cap('pointlybooking_manage_services'),
       'pointlybooking_services',
       'pointlybooking_render_admin_app'
@@ -1456,8 +1630,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Categories', 'bookpoint-booking'),
-      __('Categories', 'bookpoint-booking'),
+      __('Categories', 'pointly-booking'),
+      __('Categories', 'pointly-booking'),
       $cap('pointlybooking_manage_services'),
       'pointlybooking_categories',
       'pointlybooking_render_admin_app'
@@ -1465,8 +1639,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Service Extras', 'bookpoint-booking'),
-      __('Service Extras', 'bookpoint-booking'),
+      __('Service Extras', 'pointly-booking'),
+      __('Service Extras', 'pointly-booking'),
       $cap('pointlybooking_manage_services'),
       'pointlybooking_extras',
       $admin_app_cb
@@ -1474,8 +1648,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Locations', 'bookpoint-booking'),
-      __('Locations', 'bookpoint-booking'),
+      __('Locations', 'pointly-booking'),
+      __('Locations', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_locations',
       $admin_app_cb
@@ -1483,8 +1657,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Promo Codes', 'bookpoint-booking'),
-      __('Promo Codes', 'bookpoint-booking'),
+      __('Promo Codes', 'pointly-booking'),
+      __('Promo Codes', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_promo_codes',
       $admin_app_cb
@@ -1492,16 +1666,16 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Form Fields', 'bookpoint-booking'),
-      __('Form Fields', 'bookpoint-booking'),
+      __('Form Fields', 'pointly-booking'),
+      __('Form Fields', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'bp-form-fields',
       'pointlybooking_render_admin_app'
     );
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Form Fields', 'bookpoint-booking'),
-      __('Form Fields', 'bookpoint-booking'),
+      __('Form Fields', 'pointly-booking'),
+      __('Form Fields', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_form_fields',
       'pointlybooking_render_admin_app'
@@ -1509,8 +1683,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Booking Form Designer', 'bookpoint-booking'),
-      __('Booking Form Designer', 'bookpoint-booking'),
+      __('Booking Form Designer', 'pointly-booking'),
+      __('Booking Form Designer', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_design_form',
       'pointlybooking_render_admin_app'
@@ -1518,8 +1692,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Form Fields', 'bookpoint-booking'),
-      __('Form Fields', 'bookpoint-booking'),
+      __('Form Fields', 'pointly-booking'),
+      __('Form Fields', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_form_fields_edit',
       [__CLASS__, 'render_form_fields_edit']
@@ -1527,8 +1701,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Customers', 'bookpoint-booking'),
-      __('Customers', 'bookpoint-booking'),
+      __('Customers', 'pointly-booking'),
+      __('Customers', 'pointly-booking'),
       $cap('pointlybooking_manage_customers'),
       'pointlybooking_customers',
       'pointlybooking_render_admin_app'
@@ -1536,8 +1710,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Settings', 'bookpoint-booking'),
-      __('Settings', 'bookpoint-booking'),
+      __('Settings', 'pointly-booking'),
+      __('Settings', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_settings',
       'pointlybooking_render_admin_app'
@@ -1545,8 +1719,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Notifications', 'bookpoint-booking'),
-      __('Notifications', 'bookpoint-booking'),
+      __('Notifications', 'pointly-booking'),
+      __('Notifications', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_notifications',
       'pointlybooking_render_admin_app'
@@ -1554,8 +1728,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Audit Log', 'bookpoint-booking'),
-      __('Audit Log', 'bookpoint-booking'),
+      __('Audit Log', 'pointly-booking'),
+      __('Audit Log', 'pointly-booking'),
       $cap('pointlybooking_manage_tools'),
       'pointlybooking_audit',
       'pointlybooking_render_admin_app'
@@ -1563,8 +1737,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Tools', 'bookpoint-booking'),
-      __('Tools', 'bookpoint-booking'),
+      __('Tools', 'pointly-booking'),
+      __('Tools', 'pointly-booking'),
       $cap('pointlybooking_manage_tools'),
       'pointlybooking_tools',
       'pointlybooking_render_admin_app'
@@ -1572,8 +1746,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'tools.php',
-      __('BookPoint Tools', 'bookpoint-booking'),
-      __('BookPoint Tools', 'bookpoint-booking'),
+      __('BookPoint Tools', 'pointly-booking'),
+      __('BookPoint Tools', 'pointly-booking'),
       $cap('pointlybooking_manage_tools'),
       'pointlybooking_tools',
       'pointlybooking_render_admin_app'
@@ -1581,8 +1755,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Agents', 'bookpoint-booking'),
-      __('Agents', 'bookpoint-booking'),
+      __('Agents', 'pointly-booking'),
+      __('Agents', 'pointly-booking'),
       $cap('pointlybooking_manage_agents'),
       'pointlybooking_agents',
       'pointlybooking_render_admin_app'
@@ -1591,8 +1765,8 @@ final class POINTLYBOOKING_Core_Plugin {
     // Hidden pages for internal use
       add_submenu_page(
         null,
-        __('Edit Agent', 'bookpoint-booking'),
-        __('Edit Agent', 'bookpoint-booking'),
+        __('Edit Agent', 'pointly-booking'),
+        __('Edit Agent', 'pointly-booking'),
         'pointlybooking_manage_agents',
         'pointlybooking_agents_edit',
         [__CLASS__, 'render_agents_edit']
@@ -1600,8 +1774,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
       add_submenu_page(
         null,
-        __('Edit Location', 'bookpoint-booking'),
-        __('Edit Location', 'bookpoint-booking'),
+        __('Edit Location', 'pointly-booking'),
+        __('Edit Location', 'pointly-booking'),
         'pointlybooking_manage_settings',
         'pointlybooking_locations_edit',
         $admin_app_cb
@@ -1609,8 +1783,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
       add_submenu_page(
         null,
-        __('Edit Location Category', 'bookpoint-booking'),
-        __('Edit Location Category', 'bookpoint-booking'),
+        __('Edit Location Category', 'pointly-booking'),
+        __('Edit Location Category', 'pointly-booking'),
         'pointlybooking_manage_settings',
         'pointlybooking_location_categories_edit',
         $admin_app_cb
@@ -1618,8 +1792,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Delete Agent', 'bookpoint-booking'),
-      __('Delete Agent', 'bookpoint-booking'),
+      __('Delete Agent', 'pointly-booking'),
+      __('Delete Agent', 'pointly-booking'),
       'pointlybooking_manage_agents',
       'pointlybooking_agents_delete',
       [__CLASS__, 'render_agents_delete']
@@ -1627,8 +1801,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Edit Service', 'bookpoint-booking'),
-      __('Edit Service', 'bookpoint-booking'),
+      __('Edit Service', 'pointly-booking'),
+      __('Edit Service', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_services_edit',
       [__CLASS__, 'render_services_edit']
@@ -1636,8 +1810,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Edit Extra', 'bookpoint-booking'),
-      __('Edit Extra', 'bookpoint-booking'),
+      __('Edit Extra', 'pointly-booking'),
+      __('Edit Extra', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_extras_edit',
       $admin_app_cb
@@ -1645,8 +1819,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Delete Extra', 'bookpoint-booking'),
-      __('Delete Extra', 'bookpoint-booking'),
+      __('Delete Extra', 'pointly-booking'),
+      __('Delete Extra', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_extras_delete',
       [__CLASS__, 'render_extras_delete']
@@ -1654,8 +1828,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Edit Category', 'bookpoint-booking'),
-      __('Edit Category', 'bookpoint-booking'),
+      __('Edit Category', 'pointly-booking'),
+      __('Edit Category', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_categories_edit',
       [__CLASS__, 'render_categories_edit']
@@ -1663,8 +1837,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Delete Category', 'bookpoint-booking'),
-      __('Delete Category', 'bookpoint-booking'),
+      __('Delete Category', 'pointly-booking'),
+      __('Delete Category', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_categories_delete',
       [__CLASS__, 'render_categories_delete']
@@ -1672,8 +1846,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Delete Service', 'bookpoint-booking'),
-      __('Delete Service', 'bookpoint-booking'),
+      __('Delete Service', 'pointly-booking'),
+      __('Delete Service', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_services_delete',
       [__CLASS__, 'render_services_delete']
@@ -1681,8 +1855,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Edit Promo Code', 'bookpoint-booking'),
-      __('Edit Promo Code', 'bookpoint-booking'),
+      __('Edit Promo Code', 'pointly-booking'),
+      __('Edit Promo Code', 'pointly-booking'),
       'pointlybooking_manage_settings',
       'pointlybooking_promo_codes_edit',
       [__CLASS__, 'render_promo_codes_edit']
@@ -1690,8 +1864,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Delete Promo Code', 'bookpoint-booking'),
-      __('Delete Promo Code', 'bookpoint-booking'),
+      __('Delete Promo Code', 'pointly-booking'),
+      __('Delete Promo Code', 'pointly-booking'),
       'pointlybooking_manage_settings',
       'pointlybooking_promo_codes_delete',
       [__CLASS__, 'render_promo_codes_delete']
@@ -1699,8 +1873,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Confirm Booking', 'bookpoint-booking'),
-      __('Confirm Booking', 'bookpoint-booking'),
+      __('Confirm Booking', 'pointly-booking'),
+      __('Confirm Booking', 'pointly-booking'),
       'pointlybooking_manage_bookings',
       'pointlybooking_booking_confirm',
       [__CLASS__, 'render_booking_confirm']
@@ -1708,8 +1882,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Cancel Booking', 'bookpoint-booking'),
-      __('Cancel Booking', 'bookpoint-booking'),
+      __('Cancel Booking', 'pointly-booking'),
+      __('Cancel Booking', 'pointly-booking'),
       'pointlybooking_manage_bookings',
       'pointlybooking_booking_cancel',
       [__CLASS__, 'render_booking_cancel']
@@ -1717,8 +1891,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('View Customer', 'bookpoint-booking'),
-      __('View Customer', 'bookpoint-booking'),
+      __('View Customer', 'pointly-booking'),
+      __('View Customer', 'pointly-booking'),
       'pointlybooking_manage_customers',
       'pointlybooking_customers_view',
       [__CLASS__, 'render_customer_view']
@@ -1727,8 +1901,8 @@ final class POINTLYBOOKING_Core_Plugin {
     // Hidden page for internal use (React)
     add_submenu_page(
       null,
-      __('Edit Customer', 'bookpoint-booking'),
-      __('Edit Customer', 'bookpoint-booking'),
+      __('Edit Customer', 'pointly-booking'),
+      __('Edit Customer', 'pointly-booking'),
       'pointlybooking_manage_customers',
       'pointlybooking_customers_edit',
       'pointlybooking_render_admin_app'
@@ -1751,8 +1925,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     // Re-add the top-level entry if a plugin/theme removed it.
     add_menu_page(
-      __('BookPoint', 'bookpoint-booking'),
-      __('BookPoint', 'bookpoint-booking'),
+      __('BookPoint', 'pointly-booking'),
+      __('BookPoint', 'pointly-booking'),
       current_user_can('manage_options') ? 'manage_options' : 'activate_plugins',
       'pointlybooking_dashboard',
       'pointlybooking_render_admin_app',
@@ -1764,7 +1938,7 @@ final class POINTLYBOOKING_Core_Plugin {
   private static function is_menu_debug_enabled(): bool {
     if (!is_admin()) return false;
     if (!current_user_can('manage_options') && !current_user_can('activate_plugins')) return false;
-    return isset($_GET['pointlybooking_menu_debug']) && sanitize_text_field(wp_unslash((string) $_GET['pointlybooking_menu_debug'])) === '1';
+    return sanitize_text_field((string) filter_input(INPUT_GET, 'pointlybooking_menu_debug', FILTER_UNSAFE_RAW)) === '1';
   }
 
   private static function menu_has_slug(string $slug): bool {
@@ -1930,7 +2104,7 @@ final class POINTLYBOOKING_Core_Plugin {
   }
 
   public static function enqueue_admin_assets(string $hook): void {
-    $page = sanitize_key(wp_unslash($_GET['page'] ?? ''));
+    $page = sanitize_key((string) filter_input(INPUT_GET, 'page', FILTER_UNSAFE_RAW));
     if ($page === '') return;
 
     // React admin bundle (All admin pages)
@@ -1996,12 +2170,20 @@ final class POINTLYBOOKING_Core_Plugin {
         }
 
       add_filter('script_loader_src', function ($src, $handle) use ($admin_js_ver) {
+        $src = is_string($src) ? $src : '';
+        if ($src === '') {
+          return $src;
+        }
         if ($handle === 'pointlybooking-admin') {
           return add_query_arg('v', $admin_js_ver, $src);
         }
         return $src;
       }, 10, 2);
       add_filter('style_loader_src', function ($src, $handle) use ($admin_css_ver) {
+        $src = is_string($src) ? $src : '';
+        if ($src === '') {
+          return $src;
+        }
         if ($handle === 'pointlybooking-admin' || $handle === 'pointlybooking-admin-rtl') {
           return add_query_arg('v', $admin_css_ver, $src);
         }
@@ -2098,7 +2280,7 @@ final class POINTLYBOOKING_Core_Plugin {
       return;
     }
 
-    $action_param = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : '';
+    $action_param = sanitize_key((string) filter_input(INPUT_GET, 'action', FILTER_UNSAFE_RAW));
 
     if ($page === 'pointlybooking_categories_edit' || ($page === 'pointlybooking_categories' && $action_param === 'edit')) {
       wp_enqueue_media();
@@ -2500,9 +2682,13 @@ final class POINTLYBOOKING_Core_Plugin {
     check_admin_referer('pointlybooking_admin');
 
     global $wpdb;
-    $table = pointlybooking_table('customers');
+    $table = $wpdb->prefix . 'pointlybooking_customers';
+    if (!pointlybooking_is_safe_sql_identifier($table)) {
+      wp_die('Invalid table configuration');
+    }
+    $customers_table = $table;
     $rows = $wpdb->get_results(
-      self::prepare_with_identifiers("SELECT * FROM %i ORDER BY id DESC", [$table]),
+      "SELECT * FROM {$customers_table} ORDER BY id DESC",
       ARRAY_A
     ) ?: [];
 
@@ -2565,7 +2751,7 @@ final class POINTLYBOOKING_Core_Plugin {
 
     $count = 0;
     global $wpdb;
-    $table = pointlybooking_table('customers');
+    $table = $wpdb->prefix . 'pointlybooking_customers';
 
     foreach ($parsed_rows as $row) {
       if (!is_array($row) || count($row) === 0) continue;
@@ -2662,10 +2848,13 @@ final class POINTLYBOOKING_Core_Plugin {
 
     self::rate_limit_or_block('portal_view', 120, 600);
 
-    $step = sanitize_key(wp_unslash($_GET['step'] ?? 'email'));
-    $email = sanitize_email(wp_unslash($_GET['email'] ?? ''));
-    $session = sanitize_text_field(wp_unslash($_GET['s'] ?? ''));
-    $view_nonce = sanitize_text_field(wp_unslash($_GET['bpv'] ?? ''));
+    $step = sanitize_key((string) filter_input(INPUT_GET, 'step', FILTER_UNSAFE_RAW));
+    if ($step === '') {
+      $step = 'email';
+    }
+    $email = sanitize_email((string) filter_input(INPUT_GET, 'email', FILTER_UNSAFE_RAW));
+    $session = sanitize_text_field((string) filter_input(INPUT_GET, 's', FILTER_UNSAFE_RAW));
+    $view_nonce = sanitize_text_field((string) filter_input(INPUT_GET, 'bpv', FILTER_UNSAFE_RAW));
     if (!in_array($step, ['email', 'verify', 'list'], true)) {
       $step = 'email';
     }
@@ -2710,18 +2899,17 @@ final class POINTLYBOOKING_Core_Plugin {
   }
 
   public static function handle_portal_posts() : void {
-    $action = sanitize_text_field(wp_unslash($_POST['pointlybooking_portal_action'] ?? ''));
+    $action = sanitize_text_field((string) filter_input(INPUT_POST, 'pointlybooking_portal_action', FILTER_UNSAFE_RAW));
     if ($action === '') return;
 
     self::rate_limit_or_block('portal_action', 20, 600);
 
     if ($action === 'send_otp') {
-      $nonce = isset($_POST['_wpnonce']) ? sanitize_text_field(wp_unslash($_POST['_wpnonce'])) : '';
+      $nonce = sanitize_text_field((string) filter_input(INPUT_POST, '_wpnonce', FILTER_UNSAFE_RAW));
       if (!wp_verify_nonce($nonce, 'pointlybooking_portal_email')) return;
 
       $base = self::portal_base_url();
-      // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized with sanitize_email().
-      $email = sanitize_email(wp_unslash($_POST['pointlybooking_portal_email'] ?? ''));
+      $email = sanitize_email((string) filter_input(INPUT_POST, 'pointlybooking_portal_email', FILTER_UNSAFE_RAW));
       if ($email !== '' && is_email($email) && POINTLYBOOKING_PortalHelper::send_otp($email)) {
         wp_safe_redirect(add_query_arg([
           'step' => 'verify',
@@ -2736,11 +2924,11 @@ final class POINTLYBOOKING_Core_Plugin {
     }
 
     if ($action === 'verify_otp') {
-      $nonce = isset($_POST['_wpnonce']) ? sanitize_text_field(wp_unslash($_POST['_wpnonce'])) : '';
+      $nonce = sanitize_text_field((string) filter_input(INPUT_POST, '_wpnonce', FILTER_UNSAFE_RAW));
       if (!wp_verify_nonce($nonce, 'pointlybooking_portal_verify')) return;
 
       $base = self::portal_base_url();
-      $email = sanitize_email(wp_unslash($_POST['pointlybooking_portal_email'] ?? ''));
+      $email = sanitize_email((string) filter_input(INPUT_POST, 'pointlybooking_portal_email', FILTER_UNSAFE_RAW));
       if ($email === '' || !is_email($email)) {
         wp_safe_redirect(add_query_arg([
           'step' => 'verify',
@@ -2748,7 +2936,7 @@ final class POINTLYBOOKING_Core_Plugin {
         ], $base));
         exit;
       }
-      $otp_raw = sanitize_text_field(wp_unslash($_POST['pointlybooking_portal_otp'] ?? ''));
+      $otp_raw = sanitize_text_field((string) filter_input(INPUT_POST, 'pointlybooking_portal_otp', FILTER_UNSAFE_RAW));
       $otp = preg_replace('/\D+/', '', $otp_raw);
       if (!preg_match('/^\d{6}$/', $otp)) {
         wp_safe_redirect(add_query_arg([
@@ -2790,6 +2978,9 @@ final class POINTLYBOOKING_Core_Plugin {
   }
 
   public static function register_query_vars($vars) {
+    if (!is_array($vars)) {
+      $vars = [];
+    }
     $vars[] = 'pointlybooking_manage_booking';
     $vars[] = 'key';
     $vars[] = 'pointlybooking_action';
@@ -2815,7 +3006,8 @@ final class POINTLYBOOKING_Core_Plugin {
     add_filter('the_content', function($content) use ($controller) {
       ob_start();
       $controller->render_manage_page();
-      return ob_get_clean();
+      $rendered = ob_get_clean();
+      return is_string($rendered) ? $rendered : '';
     });
 
     // Let WP continue; the_content filter will output our page UI
@@ -2838,7 +3030,7 @@ final class POINTLYBOOKING_Core_Plugin {
     set_transient($bucket, $data, $window_sec);
 
     if ((int)$data['count'] > $limit) {
-      wp_die(esc_html__('Too many requests. Please try again later.', 'bookpoint-booking'), 429);
+      wp_die(esc_html__('Too many requests. Please try again later.', 'pointly-booking'), 429);
     }
   }
 }
@@ -2863,7 +3055,7 @@ register_deactivation_hook(__FILE__, ['POINTLYBOOKING_Core_Plugin', 'on_deactiva
 if (!function_exists('pointlybooking_shortcode_booking_form')) {
   function pointlybooking_shortcode_booking_form($atts = []) {
     $atts = shortcode_atts([
-      'label' => __('Book Now', 'bookpoint-booking'),
+      'label' => __('Book Now', 'pointly-booking'),
     ], $atts);
 
     if (class_exists('POINTLYBOOKING_Core_Plugin')) {
@@ -2906,29 +3098,32 @@ if (!function_exists('pointlybooking_rest_get_services')) {
     $category_id = (int)$req->get_param('category_id');
 
     global $wpdb;
-    $t = pointlybooking_table('services');
-    $map = pointlybooking_table('service_categories');
+    $t = $wpdb->prefix . 'pointlybooking_services';
+    $map = $wpdb->prefix . 'pointlybooking_service_categories';
+    if (!pointlybooking_is_safe_sql_identifier($t) || !pointlybooking_is_safe_sql_identifier($map)) {
+      return rest_ensure_response(['status' => 'success', 'data' => []]);
+    }
+    $services_table = $t;
+    $service_categories_table = $map;
 
     if ($category_id > 0) {
       $rows = $wpdb->get_results(
-        pointlybooking_prepare_query_with_identifiers(
+        $wpdb->prepare(
           "SELECT s.id, s.name, s.price_cents, s.duration_minutes, s.category_id, s.image_id
-           FROM %i s
-           INNER JOIN %i m ON m.service_id = s.id
+           FROM {$services_table} s
+           INNER JOIN {$service_categories_table} m ON m.service_id = s.id
            WHERE s.is_active = 1 AND m.category_id = %d
            ORDER BY s.id DESC
            LIMIT 500",
-          [$t, $map],
-          [$category_id]
+          $category_id
         ),
         ARRAY_A
       );
     } else {
       $rows = $wpdb->get_results(
-        pointlybooking_prepare_query_with_identifiers(
-          "SELECT id, name, price_cents, duration_minutes, category_id, image_id FROM %i WHERE is_active = %d ORDER BY id DESC LIMIT 500",
-          [$t],
-          [1]
+        $wpdb->prepare(
+          "SELECT id, name, price_cents, duration_minutes, category_id, image_id FROM {$services_table} WHERE is_active = %d ORDER BY id DESC LIMIT 500",
+          1
         ),
         ARRAY_A
       );
@@ -2960,18 +3155,22 @@ if (!function_exists('pointlybooking_rest_get_extras')) {
     if ($service_id <= 0) return rest_ensure_response(['status' => 'success', 'data' => []]);
 
     global $wpdb;
-    $extras_table = pointlybooking_table('service_extras');
-    $map = pointlybooking_table('extra_services');
+    $extras_table = $wpdb->prefix . 'pointlybooking_service_extras';
+    $map = $wpdb->prefix . 'pointlybooking_extra_services';
+    if (!pointlybooking_is_safe_sql_identifier($extras_table) || !pointlybooking_is_safe_sql_identifier($map)) {
+      return rest_ensure_response(['status' => 'success', 'data' => []]);
+    }
+    $extras_sql = $extras_table;
+    $extra_services_table = $map;
 
     $rows = $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT e.*
-         FROM %i e
-         INNER JOIN %i m ON m.extra_id = e.id
+      $wpdb->prepare(
+        "SELECT e.id, e.name, e.price, e.duration_min, e.image_id, e.sort_order
+         FROM {$extras_sql} e
+         INNER JOIN {$extra_services_table} m ON m.extra_id = e.id
          WHERE e.is_active = 1 AND m.service_id = %d
          ORDER BY e.sort_order ASC, e.id ASC",
-        [$extras_table, $map],
-        [$service_id]
+        $service_id
       ),
       ARRAY_A
     );
@@ -2998,18 +3197,22 @@ if (!function_exists('pointlybooking_rest_get_agents')) {
     if ($service_id <= 0) return rest_ensure_response(['status'=>'success','data'=>[]]);
 
     global $wpdb;
-    $map = pointlybooking_table('agent_services');
-    $agents = pointlybooking_table('agents');
+    $map = $wpdb->prefix . 'pointlybooking_agent_services';
+    $agents = $wpdb->prefix . 'pointlybooking_agents';
+    if (!pointlybooking_is_safe_sql_identifier($map) || !pointlybooking_is_safe_sql_identifier($agents)) {
+      return rest_ensure_response(['status'=>'success','data'=>[]]);
+    }
+    $agents_table = $agents;
+    $agent_services_table = $map;
 
     $rows = $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
+      $wpdb->prepare(
         "SELECT a.id, a.first_name, a.last_name, a.image_id
-         FROM %i a
-         INNER JOIN %i m ON m.agent_id = a.id
+         FROM {$agents_table} a
+         INNER JOIN {$agent_services_table} m ON m.agent_id = a.id
          WHERE m.service_id = %d AND a.is_active = 1
          ORDER BY a.id DESC",
-        [$agents, $map],
-        [$service_id]
+        $service_id
       ),
       ARRAY_A
     );
@@ -3037,21 +3240,29 @@ if (!function_exists('pointlybooking_prepare_query_with_identifiers')) {
       $identifiers = [$identifiers];
     }
     $identifiers = array_values(array_map('strval', $identifiers));
-
-    if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
-      return $wpdb->prepare($query, array_merge($identifiers, $args));
-    }
+    $identifier_placeholder = '%' . 'i';
 
     foreach ($identifiers as $identifier) {
       $safe_identifier = preg_replace('/[^A-Za-z0-9_]/', '', $identifier);
-      $query = preg_replace('/%i/', '`' . $safe_identifier . '`', $query, 1);
+      $pos = strpos($query, $identifier_placeholder);
+      if ($pos === false) {
+        continue;
+      }
+
+      $query = substr_replace($query, '`' . $safe_identifier . '`', $pos, strlen($identifier_placeholder));
     }
 
     if (empty($args)) {
       return (string)$query;
     }
 
-    return $wpdb->prepare($query, $args);
+    return (string) call_user_func_array([$wpdb, 'prepare'], array_merge([$query], $args));
+  }
+}
+
+if (!function_exists('pointlybooking_is_safe_sql_identifier')) {
+  function pointlybooking_is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
   }
 }
 
@@ -3112,13 +3323,16 @@ if (!function_exists('pointlybooking_rest_create_booking')) {
 
     global $wpdb;
 
-    $t_services = pointlybooking_table('services');
+    $t_services = $wpdb->prefix . 'pointlybooking_services';
+    if (!pointlybooking_is_safe_sql_identifier($t_services)) {
+      return rest_ensure_response(['status'=>'error','message'=>'Invalid service configuration']);
+    }
+    $services_table = $t_services;
 
     $svc = $wpdb->get_row(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT id, price_cents, duration_minutes, category_id FROM %i WHERE id = %d AND is_active = 1",
-        [$t_services],
-        [$service_id]
+      $wpdb->prepare(
+        "SELECT id, price_cents, duration_minutes, category_id FROM {$services_table} WHERE id = %d AND is_active = 1",
+        $service_id
       ),
       ARRAY_A
     );
@@ -3130,23 +3344,30 @@ if (!function_exists('pointlybooking_rest_create_booking')) {
     if ($duration_min <= 0) $duration_min = 60;
 
     if ($agent_id > 0) {
-      $map = pointlybooking_table('agent_services');
+      $map = $wpdb->prefix . 'pointlybooking_agent_services';
+      if (!pointlybooking_is_safe_sql_identifier($map)) {
+        return rest_ensure_response(['status'=>'error','message'=>'Invalid service configuration']);
+      }
+      $agent_services_table = $map;
       $ok = (int) $wpdb->get_var(
-        pointlybooking_prepare_query_with_identifiers(
-          "SELECT COUNT(*) FROM %i WHERE agent_id=%d AND service_id=%d",
-          [$map],
-          [$agent_id, $service_id]
+        $wpdb->prepare(
+          "SELECT COUNT(*) FROM {$agent_services_table} WHERE agent_id=%d AND service_id=%d",
+          $agent_id,
+          $service_id
         )
       );
       if ($ok <= 0) return rest_ensure_response(['status'=>'error','message'=>'Agent not allowed for this service']);
     }
 
-    $t_extras = pointlybooking_table('service_extras');
+    $t_extras = $wpdb->prefix . 'pointlybooking_service_extras';
+    if (!pointlybooking_is_safe_sql_identifier($t_extras)) {
+      return rest_ensure_response(['status'=>'error','message'=>'Invalid service configuration']);
+    }
+    $extras_table = $t_extras;
     $valid_extras = $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT id, price FROM %i WHERE service_id=%d AND is_active=1",
-        [$t_extras],
-        [$service_id]
+      $wpdb->prepare(
+        "SELECT id, price FROM {$extras_table} WHERE service_id=%d AND is_active=1",
+        $service_id
       ),
       ARRAY_A
     );
@@ -3390,4 +3611,3 @@ if (!function_exists('pointlybooking_apply_promo_to_subtotal')) {
     ];
   }
 }
-

@@ -3,6 +3,14 @@ defined('ABSPATH') || exit;
 
 final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
   public static function table() : string {
     global $wpdb;
     return $wpdb->prefix . 'pointlybooking_customers';
@@ -10,16 +18,15 @@ final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
 
   public static function find_by_email(string $email) : ?array {
     global $wpdb;
-    $table = self::table();
+    $customers_table = $wpdb->prefix . 'pointlybooking_customers';
     $email = sanitize_email($email);
     if ($email === '') return null;
+    if (!self::is_safe_sql_identifier($customers_table)) {
+      return null;
+    }
 
     $row = $wpdb->get_row(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT * FROM %i WHERE email = %s ORDER BY id DESC LIMIT 1",
-        [$table],
-        [$email]
-      ),
+      $wpdb->prepare("SELECT * FROM {$customers_table} WHERE email = %s ORDER BY id DESC LIMIT 1", $email),
       ARRAY_A
     );
 
@@ -56,30 +63,27 @@ final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
 
   public static function all(int $limit = 200) : array {
     global $wpdb;
-    $table = self::table();
-
+    $customers_table = $wpdb->prefix . 'pointlybooking_customers';
+    if (!self::is_safe_sql_identifier($customers_table)) {
+      return [];
+    }
     $limit = max(1, min(500, $limit));
 
     return $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT * FROM %i ORDER BY id DESC LIMIT %d",
-        [$table],
-        [$limit]
-      ),
+      $wpdb->prepare("SELECT * FROM {$customers_table} ORDER BY id DESC LIMIT %d", $limit),
       ARRAY_A
     ) ?: [];
   }
 
   public static function find(int $id) : ?array {
     global $wpdb;
-    $table = self::table();
+    $customers_table = $wpdb->prefix . 'pointlybooking_customers';
+    if (!self::is_safe_sql_identifier($customers_table)) {
+      return null;
+    }
 
     $row = $wpdb->get_row(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT * FROM %i WHERE id = %d",
-        [$table],
-        [$id]
-      ),
+      $wpdb->prepare("SELECT * FROM {$customers_table} WHERE id = %d", $id),
       ARRAY_A
     );
 
@@ -102,3 +106,4 @@ final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
     return ($updated !== false);
   }
 }
+

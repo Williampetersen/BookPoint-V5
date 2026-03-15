@@ -3,52 +3,44 @@ defined('ABSPATH') || exit;
 
 final class POINTLYBOOKING_PromoCodeModel {
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
   public static function table(): string {
     return pointlybooking_table('promo_codes');
   }
 
-  private static function prepare_with_table(string $query, string $table, array $args = []): string {
-    global $wpdb;
-
-    if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
-      return $wpdb->prepare($query, array_merge([$table], $args));
-    }
-
-    $safe_table = preg_replace('/[^A-Za-z0-9_]/', '', $table);
-    $query = preg_replace('/%i/', '`' . $safe_table . '`', $query, 1);
-
-    if (empty($args)) {
-      return (string) $query;
-    }
-
-    return $wpdb->prepare($query, $args);
-  }
-
   public static function all(array $args = []): array {
     global $wpdb;
-    $t = self::table();
+    $promo_codes_table = $wpdb->prefix . 'pointlybooking_promo_codes';
+    if (!self::is_safe_sql_identifier($promo_codes_table)) {
+      return [];
+    }
 
     $q = trim((string)($args['q'] ?? ''));
     $is_active = isset($args['is_active']) && $args['is_active'] !== '' ? (int)$args['is_active'] : null;
+    $like = '%' . $wpdb->esc_like($q) . '%';
+    $apply_q_filter = ($q !== '') ? 1 : 0;
+    $apply_active_filter = ($is_active !== null) ? 1 : 0;
+    $active_value = ($is_active !== null) ? $is_active : 0;
 
-    $where = "WHERE 1=1";
-    $params = [];
-
-    if ($q !== '') {
-      $where .= " AND code LIKE %s";
-      $params[] = '%' . $wpdb->esc_like($q) . '%';
-    }
-    if ($is_active !== null) {
-      $where .= " AND is_active = %d";
-      $params[] = $is_active;
-    }
-
-    $params[] = 500;
     return $wpdb->get_results(
-      self::prepare_with_table(
-        "SELECT * FROM %i {$where} ORDER BY id DESC LIMIT %d",
-        $t,
-        $params
+      $wpdb->prepare(
+        "SELECT * FROM {$promo_codes_table}
+        WHERE (%d = 0 OR code LIKE %s)
+          AND (%d = 0 OR is_active = %d)
+        ORDER BY id DESC
+        LIMIT %d",
+        $apply_q_filter,
+        $like,
+        $apply_active_filter,
+        $active_value,
+        500
       ),
       ARRAY_A
     );
@@ -56,18 +48,24 @@ final class POINTLYBOOKING_PromoCodeModel {
 
   public static function find(int $id): ?array {
     global $wpdb;
-    $t = self::table();
-    $row = $wpdb->get_row(self::prepare_with_table("SELECT * FROM %i WHERE id=%d", $t, [$id]), ARRAY_A);
+    $promo_codes_table = $wpdb->prefix . 'pointlybooking_promo_codes';
+    if (!self::is_safe_sql_identifier($promo_codes_table)) {
+      return null;
+    }
+    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$promo_codes_table} WHERE id=%d", $id), ARRAY_A);
     return $row ?: null;
   }
 
   public static function find_by_code(string $code): ?array {
     global $wpdb;
-    $t = self::table();
+    $promo_codes_table = $wpdb->prefix . 'pointlybooking_promo_codes';
     $code = strtoupper(trim($code));
     if ($code === '') return null;
+    if (!self::is_safe_sql_identifier($promo_codes_table)) {
+      return null;
+    }
 
-    $row = $wpdb->get_row(self::prepare_with_table("SELECT * FROM %i WHERE code=%s LIMIT 1", $t, [$code]), ARRAY_A);
+    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$promo_codes_table} WHERE code=%s LIMIT 1", $code), ARRAY_A);
     return $row ?: null;
   }
 
@@ -111,7 +109,11 @@ final class POINTLYBOOKING_PromoCodeModel {
 
   public static function increment_use(int $id): void {
     global $wpdb;
-    $t = self::table();
-    $wpdb->query(self::prepare_with_table("UPDATE %i SET uses_count = uses_count + 1 WHERE id=%d", $t, [$id]));
+    $promo_codes_table = $wpdb->prefix . 'pointlybooking_promo_codes';
+    if (!self::is_safe_sql_identifier($promo_codes_table)) {
+      return;
+    }
+    $wpdb->query($wpdb->prepare("UPDATE {$promo_codes_table} SET uses_count = uses_count + 1 WHERE id=%d", $id));
   }
 }
+

@@ -223,8 +223,20 @@ add_action('rest_api_init', function () {
 function pointlybooking_rest_admin_customers_list(WP_REST_Request $req) {
   global $wpdb;
 
-  $tCustomers = pointlybooking_table('customers');
-  $tBookings  = pointlybooking_table('bookings');
+  $customers_table = $wpdb->prefix . 'pointlybooking_customers';
+  $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+  if (
+    !preg_match('/^[A-Za-z0-9_]+$/', $customers_table)
+    || !preg_match('/^[A-Za-z0-9_]+$/', $bookings_table)
+  ) {
+    return new WP_REST_Response([
+      'status' => 'success',
+      'data' => [
+        'items' => [],
+        'total' => 0,
+      ],
+    ], 200);
+  }
 
   $q = sanitize_text_field($req->get_param('q') ?? '');
   $page = max(1, absint($req->get_param('page') ?? 1));
@@ -232,41 +244,77 @@ function pointlybooking_rest_admin_customers_list(WP_REST_Request $req) {
   $sort = strtolower(sanitize_text_field($req->get_param('sort') ?? 'desc'));
   $sort = $sort === 'asc' ? 'ASC' : 'DESC';
   $offset = ($page - 1) * $per;
-
-  $where_clauses = ['1=1'];
-  $params = [];
-  if ($q !== '') {
-    $like = '%' . $wpdb->esc_like($q) . '%';
-    $where_clauses[] = '(c.first_name LIKE %s OR c.last_name LIKE %s OR c.email LIKE %s OR c.phone LIKE %s)';
-    $params[] = $like;
-    $params[] = $like;
-    $params[] = $like;
-    $params[] = $like;
+  $like = $q !== '' ? '%' . $wpdb->esc_like($q) . '%' : '';
+  $has_search = $like !== '' ? 1 : 0;
+  if ($sort === 'ASC') {
+    $rows = $wpdb->get_results(
+      $wpdb->prepare(
+        "SELECT
+          c.*,
+          (SELECT COUNT(*) FROM {$bookings_table} b WHERE b.customer_id = c.id) AS bookings_count
+        FROM {$customers_table} c
+        WHERE (
+          %d = 0
+          OR c.first_name LIKE %s
+          OR c.last_name LIKE %s
+          OR c.email LIKE %s
+          OR c.phone LIKE %s
+        )
+        ORDER BY c.id ASC
+        LIMIT %d OFFSET %d",
+        $has_search,
+        $like,
+        $like,
+        $like,
+        $like,
+        $per,
+        $offset
+      ),
+      ARRAY_A
+    );
+  } else {
+    $rows = $wpdb->get_results(
+      $wpdb->prepare(
+        "SELECT
+          c.*,
+          (SELECT COUNT(*) FROM {$bookings_table} b WHERE b.customer_id = c.id) AS bookings_count
+        FROM {$customers_table} c
+        WHERE (
+          %d = 0
+          OR c.first_name LIKE %s
+          OR c.last_name LIKE %s
+          OR c.email LIKE %s
+          OR c.phone LIKE %s
+        )
+        ORDER BY c.id DESC
+        LIMIT %d OFFSET %d",
+        $has_search,
+        $like,
+        $like,
+        $like,
+        $like,
+        $per,
+        $offset
+      ),
+      ARRAY_A
+    );
   }
-  $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
-  $items_sql = "SELECT
-        c.*,
-        (SELECT COUNT(*) FROM %i b WHERE b.customer_id = c.id) AS bookings_count
-      FROM %i c
-      " . $where_sql . "
-      ORDER BY c.id " . (($sort === 'ASC') ? 'ASC' : 'DESC') . "
-      LIMIT %d OFFSET %d";
 
-  $rows = $wpdb->get_results(
-    pointlybooking_prepare_query_with_identifiers(
-      $items_sql,
-      [$tBookings, $tCustomers],
-      array_merge($params, [$per, $offset])
-    ),
-    ARRAY_A
-  );
-
-  $count_sql = "SELECT COUNT(*) FROM %i c " . $where_sql;
   $total = (int)$wpdb->get_var(
-    pointlybooking_prepare_query_with_identifiers(
-      $count_sql,
-      [$tCustomers],
-      $params
+    $wpdb->prepare(
+      "SELECT COUNT(*) FROM {$customers_table} c
+       WHERE (
+         %d = 0
+         OR c.first_name LIKE %s
+         OR c.last_name LIKE %s
+         OR c.email LIKE %s
+         OR c.phone LIKE %s
+       )",
+      $has_search,
+      $like,
+      $like,
+      $like,
+      $like
     )
   );
 
@@ -289,13 +337,22 @@ function pointlybooking_rest_admin_customer_get(WP_REST_Request $req) {
   $tBookings  = $wpdb->prefix . 'pointlybooking_bookings';
   $tServices  = $wpdb->prefix . 'pointlybooking_services';
   $tAgents    = $wpdb->prefix . 'pointlybooking_agents';
+  if (
+    !preg_match('/^[A-Za-z0-9_]+$/', $tCustomers) ||
+    !preg_match('/^[A-Za-z0-9_]+$/', $tBookings) ||
+    !preg_match('/^[A-Za-z0-9_]+$/', $tServices) ||
+    !preg_match('/^[A-Za-z0-9_]+$/', $tAgents)
+  ) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid database tables'], 500);
+  }
+
+  $customers_table = $tCustomers;
+  $bookings_table = $tBookings;
+  $services_table = $tServices;
+  $agents_table = $tAgents;
 
   $customer = $wpdb->get_row(
-    pointlybooking_prepare_query_with_identifiers(
-      "SELECT * FROM %i WHERE id = %d",
-      [$tCustomers],
-      [$id]
-    ),
+    $wpdb->prepare("SELECT * FROM {$customers_table} WHERE id = %d", $id),
     ARRAY_A
   );
 
@@ -312,8 +369,7 @@ function pointlybooking_rest_admin_customer_get(WP_REST_Request $req) {
   }
 
   $rows = $wpdb->get_results(
-    pointlybooking_prepare_query_with_identifiers(
-      "SELECT
+    $wpdb->prepare("SELECT
         b.id,
         b.status,
         b.start_datetime,
@@ -324,15 +380,12 @@ function pointlybooking_rest_admin_customer_get(WP_REST_Request $req) {
         s.name AS service_name,
         a.first_name AS agent_first_name,
         a.last_name AS agent_last_name
-      FROM %i b
-      LEFT JOIN %i s ON s.id = b.service_id
-      LEFT JOIN %i a ON a.id = b.agent_id
+      FROM {$bookings_table} b
+      LEFT JOIN {$services_table} s ON s.id = b.service_id
+      LEFT JOIN {$agents_table} a ON a.id = b.agent_id
       WHERE b.customer_id = %d
       ORDER BY b.id DESC
-      LIMIT 100",
-      [$tBookings, $tServices, $tAgents],
-      [$id]
-    ),
+      LIMIT 100", $id),
     ARRAY_A
   ) ?: [];
 
@@ -426,15 +479,14 @@ function pointlybooking_rest_admin_customer_create(WP_REST_Request $req) {
 function pointlybooking_rest_admin_customer_form_fields(WP_REST_Request $req) {
   global $wpdb;
   $t = $wpdb->prefix . 'pointlybooking_form_fields';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+    return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
+  }
 
   $rows = $wpdb->get_results(
-    pointlybooking_prepare_query_with_identifiers(
-      "SELECT * FROM %i
+    $wpdb->prepare("SELECT * FROM {$t}
       WHERE scope=%s
-      ORDER BY sort_order ASC, id ASC",
-      [$t],
-      ['customer']
-    ),
+      ORDER BY sort_order ASC, id ASC", 'customer'),
     ARRAY_A
   ) ?: [];
 
@@ -682,12 +734,14 @@ function pointlybooking_rest_admin_audit_logs_clear(WP_REST_Request $req) {
   if (!class_exists('POINTLYBOOKING_AuditModel')) {
     return new WP_REST_Response(['status' => 'error', 'message' => 'Audit model missing'], 500);
   }
-  $t = pointlybooking_table('audit_log');
+  $audit_table = $wpdb->prefix . 'pointlybooking_audit_log';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $audit_table)) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid audit table'], 500);
+  }
+
+  // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- TRUNCATE cannot use value placeholders; this table name is the hardcoded plugin audit table plus the sanitized WordPress prefix.
   $ok = $wpdb->query(
-    pointlybooking_prepare_query_with_identifiers(
-      "TRUNCATE TABLE %i",
-      [$t]
-    )
+    "TRUNCATE TABLE {$audit_table}"
   );
   if ($ok === false) {
     return new WP_REST_Response(['status' => 'error', 'message' => 'Clear failed'], 500);
@@ -762,7 +816,7 @@ function pointlybooking_rest_admin_tools_status(WP_REST_Request $req) {
   $okCount = 0;
   foreach ($tables as $t) {
     $full = $wpdb->prefix . $t;
-    $isOk = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $full)) === $full);
+    $isOk = pointlybooking_db_table_exists($full);
     $exists[$t] = $isOk;
     if ($isOk) $okCount++;
   }
@@ -925,7 +979,7 @@ function pointlybooking_rest_admin_tools_report(WP_REST_Request $req) {
   $exists = [];
   foreach ($tables as $t) {
     $full = $wpdb->prefix . $t;
-    $exists[$t] = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $full)) === $full);
+    $exists[$t] = pointlybooking_db_table_exists($full);
   }
   $data['tables'] = $exists;
 
@@ -936,12 +990,12 @@ function pointlybooking_rest_admin_tools_export_settings(WP_REST_Request $req) {
   global $wpdb;
 
   $table = $wpdb->prefix . 'pointlybooking_settings';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+    return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid settings table'], 500);
+  }
 
   $rows = $wpdb->get_results(
-    pointlybooking_prepare_query_with_identifiers(
-      "SELECT setting_key, setting_value FROM %i",
-      [$table]
-    ),
+    "SELECT setting_key, setting_value FROM {$table}",
     ARRAY_A
   ) ?: [];
   $settings = [];
@@ -950,7 +1004,7 @@ function pointlybooking_rest_admin_tools_export_settings(WP_REST_Request $req) {
   }
 
   $payload = [
-    'plugin' => 'bookpoint-booking',
+    'plugin' => 'pointly-booking',
     'exported_at' => current_time('mysql'),
     'pointlybooking_settings' => $settings,
     'wp_options' => [
@@ -972,7 +1026,7 @@ function pointlybooking_rest_admin_tools_export_settings(WP_REST_Request $req) {
 function pointlybooking_rest_admin_tools_import_settings(WP_REST_Request $req) {
   $data = $req->get_json_params();
   $plugin_id = is_array($data) ? (string)($data['plugin'] ?? '') : '';
-  if (!is_array($data) || !in_array($plugin_id, ['bookpoint-booking', 'pointly-booking', 'bookpoint'], true)) {
+  if (!is_array($data) || !in_array($plugin_id, ['pointly-booking', 'pointly-booking', 'bookpoint'], true)) {
     return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid file'], 400);
   }
 
@@ -1019,3 +1073,4 @@ function pointlybooking_rest_admin_tools_import_settings(WP_REST_Request $req) {
 
   return new WP_REST_Response(['status' => 'success', 'message' => 'Settings imported', 'data' => ['applied' => $applied]], 200);
 }
+

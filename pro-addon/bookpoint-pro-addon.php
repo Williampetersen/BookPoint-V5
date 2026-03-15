@@ -6,7 +6,7 @@
  * Author: WP-BookPoint
  * Author URI: https://wpbookpoint.com/
  * Plugin URI: https://wpbookpoint.com/
- * Text Domain: bookpoint
+ * Text Domain: bookpoint-booking
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
@@ -24,7 +24,7 @@ add_action('plugins_loaded', function () {
     add_action('admin_notices', function () {
       if (!current_user_can('activate_plugins')) return;
       echo '<div class="notice notice-error"><p>';
-      echo esc_html__('BookPoint Pro Add-on requires the free BookPoint plugin to be installed and active.', 'bookpoint');
+      echo esc_html__('BookPoint Pro Add-on requires the free BookPoint plugin to be installed and active.', 'bookpoint-booking');
       echo '</p></div>';
     });
     return;

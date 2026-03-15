@@ -28,9 +28,12 @@ add_action('rest_api_init', function(){
 
       global $wpdb;
       $t = $wpdb->prefix . 'pointlybooking_bookings';
+      if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+        return new WP_REST_Response(['status'=>'success','data'=>[]], 200);
+      }
 
-      $rows = $wpdb->get_results($wpdb->prepare("
-        SELECT
+      $rows = $wpdb->get_results(
+        $wpdb->prepare("SELECT
           id,
           start_datetime,
           end_datetime,
@@ -43,8 +46,9 @@ add_action('rest_api_init', function(){
         WHERE start_datetime >= %s
           AND start_datetime < %s
         ORDER BY start_datetime ASC
-        LIMIT 2000
-      ", $start . ' 00:00:00', $end . ' 23:59:59'), ARRAY_A) ?: [];
+        LIMIT 2000", $start . ' 00:00:00', $end . ' 23:59:59'),
+        ARRAY_A
+      ) ?: [];
 
       $events = [];
       foreach($rows as $r){
@@ -66,3 +70,4 @@ add_action('rest_api_init', function(){
   ]);
 
 });
+

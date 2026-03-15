@@ -5,6 +5,14 @@ final class POINTLYBOOKING_SettingsHelper {
 
   const OPTION_KEY = 'pointlybooking_settings';
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . str_replace('`', '``', $identifier) . '`';
+  }
+
   private static function get_option_all(): array {
     $s = get_option(self::OPTION_KEY, []);
     return is_array($s) ? $s : [];
@@ -12,12 +20,15 @@ final class POINTLYBOOKING_SettingsHelper {
 
   private static function get_legacy(string $key, $default = null) {
     global $wpdb;
-    $table = self::table();
+    $table = $wpdb->prefix . 'pointlybooking_settings';
 
     $key = sanitize_key($key);
     if ($key === '') return $default;
+    if (!self::is_safe_sql_identifier($table)) return $default;
 
-    $val = $wpdb->get_var($wpdb->prepare("SELECT setting_value FROM {$table} WHERE setting_key = %s LIMIT 1", $key));
+    $val = $wpdb->get_var(
+      $wpdb->prepare("SELECT setting_value FROM {$table} WHERE setting_key = %s LIMIT 1", $key)
+    );
     if ($val === null) return $default;
 
     return maybe_unserialize($val);
@@ -89,16 +100,19 @@ final class POINTLYBOOKING_SettingsHelper {
 
   public static function set(string $key, $value) : bool {
     global $wpdb;
-    $table = self::table();
+    $table = $wpdb->prefix . 'pointlybooking_settings';
 
     $key = sanitize_key($key);
     if ($key === '') return false;
+    if (!self::is_safe_sql_identifier($table)) return false;
 
     $value = maybe_serialize($value);
     $now = current_time('mysql');
 
     // Upsert
-    $exists = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE setting_key = %s", $key));
+    $exists = (int)$wpdb->get_var(
+      $wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE setting_key = %s", $key)
+    );
     if ($exists > 0) {
       $updated = $wpdb->update($table, [
         'setting_value' => $value,
@@ -181,3 +195,4 @@ final class POINTLYBOOKING_SettingsHelper {
     return self::get($key, $defaults[$key] ?? null);
   }
 }
+

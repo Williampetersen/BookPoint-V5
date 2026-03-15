@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 defined('ABSPATH') || exit;
 require_once __DIR__ . '/legacy_shell.php';
 
@@ -36,10 +37,10 @@ function pointlybooking_field_error($errors, $key) {
 }
 ?>
 <?php
-$pointlybooking_actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=pointlybooking_services')) . '">' . esc_html__('Back to Services', 'bookpoint-booking') . '</a>';
+$pointlybooking_actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=pointlybooking_services')) . '">' . esc_html__('Back to Services', 'pointly-booking') . '</a>';
 pointlybooking_render_legacy_shell_start(
-  $id ? esc_html__('Edit Service', 'bookpoint-booking') : esc_html__('Add Service', 'bookpoint-booking'),
-  esc_html__('Manage service details, pricing, and availability.', 'bookpoint-booking'),
+  $id ? esc_html__('Edit Service', 'pointly-booking') : esc_html__('Add Service', 'pointly-booking'),
+  esc_html__('Manage service details, pricing, and availability.', 'pointly-booking'),
   $pointlybooking_actions_html,
   'services'
 );
@@ -52,7 +53,7 @@ pointlybooking_render_legacy_shell_start(
 
     <table class="form-table" role="presentation">
       <tr>
-        <th><label for="pointlybooking_name"><?php echo esc_html__('Name', 'bookpoint-booking'); ?></label></th>
+        <th><label for="pointlybooking_name"><?php echo esc_html__('Name', 'pointly-booking'); ?></label></th>
         <td>
           <input type="text" id="pointlybooking_name" name="name" class="regular-text" value="<?php echo esc_attr($name); ?>" required>
           <?php pointlybooking_field_error($errors, 'name'); ?>
@@ -60,7 +61,7 @@ pointlybooking_render_legacy_shell_start(
       </tr>
 
       <tr>
-        <th><label for="pointlybooking_duration"><?php echo esc_html__('Duration (minutes)', 'bookpoint-booking'); ?></label></th>
+        <th><label for="pointlybooking_duration"><?php echo esc_html__('Duration (minutes)', 'pointly-booking'); ?></label></th>
         <td>
           <input type="number" id="pointlybooking_duration" name="duration_minutes" min="5" max="1440" value="<?php echo esc_attr($duration); ?>">
           <?php pointlybooking_field_error($errors, 'duration_minutes'); ?>
@@ -68,16 +69,16 @@ pointlybooking_render_legacy_shell_start(
       </tr>
 
       <tr>
-        <th><label for="pointlybooking_price"><?php echo esc_html__('Price (cents)', 'bookpoint-booking'); ?></label></th>
+        <th><label for="pointlybooking_price"><?php echo esc_html__('Price (cents)', 'pointly-booking'); ?></label></th>
         <td>
           <input type="number" id="pointlybooking_price" name="price_cents" min="0" value="<?php echo esc_attr($price_cents); ?>">
-          <p class="description"><?php echo esc_html__('Example: 2500 = 25.00', 'bookpoint-booking'); ?></p>
+          <p class="description"><?php echo esc_html__('Example: 2500 = 25.00', 'pointly-booking'); ?></p>
           <?php pointlybooking_field_error($errors, 'price_cents'); ?>
         </td>
       </tr>
 
       <tr>
-        <th><label for="pointlybooking_currency"><?php echo esc_html__('Currency', 'bookpoint-booking'); ?></label></th>
+        <th><label for="pointlybooking_currency"><?php echo esc_html__('Currency', 'pointly-booking'); ?></label></th>
         <td>
           <input type="text" id="pointlybooking_currency" name="currency" maxlength="3" value="<?php echo esc_attr($currency); ?>">
           <?php pointlybooking_field_error($errors, 'currency'); ?>
@@ -85,14 +86,14 @@ pointlybooking_render_legacy_shell_start(
       </tr>
 
       <tr>
-        <th><?php echo esc_html__('Description', 'bookpoint-booking'); ?></th>
+        <th><?php echo esc_html__('Description', 'pointly-booking'); ?></th>
         <td>
           <textarea name="description" rows="5" class="large-text"><?php echo esc_textarea($description); ?></textarea>
         </td>
       </tr>
 
       <tr>
-        <th><label><?php echo esc_html__('Categories', 'bookpoint-booking'); ?></label></th>
+        <th><label><?php echo esc_html__('Categories', 'pointly-booking'); ?></label></th>
         <td>
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:760px;">
             <?php foreach ($categories as $cat):
@@ -109,12 +110,12 @@ pointlybooking_render_legacy_shell_start(
               </label>
             <?php endforeach; ?>
           </div>
-          <p class="description"><?php echo esc_html__('A service can belong to multiple categories.', 'bookpoint-booking'); ?></p>
+          <p class="description"><?php echo esc_html__('A service can belong to multiple categories.', 'pointly-booking'); ?></p>
         </td>
       </tr>
 
       <tr>
-        <th><label><?php echo esc_html__('Service Image', 'bookpoint-booking'); ?></label></th>
+        <th><label><?php echo esc_html__('Service Image', 'pointly-booking'); ?></label></th>
         <td>
           <input type="hidden" name="image_id" id="pointlybooking_service_image_id" value="<?php echo esc_attr((string)$image_id); ?>">
 
@@ -123,39 +124,39 @@ pointlybooking_render_legacy_shell_start(
               <img src="<?php echo esc_url($image_url); ?>" style="width:140px;height:140px;object-fit:cover;border-radius:14px;border:1px solid #ddd;">
             <?php else: ?>
               <div style="width:140px;height:140px;border-radius:14px;border:1px dashed #ccc;display:flex;align-items:center;justify-content:center;color:#777;">
-                <?php echo esc_html__('No image', 'bookpoint-booking'); ?>
+                <?php echo esc_html__('No image', 'pointly-booking'); ?>
               </div>
             <?php endif; ?>
           </div>
 
-          <button type="button" class="button" id="pointlybooking_service_pick_image"><?php echo esc_html__('Choose Image', 'bookpoint-booking'); ?></button>
-          <button type="button" class="button" id="pointlybooking_service_remove_image"><?php echo esc_html__('Remove', 'bookpoint-booking'); ?></button>
+          <button type="button" class="button" id="pointlybooking_service_pick_image"><?php echo esc_html__('Choose Image', 'pointly-booking'); ?></button>
+          <button type="button" class="button" id="pointlybooking_service_remove_image"><?php echo esc_html__('Remove', 'pointly-booking'); ?></button>
 
-          <p class="description"><?php echo esc_html__('Stored as Media Library attachment ID.', 'bookpoint-booking'); ?></p>
+          <p class="description"><?php echo esc_html__('Stored as Media Library attachment ID.', 'pointly-booking'); ?></p>
         </td>
       </tr>
 
       <tr>
-        <th><?php echo esc_html__('Active', 'bookpoint-booking'); ?></th>
+        <th><?php echo esc_html__('Active', 'pointly-booking'); ?></th>
         <td>
           <label>
             <input type="checkbox" name="is_active" value="1" <?php checked($is_active, 1); ?>>
-            <?php echo esc_html__('Service is active', 'bookpoint-booking'); ?>
+            <?php echo esc_html__('Service is active', 'pointly-booking'); ?>
           </label>
         </td>
       </tr>
 
       <tr>
-        <th><label for="pointlybooking_capacity"><?php echo esc_html__('Capacity', 'bookpoint-booking'); ?></label></th>
+        <th><label for="pointlybooking_capacity"><?php echo esc_html__('Capacity', 'pointly-booking'); ?></label></th>
         <td>
           <input id="pointlybooking_capacity" type="number" min="1" max="50" name="capacity" value="<?php echo esc_attr($capacity); ?>">
           <?php pointlybooking_field_error($errors, 'capacity'); ?>
-          <p class="description"><?php echo esc_html__('How many bookings can be made for the same time slot.', 'bookpoint-booking'); ?></p>
+          <p class="description"><?php echo esc_html__('How many bookings can be made for the same time slot.', 'pointly-booking'); ?></p>
         </td>
       </tr>
 
       <tr>
-        <th><label for="pointlybooking_buf_before"><?php echo esc_html__('Buffer before (minutes)', 'bookpoint-booking'); ?></label></th>
+        <th><label for="pointlybooking_buf_before"><?php echo esc_html__('Buffer before (minutes)', 'pointly-booking'); ?></label></th>
         <td>
           <input id="pointlybooking_buf_before" type="number" min="0" max="240" name="buffer_before_minutes" value="<?php echo esc_attr($buffer_before); ?>">
           <?php pointlybooking_field_error($errors, 'buffer_before_minutes'); ?>
@@ -163,7 +164,7 @@ pointlybooking_render_legacy_shell_start(
       </tr>
 
       <tr>
-        <th><label for="pointlybooking_buf_after"><?php echo esc_html__('Buffer after (minutes)', 'bookpoint-booking'); ?></label></th>
+        <th><label for="pointlybooking_buf_after"><?php echo esc_html__('Buffer after (minutes)', 'pointly-booking'); ?></label></th>
         <td>
           <input id="pointlybooking_buf_after" type="number" min="0" max="240" name="buffer_after_minutes" value="<?php echo esc_attr($buffer_after); ?>">
           <?php pointlybooking_field_error($errors, 'buffer_after_minutes'); ?>
@@ -171,28 +172,28 @@ pointlybooking_render_legacy_shell_start(
       </tr>
 
       <tr>
-        <th><?php echo esc_html__('Use Global Schedule', 'bookpoint-booking'); ?></th>
+        <th><?php echo esc_html__('Use Global Schedule', 'pointly-booking'); ?></th>
         <td>
           <label>
             <input type="checkbox" name="use_global_schedule" value="1" <?php checked($use_global_schedule, 1); ?>>
-            <?php echo esc_html__('Use global weekly schedule from Settings', 'bookpoint-booking'); ?>
+            <?php echo esc_html__('Use global weekly schedule from Settings', 'pointly-booking'); ?>
           </label>
-          <p class="description"><?php echo esc_html__('If disabled, you can provide a service-specific schedule JSON below.', 'bookpoint-booking'); ?></p>
+          <p class="description"><?php echo esc_html__('If disabled, you can provide a service-specific schedule JSON below.', 'pointly-booking'); ?></p>
         </td>
       </tr>
 
       <tr>
-        <th><?php echo esc_html__('Service Schedule JSON', 'bookpoint-booking'); ?></th>
+        <th><?php echo esc_html__('Service Schedule JSON', 'pointly-booking'); ?></th>
         <td>
           <textarea name="schedule_json" rows="4" class="large-text" placeholder='{"1":"09:00-17:00","2":"09:00-17:00","0":""}'><?php echo esc_textarea($schedule_json); ?></textarea>
           <?php pointlybooking_field_error($errors, 'schedule_json'); ?>
-          <p class="description"><?php echo esc_html__('Optional. Keys are weekday numbers 0-6. Values are "HH:MM-HH:MM" or empty for closed.', 'bookpoint-booking'); ?></p>
+          <p class="description"><?php echo esc_html__('Optional. Keys are weekday numbers 0-6. Values are "HH:MM-HH:MM" or empty for closed.', 'pointly-booking'); ?></p>
         </td>
       </tr>
     </table>
 
     <h2 style="margin:18px 0 10px;">
-      <?php esc_html_e('Agents for this service', 'bookpoint-booking'); ?>
+      <?php esc_html_e('Agents for this service', 'pointly-booking'); ?>
     </h2>
 
     <?php if (!empty($all_agents)) : ?>
@@ -206,15 +207,15 @@ pointlybooking_render_legacy_shell_start(
         </label>
       <?php endforeach; ?>
     <?php else : ?>
-      <p class="bp-muted"><?php esc_html_e('No agents yet. Add agents first.', 'bookpoint-booking'); ?></p>
+      <p class="bp-muted"><?php esc_html_e('No agents yet. Add agents first.', 'pointly-booking'); ?></p>
     <?php endif; ?>
 
     <p class="submit">
-      <button type="submit" class="bp-btn bp-btn-primary"><?php echo esc_html__('Save Service', 'bookpoint-booking'); ?></button>
-      <a class="bp-btn" href="<?php echo esc_url(admin_url('admin.php?page=pointlybooking_services')); ?>"><?php echo esc_html__('Back', 'bookpoint-booking'); ?></a>
+      <button type="submit" class="bp-btn bp-btn-primary"><?php echo esc_html__('Save Service', 'pointly-booking'); ?></button>
+      <a class="bp-btn" href="<?php echo esc_url(admin_url('admin.php?page=pointlybooking_services')); ?>"><?php echo esc_html__('Back', 'pointly-booking'); ?></a>
       <?php if ($id): ?>
-        <a class="bp-btn bp-btn-danger" href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=pointlybooking_services_delete&id=' . absint($id)), 'pointlybooking_admin')); ?>" onclick="return confirm('<?php echo esc_js(__('Delete service?', 'bookpoint-booking')); ?>');">
-          <?php echo esc_html__('Delete', 'bookpoint-booking'); ?>
+        <a class="bp-btn bp-btn-danger" href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=pointlybooking_services_delete&id=' . absint($id)), 'pointlybooking_admin')); ?>" onclick="return confirm('<?php echo esc_js(__('Delete service?', 'pointly-booking')); ?>');">
+          <?php echo esc_html__('Delete', 'pointly-booking'); ?>
         </a>
       <?php endif; ?>
     </p>

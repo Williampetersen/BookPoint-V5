@@ -69,14 +69,20 @@ function pointlybooking_rest_front_locations() {
   }
 
   global $wpdb;
-  $t = $wpdb->prefix . 'pointlybooking_locations';
+  $locations_table = $wpdb->prefix . 'pointlybooking_locations';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $locations_table)) {
+    return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
+  }
 
-  $exists = (string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t)) === $t;
+  $exists = pointlybooking_db_table_exists($locations_table);
   if (!$exists) {
     return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
   }
 
-  $rows = $wpdb->get_results("SELECT id,name,address,status,image_id FROM {$t} WHERE status='active' ORDER BY id DESC", ARRAY_A) ?: [];
+  $rows = $wpdb->get_results(
+    "SELECT id,name,address,status,image_id FROM {$locations_table} WHERE status='active' ORDER BY id DESC",
+    ARRAY_A
+  ) ?: [];
 
   foreach ($rows as &$r) {
     $r['id'] = (int)$r['id'];
@@ -100,9 +106,12 @@ function pointlybooking_rest_front_categories() {
 
 function pointlybooking_front_services_format_rows(array $rows): array {
   global $wpdb;
-  $t = $wpdb->prefix . 'pointlybooking_services';
+  $services_table = $wpdb->prefix . 'pointlybooking_services';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $services_table)) {
+    return [];
+  }
 
-  $cols = $wpdb->get_col("SHOW COLUMNS FROM {$t}") ?: [];
+  $cols = pointlybooking_db_table_columns($services_table);
   $has_price_cents = in_array('price_cents', $cols, true);
   $has_duration_minutes = in_array('duration_minutes', $cols, true);
   $has_buffer_before_minutes = in_array('buffer_before_minutes', $cols, true);
@@ -139,8 +148,11 @@ function pointlybooking_front_services_format_rows(array $rows): array {
 
 function pointlybooking_rest_front_services(WP_REST_Request $req) {
   global $wpdb;
-  $t = $wpdb->prefix . 'pointlybooking_services';
-  $t_rel = $wpdb->prefix . 'pointlybooking_service_categories';
+  $services_table = $wpdb->prefix . 'pointlybooking_services';
+  $relation_table = $wpdb->prefix . 'pointlybooking_service_categories';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $services_table) || !preg_match('/^[A-Za-z0-9_]+$/', $relation_table)) {
+    return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
+  }
 
   $p = $req->get_json_params();
   if (!is_array($p)) $p = [];
@@ -148,32 +160,56 @@ function pointlybooking_rest_front_services(WP_REST_Request $req) {
   if (!is_array($category_ids)) $category_ids = [];
   $category_ids = array_values(array_filter(array_map('intval', $category_ids)));
 
-  $cols = $wpdb->get_col("SHOW COLUMNS FROM {$t}") ?: [];
+  $cols = pointlybooking_db_table_columns($services_table);
   $has_is_active = in_array('is_active', $cols, true);
 
   $rows = [];
-  $rel_exists = (string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t_rel)) === $t_rel;
+  $rel_exists = pointlybooking_db_table_exists($relation_table);
 
   if ($category_ids && $rel_exists) {
-    $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
-    $where = "WHERE sc.category_id IN ({$placeholders})";
-    if ($has_is_active) $where .= ' AND s.is_active=1';
+    $service_ids = [];
+    foreach ($category_ids as $category_id) {
+      $matched = $wpdb->get_col(
+        $wpdb->prepare("SELECT service_id FROM {$relation_table} WHERE category_id=%d", (int)$category_id)
+      ) ?: [];
+      foreach ($matched as $service_id) {
+        $service_id = (int)$service_id;
+        if ($service_id > 0) {
+          $service_ids[$service_id] = true;
+        }
+      }
+    }
 
-    $rows = $wpdb->get_results(
-      $wpdb->prepare(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- table names are generated from $wpdb->prefix + hardcoded suffix; IN clause placeholders are built dynamically from sanitized integer IDs.
-        "SELECT s.*
-        FROM {$t} s
-        INNER JOIN {$t_rel} sc ON sc.service_id=s.id
-        {$where}
-        ORDER BY s.id DESC",
-        $category_ids
-      ),
-      ARRAY_A
-    ) ?: [];
+    if (!empty($service_ids)) {
+      if ($has_is_active) {
+        $rows = $wpdb->get_results(
+          "SELECT * FROM {$services_table} WHERE is_active=1 ORDER BY id DESC",
+          ARRAY_A
+        ) ?: [];
+      } else {
+        $rows = $wpdb->get_results(
+          "SELECT * FROM {$services_table} ORDER BY id DESC",
+          ARRAY_A
+        ) ?: [];
+      }
+
+      $rows = array_values(array_filter($rows, static function ($row) use ($service_ids) {
+        $service_id = (int)($row['id'] ?? 0);
+        return $service_id > 0 && isset($service_ids[$service_id]);
+      }));
+    }
   } else {
-    $where = $has_is_active ? 'WHERE is_active=1' : '';
-    $rows = $wpdb->get_results("SELECT * FROM {$t} {$where} ORDER BY id DESC", ARRAY_A) ?: [];
+    if ($has_is_active) {
+      $rows = $wpdb->get_results(
+        "SELECT * FROM {$services_table} WHERE is_active=1 ORDER BY id DESC",
+        ARRAY_A
+      ) ?: [];
+    } else {
+      $rows = $wpdb->get_results(
+        "SELECT * FROM {$services_table} ORDER BY id DESC",
+        ARRAY_A
+      ) ?: [];
+    }
   }
 
   $rows = pointlybooking_front_services_format_rows($rows);
@@ -285,13 +321,17 @@ function pointlybooking_rest_front_form_fields() {
 
 function pointlybooking_rest_front_form_fields_active() {
   global $wpdb;
-  $t = $wpdb->prefix . 'pointlybooking_form_fields';
+  $form_fields_table = $wpdb->prefix . 'pointlybooking_form_fields';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $form_fields_table)) {
+    return new WP_REST_Response(['status' => 'success', 'data' => ['form'=>[], 'customer'=>[], 'booking'=>[]]], 200);
+  }
 
-  $rows = $wpdb->get_results("
-    SELECT * FROM {$t}
+  $rows = $wpdb->get_results(
+    "SELECT * FROM {$form_fields_table}
     WHERE is_enabled=1 AND show_in_wizard=1
-    ORDER BY scope ASC, sort_order ASC, id ASC
-  ", ARRAY_A) ?: [];
+    ORDER BY scope ASC, sort_order ASC, id ASC",
+    ARRAY_A
+  ) ?: [];
 
   $out = ['form'=>[], 'customer'=>[], 'booking'=>[]];
 
@@ -384,4 +424,5 @@ function pointlybooking_rest_front_availability_month(WP_REST_Request $req) {
   set_transient($cache_key, $data, 60); // 60s cache
   return new WP_REST_Response(['status' => 'success', 'data' => $data], 200);
 }
+
 

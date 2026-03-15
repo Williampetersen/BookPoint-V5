@@ -127,20 +127,15 @@ function pointlybooking_rest_public_availability_slots(WP_REST_Request $req) {
 function pointlybooking_generate_slots_for_public(string $date, int $agent_id, int $service_id, int $occupied_min, int $capacity, array &$debug_meta = []): array {
   global $wpdb;
 
-  $t_book = $wpdb->prefix . 'pointlybooking_bookings';
-  $t_srv  = $wpdb->prefix . 'pointlybooking_services';
+  $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $bookings_table)) {
+    return [];
+  }
 
-  $cols = $wpdb->get_col("SHOW COLUMNS FROM {$t_srv}") ?: [];
-  $has_duration_minutes = in_array('duration_minutes', $cols, true);
-  $has_duration = in_array('duration', $cols, true);
-  $has_buffer_before_minutes = in_array('buffer_before_minutes', $cols, true);
-  $has_buffer_after_minutes = in_array('buffer_after_minutes', $cols, true);
-  $has_buffer_before = in_array('buffer_before', $cols, true);
-  $has_buffer_after = in_array('buffer_after', $cols, true);
-
-  $duration_expr = $has_duration_minutes ? 's.duration_minutes' : ($has_duration ? 's.duration' : '30');
-  $buffer_before_expr = $has_buffer_before_minutes ? 's.buffer_before_minutes' : ($has_buffer_before ? 's.buffer_before' : '0');
-  $buffer_after_expr = $has_buffer_after_minutes ? 's.buffer_after_minutes' : ($has_buffer_after ? 's.buffer_after' : '0');
+  $booking_columns = pointlybooking_db_table_columns($bookings_table);
+  $has_start_date = in_array('start_date', $booking_columns, true);
+  $has_start_time = in_array('start_time', $booking_columns, true);
+  $has_start_datetime = in_array('start_datetime', $booking_columns, true);
 
   $step = 15;
   if (class_exists('POINTLYBOOKING_SettingsHelper')) {
@@ -180,6 +175,57 @@ function pointlybooking_generate_slots_for_public(string $date, int $agent_id, i
   $debug_meta['step'] = $step;
   $debug_meta['windows'] = $windows;
 
+  $existing_intervals = [];
+  if ($has_start_date && $has_start_time) {
+    $existing_rows = $wpdb->get_results(
+      $wpdb->prepare(
+        "SELECT service_id, start_time
+        FROM {$bookings_table}
+        WHERE agent_id=%d
+          AND start_date=%s
+          AND status IN ('pending','confirmed')",
+        $agent_id,
+        $date
+      ),
+      ARRAY_A
+    ) ?: [];
+    foreach ($existing_rows as $existing_row) {
+      $rules = POINTLYBOOKING_ScheduleHelper::get_service_rules((int)($existing_row['service_id'] ?? 0));
+      $existing_start_ts = strtotime($date . ' ' . (string)($existing_row['start_time'] ?? ''));
+      if ($existing_start_ts === false) {
+        continue;
+      }
+      $existing_intervals[] = [
+        'start' => $existing_start_ts,
+        'end' => $existing_start_ts + (max(5, (int)($rules['occupied_min'] ?? 30)) * 60),
+      ];
+    }
+  } elseif ($has_start_datetime) {
+    $existing_rows = $wpdb->get_results(
+      $wpdb->prepare(
+        "SELECT service_id, start_datetime
+        FROM {$bookings_table}
+        WHERE agent_id=%d
+          AND DATE(start_datetime)=%s
+          AND status IN ('pending','confirmed')",
+        $agent_id,
+        $date
+      ),
+      ARRAY_A
+    ) ?: [];
+    foreach ($existing_rows as $existing_row) {
+      $rules = POINTLYBOOKING_ScheduleHelper::get_service_rules((int)($existing_row['service_id'] ?? 0));
+      $existing_start_ts = strtotime((string)($existing_row['start_datetime'] ?? ''));
+      if ($existing_start_ts === false) {
+        continue;
+      }
+      $existing_intervals[] = [
+        'start' => $existing_start_ts,
+        'end' => $existing_start_ts + (max(5, (int)($rules['occupied_min'] ?? 30)) * 60),
+      ];
+    }
+  }
+
   foreach ($windows as $w) {
     $wStart = isset($w['start']) ? $w['start'] : ($w['start_time'] ?? '08:00');
     $wEnd = isset($w['end']) ? $w['end'] : ($w['end_time'] ?? '20:00');
@@ -196,52 +242,20 @@ function pointlybooking_generate_slots_for_public(string $date, int $agent_id, i
         continue;
       }
 
-    if ($capacity <= 1) {
-      $conflict = (int)$wpdb->get_var($wpdb->prepare("
-        SELECT COUNT(*)
-        FROM {$t_book} b
-        LEFT JOIN {$t_srv} s ON s.id=b.service_id
-        WHERE b.agent_id=%d
-          AND b.start_date=%s
-          AND b.status IN ('pending','confirmed')
-          AND (
-            STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s')
-            < STR_TO_DATE(CONCAT(%s,' ',%s), '%%Y-%%m-%%d %%H:%%i:%%s')
-          )
-          AND (
-            DATE_ADD(
-              STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-              INTERVAL (COALESCE({$duration_expr},30)+COALESCE({$buffer_before_expr},0)+COALESCE({$buffer_after_expr},0)) MINUTE
-            )
-            > STR_TO_DATE(CONCAT(%s,' ',%s), '%%Y-%%m-%%d %%H:%%i:%%s')
-          )
-        LIMIT 1
-      ", $agent_id, $date, $date, $end_time, $date, $start_time));
+      $slot_start_ts = $t;
+      $slot_end_ts = $t + ($occupied_min * 60);
+      $overlap_count = 0;
+      foreach ($existing_intervals as $existing_interval) {
+        if ($existing_interval['start'] < $slot_end_ts && $existing_interval['end'] > $slot_start_ts) {
+          $overlap_count++;
+          if ($capacity <= 1) {
+            break;
+          }
+        }
+      }
 
-      if ($conflict > 0) continue;
-    } else {
-      $overlapCount = (int)$wpdb->get_var($wpdb->prepare("
-        SELECT COUNT(*)
-        FROM {$t_book} b
-        LEFT JOIN {$t_srv} s ON s.id=b.service_id
-        WHERE b.agent_id=%d
-          AND b.start_date=%s
-          AND b.status IN ('pending','confirmed')
-          AND (
-            STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s')
-            < STR_TO_DATE(CONCAT(%s,' ',%s), '%%Y-%%m-%%d %%H:%%i:%%s')
-          )
-          AND (
-            DATE_ADD(
-              STR_TO_DATE(CONCAT(b.start_date,' ',b.start_time), '%%Y-%%m-%%d %%H:%%i:%%s'),
-              INTERVAL (COALESCE({$duration_expr},30)+COALESCE({$buffer_before_expr},0)+COALESCE({$buffer_after_expr},0)) MINUTE
-            )
-            > STR_TO_DATE(CONCAT(%s,' ',%s), '%%Y-%%m-%%d %%H:%%i:%%s')
-          )
-      ", $agent_id, $date, $date, $end_time, $date, $start_time));
-
-      if ($overlapCount >= $capacity) continue;
-    }
+      if ($capacity <= 1 && $overlap_count > 0) continue;
+      if ($capacity > 1 && $overlap_count >= $capacity) continue;
 
       $slots[] = [
         'start_time' => $start_time,
@@ -253,4 +267,5 @@ function pointlybooking_generate_slots_for_public(string $date, int $agent_id, i
 
   return $slots;
 }
+
 

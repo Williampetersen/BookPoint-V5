@@ -19,17 +19,17 @@ final class POINTLYBOOKING_AdminServicesController extends POINTLYBOOKING_Contro
     $raw = trim((string) $raw);
     if ($raw === '') return null;
     if (strlen($raw) > 5000) {
-      $errors['schedule_json'] = __('Schedule JSON is too large.', 'bookpoint-booking');
+      $errors['schedule_json'] = __('Schedule JSON is too large.', 'pointly-booking');
       return null;
     }
 
     $decoded = json_decode($raw, true);
     if (!is_array($decoded) || json_last_error() !== JSON_ERROR_NONE) {
-      $errors['schedule_json'] = __('Schedule JSON must be a valid JSON object.', 'bookpoint-booking');
+      $errors['schedule_json'] = __('Schedule JSON must be a valid JSON object.', 'pointly-booking');
       return null;
     }
     if (count($decoded) > 7) {
-      $errors['schedule_json'] = __('Schedule JSON can contain at most 7 weekday entries.', 'bookpoint-booking');
+      $errors['schedule_json'] = __('Schedule JSON can contain at most 7 weekday entries.', 'pointly-booking');
       return null;
     }
 
@@ -37,11 +37,11 @@ final class POINTLYBOOKING_AdminServicesController extends POINTLYBOOKING_Contro
     foreach ($decoded as $day => $range) {
       $day_key = (string) $day;
       if (!preg_match('/^[0-6]$/', $day_key)) {
-        $errors['schedule_json'] = __('Schedule JSON keys must be weekday numbers 0-6.', 'bookpoint-booking');
+        $errors['schedule_json'] = __('Schedule JSON keys must be weekday numbers 0-6.', 'pointly-booking');
         return null;
       }
       if (is_array($range) || is_object($range)) {
-        $errors['schedule_json'] = __('Schedule values must be strings like HH:MM-HH:MM or empty.', 'bookpoint-booking');
+        $errors['schedule_json'] = __('Schedule values must be strings like HH:MM-HH:MM or empty.', 'pointly-booking');
         return null;
       }
       $range_str = trim((string) $range);
@@ -51,12 +51,12 @@ final class POINTLYBOOKING_AdminServicesController extends POINTLYBOOKING_Contro
       }
       $parsed = $this->parse_hhmm_range($range_str);
       if ($parsed === null) {
-        $errors['schedule_json'] = __('Schedule values must use HH:MM-HH:MM format.', 'bookpoint-booking');
+        $errors['schedule_json'] = __('Schedule values must use HH:MM-HH:MM format.', 'pointly-booking');
         return null;
       }
       [$open, $close] = $parsed;
       if ($this->hhmm_to_minutes($close) <= $this->hhmm_to_minutes($open)) {
-        $errors['schedule_json'] = __('Schedule range end must be after start.', 'bookpoint-booking');
+        $errors['schedule_json'] = __('Schedule range end must be after start.', 'pointly-booking');
         return null;
       }
       $normalized[$day_key] = $open . '-' . $close;
@@ -66,7 +66,7 @@ final class POINTLYBOOKING_AdminServicesController extends POINTLYBOOKING_Contro
 
     $normalized_json = wp_json_encode($normalized);
     if (!is_string($normalized_json) || $normalized_json === '') {
-      $errors['schedule_json'] = __('Schedule JSON could not be normalized.', 'bookpoint-booking');
+      $errors['schedule_json'] = __('Schedule JSON could not be normalized.', 'pointly-booking');
       return null;
     }
 
@@ -79,17 +79,19 @@ final class POINTLYBOOKING_AdminServicesController extends POINTLYBOOKING_Contro
     $services = POINTLYBOOKING_ServiceModel::all();
     $this->render('admin/services_index', [
       'services' => $services,
+      'updated_notice' => $this->query_text('updated') !== '',
+      'deleted_notice' => $this->query_text('deleted') !== '',
     ]);
   }
 
   public function edit() : void {
     $this->require_cap('pointlybooking_manage_services');
 
-    $id = isset($_GET['id']) ? absint(wp_unslash($_GET['id'])) : 0;
+    $id = $this->query_absint('id');
     if ($id > 0) {
-      $nonce = sanitize_text_field(wp_unslash($_GET['pointlybooking_edit_nonce'] ?? ''));
+      $nonce = $this->query_text('pointlybooking_edit_nonce');
       if (!wp_verify_nonce($nonce, 'pointlybooking_edit_service_' . $id)) {
-        wp_die(esc_html__('Security check failed.', 'bookpoint-booking'));
+        wp_die(esc_html__('Security check failed.', 'pointly-booking'));
       }
     }
     $service = $id ? POINTLYBOOKING_ServiceModel::find($id) : null;
@@ -113,31 +115,30 @@ final class POINTLYBOOKING_AdminServicesController extends POINTLYBOOKING_Contro
 
     check_admin_referer('pointlybooking_admin');
 
-    $id = isset($_POST['id']) ? absint(wp_unslash($_POST['id'])) : 0;
+    $id = $this->post_absint('id');
 
     $schedule_errors = [];
-    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized/validated in sanitize_schedule_json().
-    $schedule_json_input = wp_unslash($_POST['schedule_json'] ?? '');
+    $schedule_json_input = filter_input(INPUT_POST, 'schedule_json', FILTER_UNSAFE_RAW);
     $schedule_json_raw = '';
-    if (is_scalar($schedule_json_input)) {
-      $schedule_json_raw = (string) $schedule_json_input;
-    } elseif ($schedule_json_input !== null) {
-      $schedule_errors['schedule_json'] = __('Invalid schedule data.', 'bookpoint-booking');
+    if (is_string($schedule_json_input)) {
+      $schedule_json_raw = sanitize_textarea_field($schedule_json_input);
+    } elseif ($schedule_json_input !== null && $schedule_json_input !== false) {
+      $schedule_errors['schedule_json'] = __('Invalid schedule data.', 'pointly-booking');
     }
     $data = [
-      'name' => sanitize_text_field(wp_unslash($_POST['name'] ?? '')),
-      'description' => wp_kses_post(wp_unslash($_POST['description'] ?? '')),
+      'name' => $this->post_text('name'),
+      'description' => wp_kses_post($this->post_raw('description')),
       'category_id' => 0,
-      'image_id' => absint(wp_unslash($_POST['image_id'] ?? 0)),
-      'duration_minutes' => absint(wp_unslash($_POST['duration_minutes'] ?? 60)),
-      'price_cents' => absint(wp_unslash($_POST['price_cents'] ?? 0)),
-      'currency' => sanitize_key(wp_unslash($_POST['currency'] ?? 'usd')),
-      'is_active' => isset($_POST['is_active']) ? 1 : 0,
+      'image_id' => $this->post_absint('image_id'),
+      'duration_minutes' => $this->post_absint('duration_minutes') ?: 60,
+      'price_cents' => $this->post_absint('price_cents'),
+      'currency' => $this->post_key('currency') ?: 'usd',
+      'is_active' => $this->has_post_field('is_active') ? 1 : 0,
       // Step 15: Service-based availability
-      'capacity' => absint(wp_unslash($_POST['capacity'] ?? 1)),
-      'buffer_before_minutes' => absint(wp_unslash($_POST['buffer_before_minutes'] ?? 0)),
-      'buffer_after_minutes' => absint(wp_unslash($_POST['buffer_after_minutes'] ?? 0)),
-      'use_global_schedule' => isset($_POST['use_global_schedule']) ? 1 : 0,
+      'capacity' => $this->post_absint('capacity') ?: 1,
+      'buffer_before_minutes' => $this->post_absint('buffer_before_minutes'),
+      'buffer_after_minutes' => $this->post_absint('buffer_after_minutes'),
+      'use_global_schedule' => $this->has_post_field('use_global_schedule') ? 1 : 0,
       'schedule_json' => $this->sanitize_schedule_json($schedule_json_raw, $schedule_errors),
     ];
     $data['currency'] = strtoupper($data['currency']);
@@ -155,14 +156,12 @@ final class POINTLYBOOKING_AdminServicesController extends POINTLYBOOKING_Contro
         'errors' => $errors,
         'categories' => POINTLYBOOKING_CategoryModel::all(['is_active' => 1]),
         'all_agents' => POINTLYBOOKING_AgentModel::all(500, false),
-        'selected_agent_ids' => isset($_POST['agent_ids']) ? array_map('absint', (array) wp_unslash($_POST['agent_ids'])) : [],
+        'selected_agent_ids' => array_map('absint', $this->post_array('agent_ids')),
       ]);
       return;
     }
 
-    $category_ids = isset($_POST['category_ids'])
-      ? wp_parse_id_list(wp_unslash($_POST['category_ids']))
-      : [];
+    $category_ids = $this->post_id_list('category_ids');
     $first_cat = !empty($category_ids) ? (int)$category_ids[0] : 0;
     $data['category_id'] = $first_cat;
 
@@ -178,7 +177,7 @@ final class POINTLYBOOKING_AdminServicesController extends POINTLYBOOKING_Contro
     global $wpdb;
     $wpdb->update($wpdb->prefix . 'pointlybooking_services', ['category_id' => $first_cat], ['id' => $service_id], ['%d'], ['%d']);
 
-    $agent_ids = isset($_POST['agent_ids']) ? array_map('absint', (array) wp_unslash($_POST['agent_ids'])) : [];
+    $agent_ids = array_map('absint', $this->post_array('agent_ids'));
     POINTLYBOOKING_ServiceAgentModel::set_agents_for_service((int)$service_id, $agent_ids);
 
     wp_safe_redirect(admin_url('admin.php?page=pointlybooking_services&updated=1'));
@@ -190,7 +189,7 @@ final class POINTLYBOOKING_AdminServicesController extends POINTLYBOOKING_Contro
 
     check_admin_referer('pointlybooking_admin');
 
-    $id = isset($_GET['id']) ? absint(wp_unslash($_GET['id'])) : 0;
+    $id = $this->query_absint('id');
     if ($id) {
       POINTLYBOOKING_ServiceModel::delete($id);
     }

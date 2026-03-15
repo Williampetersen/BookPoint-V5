@@ -46,11 +46,15 @@ function pointlybooking_admin_can_manage_settings(){
 function pointlybooking_admin_get_form_fields_all_grouped(WP_REST_Request $req){
   global $wpdb;
   $t = $wpdb->prefix.'pointlybooking_form_fields';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+    return new WP_REST_Response(['status'=>'success','data'=>['form'=>[], 'customer'=>[], 'booking'=>[]]], 200);
+  }
 
-  $rows = $wpdb->get_results("
-    SELECT * FROM {$t}
-    ORDER BY scope ASC, sort_order ASC, id ASC
-  ", ARRAY_A) ?: [];
+  $rows = $wpdb->get_results(
+    "SELECT * FROM {$t}
+    ORDER BY scope ASC, sort_order ASC, id ASC",
+    ARRAY_A
+  ) ?: [];
 
   $out = ['form'=>[], 'customer'=>[], 'booking'=>[]];
 
@@ -82,14 +86,22 @@ function pointlybooking_admin_get_form_fields_all_grouped(WP_REST_Request $req){
 function pointlybooking_admin_get_form_fields(WP_REST_Request $req){
   global $wpdb;
   $t = $wpdb->prefix.'pointlybooking_form_fields';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+    return new WP_REST_Response(['status'=>'success','data'=>[]], 200);
+  }
+
   $scope = sanitize_text_field($req->get_param('scope') ?? 'customer');
   if (!in_array($scope, ['booking','customer','form'], true)) $scope='customer';
 
-  $rows = $wpdb->get_results($wpdb->prepare("
-    SELECT * FROM {$t}
-    WHERE scope=%s
-    ORDER BY sort_order ASC, id ASC
-  ", $scope), ARRAY_A) ?: [];
+  $rows = $wpdb->get_results(
+    $wpdb->prepare(
+      "SELECT * FROM {$t}
+      WHERE scope=%s
+      ORDER BY sort_order ASC, id ASC",
+      $scope
+    ),
+    ARRAY_A
+  ) ?: [];
 
   foreach($rows as &$r){
     $r['id'] = (int)$r['id'];
@@ -251,3 +263,4 @@ function pointlybooking_admin_reorder_form_fields(WP_REST_Request $req){
 
   return new WP_REST_Response(['status'=>'success'], 200);
 }
+

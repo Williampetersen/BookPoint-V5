@@ -2,6 +2,13 @@
 defined('ABSPATH') || exit;
 
 final class POINTLYBOOKING_AvailabilityHelper {
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . str_replace('`', '``', $identifier) . '`';
+  }
 
   public static function generate_slots_for_date(
     string $date_ymd,
@@ -48,54 +55,56 @@ final class POINTLYBOOKING_AvailabilityHelper {
   public static function overlapping_count(int $service_id, string $start_dt, string $end_dt, int $agent_id = 0) : int {
     global $wpdb;
     $table = $wpdb->prefix . 'pointlybooking_bookings';
+    if (!self::is_safe_sql_identifier($table)) {
+      return 0;
+    }
 
     // Step 16: Filter by agent_id if provided
     if ($agent_id > 0) {
-      return (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM {$table}
-         WHERE service_id = %d AND agent_id = %d
-           AND status != 'cancelled'
-           AND start_datetime < %s
-           AND end_datetime > %s",
-        $service_id, $agent_id, $end_dt, $start_dt
-      ));
+      return (int) $wpdb->get_var(
+        $wpdb->prepare("SELECT COUNT(*) FROM {$table}
+           WHERE service_id = %d AND agent_id = %d
+             AND status != 'cancelled'
+             AND start_datetime < %s
+             AND end_datetime > %s", $service_id, $agent_id, $end_dt, $start_dt)
+      );
     }
 
-    return (int) $wpdb->get_var($wpdb->prepare(
-      "SELECT COUNT(*) FROM {$table}
-       WHERE service_id = %d
-         AND status != 'cancelled'
-         AND start_datetime < %s
-         AND end_datetime > %s",
-      $service_id, $end_dt, $start_dt
-    ));
+    return (int) $wpdb->get_var(
+      $wpdb->prepare("SELECT COUNT(*) FROM {$table}
+         WHERE service_id = %d
+           AND status != 'cancelled'
+           AND start_datetime < %s
+           AND end_datetime > %s", $service_id, $end_dt, $start_dt)
+    );
   }
 
   public static function overlapping_count_excluding_booking(int $service_id, string $start_dt, string $end_dt, int $agent_id = 0, int $exclude_booking_id = 0) : int {
     global $wpdb;
     $table = $wpdb->prefix . 'pointlybooking_bookings';
+    if (!self::is_safe_sql_identifier($table)) {
+      return 0;
+    }
 
     if ($agent_id > 0) {
-      return (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM {$table}
-         WHERE service_id = %d AND agent_id = %d
+      return (int) $wpdb->get_var(
+        $wpdb->prepare("SELECT COUNT(*) FROM {$table}
+           WHERE service_id = %d AND agent_id = %d
+             AND id != %d
+             AND status != 'cancelled'
+             AND start_datetime < %s
+             AND end_datetime > %s", $service_id, $agent_id, $exclude_booking_id, $end_dt, $start_dt)
+      );
+    }
+
+    return (int) $wpdb->get_var(
+      $wpdb->prepare("SELECT COUNT(*) FROM {$table}
+         WHERE service_id = %d
            AND id != %d
            AND status != 'cancelled'
            AND start_datetime < %s
-           AND end_datetime > %s",
-        $service_id, $agent_id, $exclude_booking_id, $end_dt, $start_dt
-      ));
-    }
-
-    return (int) $wpdb->get_var($wpdb->prepare(
-      "SELECT COUNT(*) FROM {$table}
-       WHERE service_id = %d
-         AND id != %d
-         AND status != 'cancelled'
-         AND start_datetime < %s
-         AND end_datetime > %s",
-      $service_id, $exclude_booking_id, $end_dt, $start_dt
-    ));
+           AND end_datetime > %s", $service_id, $exclude_booking_id, $end_dt, $start_dt)
+    );
   }
 
   public static function is_slot_available_excluding_booking(int $service_id, string $start_dt, string $end_dt, int $capacity = 1, int $agent_id = 0, int $exclude_booking_id = 0) : bool {
@@ -245,5 +254,6 @@ final class POINTLYBOOKING_AvailabilityHelper {
     return $out;
   }
 }
+
 
 

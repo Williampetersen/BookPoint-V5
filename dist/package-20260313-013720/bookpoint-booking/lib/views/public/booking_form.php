@@ -1,0 +1,79 @@
+<?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+defined('ABSPATH') || exit;
+
+// expects: $service_id, $nonce, $options (optional)
+$options = $options ?? [];
+$default_date = $options['default_date'] ?? '';
+$hide_notes = !empty($options['hide_notes']);
+$require_phone = !empty($options['require_phone']);
+$compact = !empty($options['compact']);
+$allow_service_select = !empty($options['allow_service_select']);
+?>
+<div class="bp-book-form <?php echo esc_attr($compact ? 'bp-compact' : ''); ?>" data-service-id="<?php echo esc_attr($service_id); ?>" data-require-phone="<?php echo esc_attr($require_phone ? '1' : '0'); ?>">
+  <div class="bp-message" style="margin:10px 0;"></div>
+
+  <input type="hidden" class="bp-nonce" value="<?php echo esc_attr($nonce); ?>">
+  <input type="text" name="pointlybooking_hp" class="bp-hp" value="" style="display:none" autocomplete="off">
+
+  <?php if ($allow_service_select) : ?>
+  <p>
+    <label><?php echo esc_html__('Service', 'bookpoint-booking'); ?></label><br>
+    <select class="bp-service">
+      <option value="0"><?php echo esc_html__('Select a service', 'bookpoint-booking'); ?></option>
+    </select>
+  </p>
+  <?php endif; ?>
+
+  <p>
+    <label><?php echo esc_html__('Date', 'bookpoint-booking'); ?></label><br>
+    <input type="date" class="bp-date" value="<?php echo esc_attr($default_date); ?>">
+  </p>
+
+  <p>
+    <label><?php echo esc_html__('Agent', 'bookpoint-booking'); ?></label><br>
+    <select class="bp-agent">
+      <option value="0"><?php echo esc_html__('Any agent', 'bookpoint-booking'); ?></option>
+    </select>
+  </p>
+
+  <p>
+    <label><?php echo esc_html__('Time', 'bookpoint-booking'); ?></label><br>
+    <select class="bp-time">
+      <option value=""><?php echo esc_html__('Select a date first', 'bookpoint-booking'); ?></option>
+    </select>
+  </p>
+
+  <p>
+    <label><?php echo esc_html__('First name', 'bookpoint-booking'); ?></label><br>
+    <input type="text" class="bp-first-name">
+  </p>
+
+  <p>
+    <label><?php echo esc_html__('Last name', 'bookpoint-booking'); ?></label><br>
+    <input type="text" class="bp-last-name">
+  </p>
+
+  <p>
+    <label><?php echo esc_html__('Email', 'bookpoint-booking'); ?></label><br>
+    <input type="email" class="bp-email">
+  </p>
+
+  <p>
+    <label><?php echo esc_html__('Phone', 'bookpoint-booking'); ?></label><br>
+    <input type="text" class="bp-phone" <?php echo esc_attr($require_phone ? 'required' : ''); ?>>
+  </p>
+
+  <?php if (!$hide_notes) : ?>
+  <p>
+    <label><?php echo esc_html__('Notes', 'bookpoint-booking'); ?></label><br>
+    <textarea class="bp-notes" rows="3"></textarea>
+  </p>
+  <?php endif; ?>
+
+  <p>
+    <button type="button" class="bp-submit button">
+      <?php echo esc_html__('Book now', 'bookpoint-booking'); ?>
+    </button>
+  </p>
+</div>

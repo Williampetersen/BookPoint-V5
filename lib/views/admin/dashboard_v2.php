@@ -1,4 +1,6 @@
-<?php defined('ABSPATH') || exit;
+<?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+defined('ABSPATH') || exit;
 function pointlybooking_fmt_money($n){ return number_format((float)$n, 2); }
 
 $rangeLabel = $range['range'] === 'custom'
@@ -9,8 +11,8 @@ $rangeLabel = $range['range'] === 'custom'
 <div class="bp-admin-wrap">
   <div class="bp-admin-head">
     <div>
-      <h1 class="bp-admin-title"><?php echo esc_html__('Dashboard', 'bookpoint-booking'); ?></h1>
-      <div class="bp-admin-sub"><?php echo esc_html__('Range:', 'bookpoint-booking'); ?> <?php echo esc_html($rangeLabel); ?></div>
+      <h1 class="bp-admin-title"><?php echo esc_html__('Dashboard', 'pointly-booking'); ?></h1>
+      <div class="bp-admin-sub"><?php echo esc_html__('Range:', 'pointly-booking'); ?> <?php echo esc_html($rangeLabel); ?></div>
     </div>
   </div>
 
@@ -19,7 +21,7 @@ $rangeLabel = $range['range'] === 'custom'
       <input type="hidden" name="page" value="pointlybooking_dashboard">
       <?php wp_nonce_field('pointlybooking_dashboard_filter', 'pointlybooking_filter_nonce'); ?>
       <div>
-        <div class="bp-kpi-label"><?php echo esc_html__('Range', 'bookpoint-booking'); ?></div>
+        <div class="bp-kpi-label"><?php echo esc_html__('Range', 'pointly-booking'); ?></div>
         <select name="range" class="bp-range-select">
           <option value="7" <?php selected($range['range'], '7'); ?>>7</option>
           <option value="14" <?php selected($range['range'], '14'); ?>>14</option>
@@ -29,40 +31,40 @@ $rangeLabel = $range['range'] === 'custom'
       </div>
 
       <div>
-        <div class="bp-kpi-label"><?php echo esc_html__('From', 'bookpoint-booking'); ?></div>
+        <div class="bp-kpi-label"><?php echo esc_html__('From', 'pointly-booking'); ?></div>
         <input type="date" name="from" value="<?php echo esc_attr($range['from']); ?>">
       </div>
 
       <div>
-        <div class="bp-kpi-label"><?php echo esc_html__('To', 'bookpoint-booking'); ?></div>
+        <div class="bp-kpi-label"><?php echo esc_html__('To', 'pointly-booking'); ?></div>
         <input type="date" name="to" value="<?php echo esc_attr($range['to']); ?>">
       </div>
 
-      <button class="bp-btn secondary" type="submit"><?php echo esc_html__('Apply', 'bookpoint-booking'); ?></button>
+      <button class="bp-btn secondary" type="submit"><?php echo esc_html__('Apply', 'pointly-booking'); ?></button>
     </form>
   </div>
 
   <div class="bp-kpi-grid">
     <div class="bp-card">
-      <div class="bp-kpi-label"><?php echo esc_html__('Bookings', 'bookpoint-booking'); ?></div>
+      <div class="bp-kpi-label"><?php echo esc_html__('Bookings', 'pointly-booking'); ?></div>
       <div class="bp-kpi-value"><?php echo esc_html((string)$kpis['total']); ?></div>
       <div class="bp-kpi-foot"><?php echo esc_html($rangeLabel); ?></div>
     </div>
 
     <div class="bp-card">
-      <div class="bp-kpi-label"><?php echo esc_html__('Pending', 'bookpoint-booking'); ?></div>
+      <div class="bp-kpi-label"><?php echo esc_html__('Pending', 'pointly-booking'); ?></div>
       <div class="bp-kpi-value"><?php echo esc_html((string)$kpis['pending']); ?></div>
-      <div class="bp-kpi-foot"><?php echo esc_html__('Waiting action', 'bookpoint-booking'); ?></div>
+      <div class="bp-kpi-foot"><?php echo esc_html__('Waiting action', 'pointly-booking'); ?></div>
     </div>
 
     <div class="bp-card">
-      <div class="bp-kpi-label"><?php echo esc_html__('Revenue', 'bookpoint-booking'); ?></div>
+      <div class="bp-kpi-label"><?php echo esc_html__('Revenue', 'pointly-booking'); ?></div>
       <div class="bp-kpi-value"><?php echo esc_html(pointlybooking_fmt_money($kpis['revenue'])); ?></div>
-      <div class="bp-kpi-foot"><?php echo esc_html__('Confirmed only', 'bookpoint-booking'); ?></div>
+      <div class="bp-kpi-foot"><?php echo esc_html__('Confirmed only', 'pointly-booking'); ?></div>
     </div>
 
     <div class="bp-card">
-      <div class="bp-kpi-label"><?php echo esc_html__('Cancelled', 'bookpoint-booking'); ?></div>
+      <div class="bp-kpi-label"><?php echo esc_html__('Cancelled', 'pointly-booking'); ?></div>
       <div class="bp-kpi-value"><?php echo esc_html((string)$kpis['cancelled']); ?></div>
       <div class="bp-kpi-foot"><?php echo esc_html($rangeLabel); ?></div>
     </div>
@@ -70,18 +72,18 @@ $rangeLabel = $range['range'] === 'custom'
 
   <div class="bp-dash-grid" style="margin-top:12px;">
     <div class="bp-card">
-      <div class="bp-card-title"><?php echo esc_html__('Bookings per day', 'bookpoint-booking'); ?></div>
+      <div class="bp-card-title"><?php echo esc_html__('Bookings per day', 'pointly-booking'); ?></div>
       <div class="bp-chart"
         data-labels="<?php echo esc_attr(wp_json_encode($series['labels'])); ?>"
         data-values="<?php echo esc_attr(wp_json_encode($series['values'])); ?>"></div>
-      <div class="bp-chart-legend"><?php echo esc_html__('Hover shows date & count', 'bookpoint-booking'); ?></div>
+      <div class="bp-chart-legend"><?php echo esc_html__('Hover shows date & count', 'pointly-booking'); ?></div>
     </div>
 
     <div class="bp-card">
-      <div class="bp-card-title"><?php echo esc_html__('Pending Bookings', 'bookpoint-booking'); ?></div>
+      <div class="bp-card-title"><?php echo esc_html__('Pending Bookings', 'pointly-booking'); ?></div>
 
       <?php if (empty($pending)): ?>
-        <div class="bp-muted"><?php echo esc_html__('No pending bookings.', 'bookpoint-booking'); ?></div>
+        <div class="bp-muted"><?php echo esc_html__('No pending bookings.', 'pointly-booking'); ?></div>
       <?php else: ?>
         <div style="display:grid;gap:10px;">
           <?php foreach ($pending as $p): ?>
@@ -101,7 +103,7 @@ $rangeLabel = $range['range'] === 'custom'
                   <input type="hidden" name="action" value="pointlybooking_admin_booking_quick_update">
                   <input type="hidden" name="id" value="<?php echo esc_attr((string)(int)$p['id']); ?>">
                   <input type="hidden" name="status" value="confirmed">
-                  <button class="bp-btn" type="submit"><?php echo esc_html__('Confirm', 'bookpoint-booking'); ?></button>
+                  <button class="bp-btn" type="submit"><?php echo esc_html__('Confirm', 'pointly-booking'); ?></button>
                 </form>
 
                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -109,7 +111,7 @@ $rangeLabel = $range['range'] === 'custom'
                   <input type="hidden" name="action" value="pointlybooking_admin_booking_quick_update">
                   <input type="hidden" name="id" value="<?php echo esc_attr((string)(int)$p['id']); ?>">
                   <input type="hidden" name="status" value="cancelled">
-                  <button class="bp-btn secondary" type="submit"><?php echo esc_html__('Cancel', 'bookpoint-booking'); ?></button>
+                  <button class="bp-btn secondary" type="submit"><?php echo esc_html__('Cancel', 'pointly-booking'); ?></button>
                 </form>
               </div>
             </div>
@@ -121,9 +123,9 @@ $rangeLabel = $range['range'] === 'custom'
 
   <div class="bp-dash-grid" style="margin-top:12px;">
     <div class="bp-card">
-      <div class="bp-card-title"><?php echo esc_html__('Top Services', 'bookpoint-booking'); ?></div>
+      <div class="bp-card-title"><?php echo esc_html__('Top Services', 'pointly-booking'); ?></div>
       <?php if (empty($top_services)): ?>
-        <div class="bp-muted"><?php echo esc_html__('No data yet.', 'bookpoint-booking'); ?></div>
+        <div class="bp-muted"><?php echo esc_html__('No data yet.', 'pointly-booking'); ?></div>
       <?php else: ?>
         <table class="widefat striped">
           <thead><tr><th>Name</th><th>Bookings</th><th>Revenue</th></tr></thead>
@@ -141,9 +143,9 @@ $rangeLabel = $range['range'] === 'custom'
     </div>
 
     <div class="bp-card">
-      <div class="bp-card-title"><?php echo esc_html__('Top Categories', 'bookpoint-booking'); ?></div>
+      <div class="bp-card-title"><?php echo esc_html__('Top Categories', 'pointly-booking'); ?></div>
       <?php if (empty($top_categories)): ?>
-        <div class="bp-muted"><?php echo esc_html__('No data yet.', 'bookpoint-booking'); ?></div>
+        <div class="bp-muted"><?php echo esc_html__('No data yet.', 'pointly-booking'); ?></div>
       <?php else: ?>
         <table class="widefat striped">
           <thead><tr><th>Name</th><th>Bookings</th><th>Revenue</th></tr></thead>
@@ -161,9 +163,9 @@ $rangeLabel = $range['range'] === 'custom'
     </div>
 
     <div class="bp-card">
-      <div class="bp-card-title"><?php echo esc_html__('Top Agents', 'bookpoint-booking'); ?></div>
+      <div class="bp-card-title"><?php echo esc_html__('Top Agents', 'pointly-booking'); ?></div>
       <?php if (empty($top_agents)): ?>
-        <div class="bp-muted"><?php echo esc_html__('No data yet.', 'bookpoint-booking'); ?></div>
+        <div class="bp-muted"><?php echo esc_html__('No data yet.', 'pointly-booking'); ?></div>
       <?php else: ?>
         <table class="widefat striped">
           <thead><tr><th>Name</th><th>Bookings</th><th>Revenue</th></tr></thead>
@@ -182,22 +184,22 @@ $rangeLabel = $range['range'] === 'custom'
   </div>
 
   <div class="bp-card" style="margin-top:12px;">
-    <div class="bp-card-title"><?php echo esc_html__('Recent Bookings', 'bookpoint-booking'); ?></div>
+    <div class="bp-card-title"><?php echo esc_html__('Recent Bookings', 'pointly-booking'); ?></div>
 
     <table class="widefat striped">
       <thead>
         <tr>
-          <th><?php echo esc_html__('ID', 'bookpoint-booking'); ?></th>
-          <th><?php echo esc_html__('Customer', 'bookpoint-booking'); ?></th>
-          <th><?php echo esc_html__('Email', 'bookpoint-booking'); ?></th>
-          <th><?php echo esc_html__('When', 'bookpoint-booking'); ?></th>
-          <th><?php echo esc_html__('Status', 'bookpoint-booking'); ?></th>
-          <th><?php echo esc_html__('Total', 'bookpoint-booking'); ?></th>
+          <th><?php echo esc_html__('ID', 'pointly-booking'); ?></th>
+          <th><?php echo esc_html__('Customer', 'pointly-booking'); ?></th>
+          <th><?php echo esc_html__('Email', 'pointly-booking'); ?></th>
+          <th><?php echo esc_html__('When', 'pointly-booking'); ?></th>
+          <th><?php echo esc_html__('Status', 'pointly-booking'); ?></th>
+          <th><?php echo esc_html__('Total', 'pointly-booking'); ?></th>
         </tr>
       </thead>
       <tbody>
         <?php if (empty($recent)): ?>
-          <tr><td colspan="6" style="text-align:center;"><?php echo esc_html__('No bookings yet.', 'bookpoint-booking'); ?></td></tr>
+          <tr><td colspan="6" style="text-align:center;"><?php echo esc_html__('No bookings yet.', 'pointly-booking'); ?></td></tr>
         <?php else: foreach ($recent as $b): ?>
           <tr>
             <td><strong>#<?php echo esc_html((string)(int)$b['id']); ?></strong></td>

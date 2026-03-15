@@ -113,13 +113,12 @@ function pointlybooking_rest_admin_holiday_patch(WP_REST_Request $req){
   if (!empty($updates)) { $updates['updated_at'] = current_time('mysql'); $formats[]='%s'; }
 
   if (empty($updates)) return new WP_REST_Response(['status'=>'success','data'=>['updated'=>false]], 200);
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+    return new WP_REST_Response(['status'=>'error','message'=>'Invalid holidays table'], 500);
+  }
 
   $current = $wpdb->get_row(
-    pointlybooking_prepare_query_with_identifiers(
-      "SELECT start_date, end_date FROM %i WHERE id = %d",
-      [$t],
-      [$id]
-    ),
+    $wpdb->prepare("SELECT start_date, end_date FROM {$t} WHERE id = %d", $id),
     ARRAY_A
   );
   if (!$current) {
@@ -140,36 +139,38 @@ function pointlybooking_rest_admin_holiday_patch(WP_REST_Request $req){
 
 function pointlybooking_rest_admin_holidays_list(WP_REST_Request $req) {
   global $wpdb;
-  $t = pointlybooking_table('holidays');
+  $holidays_table = $wpdb->prefix . 'pointlybooking_holidays';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $holidays_table)) {
+    return new WP_REST_Response(['status'=>'success','data'=>[]], 200);
+  }
 
   $year = (int)$req->get_param('year');
   $agent_id = (int)$req->get_param('agent_id');
+  $filter_agent = $agent_id > 0 ? 1 : 0;
 
-  $where_clauses = ['1=1'];
-  $params = [];
-
-  if ($agent_id > 0) {
-    $where_clauses[] = '(agent_id IS NULL OR agent_id = %d)';
-    $params[] = $agent_id;
-  } else {
-    $where_clauses[] = 'agent_id IS NULL';
-  }
-
+  $start = '';
+  $end = '';
   if ($year > 0) {
     $start = sprintf('%04d-01-01', $year);
     $end = sprintf('%04d-12-31', $year);
-    $where_clauses[] = '(start_date <= %s AND end_date >= %s)';
-    $params[] = $end;
-    $params[] = $start;
   }
-  $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
-  $sql = "SELECT * FROM %i " . $where_sql . " ORDER BY start_date ASC";
+  $filter_year = $year > 0 ? 1 : 0;
 
   $rows = $wpdb->get_results(
-    pointlybooking_prepare_query_with_identifiers(
-      $sql,
-      [$t],
-      $params
+    $wpdb->prepare(
+      "SELECT * FROM {$holidays_table}
+       WHERE (
+         (%d = 1 AND (agent_id IS NULL OR agent_id = %d))
+         OR (%d = 0 AND agent_id IS NULL)
+       )
+       AND (%d = 0 OR (start_date <= %s AND end_date >= %s))
+       ORDER BY start_date ASC",
+      $filter_agent,
+      $agent_id,
+      $filter_agent,
+      $filter_year,
+      $end,
+      $start
     ),
     ARRAY_A
   );
@@ -184,3 +185,4 @@ function pointlybooking_rest_admin_holiday_delete(WP_REST_Request $req){
   $wpdb->delete($t, ['id'=>$id], ['%d']);
   return new WP_REST_Response(['status'=>'success','data'=>['deleted'=>true]], 200);
 }
+

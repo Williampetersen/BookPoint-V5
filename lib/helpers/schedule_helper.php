@@ -85,42 +85,35 @@ final class POINTLYBOOKING_ScheduleHelper {
   }
 
   private static function table_exists(string $table): bool {
-    global $wpdb;
-    return (string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table)) === $table;
+    return pointlybooking_db_table_exists($table);
   }
 
-  private static function prepare_with_table(string $query, string $table, array $args = []): string {
-    global $wpdb;
-    if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
-      return $wpdb->prepare($query, array_merge([$table], $args));
-    }
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
 
-    $safe_table = preg_replace('/[^A-Za-z0-9_]/', '', $table);
-    $query = preg_replace('/%i/', '`' . $safe_table . '`', $query, 1);
-    if (empty($args)) {
-      return (string) $query;
-    }
-
-    return $wpdb->prepare($query, $args);
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . str_replace('`', '``', $identifier) . '`';
   }
 
   public static function get_schedule_settings(): array {
     global $wpdb;
-    $t = self::schedule_settings_table();
+    $schedule_settings_table = $wpdb->prefix . 'pointlybooking_schedule_settings';
 
     $defaults = [
       'slot_interval_minutes' => (int)POINTLYBOOKING_SettingsHelper::get('slot_interval_minutes', 30),
       'timezone' => (string)(POINTLYBOOKING_SettingsHelper::get('timezone', '') ?: 'Europe/Copenhagen'),
     ];
 
-    if (!self::table_exists($t)) return $defaults;
+    if (!self::table_exists($schedule_settings_table)) return $defaults;
+    if (!self::is_safe_sql_identifier($schedule_settings_table)) return $defaults;
 
     $row = $wpdb->get_row(
-      self::prepare_with_table("SELECT * FROM %i WHERE id=%d", $t, [1]),
+      $wpdb->prepare("SELECT * FROM {$schedule_settings_table} WHERE id=%d", 1),
       ARRAY_A
     );
     if (!$row) {
-      $wpdb->insert($t, [
+      $wpdb->insert($schedule_settings_table, [
         'id' => 1,
         'slot_interval_minutes' => $defaults['slot_interval_minutes'],
         'timezone' => $defaults['timezone'],
@@ -138,16 +131,17 @@ final class POINTLYBOOKING_ScheduleHelper {
 
   public static function set_schedule_settings(int $slot_interval_minutes, string $timezone): bool {
     global $wpdb;
-    $t = self::schedule_settings_table();
-    if (!self::table_exists($t)) return false;
+    $schedule_settings_table = $wpdb->prefix . 'pointlybooking_schedule_settings';
+    if (!self::table_exists($schedule_settings_table)) return false;
+    if (!self::is_safe_sql_identifier($schedule_settings_table)) return false;
 
     $slot_interval_minutes = max(5, min(120, $slot_interval_minutes));
     $timezone = trim($timezone) ?: 'Europe/Copenhagen';
 
-    $exists = (int)$wpdb->get_var(self::prepare_with_table("SELECT COUNT(*) FROM %i WHERE id=%d", $t, [1]));
+    $exists = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$schedule_settings_table} WHERE id=%d", 1));
     $now = current_time('mysql');
     if ($exists > 0) {
-      $updated = $wpdb->update($t, [
+      $updated = $wpdb->update($schedule_settings_table, [
         'slot_interval_minutes' => $slot_interval_minutes,
         'timezone' => $timezone,
         'updated_at' => $now,
@@ -155,7 +149,7 @@ final class POINTLYBOOKING_ScheduleHelper {
       return ($updated !== false);
     }
 
-    $inserted = $wpdb->insert($t, [
+    $inserted = $wpdb->insert($schedule_settings_table, [
       'id' => 1,
       'slot_interval_minutes' => $slot_interval_minutes,
       'timezone' => $timezone,
@@ -194,28 +188,21 @@ final class POINTLYBOOKING_ScheduleHelper {
 
   private static function get_schedule_rows(int $agent_id, int $weekday): array {
     global $wpdb;
-    $t = self::schedule_table();
-    if (!self::table_exists($t)) return [];
+    $schedule_table = $wpdb->prefix . 'pointlybooking_schedules';
+    if (!self::table_exists($schedule_table)) return [];
+    if (!self::is_safe_sql_identifier($schedule_table)) return [];
 
     $rows = [];
     if ($agent_id > 0) {
       $rows = $wpdb->get_results(
-        self::prepare_with_table(
-          "SELECT * FROM %i WHERE agent_id=%d AND day_of_week=%d ORDER BY start_time ASC",
-          $t,
-          [$agent_id, $weekday]
-        ),
+        $wpdb->prepare("SELECT * FROM {$schedule_table} WHERE agent_id=%d AND day_of_week=%d ORDER BY start_time ASC", $agent_id, $weekday),
         ARRAY_A
       ) ?: [];
     }
 
     if (empty($rows)) {
       $rows = $wpdb->get_results(
-        self::prepare_with_table(
-          "SELECT * FROM %i WHERE agent_id IS NULL AND day_of_week=%d ORDER BY start_time ASC",
-          $t,
-          [$weekday]
-        ),
+        $wpdb->prepare("SELECT * FROM {$schedule_table} WHERE agent_id IS NULL AND day_of_week=%d ORDER BY start_time ASC", $weekday),
         ARRAY_A
       ) ?: [];
     }
@@ -327,7 +314,7 @@ final class POINTLYBOOKING_ScheduleHelper {
 
   public static function get_working_hours(int $agent_id, int $weekday) : array {
     global $wpdb;
-    $t = $wpdb->prefix . 'pointlybooking_agent_working_hours';
+    $working_hours_table = $wpdb->prefix . 'pointlybooking_agent_working_hours';
 
     // Prefer new schedules table if available
     $sched_rows = self::get_schedule_rows($agent_id, $weekday);
@@ -343,22 +330,23 @@ final class POINTLYBOOKING_ScheduleHelper {
       if (!empty($out)) return $out;
     }
 
-    $table_exists = (string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t)) === $t;
+    $table_exists = pointlybooking_db_table_exists($working_hours_table);
     if (!$table_exists) {
+      return [
+        ['start_time' => '08:00', 'end_time' => '20:00'],
+      ];
+    }
+    if (!self::is_safe_sql_identifier($working_hours_table)) {
       return [
         ['start_time' => '08:00', 'end_time' => '20:00'],
       ];
     }
 
     $rows = $wpdb->get_results(
-      self::prepare_with_table(
-        "SELECT start_time, end_time
-         FROM %i
+      $wpdb->prepare("SELECT start_time, end_time
+         FROM {$working_hours_table}
          WHERE agent_id=%d AND weekday=%d AND is_enabled=1
-         ORDER BY start_time ASC",
-        $t,
-        [$agent_id, $weekday]
-      ),
+         ORDER BY start_time ASC", $agent_id, $weekday),
       ARRAY_A
     );
 
@@ -398,20 +386,17 @@ final class POINTLYBOOKING_ScheduleHelper {
 
   public static function get_breaks(int $agent_id, string $date) : array {
     global $wpdb;
-    $t = $wpdb->prefix . 'pointlybooking_agent_breaks';
+    $breaks_table = $wpdb->prefix . 'pointlybooking_agent_breaks';
 
-    $table_exists = (string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t)) === $t;
+    $table_exists = pointlybooking_db_table_exists($breaks_table);
     if (!$table_exists) return [];
+    if (!self::is_safe_sql_identifier($breaks_table)) return [];
 
     $rows = $wpdb->get_results(
-      self::prepare_with_table(
-        "SELECT start_time, end_time
-         FROM %i
+      $wpdb->prepare("SELECT start_time, end_time
+         FROM {$breaks_table}
          WHERE agent_id=%d AND break_date=%s
-         ORDER BY start_time ASC",
-        $t,
-        [$agent_id, $date]
-      ),
+         ORDER BY start_time ASC", $agent_id, $date),
       ARRAY_A
     );
 
@@ -439,15 +424,17 @@ final class POINTLYBOOKING_ScheduleHelper {
 
   public static function is_date_closed(string $date, int $agent_id = 0) : bool {
     global $wpdb;
-    $t = $wpdb->prefix . 'pointlybooking_holidays';
+    $holidays_table = $wpdb->prefix . 'pointlybooking_holidays';
 
     $date = substr($date, 0, 10);
+    if (!self::is_safe_sql_identifier($holidays_table)) return false;
 
     $agent_id = (int)$agent_id;
     if ($agent_id > 0) {
-      $sql = self::prepare_with_table(
-        "SELECT COUNT(*)
-         FROM %i
+      $count = (int)$wpdb->get_var(
+        $wpdb->prepare(
+          "SELECT COUNT(*)
+         FROM {$holidays_table}
          WHERE (is_enabled=1 OR is_enabled IS NULL)
            AND (agent_id IS NULL OR agent_id = %d)
            AND (
@@ -458,14 +445,17 @@ final class POINTLYBOOKING_ScheduleHelper {
                  DATE_FORMAT(%s, '%%m-%%d') BETWEEN DATE_FORMAT(start_date,'%%m-%%d') AND DATE_FORMAT(end_date,'%%m-%%d')
                )
              )
-           )",
-        $t,
-        [$agent_id, $date, $date]
+            )",
+          $agent_id,
+          $date,
+          $date
+        )
       );
     } else {
-      $sql = self::prepare_with_table(
-        "SELECT COUNT(*)
-         FROM %i
+      $count = (int)$wpdb->get_var(
+        $wpdb->prepare(
+          "SELECT COUNT(*)
+         FROM {$holidays_table}
          WHERE (is_enabled=1 OR is_enabled IS NULL)
            AND agent_id IS NULL
            AND (
@@ -476,22 +466,30 @@ final class POINTLYBOOKING_ScheduleHelper {
                  DATE_FORMAT(%s, '%%m-%%d') BETWEEN DATE_FORMAT(start_date,'%%m-%%d') AND DATE_FORMAT(end_date,'%%m-%%d')
                )
              )
-           )",
-        $t,
-        [$date, $date]
+            )",
+          $date,
+          $date
+        )
       );
     }
-
-    $count = (int)$wpdb->get_var($sql);
 
     return $count > 0;
   }
 
   public static function get_service_rules(int $service_id) : array {
     global $wpdb;
-    $t = $wpdb->prefix . 'pointlybooking_services';
+    $services_table = $wpdb->prefix . 'pointlybooking_services';
+    if (!self::is_safe_sql_identifier($services_table)) {
+      return [
+        'duration' => 30,
+        'buffer_before' => 0,
+        'buffer_after' => 0,
+        'capacity' => 1,
+        'occupied_min' => 30,
+      ];
+    }
 
-    $cols = $wpdb->get_col(self::prepare_with_table("SHOW COLUMNS FROM %i", $t)) ?: [];
+    $cols = pointlybooking_db_table_columns($services_table);
     $has_duration_minutes = in_array('duration_minutes', $cols, true);
     $has_duration = in_array('duration', $cols, true);
     $has_buffer_before_minutes = in_array('buffer_before_minutes', $cols, true);
@@ -500,7 +498,7 @@ final class POINTLYBOOKING_ScheduleHelper {
     $has_buffer_after = in_array('buffer_after', $cols, true);
 
     $row = $wpdb->get_row(
-      self::prepare_with_table("SELECT * FROM %i WHERE id=%d", $t, [$service_id]),
+      $wpdb->prepare("SELECT * FROM {$services_table} WHERE id=%d", $service_id),
       ARRAY_A
     );
 
@@ -617,4 +615,5 @@ final class POINTLYBOOKING_ScheduleHelper {
     return $blocks;
   }
 }
+
 

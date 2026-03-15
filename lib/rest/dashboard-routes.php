@@ -11,15 +11,25 @@ add_action('rest_api_init', function(){
     'callback' => function(WP_REST_Request $req){
       global $wpdb;
 
-      $t_bookings  = pointlybooking_table('bookings');
-      $t_services  = pointlybooking_table('services');
-      $t_agents    = pointlybooking_table('agents');
+      $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+      $services_table = $wpdb->prefix . 'pointlybooking_services';
+      $agents_table = $wpdb->prefix . 'pointlybooking_agents';
+      if (
+        !preg_match('/^[A-Za-z0-9_]+$/', $bookings_table)
+        || !preg_match('/^[A-Za-z0-9_]+$/', $services_table)
+        || !preg_match('/^[A-Za-z0-9_]+$/', $agents_table)
+      ) {
+        return new WP_REST_Response([
+          'status' => 'error',
+          'message' => 'Invalid table configuration',
+        ], 500);
+      }
 
       // Safety: tables might differ on your install
       $tables = $wpdb->get_col('SHOW TABLES');
-      $has_bookings = in_array($t_bookings, $tables, true);
-      $has_services = in_array($t_services, $tables, true);
-      $has_agents   = in_array($t_agents, $tables, true);
+      $has_bookings = in_array($bookings_table, $tables, true);
+      $has_services = in_array($services_table, $tables, true);
+      $has_agents   = in_array($agents_table, $tables, true);
 
       $todayStart = current_time('Y-m-d') . ' 00:00:00';
       $todayEnd   = current_time('Y-m-d') . ' 23:59:59';
@@ -35,44 +45,28 @@ add_action('rest_api_init', function(){
       if ($has_bookings) {
         // bookings today
         $bookings_today = (int) $wpdb->get_var(
-          $wpdb->prepare(
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is built from prefix + hardcoded suffix via pointlybooking_table().
-            "SELECT COUNT(*) FROM {$t_bookings} WHERE start_datetime BETWEEN %s AND %s",
-            $todayStart,
-            $todayEnd
-          )
+          $wpdb->prepare("SELECT COUNT(*) FROM {$bookings_table} WHERE start_datetime BETWEEN %s AND %s", $todayStart, $todayEnd)
         );
 
         // upcoming 7 days
         $upcoming_7d = (int) $wpdb->get_var(
-          $wpdb->prepare(
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is built from prefix + hardcoded suffix via pointlybooking_table().
-            "SELECT COUNT(*) FROM {$t_bookings} WHERE start_datetime BETWEEN %s AND %s",
-            $todayStart,
-            $next7End
-          )
+          $wpdb->prepare("SELECT COUNT(*) FROM {$bookings_table} WHERE start_datetime BETWEEN %s AND %s", $todayStart, $next7End)
         );
 
         // pending
         $pending = (int) $wpdb->get_var(
-          $wpdb->prepare(
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is built from prefix + hardcoded suffix via pointlybooking_table().
-            "SELECT COUNT(*) FROM {$t_bookings} WHERE LOWER(status)=%s",
-            'pending'
-          )
+          $wpdb->prepare("SELECT COUNT(*) FROM {$bookings_table} WHERE LOWER(status)=%s", 'pending')
         );
       }
 
       if ($has_services) {
         $services_count = (int) $wpdb->get_var(
-          // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is built from prefix + hardcoded suffix via pointlybooking_table().
-          "SELECT COUNT(*) FROM {$t_services}"
+          "SELECT COUNT(*) FROM {$services_table}"
         );
       }
       if ($has_agents) {
         $agents_count = (int) $wpdb->get_var(
-          // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is built from prefix + hardcoded suffix via pointlybooking_table().
-          "SELECT COUNT(*) FROM {$t_agents}"
+          "SELECT COUNT(*) FROM {$agents_table}"
         );
       }
 
@@ -80,14 +74,10 @@ add_action('rest_api_init', function(){
       $recent = [];
       if ($has_bookings) {
         $rows = $wpdb->get_results(
-          $wpdb->prepare(
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is built from prefix + hardcoded suffix via pointlybooking_table().
-            "SELECT id, start_datetime, end_datetime, status, customer_name, service_name, agent_name
-             FROM {$t_bookings}
+          $wpdb->prepare("SELECT id, start_datetime, end_datetime, status, customer_name, service_name, agent_name
+             FROM {$bookings_table}
              ORDER BY start_datetime DESC
-             LIMIT %d",
-            10
-          ),
+             LIMIT %d", 10),
           ARRAY_A
         ) ?: [];
 
@@ -111,12 +101,7 @@ add_action('rest_api_init', function(){
         for($i=6; $i>=0; $i--){
           $day = gmdate('Y-m-d', strtotime(current_time('Y-m-d') . " -{$i} days"));
           $c = (int) $wpdb->get_var(
-            $wpdb->prepare(
-              // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is built from prefix + hardcoded suffix via pointlybooking_table().
-              "SELECT COUNT(*) FROM {$t_bookings} WHERE start_datetime BETWEEN %s AND %s",
-              $day . ' 00:00:00',
-              $day . ' 23:59:59'
-            )
+            $wpdb->prepare("SELECT COUNT(*) FROM {$bookings_table} WHERE start_datetime BETWEEN %s AND %s", $day . ' 00:00:00', $day . ' 23:59:59')
           );
           $chart[] = ['day' => $day, 'count' => $c];
         }
@@ -140,4 +125,5 @@ add_action('rest_api_init', function(){
   ]);
 
 });
+
 

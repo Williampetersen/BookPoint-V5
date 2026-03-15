@@ -34,17 +34,30 @@ function pointlybooking_rest_admin_schedule_get(WP_REST_Request $req) {
 
   $agent_id = (int)$req->get_param('agent_id');
   $t = $wpdb->prefix . 'pointlybooking_schedules';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+    return new WP_REST_Response([
+      'status' => 'success',
+      'data' => [
+        'agent_id' => $agent_id,
+        'schedule' => ['1' => [], '2' => [], '3' => [], '4' => [], '5' => [], '6' => [], '7' => []],
+        'settings' => POINTLYBOOKING_ScheduleHelper::get_schedule_settings(),
+      ],
+    ], 200);
+  }
 
   $schedule = [];
   for ($d = 1; $d <= 7; $d++) $schedule[(string)$d] = [];
 
   $rows = [];
-  if ((string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t)) === $t) {
+  if (pointlybooking_db_table_exists($t)) {
     if ($agent_id > 0) {
-      $rows = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM {$t} WHERE agent_id=%d ORDER BY day_of_week ASC, start_time ASC",
-        $agent_id
-      ), ARRAY_A) ?: [];
+      $rows = $wpdb->get_results(
+        $wpdb->prepare(
+          "SELECT * FROM {$t} WHERE agent_id=%d ORDER BY day_of_week ASC, start_time ASC",
+          $agent_id
+        ),
+        ARRAY_A
+      ) ?: [];
     }
 
     if (empty($rows)) {
@@ -116,7 +129,6 @@ function pointlybooking_rest_admin_schedule_save(WP_REST_Request $req) {
   if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
     return new WP_REST_Response(['status'=>'error','message'=>'Invalid schedules table'], 500);
   }
-  $table_sql = '`' . $t . '`';
 
   $body = $req->get_json_params();
   if (!is_array($body) || empty($body)) {
@@ -133,14 +145,18 @@ function pointlybooking_rest_admin_schedule_save(WP_REST_Request $req) {
     return new WP_REST_Response(['status'=>'error','message'=>'Invalid schedule payload'], 400);
   }
 
-  if ((string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t)) !== $t) {
+  if (!pointlybooking_db_table_exists($t)) {
     return new WP_REST_Response(['status'=>'error','message'=>'Schedules table missing'], 500);
   }
 
   if ($agent_id > 0) {
-    $wpdb->query($wpdb->prepare("DELETE FROM {$table_sql} WHERE agent_id=%d", $agent_id));
+    $wpdb->query(
+      $wpdb->prepare("DELETE FROM {$t} WHERE agent_id=%d", $agent_id)
+    );
   } else {
-    $wpdb->query("DELETE FROM {$table_sql} WHERE agent_id IS NULL");
+    $wpdb->query(
+      "DELETE FROM {$t} WHERE agent_id IS NULL"
+    );
   }
 
   $now = current_time('mysql');
@@ -222,3 +238,4 @@ function pointlybooking_rest_admin_unavailable_blocks(WP_REST_Request $req) {
 
   return new WP_REST_Response(['status'=>'success','data'=>$events], 200);
 }
+

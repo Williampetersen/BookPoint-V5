@@ -37,8 +37,8 @@ function pointlybooking_rest_schedule_tables_ensure(): void {
   $t_hours  = $wpdb->prefix . 'pointlybooking_agent_working_hours';
   $t_breaks = $wpdb->prefix . 'pointlybooking_agent_breaks';
 
-  $hours_exists = (string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t_hours)) === $t_hours;
-  $breaks_exists = (string)$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t_breaks)) === $t_breaks;
+  $hours_exists = pointlybooking_db_table_exists($t_hours);
+  $breaks_exists = pointlybooking_db_table_exists($t_breaks);
 
   if ($hours_exists && $breaks_exists) return;
 
@@ -77,26 +77,27 @@ function pointlybooking_rest_admin_get_agent_schedule(WP_REST_Request $req) {
   $agent_id = (int)$req['id'];
   if ($agent_id <= 0) return new WP_REST_Response(['status'=>'error','message'=>'Invalid agent id'], 400);
 
-  $t_hours  = pointlybooking_table('agent_working_hours');
-  $t_breaks = pointlybooking_table('agent_breaks');
+  $hours_table = $wpdb->prefix . 'pointlybooking_agent_working_hours';
+  $breaks_table = $wpdb->prefix . 'pointlybooking_agent_breaks';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $hours_table) || !preg_match('/^[A-Za-z0-9_]+$/', $breaks_table)) {
+    return new WP_REST_Response(['status'=>'error','message'=>'Invalid schedule tables'], 500);
+  }
 
-  $hours_rows = $wpdb->get_results($wpdb->prepare(
-    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is generated from hardcoded suffix via pointlybooking_table().
-    "SELECT id, weekday, start_time, end_time, is_enabled
-     FROM {$t_hours}
+  $hours_rows = $wpdb->get_results(
+    $wpdb->prepare("SELECT id, weekday, start_time, end_time, is_enabled
+     FROM {$hours_table}
      WHERE agent_id=%d
-     ORDER BY weekday ASC, start_time ASC",
-    $agent_id
-  ), ARRAY_A) ?: [];
+     ORDER BY weekday ASC, start_time ASC", $agent_id),
+    ARRAY_A
+  ) ?: [];
 
-  $break_rows = $wpdb->get_results($wpdb->prepare(
-    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is generated from hardcoded suffix via pointlybooking_table().
-    "SELECT id, break_date, start_time, end_time, note
-     FROM {$t_breaks}
+  $break_rows = $wpdb->get_results(
+    $wpdb->prepare("SELECT id, break_date, start_time, end_time, note
+     FROM {$breaks_table}
      WHERE agent_id=%d
-     ORDER BY break_date ASC, start_time ASC",
-    $agent_id
-  ), ARRAY_A) ?: [];
+     ORDER BY break_date ASC, start_time ASC", $agent_id),
+    ARRAY_A
+  ) ?: [];
 
   $hours = [];
   for ($d = 1; $d <= 7; $d++) $hours[(string)$d] = [];
@@ -151,11 +152,16 @@ function pointlybooking_rest_admin_save_agent_schedule(WP_REST_Request $req) {
   if (!preg_match('/^[A-Za-z0-9_]+$/', $t_hours) || !preg_match('/^[A-Za-z0-9_]+$/', $t_breaks)) {
     return new WP_REST_Response(['status'=>'error','message'=>'Invalid schedule tables'], 500);
   }
-  $t_hours_sql = '`' . $t_hours . '`';
-  $t_breaks_sql = '`' . $t_breaks . '`';
 
-  $wpdb->query($wpdb->prepare("DELETE FROM {$t_hours_sql} WHERE agent_id=%d", $agent_id));
-  $wpdb->query($wpdb->prepare("DELETE FROM {$t_breaks_sql} WHERE agent_id=%d", $agent_id));
+  $hours_table = $t_hours;
+  $breaks_table = $t_breaks;
+
+  $wpdb->query(
+    $wpdb->prepare("DELETE FROM {$hours_table} WHERE agent_id=%d", $agent_id)
+  );
+  $wpdb->query(
+    $wpdb->prepare("DELETE FROM {$breaks_table} WHERE agent_id=%d", $agent_id)
+  );
 
   for ($d = 1; $d <= 7; $d++) {
     $dayKey = (string)$d;
@@ -230,14 +236,18 @@ function pointlybooking_rest_admin_copy_agent_schedule(WP_REST_Request $req) {
   }
 
   $tS = $wpdb->prefix . 'pointlybooking_schedules';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $tS)) {
+    return new WP_REST_Response(['status'=>'error','message'=>'Invalid schedules table'], 500);
+  }
 
   // Read global schedules
-  $global = $wpdb->get_results("
-    SELECT day_of_week,start_time,end_time,is_enabled
+  $global = $wpdb->get_results(
+    "SELECT day_of_week,start_time,end_time,is_enabled
     FROM {$tS}
     WHERE agent_id IS NULL OR agent_id=0
-    ORDER BY day_of_week ASC, start_time ASC
-  ", ARRAY_A) ?: [];
+    ORDER BY day_of_week ASC, start_time ASC",
+    ARRAY_A
+  ) ?: [];
 
   // Overwrite agent schedules
   $wpdb->delete($tS, ['agent_id'=>$to_agent_id]);
@@ -253,3 +263,4 @@ function pointlybooking_rest_admin_copy_agent_schedule(WP_REST_Request $req) {
 
   return new WP_REST_Response(['status'=>'success','data'=>['copied'=>count($global)]], 200);
 }
+

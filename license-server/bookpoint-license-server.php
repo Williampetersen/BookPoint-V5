@@ -44,11 +44,11 @@ defined('ABSPATH') || exit;
     // Some WAFs block bodies containing common API field names like `license_key`.
     // Support a compact, encoded payload: `p` = base64url(json).
     if ((!isset($p['p']) || !is_string($p['p']) || $p['p'] === '') && isset($_SERVER['HTTP_X_POINTLYBOOKING_PAYLOAD'])) {
-      $hdr = (string) $_SERVER['HTTP_X_POINTLYBOOKING_PAYLOAD'];
+      $hdr = sanitize_text_field((string) wp_unslash($_SERVER['HTTP_X_POINTLYBOOKING_PAYLOAD']));
       if ($hdr !== '') $p['p'] = $hdr;
     }
     if ((!isset($p['p']) || !is_string($p['p']) || $p['p'] === '') && isset($_SERVER['HTTP_X_BOOKPOINT_PAYLOAD'])) {
-      $hdr = (string) $_SERVER['HTTP_X_BOOKPOINT_PAYLOAD'];
+      $hdr = sanitize_text_field((string) wp_unslash($_SERVER['HTTP_X_BOOKPOINT_PAYLOAD']));
       if ($hdr !== '') $p['p'] = $hdr;
     }
     if (isset($p['p']) && is_string($p['p']) && $p['p'] !== '') {
@@ -153,17 +153,17 @@ defined('ABSPATH') || exit;
 
   public static function maybe_handle_public_endpoint(): void {
     $action = '';
-    if (isset($_GET[self::PUBLIC_QUERY_VAR])) {
-      $action = sanitize_key((string) $_GET[self::PUBLIC_QUERY_VAR]);
-    }
-    if ($action === '' && function_exists('get_query_var')) {
+    if (function_exists('get_query_var')) {
       $action = sanitize_key((string) get_query_var(self::PUBLIC_QUERY_VAR));
+    }
+    if ($action === '') {
+      $action = sanitize_key((string) filter_input(INPUT_GET, self::PUBLIC_QUERY_VAR, FILTER_UNSAFE_RAW));
     }
 
     if (!in_array($action, ['validate', 'deactivate', 'ping'], true)) return;
 
     // Basic support for preflight requests.
-    if (isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'OPTIONS') {
+    if (isset($_SERVER['REQUEST_METHOD']) && strtoupper(sanitize_text_field((string) wp_unslash($_SERVER['REQUEST_METHOD']))) === 'OPTIONS') {
       status_header(200);
       exit;
     }
@@ -194,6 +194,14 @@ defined('ABSPATH') || exit;
     return $wpdb->prefix . self::TABLE_SUFFIX;
   }
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
   private static function table_exists(): bool {
     global $wpdb;
     $table = self::table();
@@ -213,7 +221,7 @@ defined('ABSPATH') || exit;
     if (!self::table_exists()) {
       add_action('admin_notices', function () {
         echo '<div class="notice notice-error"><p>';
-        echo esc_html__('BookPoint License Server: license table was not created. Please deactivate/activate the plugin again and check database permissions.', 'bookpoint');
+        echo esc_html__('BookPoint License Server: license table was not created. Please deactivate/activate the plugin again and check database permissions.', 'bookpoint-booking');
         echo '</p></div>';
       });
     }
@@ -249,7 +257,7 @@ defined('ABSPATH') || exit;
   }
 
   private static function client_ip(): string {
-    $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    $ip = sanitize_text_field((string) wp_unslash($_SERVER['REMOTE_ADDR'] ?? ''));
     $ip = trim($ip);
     return $ip !== '' ? $ip : '0.0.0.0';
   }
@@ -313,7 +321,14 @@ defined('ABSPATH') || exit;
     }
 
     global $wpdb;
-    $found = $wpdb->get_var($wpdb->prepare("SHOW COLUMNS FROM {$table} LIKE %s", $column));
+    if (!self::is_safe_sql_identifier($table) || !self::is_safe_sql_identifier($column)) {
+      $cache[$key] = false;
+      return false;
+    }
+    $quoted_table = self::quote_sql_identifier($table);
+    $found = $wpdb->get_var(
+      $wpdb->prepare("SHOW COLUMNS FROM {$quoted_table} LIKE %s", $column)
+    );
     $cache[$key] = is_string($found) && $found !== '';
     return (bool) $cache[$key];
   }
@@ -480,7 +495,7 @@ defined('ABSPATH') || exit;
     if (!current_user_can('manage_options')) return;
     if (!class_exists('WooCommerce')) {
       echo '<div class="notice notice-warning"><p>';
-      echo esc_html__('BookPoint License Server: WooCommerce is not active. License generation + customer account views require WooCommerce.', 'bookpoint');
+      echo esc_html__('BookPoint License Server: WooCommerce is not active. License generation + customer account views require WooCommerce.', 'bookpoint-booking');
       echo '</p></div>';
     }
   }
@@ -534,12 +549,20 @@ defined('ABSPATH') || exit;
     $table = self::table();
     $key = self::normalize_key($key);
     if ($key === '') return null;
+    if (!self::is_safe_sql_identifier($table)) {
+      return null;
+    }
+    $quoted_table = self::quote_sql_identifier($table);
 
     if (self::table_has_column(self::COL_LICENSE_KEY_HASH)) {
       $hash = self::license_key_hash($key);
+      if (!self::is_safe_sql_identifier(self::COL_LICENSE_KEY_HASH)) {
+        return null;
+      }
+      $quoted_hash_column = self::quote_sql_identifier(self::COL_LICENSE_KEY_HASH);
       $row = $wpdb->get_row(
         $wpdb->prepare(
-          "SELECT * FROM {$table} WHERE license_key = %s OR " . self::COL_LICENSE_KEY_HASH . " = %s LIMIT 1",
+          "SELECT * FROM {$quoted_table} WHERE license_key = %s OR {$quoted_hash_column} = %s LIMIT 1",
           $key,
           $hash
         ),
@@ -547,7 +570,7 @@ defined('ABSPATH') || exit;
       );
     } else {
       $row = $wpdb->get_row(
-        $wpdb->prepare("SELECT * FROM {$table} WHERE license_key = %s LIMIT 1", $key),
+        $wpdb->prepare("SELECT * FROM {$quoted_table} WHERE license_key = %s LIMIT 1", $key),
         ARRAY_A
       );
     }
@@ -557,8 +580,12 @@ defined('ABSPATH') || exit;
   private static function get_license_by_id(int $id): ?array {
     global $wpdb;
     $table = self::table();
+    if (!self::is_safe_sql_identifier($table)) {
+      return null;
+    }
+    $quoted_table = self::quote_sql_identifier($table);
     $row = $wpdb->get_row(
-      $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", $id),
+      $wpdb->prepare("SELECT * FROM {$quoted_table} WHERE id = %d LIMIT 1", $id),
       ARRAY_A
     );
     return is_array($row) ? $row : null;
@@ -660,7 +687,7 @@ defined('ABSPATH') || exit;
 
     $updates = [
       'last_seen_at' => self::now_mysql_gmt(),
-      'last_seen_ip' => sanitize_text_field((string)($_SERVER['REMOTE_ADDR'] ?? '')),
+      'last_seen_ip' => sanitize_text_field((string) wp_unslash($_SERVER['REMOTE_ADDR'] ?? '')),
     ];
 
     if ($validated['activated_domain'] !== (string)($lic['activated_domain'] ?? '')) {
@@ -730,7 +757,7 @@ defined('ABSPATH') || exit;
       'instance_id' => '',
       'activations_count' => $newCount,
       'last_seen_at' => self::now_mysql_gmt(),
-      'last_seen_ip' => sanitize_text_field((string)($_SERVER['REMOTE_ADDR'] ?? '')),
+      'last_seen_ip' => sanitize_text_field((string) wp_unslash($_SERVER['REMOTE_ADDR'] ?? '')),
     ]);
 
     return ['ok' => true, 'status' => 'deactivated', 'message' => 'License deactivated for this site.'];
@@ -738,6 +765,7 @@ defined('ABSPATH') || exit;
 
   private static function ajax_payload(): array {
     // admin-ajax does not natively parse JSON bodies.
+    // phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
     $p = [];
 
     if (!empty($_POST) && is_array($_POST)) {
@@ -755,6 +783,7 @@ defined('ABSPATH') || exit;
     }
 
     $p = is_array($p) ? $p : [];
+    // phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
     return self::unpack_payload($p);
   }
 
@@ -930,57 +959,62 @@ defined('ABSPATH') || exit;
 
     woocommerce_wp_checkbox([
       'id' => self::META_ENABLE,
-      'label' => __('Generate BookPoint license', 'bookpoint'),
-      'description' => __('Create a license key when this product is purchased.', 'bookpoint'),
+      'label' => __('Generate BookPoint license', 'bookpoint-booking'),
+      'description' => __('Create a license key when this product is purchased.', 'bookpoint-booking'),
     ]);
 
     woocommerce_wp_text_input([
       'id' => self::META_PLAN,
-      'label' => __('BookPoint plan name', 'bookpoint'),
+      'label' => __('BookPoint plan name', 'bookpoint-booking'),
       'type' => 'text',
       'desc_tip' => true,
-      'description' => __('Shown to customer/plugin as the plan name (optional).', 'bookpoint'),
+      'description' => __('Shown to customer/plugin as the plan name (optional).', 'bookpoint-booking'),
     ]);
 
     woocommerce_wp_text_input([
       'id' => self::META_EXPIRY_DAYS,
-      'label' => __('License duration (days)', 'bookpoint'),
+      'label' => __('License duration (days)', 'bookpoint-booking'),
       'type' => 'number',
       'custom_attributes' => [
         'min' => '0',
         'step' => '1',
       ],
       'desc_tip' => true,
-      'description' => __('0 = never expires.', 'bookpoint'),
+      'description' => __('0 = never expires.', 'bookpoint-booking'),
     ]);
 
     woocommerce_wp_text_input([
       'id' => self::META_ACTIVATIONS_LIMIT,
-      'label' => __('Activation limit', 'bookpoint'),
+      'label' => __('Activation limit', 'bookpoint-booking'),
       'type' => 'number',
       'custom_attributes' => [
         'min' => '1',
         'step' => '1',
       ],
       'desc_tip' => true,
-      'description' => __('How many sites can activate this license (recommended: 1).', 'bookpoint'),
+      'description' => __('How many sites can activate this license (recommended: 1).', 'bookpoint-booking'),
     ]);
 
     echo '</div>';
   }
 
   public static function save_product_fields(int $postId): void {
+    $meta_nonce = sanitize_text_field((string) wp_unslash($_POST['woocommerce_meta_nonce'] ?? ''));
+    if ($meta_nonce === '' || !wp_verify_nonce($meta_nonce, 'woocommerce_save_data')) {
+      return;
+    }
+
     $enable = isset($_POST[self::META_ENABLE]) ? 'yes' : 'no';
     update_post_meta($postId, self::META_ENABLE, $enable);
 
-    $plan = sanitize_text_field((string)($_POST[self::META_PLAN] ?? ''));
+    $plan = sanitize_text_field((string) wp_unslash($_POST[self::META_PLAN] ?? ''));
     update_post_meta($postId, self::META_PLAN, $plan);
 
-    $days = isset($_POST[self::META_EXPIRY_DAYS]) ? absint($_POST[self::META_EXPIRY_DAYS]) : 0;
+    $days = isset($_POST[self::META_EXPIRY_DAYS]) ? absint(wp_unslash($_POST[self::META_EXPIRY_DAYS])) : 0;
     update_post_meta($postId, self::META_EXPIRY_DAYS, $days);
 
     $limit = isset($_POST[self::META_ACTIVATIONS_LIMIT])
-      ? max(1, absint($_POST[self::META_ACTIVATIONS_LIMIT]))
+      ? max(1, absint(wp_unslash($_POST[self::META_ACTIVATIONS_LIMIT])))
       : 1;
     update_post_meta($postId, self::META_ACTIVATIONS_LIMIT, $limit);
   }
@@ -1211,23 +1245,28 @@ defined('ABSPATH') || exit;
     $postmeta = $wpdb->postmeta;
     $st1 = 'wc-processing';
     $st2 = 'wc-completed';
+    if (!self::is_safe_sql_identifier($posts) || !self::is_safe_sql_identifier($postmeta)) {
+      return [];
+    }
+    $quoted_posts = self::quote_sql_identifier($posts);
+    $quoted_postmeta = self::quote_sql_identifier($postmeta);
 
-    $sql = $wpdb->prepare(
-      "SELECT p.ID
-       FROM {$posts} p
-       INNER JOIN {$postmeta} pm ON pm.post_id = p.ID
-       WHERE p.post_type = 'shop_order'
-         AND p.post_status IN (%s, %s)
-         AND pm.meta_key = '_billing_email'
-         AND pm.meta_value = %s
-       ORDER BY p.post_date_gmt DESC
-       LIMIT 10",
-      $st1,
-      $st2,
-      $email
-    );
-
-    $ids2 = $wpdb->get_col($sql) ?: [];
+    $ids2 = $wpdb->get_col(
+      $wpdb->prepare(
+        "SELECT p.ID
+         FROM {$quoted_posts} p
+         INNER JOIN {$quoted_postmeta} pm ON pm.post_id = p.ID
+         WHERE p.post_type = 'shop_order'
+           AND p.post_status IN (%s, %s)
+           AND pm.meta_key = '_billing_email'
+           AND pm.meta_value = %s
+         ORDER BY p.post_date_gmt DESC
+         LIMIT 10",
+        $st1,
+        $st2,
+        $email
+      )
+    ) ?: [];
     return array_values(array_unique(array_filter(array_map('intval', $ids2))));
   }
 
@@ -1289,20 +1328,20 @@ defined('ABSPATH') || exit;
   private static function send_manual_license_email(string $to, string $key, string $plan, string $expiresAt, int $limit): void {
     if ($to === '' || $key === '') return;
 
-    $subject = __('Your BookPoint license key', 'bookpoint');
+    $subject = __('Your BookPoint license key', 'bookpoint-booking');
 
     $expires = self::to_date_string($expiresAt);
-    $expires = $expires !== '' ? $expires : __('Never', 'bookpoint');
+    $expires = $expires !== '' ? $expires : __('Never', 'bookpoint-booking');
 
     $lines = [];
-    $lines[] = __('Thanks for your purchase!', 'bookpoint');
+    $lines[] = __('Thanks for your purchase!', 'bookpoint-booking');
     $lines[] = '';
-    $lines[] = __('License key:', 'bookpoint') . ' ' . $key;
-    if ($plan !== '') $lines[] = __('Plan:', 'bookpoint') . ' ' . $plan;
-    $lines[] = __('Expires:', 'bookpoint') . ' ' . $expires;
-    $lines[] = __('Sites:', 'bookpoint') . ' ' . (string)$limit;
+    $lines[] = __('License key:', 'bookpoint-booking') . ' ' . $key;
+    if ($plan !== '') $lines[] = __('Plan:', 'bookpoint-booking') . ' ' . $plan;
+    $lines[] = __('Expires:', 'bookpoint-booking') . ' ' . $expires;
+    $lines[] = __('Sites:', 'bookpoint-booking') . ' ' . (string)$limit;
     $lines[] = '';
-    $lines[] = __('Activate in WordPress:', 'bookpoint') . ' BookPoint -> Settings -> License';
+    $lines[] = __('Activate in WordPress:', 'bookpoint-booking') . ' BookPoint -> Settings -> License';
 
     $headers = ['Content-Type: text/plain; charset=UTF-8'];
     wp_mail($to, $subject, implode("\n", $lines), $headers);
@@ -1313,8 +1352,9 @@ defined('ABSPATH') || exit;
     if ($to === '') return;
 
     $subject = sprintf(
-      __('Your BookPoint license key(s) for Order #%d', 'bookpoint'),
-      (int)$order->get_id()
+      /* translators: %d: WooCommerce order ID. */
+      __('Your BookPoint license key(s) for Order #%d', 'bookpoint-booking'),
+      (int) $order->get_id()
     );
 
     $lines = [];
@@ -1336,10 +1376,14 @@ defined('ABSPATH') || exit;
     global $wpdb;
     $table = self::table();
     if ($orderId <= 0) return [];
+    if (!self::is_safe_sql_identifier($table)) {
+      return [];
+    }
+    $quoted_table = self::quote_sql_identifier($table);
 
     $rows = $wpdb->get_results(
       $wpdb->prepare(
-        "SELECT license_key, expires_at, plan, activations_limit FROM {$table} WHERE order_id = %d ORDER BY id ASC",
+        "SELECT license_key, expires_at, plan, activations_limit FROM {$quoted_table} WHERE order_id = %d ORDER BY id ASC",
         $orderId
       ),
       ARRAY_A
@@ -1380,42 +1424,43 @@ defined('ABSPATH') || exit;
         if ($plan !== '') $suffixParts[] = "Plan: {$plan}";
         $suffixParts[] = "Expires: {$expires}";
         $suffixParts[] = "Sites: {$limit}";
-        echo "- {$k} (" . implode(', ', $suffixParts) . ")\n";
+        $line = '- ' . $k . ' (' . implode(', ', $suffixParts) . ')';
+        echo esc_html($line) . "\n";
       }
       echo "\n";
       if ($orderDateStr !== '') {
-        echo "Order date: {$orderDateStr}\n";
+        echo esc_html('Order date: ' . $orderDateStr) . "\n";
       }
       echo "Activate in WordPress: BookPoint -> Settings -> License\n\n";
       return;
     }
 
-    echo '<h3>' . esc_html__('BookPoint License Key(s)', 'bookpoint') . '</h3>';
+    echo '<h3>' . esc_html__('BookPoint License Key(s)', 'bookpoint-booking') . '</h3>';
     echo '<ul>';
     foreach ($rows as $r) {
       $k = (string)($r['license_key'] ?? '');
       if ($k === '') continue;
       $plan = (string)($r['plan'] ?? '');
       $expires = self::to_date_string(isset($r['expires_at']) ? (string)$r['expires_at'] : '');
-      $expiresLabel = $expires !== '' ? $expires : esc_html__('Never', 'bookpoint');
+      $expiresLabel = $expires !== '' ? $expires : esc_html__('Never', 'bookpoint-booking');
       $limit = (int)($r['activations_limit'] ?? 1);
 
       echo '<li>';
       echo '<code>' . esc_html($k) . '</code>';
       echo '<div style="opacity:.8;font-size:12px;margin-top:4px;">';
       if ($plan !== '') {
-        echo esc_html__('Plan:', 'bookpoint') . ' ' . esc_html($plan) . ' &middot; ';
+        echo esc_html__('Plan:', 'bookpoint-booking') . ' ' . esc_html($plan) . ' &middot; ';
       }
-      echo esc_html__('Expires:', 'bookpoint') . ' ' . esc_html($expiresLabel) . ' &middot; ';
-      echo esc_html__('Sites:', 'bookpoint') . ' ' . esc_html((string)$limit);
+      echo esc_html__('Expires:', 'bookpoint-booking') . ' ' . esc_html($expiresLabel) . ' &middot; ';
+      echo esc_html__('Sites:', 'bookpoint-booking') . ' ' . esc_html((string)$limit);
       echo '</div>';
       echo '</li>';
     }
     echo '</ul>';
     if ($orderDateStr !== '') {
-      echo '<p style="opacity:.8;">' . esc_html__('Order date:', 'bookpoint') . ' ' . esc_html($orderDateStr) . '</p>';
+      echo '<p style="opacity:.8;">' . esc_html__('Order date:', 'bookpoint-booking') . ' ' . esc_html($orderDateStr) . '</p>';
     }
-    echo '<p>' . esc_html__('Activate in WordPress: BookPoint -> Settings -> License', 'bookpoint') . '</p>';
+    echo '<p>' . esc_html__('Activate in WordPress: BookPoint -> Settings -> License', 'bookpoint-booking') . '</p>';
   }
 
   public static function render_account_dashboard_licenses(): void {
@@ -1426,9 +1471,13 @@ defined('ABSPATH') || exit;
 
     global $wpdb;
     $table = self::table();
+    if (!self::is_safe_sql_identifier($table)) {
+      return;
+    }
+    $quoted_table = self::quote_sql_identifier($table);
     $rows = $wpdb->get_results(
       $wpdb->prepare(
-        "SELECT * FROM {$table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 5",
+        "SELECT * FROM {$quoted_table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 5",
         $userId,
         $email
       ),
@@ -1438,7 +1487,7 @@ defined('ABSPATH') || exit;
       self::sync_licenses_for_user($userId, $email);
       $rows = $wpdb->get_results(
         $wpdb->prepare(
-          "SELECT * FROM {$table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 5",
+          "SELECT * FROM {$quoted_table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 5",
           $userId,
           $email
         ),
@@ -1452,12 +1501,12 @@ defined('ABSPATH') || exit;
       ? wc_get_endpoint_url('bookpoint-licenses', '', $myAccountUrl)
       : '';
 
-    echo '<h3>' . esc_html__('BookPoint Licenses', 'bookpoint') . '</h3>';
+    echo '<h3>' . esc_html__('BookPoint Licenses', 'bookpoint-booking') . '</h3>';
     echo '<table class="shop_table shop_table_responsive">';
     echo '<thead><tr>';
-    echo '<th>' . esc_html__('License Key', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Status', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Expires', 'bookpoint') . '</th>';
+    echo '<th>' . esc_html__('License Key', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Status', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Expires', 'bookpoint-booking') . '</th>';
     echo '</tr></thead><tbody>';
 
     foreach ($rows as $r) {
@@ -1468,15 +1517,15 @@ defined('ABSPATH') || exit;
       $status = $disabled ? 'disabled' : ($isExpired ? 'expired' : 'valid');
 
       echo '<tr>';
-      echo '<td data-title="' . esc_attr__('License Key', 'bookpoint') . '"><code>' . esc_html((string)($r['license_key'] ?? '')) . '</code></td>';
-      echo '<td data-title="' . esc_attr__('Status', 'bookpoint') . '">' . esc_html($status) . '</td>';
-      echo '<td data-title="' . esc_attr__('Expires', 'bookpoint') . '">' . esc_html($expires ?: '-') . '</td>';
+      echo '<td data-title="' . esc_attr__('License Key', 'bookpoint-booking') . '"><code>' . esc_html((string)($r['license_key'] ?? '')) . '</code></td>';
+      echo '<td data-title="' . esc_attr__('Status', 'bookpoint-booking') . '">' . esc_html($status) . '</td>';
+      echo '<td data-title="' . esc_attr__('Expires', 'bookpoint-booking') . '">' . esc_html($expires ?: '-') . '</td>';
       echo '</tr>';
     }
     echo '</tbody></table>';
 
     if ($licensesUrl !== '') {
-      echo '<p><a class="button" href="' . esc_url($licensesUrl) . '">' . esc_html__('View all licenses', 'bookpoint') . '</a></p>';
+      echo '<p><a class="button" href="' . esc_url($licensesUrl) . '">' . esc_html__('View all licenses', 'bookpoint-booking') . '</a></p>';
     }
   }
 
@@ -1485,11 +1534,11 @@ defined('ABSPATH') || exit;
     foreach ($items as $k => $label) {
       $out[$k] = $label;
       if ($k === 'downloads') {
-        $out['bookpoint-licenses'] = __('BookPoint Licenses', 'bookpoint');
+        $out['bookpoint-licenses'] = __('BookPoint Licenses', 'bookpoint-booking');
       }
     }
     if (!isset($out['bookpoint-licenses'])) {
-      $out['bookpoint-licenses'] = __('BookPoint Licenses', 'bookpoint');
+      $out['bookpoint-licenses'] = __('BookPoint Licenses', 'bookpoint-booking');
     }
     return $out;
   }
@@ -1539,12 +1588,16 @@ defined('ABSPATH') || exit;
 
     global $wpdb;
     $table = self::table();
+    if (!self::is_safe_sql_identifier($table)) {
+      return;
+    }
+    $quoted_table = self::quote_sql_identifier($table);
 
     // Link by order_id (best): ensures keys show even if billing email differs from account email.
     $inOrder = implode(',', array_fill(0, count($orderIds), '%d'));
     $wpdb->query(
       $wpdb->prepare(
-        "UPDATE {$table} SET user_id = %d WHERE user_id = 0 AND order_id IN ({$inOrder})",
+        "UPDATE {$quoted_table} SET user_id = %d WHERE user_id = 0 AND order_id IN ({$inOrder})",
         array_merge([$userId], $orderIds)
       )
     );
@@ -1557,7 +1610,7 @@ defined('ABSPATH') || exit;
 
   public static function render_account_page(): void {
     if (!is_user_logged_in()) {
-      echo '<p>' . esc_html__('Please log in to see your licenses.', 'bookpoint') . '</p>';
+      echo '<p>' . esc_html__('Please log in to see your licenses.', 'bookpoint-booking') . '</p>';
       return;
     }
 
@@ -1567,10 +1620,15 @@ defined('ABSPATH') || exit;
 
     global $wpdb;
     $table = self::table();
+    if (!self::is_safe_sql_identifier($table)) {
+      echo '<p>' . esc_html__('No licenses found for your account.', 'bookpoint-booking') . '</p>';
+      return;
+    }
+    $quoted_table = self::quote_sql_identifier($table);
 
     $rows = $wpdb->get_results(
       $wpdb->prepare(
-        "SELECT * FROM {$table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 200",
+        "SELECT * FROM {$quoted_table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 200",
         $userId,
         $email
       ),
@@ -1582,7 +1640,7 @@ defined('ABSPATH') || exit;
       self::sync_licenses_for_user($userId, $email);
       $rows = $wpdb->get_results(
         $wpdb->prepare(
-          "SELECT * FROM {$table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 200",
+          "SELECT * FROM {$quoted_table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 200",
           $userId,
           $email
         ),
@@ -1590,26 +1648,26 @@ defined('ABSPATH') || exit;
       ) ?: [];
     }
 
-    echo '<h3>' . esc_html__('Your BookPoint Licenses', 'bookpoint') . '</h3>';
+    echo '<h3>' . esc_html__('Your BookPoint Licenses', 'bookpoint-booking') . '</h3>';
 
     if (!$rows) {
-      echo '<p>' . esc_html__('No licenses found for your account.', 'bookpoint') . '</p>';
+      echo '<p>' . esc_html__('No licenses found for your account.', 'bookpoint-booking') . '</p>';
 
       if (self::show_claim_form()) {
         echo '<div style="max-width:720px;border:1px solid rgba(15,23,42,.08);border-radius:12px;padding:12px;margin-top:12px;">';
-        echo '<p style="margin:0 0 10px;">' . esc_html__('If you purchased as a guest or used a different billing email, you can claim your license by entering the Order ID and billing email below.', 'bookpoint') . '</p>';
+        echo '<p style="margin:0 0 10px;">' . esc_html__('If you purchased as a guest or used a different billing email, you can claim your license by entering the Order ID and billing email below.', 'bookpoint-booking') . '</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         echo '<input type="hidden" name="action" value="pointlybooking_ls_claim">';
         wp_nonce_field('pointlybooking_ls_claim');
         echo '<p style="margin:0 0 10px;">';
-        echo '<label style="display:block;margin-bottom:6px;">' . esc_html__('Order ID', 'bookpoint') . '</label>';
+        echo '<label style="display:block;margin-bottom:6px;">' . esc_html__('Order ID', 'bookpoint-booking') . '</label>';
         echo '<input type="number" name="order_id" min="1" step="1" required style="width:100%;max-width:280px;">';
         echo '</p>';
         echo '<p style="margin:0 0 10px;">';
-        echo '<label style="display:block;margin-bottom:6px;">' . esc_html__('Billing email', 'bookpoint') . '</label>';
+        echo '<label style="display:block;margin-bottom:6px;">' . esc_html__('Billing email', 'bookpoint-booking') . '</label>';
         echo '<input type="email" name="billing_email" required style="width:100%;max-width:420px;">';
         echo '</p>';
-        echo '<button class="button" type="submit">' . esc_html__('Find my license', 'bookpoint') . '</button>';
+        echo '<button class="button" type="submit">' . esc_html__('Find my license', 'bookpoint-booking') . '</button>';
         echo '</form>';
         echo '</div>';
       }
@@ -1618,11 +1676,11 @@ defined('ABSPATH') || exit;
 
     echo '<table class="shop_table shop_table_responsive my_account_orders">';
     echo '<thead><tr>';
-    echo '<th>' . esc_html__('License Key', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Status', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Expires', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Activated Domain', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Activations', 'bookpoint') . '</th>';
+    echo '<th>' . esc_html__('License Key', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Status', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Expires', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Activated Domain', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Activations', 'bookpoint-booking') . '</th>';
     echo '</tr></thead><tbody>';
 
     foreach ($rows as $r) {
@@ -1635,11 +1693,11 @@ defined('ABSPATH') || exit;
       $act = sprintf('%d/%d', (int)($r['activations_count'] ?? 0), (int)($r['activations_limit'] ?? 1));
 
       echo '<tr>';
-      echo '<td data-title="' . esc_attr__('License Key', 'bookpoint') . '"><code>' . esc_html((string)$r['license_key']) . '</code></td>';
-      echo '<td data-title="' . esc_attr__('Status', 'bookpoint') . '">' . esc_html($status) . '</td>';
-      echo '<td data-title="' . esc_attr__('Expires', 'bookpoint') . '">' . esc_html($expires ?: '-') . '</td>';
-      echo '<td data-title="' . esc_attr__('Activated Domain', 'bookpoint') . '">' . esc_html($domain ?: '-') . '</td>';
-      echo '<td data-title="' . esc_attr__('Activations', 'bookpoint') . '">' . esc_html($act) . '</td>';
+      echo '<td data-title="' . esc_attr__('License Key', 'bookpoint-booking') . '"><code>' . esc_html((string)$r['license_key']) . '</code></td>';
+      echo '<td data-title="' . esc_attr__('Status', 'bookpoint-booking') . '">' . esc_html($status) . '</td>';
+      echo '<td data-title="' . esc_attr__('Expires', 'bookpoint-booking') . '">' . esc_html($expires ?: '-') . '</td>';
+      echo '<td data-title="' . esc_attr__('Activated Domain', 'bookpoint-booking') . '">' . esc_html($domain ?: '-') . '</td>';
+      echo '<td data-title="' . esc_attr__('Activations', 'bookpoint-booking') . '">' . esc_html($act) . '</td>';
       echo '</tr>';
     }
 
@@ -1693,8 +1751,8 @@ defined('ABSPATH') || exit;
       exit;
     }
 
-    $orderId = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
-    $billingEmail = sanitize_email((string)($_POST['billing_email'] ?? ''));
+    $orderId = isset($_POST['order_id']) ? absint(wp_unslash($_POST['order_id'])) : 0;
+    $billingEmail = sanitize_email((string) wp_unslash($_POST['billing_email'] ?? ''));
 
     if ($orderId <= 0 || $billingEmail === '') {
       wp_safe_redirect(wc_get_account_endpoint_url('bookpoint-licenses'));
@@ -1743,13 +1801,28 @@ defined('ABSPATH') || exit;
 
     global $wpdb;
     $table = self::table();
-    $q = sanitize_text_field((string)($_GET['s'] ?? ''));
+    if (!self::is_safe_sql_identifier($table)) {
+      $rows = [];
+      $base = admin_url('admin.php?page=pointlybooking_license_server');
+      echo '<div class="wrap">';
+      echo '<h1>' . esc_html__('BookPoint Licenses', 'bookpoint-booking') . '</h1>';
+      echo '<p>' . esc_html__('No licenses found.', 'bookpoint-booking') . '</p>';
+      echo '</div>';
+      return;
+    }
+    $quoted_table = self::quote_sql_identifier($table);
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only admin filter input.
+    $q = sanitize_text_field((string) wp_unslash($_GET['s'] ?? ''));
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only admin notice flag.
+    $generated_notice = sanitize_text_field((string) wp_unslash($_GET['generated'] ?? ''));
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only admin notice flag.
+    $created_notice = sanitize_text_field((string) wp_unslash($_GET['created'] ?? ''));
 
     if ($q !== '') {
       $like = '%' . $wpdb->esc_like($q) . '%';
       $rows = $wpdb->get_results(
         $wpdb->prepare(
-          "SELECT * FROM {$table} WHERE license_key LIKE %s OR email LIKE %s OR activated_domain LIKE %s ORDER BY id DESC LIMIT 200",
+          "SELECT * FROM {$quoted_table} WHERE license_key LIKE %s OR email LIKE %s OR activated_domain LIKE %s ORDER BY id DESC LIMIT 200",
           $like,
           $like,
           $like
@@ -1757,85 +1830,88 @@ defined('ABSPATH') || exit;
         ARRAY_A
       ) ?: [];
     } else {
-      $rows = $wpdb->get_results("SELECT * FROM {$table} ORDER BY id DESC LIMIT 50", ARRAY_A) ?: [];
+      $rows = $wpdb->get_results(
+        "SELECT * FROM {$quoted_table} ORDER BY id DESC LIMIT 50",
+        ARRAY_A
+      ) ?: [];
     }
 
     $base = admin_url('admin.php?page=pointlybooking_license_server');
 
     echo '<div class="wrap">';
-    echo '<h1>' . esc_html__('BookPoint Licenses', 'bookpoint') . '</h1>';
+    echo '<h1>' . esc_html__('BookPoint Licenses', 'bookpoint-booking') . '</h1>';
 
-    if (!empty($_GET['generated'])) {
+    if ($generated_notice !== '') {
       $tKey = 'pointlybooking_ls_last_generated_' . (int)get_current_user_id();
       $msg = (string)get_transient($tKey);
       if ($msg !== '') {
         delete_transient($tKey);
         echo '<div class="notice notice-success"><p>' . esc_html($msg) . '</p></div>';
       } else {
-        echo '<div class="notice notice-success"><p>' . esc_html__('Generation attempted.', 'bookpoint') . '</p></div>';
+        echo '<div class="notice notice-success"><p>' . esc_html__('Generation attempted.', 'bookpoint-booking') . '</p></div>';
       }
     }
 
-    if (!empty($_GET['created'])) {
+    if ($created_notice !== '') {
       $tKey = 'pointlybooking_ls_last_created_' . (int)get_current_user_id();
       $createdKey = (string)get_transient($tKey);
       if ($createdKey !== '') {
         delete_transient($tKey);
         echo '<div class="notice notice-success"><p>';
-        echo esc_html__('License created:', 'bookpoint') . ' <code>' . esc_html($createdKey) . '</code>';
+        echo esc_html__('License created:', 'bookpoint-booking') . ' <code>' . esc_html($createdKey) . '</code>';
         echo '</p></div>';
       } else {
-        echo '<div class="notice notice-success"><p>' . esc_html__('License created.', 'bookpoint') . '</p></div>';
+        echo '<div class="notice notice-success"><p>' . esc_html__('License created.', 'bookpoint-booking') . '</p></div>';
       }
     }
 
     echo '<div class="postbox" style="max-width:900px;padding:14px 14px 10px;margin-top:16px;">';
-    echo '<h2 style="margin:0 0 10px;">' . esc_html__('Create License (manual)', 'bookpoint') . '</h2>';
+    echo '<h2 style="margin:0 0 10px;">' . esc_html__('Create License (manual)', 'bookpoint-booking') . '</h2>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="pointlybooking_ls_create">';
     wp_nonce_field('pointlybooking_ls_create');
 
     echo '<table class="form-table" role="presentation">';
-    echo '<tr><th scope="row"><label for="pointlybooking_ls_email">' . esc_html__('Customer email', 'bookpoint') . '</label></th>';
+    echo '<tr><th scope="row"><label for="pointlybooking_ls_email">' . esc_html__('Customer email', 'bookpoint-booking') . '</label></th>';
     echo '<td><input name="email" id="pointlybooking_ls_email" class="regular-text" type="email" value="" placeholder="customer@example.com"></td></tr>';
 
-    echo '<tr><th scope="row"><label for="pointlybooking_ls_plan">' . esc_html__('Plan (optional)', 'bookpoint') . '</label></th>';
+    echo '<tr><th scope="row"><label for="pointlybooking_ls_plan">' . esc_html__('Plan (optional)', 'bookpoint-booking') . '</label></th>';
     echo '<td><input name="plan" id="pointlybooking_ls_plan" class="regular-text" type="text" value="" placeholder="Pro / Lifetime / etc"></td></tr>';
 
-    echo '<tr><th scope="row"><label for="pointlybooking_ls_days">' . esc_html__('Duration (days)', 'bookpoint') . '</label></th>';
+    echo '<tr><th scope="row"><label for="pointlybooking_ls_days">' . esc_html__('Duration (days)', 'bookpoint-booking') . '</label></th>';
     echo '<td><input name="days" id="pointlybooking_ls_days" class="small-text" type="number" min="0" step="1" value="0"> ';
-    echo '<span class="description">' . esc_html__('0 = never expires.', 'bookpoint') . '</span></td></tr>';
+    echo '<span class="description">' . esc_html__('0 = never expires.', 'bookpoint-booking') . '</span></td></tr>';
 
-    echo '<tr><th scope="row"><label for="pointlybooking_ls_limit">' . esc_html__('Activation limit', 'bookpoint') . '</label></th>';
+    echo '<tr><th scope="row"><label for="pointlybooking_ls_limit">' . esc_html__('Activation limit', 'bookpoint-booking') . '</label></th>';
     echo '<td><input name="limit" id="pointlybooking_ls_limit" class="small-text" type="number" min="1" step="1" value="1"></td></tr>';
 
-    echo '<tr><th scope="row">' . esc_html__('Email customer', 'bookpoint') . '</th>';
-    echo '<td><label><input type="checkbox" name="send_email" value="1" checked> ' . esc_html__('Send the key to the email above', 'bookpoint') . '</label></td></tr>';
+    echo '<tr><th scope="row">' . esc_html__('Email customer', 'bookpoint-booking') . '</th>';
+    echo '<td><label><input type="checkbox" name="send_email" value="1" checked> ' . esc_html__('Send the key to the email above', 'bookpoint-booking') . '</label></td></tr>';
 
     echo '</table>';
 
-    submit_button(__('Create License', 'bookpoint'));
+    submit_button(__('Create License', 'bookpoint-booking'));
     echo '</form>';
     echo '</div>';
 
     echo '<div class="postbox" style="max-width:900px;padding:14px 14px 10px;margin-top:16px;">';
-    echo '<h2 style="margin:0 0 10px;">' . esc_html__('Generate for Order ID (debug)', 'bookpoint') . '</h2>';
-    echo '<p class="description">' . esc_html__('If you installed the license server after an order was paid, use this to generate the missing keys.', 'bookpoint') . '</p>';
+    echo '<h2 style="margin:0 0 10px;">' . esc_html__('Generate for Order ID (debug)', 'bookpoint-booking') . '</h2>';
+    echo '<p class="description">' . esc_html__('If you installed the license server after an order was paid, use this to generate the missing keys.', 'bookpoint-booking') . '</p>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="pointlybooking_ls_generate_order">';
     wp_nonce_field('pointlybooking_ls_generate_order');
-    echo '<label for="pointlybooking_ls_order_id" style="display:inline-block;min-width:120px;">' . esc_html__('Order ID', 'bookpoint') . '</label> ';
+    echo '<label for="pointlybooking_ls_order_id" style="display:inline-block;min-width:120px;">' . esc_html__('Order ID', 'bookpoint-booking') . '</label> ';
     echo '<input name="order_id" id="pointlybooking_ls_order_id" class="small-text" type="number" min="1" step="1" value=""> ';
-    submit_button(__('Generate', 'bookpoint'), 'secondary', 'submit', false);
+    submit_button(__('Generate', 'bookpoint-booking'), 'secondary', 'submit', false);
     echo '</form>';
     echo '</div>';
 
     echo '<form method="get" style="margin:12px 0;">';
     echo '<input type="hidden" name="page" value="pointlybooking_license_server">';
-    echo '<input type="search" name="s" value="' . esc_attr($q) . '" placeholder="' . esc_attr__('Search key, email, domain...', 'bookpoint') . '" style="min-width:320px;"> ';
-    echo '<button class="button">' . esc_html__('Search', 'bookpoint') . '</button>';
+    echo '<input type="search" name="s" value="' . esc_attr($q) . '" placeholder="' . esc_attr__('Search key, email, domain...', 'bookpoint-booking') . '" style="min-width:320px;"> ';
+    echo '<button class="button">' . esc_html__('Search', 'bookpoint-booking') . '</button>';
     if ($q !== '') {
-      echo ' <a class="button" href="' . esc_url($base) . '">' . esc_html__('Clear', 'bookpoint') . '</a>';
+      echo ' <a class="button" href="' . esc_url($base) . '">' . esc_html__('Clear', 'bookpoint-booking') . '</a>';
     }
     echo '</form>';
 
@@ -1844,21 +1920,21 @@ defined('ABSPATH') || exit;
     if (!is_array($debugLog)) $debugLog = [];
 
     echo '<details style="max-width:900px;margin:14px 0;">';
-    echo '<summary style="cursor:pointer;">' . esc_html__('Debug log (last events)', 'bookpoint') . '</summary>';
+    echo '<summary style="cursor:pointer;">' . esc_html__('Debug log (last events)', 'bookpoint-booking') . '</summary>';
     echo '<div style="padding:10px 0;">';
 
     echo '<p class="description">';
-    echo esc_html__('If keys are not generating, this log shows why (e.g. product not enabled, table missing, DB insert error).', 'bookpoint');
+    echo esc_html__('If keys are not generating, this log shows why (e.g. product not enabled, table missing, DB insert error).', 'bookpoint-booking');
     echo '</p>';
 
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0 0 10px;">';
     echo '<input type="hidden" name="action" value="pointlybooking_ls_debug_clear">';
     wp_nonce_field('pointlybooking_ls_debug_clear');
-    submit_button(__('Clear debug log', 'bookpoint'), 'secondary', 'submit', false);
+    submit_button(__('Clear debug log', 'bookpoint-booking'), 'secondary', 'submit', false);
     echo '</form>';
 
     if (!$debugLog) {
-      echo '<p>' . esc_html__('No debug events yet.', 'bookpoint') . '</p>';
+      echo '<p>' . esc_html__('No debug events yet.', 'bookpoint-booking') . '</p>';
     } else {
       echo '<pre style="background:#0b1220;color:#e5e7eb;border-radius:12px;padding:12px;overflow:auto;max-height:360px;font-size:12px;line-height:1.45;">';
       echo esc_html(wp_json_encode($debugLog, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -1868,20 +1944,20 @@ defined('ABSPATH') || exit;
     echo '</details>';
 
     if (!$rows) {
-      echo '<p>' . esc_html__('No licenses found.', 'bookpoint') . '</p>';
+      echo '<p>' . esc_html__('No licenses found.', 'bookpoint-booking') . '</p>';
       echo '</div>';
       return;
     }
 
     echo '<table class="widefat striped">';
     echo '<thead><tr>';
-    echo '<th>' . esc_html__('Key', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Email', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Status', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Expires', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Activated Domain', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Activations', 'bookpoint') . '</th>';
-    echo '<th>' . esc_html__('Actions', 'bookpoint') . '</th>';
+    echo '<th>' . esc_html__('Key', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Email', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Status', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Expires', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Activated Domain', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Activations', 'bookpoint-booking') . '</th>';
+    echo '<th>' . esc_html__('Actions', 'bookpoint-booking') . '</th>';
     echo '</tr></thead><tbody>';
 
     foreach ($rows as $r) {
@@ -1913,10 +1989,10 @@ defined('ABSPATH') || exit;
       echo '<td>' . esc_html($act) . '</td>';
       echo '<td>';
       echo '<a class="button button-small" href="' . esc_url($toggleUrl) . '">';
-      echo esc_html($disabled ? __('Enable', 'bookpoint') : __('Disable', 'bookpoint'));
+      echo esc_html($disabled ? __('Enable', 'bookpoint-booking') : __('Disable', 'bookpoint-booking'));
       echo '</a> ';
       echo '<a class="button button-small" href="' . esc_url($resetUrl) . '">';
-      echo esc_html__('Reset Activation', 'bookpoint');
+      echo esc_html__('Reset Activation', 'bookpoint-booking');
       echo '</a>';
       echo '</td>';
       echo '</tr>';
@@ -1930,11 +2006,11 @@ defined('ABSPATH') || exit;
     if (!current_user_can('manage_options')) wp_die('Forbidden');
     check_admin_referer('pointlybooking_ls_create');
 
-    $email = sanitize_email((string)($_POST['email'] ?? ''));
-    $plan = sanitize_text_field((string)($_POST['plan'] ?? ''));
-    $days = isset($_POST['days']) ? absint($_POST['days']) : 0;
-    $limit = isset($_POST['limit']) ? max(1, absint($_POST['limit'])) : 1;
-    $sendEmail = !empty($_POST['send_email']);
+    $email = sanitize_email((string) wp_unslash($_POST['email'] ?? ''));
+    $plan = sanitize_text_field((string) wp_unslash($_POST['plan'] ?? ''));
+    $days = isset($_POST['days']) ? absint(wp_unslash($_POST['days'])) : 0;
+    $limit = isset($_POST['limit']) ? max(1, absint(wp_unslash($_POST['limit']))) : 1;
+    $sendEmail = isset($_POST['send_email']) && '1' === sanitize_text_field((string) wp_unslash($_POST['send_email']));
 
     $key = self::create_manual_license($email, $plan, $days, $limit);
     if ($key === '') {
@@ -1959,9 +2035,9 @@ defined('ABSPATH') || exit;
     if (!current_user_can('manage_options')) wp_die('Forbidden');
     check_admin_referer('pointlybooking_ls_generate_order');
 
-    $orderId = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+    $orderId = isset($_POST['order_id']) ? absint(wp_unslash($_POST['order_id'])) : 0;
     if ($orderId <= 0) {
-      set_transient('pointlybooking_ls_last_generated_' . (int)get_current_user_id(), __('Missing order ID.', 'bookpoint'), 60);
+      set_transient('pointlybooking_ls_last_generated_' . (int)get_current_user_id(), __('Missing order ID.', 'bookpoint-booking'), 60);
       wp_safe_redirect(admin_url('admin.php?page=pointlybooking_license_server&generated=1'));
       exit;
     }
@@ -1974,14 +2050,29 @@ defined('ABSPATH') || exit;
         $k = (string)($r['license_key'] ?? '');
         if ($k !== '') $keys[] = $k;
       }
+      /* translators: 1: Number of keys, 2: Order ID, 3: Comma-separated license keys. */
       $msg = $keys
-        ? sprintf(__('Generated / found %d key(s) for order #%d: %s', 'bookpoint'), count($keys), $orderId, implode(', ', $keys))
-        : sprintf(__('No keys generated for order #%d (check product setting: "Generate BookPoint license").', 'bookpoint'), $orderId);
+        ? sprintf(
+          /* translators: 1: Number of keys, 2: WooCommerce order ID, 3: Comma-separated license keys. */
+          __('Generated / found %1$d key(s) for order #%2$d: %3$s', 'bookpoint-booking'),
+          count($keys),
+          $orderId,
+          implode(', ', $keys)
+        )
+        : sprintf(
+          /* translators: %d: WooCommerce order ID. */
+          __('No keys generated for order #%d (check product setting: "Generate BookPoint license").', 'bookpoint-booking'),
+          $orderId
+        );
       set_transient('pointlybooking_ls_last_generated_' . (int)get_current_user_id(), $msg, 60);
     } else {
       set_transient(
         'pointlybooking_ls_last_generated_' . (int)get_current_user_id(),
-        sprintf(__('No keys generated for order #%d (check product setting: "Generate BookPoint license").', 'bookpoint'), $orderId),
+        sprintf(
+          /* translators: %d: WooCommerce order ID. */
+          __('No keys generated for order #%d (check product setting: "Generate BookPoint license").', 'bookpoint-booking'),
+          $orderId
+        ),
         60
       );
     }
@@ -2001,13 +2092,15 @@ defined('ABSPATH') || exit;
   public static function render_updates_page(): void {
     if (!current_user_can('manage_options')) return;
     $cfg = self::get_updates_config();
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only admin notice flag.
+    $saved_notice = sanitize_text_field((string) wp_unslash($_GET['saved'] ?? ''));
 
     echo '<div class="wrap">';
-    echo '<h1>' . esc_html__('BookPoint Updates', 'bookpoint') . '</h1>';
-    echo '<p>' . esc_html__('Configure what the BookPoint plugin update endpoint returns. Package URL should be a direct ZIP download.', 'bookpoint') . '</p>';
+    echo '<h1>' . esc_html__('BookPoint Updates', 'bookpoint-booking') . '</h1>';
+    echo '<p>' . esc_html__('Configure what the BookPoint plugin update endpoint returns. Package URL should be a direct ZIP download.', 'bookpoint-booking') . '</p>';
 
-    if (!empty($_GET['saved'])) {
-      echo '<div class="notice notice-success"><p>' . esc_html__('Saved.', 'bookpoint') . '</p></div>';
+    if ($saved_notice !== '') {
+      echo '<div class="notice notice-success"><p>' . esc_html__('Saved.', 'bookpoint-booking') . '</p></div>';
     }
 
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
@@ -2016,33 +2109,33 @@ defined('ABSPATH') || exit;
 
     echo '<table class="form-table" role="presentation">';
 
-    echo '<tr><th scope="row"><label for="pointlybooking_ls_latest_version">' . esc_html__('Latest version', 'bookpoint') . '</label></th>';
+    echo '<tr><th scope="row"><label for="pointlybooking_ls_latest_version">' . esc_html__('Latest version', 'bookpoint-booking') . '</label></th>';
     echo '<td><input name="latest_version" id="pointlybooking_ls_latest_version" class="regular-text" value="' . esc_attr((string)$cfg['latest_version']) . '" placeholder="1.2.3"></td></tr>';
 
-    echo '<tr><th scope="row"><label for="pointlybooking_ls_package_url">' . esc_html__('Package URL (ZIP)', 'bookpoint') . '</label></th>';
+    echo '<tr><th scope="row"><label for="pointlybooking_ls_package_url">' . esc_html__('Package URL (ZIP)', 'bookpoint-booking') . '</label></th>';
     echo '<td><input name="package_url" id="pointlybooking_ls_package_url" class="large-text" value="' . esc_attr((string)$cfg['package_url']) . '" placeholder="https://example.com/bookpoint-v5.zip"></td></tr>';
 
-    echo '<tr><th scope="row"><label for="pointlybooking_ls_requires">' . esc_html__('Requires WP', 'bookpoint') . '</label></th>';
+    echo '<tr><th scope="row"><label for="pointlybooking_ls_requires">' . esc_html__('Requires WP', 'bookpoint-booking') . '</label></th>';
     echo '<td><input name="requires" id="pointlybooking_ls_requires" class="regular-text" value="' . esc_attr((string)$cfg['requires']) . '" placeholder="6.0"></td></tr>';
 
-    echo '<tr><th scope="row"><label for="pointlybooking_ls_tested">' . esc_html__('Tested up to', 'bookpoint') . '</label></th>';
+    echo '<tr><th scope="row"><label for="pointlybooking_ls_tested">' . esc_html__('Tested up to', 'bookpoint-booking') . '</label></th>';
     echo '<td><input name="tested" id="pointlybooking_ls_tested" class="regular-text" value="' . esc_attr((string)$cfg['tested']) . '" placeholder="6.5"></td></tr>';
 
-    echo '<tr><th scope="row"><label for="pointlybooking_ls_homepage">' . esc_html__('Homepage', 'bookpoint') . '</label></th>';
+    echo '<tr><th scope="row"><label for="pointlybooking_ls_homepage">' . esc_html__('Homepage', 'bookpoint-booking') . '</label></th>';
     echo '<td><input name="homepage" id="pointlybooking_ls_homepage" class="large-text" value="' . esc_attr((string)$cfg['homepage']) . '"></td></tr>';
 
     $desc = (string)($cfg['sections']['description'] ?? '');
     $changelog = (string)($cfg['sections']['changelog'] ?? '');
 
-    echo '<tr><th scope="row"><label for="pointlybooking_ls_desc">' . esc_html__('Description', 'bookpoint') . '</label></th>';
+    echo '<tr><th scope="row"><label for="pointlybooking_ls_desc">' . esc_html__('Description', 'bookpoint-booking') . '</label></th>';
     echo '<td><textarea name="desc" id="pointlybooking_ls_desc" class="large-text" rows="4">' . esc_textarea($desc) . '</textarea></td></tr>';
 
-    echo '<tr><th scope="row"><label for="pointlybooking_ls_changelog">' . esc_html__('Changelog', 'bookpoint') . '</label></th>';
+    echo '<tr><th scope="row"><label for="pointlybooking_ls_changelog">' . esc_html__('Changelog', 'bookpoint-booking') . '</label></th>';
     echo '<td><textarea name="changelog" id="pointlybooking_ls_changelog" class="large-text" rows="6">' . esc_textarea($changelog) . '</textarea></td></tr>';
 
     echo '</table>';
 
-    submit_button(__('Save Updates Settings', 'bookpoint'));
+    submit_button(__('Save Updates Settings', 'bookpoint-booking'));
     echo '</form>';
     echo '</div>';
   }
@@ -2052,14 +2145,14 @@ defined('ABSPATH') || exit;
     check_admin_referer('pointlybooking_ls_save_updates');
 
     $cfg = self::get_updates_config();
-    $cfg['latest_version'] = sanitize_text_field((string)($_POST['latest_version'] ?? ''));
-    $cfg['package_url'] = esc_url_raw((string)($_POST['package_url'] ?? ''));
-    $cfg['requires'] = sanitize_text_field((string)($_POST['requires'] ?? ''));
-    $cfg['tested'] = sanitize_text_field((string)($_POST['tested'] ?? ''));
-    $cfg['homepage'] = esc_url_raw((string)($_POST['homepage'] ?? ''));
+    $cfg['latest_version'] = sanitize_text_field((string) wp_unslash($_POST['latest_version'] ?? ''));
+    $cfg['package_url'] = esc_url_raw((string) wp_unslash($_POST['package_url'] ?? ''));
+    $cfg['requires'] = sanitize_text_field((string) wp_unslash($_POST['requires'] ?? ''));
+    $cfg['tested'] = sanitize_text_field((string) wp_unslash($_POST['tested'] ?? ''));
+    $cfg['homepage'] = esc_url_raw((string) wp_unslash($_POST['homepage'] ?? ''));
     $cfg['sections'] = [
-      'description' => wp_kses_post((string)($_POST['desc'] ?? '')),
-      'changelog' => wp_kses_post((string)($_POST['changelog'] ?? '')),
+      'description' => wp_kses_post((string) wp_unslash($_POST['desc'] ?? '')),
+      'changelog' => wp_kses_post((string) wp_unslash($_POST['changelog'] ?? '')),
     ];
 
     update_option(self::OPTION_UPDATES, $cfg, false);
@@ -2070,7 +2163,7 @@ defined('ABSPATH') || exit;
   public static function handle_toggle(): void {
     if (!current_user_can('manage_options')) wp_die('Forbidden');
 
-    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    $id = isset($_GET['id']) ? absint(wp_unslash($_GET['id'])) : 0;
     check_admin_referer('pointlybooking_ls_toggle_' . $id);
 
     $lic = self::get_license_by_id($id);
@@ -2086,7 +2179,7 @@ defined('ABSPATH') || exit;
   public static function handle_reset(): void {
     if (!current_user_can('manage_options')) wp_die('Forbidden');
 
-    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    $id = isset($_GET['id']) ? absint(wp_unslash($_GET['id'])) : 0;
     check_admin_referer('pointlybooking_ls_reset_' . $id);
 
     self::update_license($id, [

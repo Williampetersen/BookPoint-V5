@@ -3,6 +3,14 @@ defined('ABSPATH') || exit;
 
 final class POINTLYBOOKING_AgentModel extends POINTLYBOOKING_Model {
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
   public static function table() : string {
     global $wpdb;
     return $wpdb->prefix . 'pointlybooking_agents';
@@ -15,8 +23,11 @@ final class POINTLYBOOKING_AgentModel extends POINTLYBOOKING_Model {
 
   public static function all(int $limit = 500, bool $only_active = false) : array {
     global $wpdb;
-    $table = self::table();
+    $agents_table = $wpdb->prefix . 'pointlybooking_agents';
     $limit = max(1, min(1000, $limit));
+    if (!self::is_safe_sql_identifier($agents_table)) {
+      return [];
+    }
 
     $cache_key = 'pointlybooking_agents_all_' . ($only_active ? 'active' : 'all');
     $cached = get_transient($cache_key);
@@ -24,11 +35,7 @@ final class POINTLYBOOKING_AgentModel extends POINTLYBOOKING_Model {
 
     if ($only_active) {
       $list = $wpdb->get_results(
-        pointlybooking_prepare_query_with_identifiers(
-          "SELECT * FROM %i WHERE is_active = 1 ORDER BY id DESC LIMIT %d",
-          [$table],
-          [$limit]
-        ),
+        $wpdb->prepare("SELECT * FROM {$agents_table} WHERE is_active = 1 ORDER BY id DESC LIMIT %d", $limit),
         ARRAY_A
       ) ?: [];
       set_transient($cache_key, $list, 5 * MINUTE_IN_SECONDS);
@@ -36,11 +43,7 @@ final class POINTLYBOOKING_AgentModel extends POINTLYBOOKING_Model {
     }
 
     $list = $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT * FROM %i ORDER BY id DESC LIMIT %d",
-        [$table],
-        [$limit]
-      ),
+      $wpdb->prepare("SELECT * FROM {$agents_table} ORDER BY id DESC LIMIT %d", $limit),
       ARRAY_A
     ) ?: [];
     set_transient($cache_key, $list, 5 * MINUTE_IN_SECONDS);
@@ -49,14 +52,13 @@ final class POINTLYBOOKING_AgentModel extends POINTLYBOOKING_Model {
 
   public static function find(int $id) : ?array {
     global $wpdb;
-    $table = self::table();
+    $agents_table = $wpdb->prefix . 'pointlybooking_agents';
+    if (!self::is_safe_sql_identifier($agents_table)) {
+      return null;
+    }
 
     $row = $wpdb->get_row(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT * FROM %i WHERE id = %d",
-        [$table],
-        [$id]
-      ),
+      $wpdb->prepare("SELECT * FROM {$agents_table} WHERE id = %d", $id),
       ARRAY_A
     );
 
@@ -129,13 +131,12 @@ final class POINTLYBOOKING_AgentModel extends POINTLYBOOKING_Model {
 
   public static function get_service_ids_for_agent(int $agent_id): array {
     global $wpdb;
-    $t = self::services_table();
+    $agent_services_table = $wpdb->prefix . 'pointlybooking_agent_services';
+    if (!self::is_safe_sql_identifier($agent_services_table)) {
+      return [];
+    }
     $rows = $wpdb->get_col(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT service_id FROM %i WHERE agent_id = %d",
-        [$t],
-        [$agent_id]
-      )
+      $wpdb->prepare("SELECT service_id FROM {$agent_services_table} WHERE agent_id = %d", $agent_id)
     );
     return array_map('intval', $rows ?: []);
   }
@@ -160,3 +161,4 @@ final class POINTLYBOOKING_AgentModel extends POINTLYBOOKING_Model {
     }
   }
 }
+

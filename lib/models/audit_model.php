@@ -3,6 +3,14 @@ defined('ABSPATH') || exit;
 
 final class POINTLYBOOKING_AuditModel {
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
   private static function build_where(array $args, array &$params) : string {
     global $wpdb;
 
@@ -71,17 +79,6 @@ final class POINTLYBOOKING_AuditModel {
     return $where;
   }
 
-  private static function base_from_sql() : string {
-    global $wpdb;
-    $t = self::table();
-    $u = $wpdb->users;
-    $c = pointlybooking_table('customers');
-
-    return "FROM {$t} t
-      LEFT JOIN {$u} u ON u.ID = t.actor_wp_user_id
-      LEFT JOIN {$c} c ON c.id = t.customer_id";
-  }
-
   public static function table() : string {
     return pointlybooking_table('audit_log');
   }
@@ -89,14 +86,34 @@ final class POINTLYBOOKING_AuditModel {
   public static function list(array $args = []) : array {
     global $wpdb;
     $limit = max(1, min(5000, absint($args['limit'] ?? 500)));
-    $params = [];
-    $where = self::build_where($args, $params);
-    $from_sql = self::base_from_sql();
+    $table = $wpdb->prefix . 'pointlybooking_audit_log';
+    $users_table = $wpdb->users;
+    $customers_table = $wpdb->prefix . 'pointlybooking_customers';
+    if (
+      !self::is_safe_sql_identifier($table)
+      || !self::is_safe_sql_identifier($users_table)
+      || !self::is_safe_sql_identifier($customers_table)
+    ) {
+      return [];
+    }
+    $audit_table = $table;
 
-    $params[] = $limit;
+    $event = sanitize_text_field($args['event'] ?? '');
+    $booking_id = absint($args['booking_id'] ?? 0);
+    $customer_id = absint($args['customer_id'] ?? 0);
+    $actor_type = sanitize_text_field($args['actor_type'] ?? '');
+    $actor_wp_user_id = absint($args['actor_wp_user_id'] ?? 0);
+    $date_from = sanitize_text_field($args['date_from'] ?? '');
+    $date_to = sanitize_text_field($args['date_to'] ?? '');
+    $q = sanitize_text_field($args['q'] ?? '');
+    $event_value = $event !== '' ? $event : '';
+    $actor_type_value = ($actor_type !== '' && in_array($actor_type, ['admin','customer','system'], true)) ? $actor_type : '';
+    $date_from_value = ($date_from !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) ? ($date_from . ' 00:00:00') : '';
+    $date_to_value = ($date_to !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) ? ($date_to . ' 23:59:59') : '';
+    $like = $q !== '' ? ('%' . $wpdb->esc_like($q) . '%') : '';
+
     return $wpdb->get_results(
       $wpdb->prepare(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table names are generated from hardcoded suffixes via pointlybooking_table(); $where contains only hardcoded SQL fragments with placeholders.
         "SELECT
           t.*,
           u.display_name AS actor_wp_display_name,
@@ -106,11 +123,56 @@ final class POINTLYBOOKING_AuditModel {
           c.last_name AS customer_last_name,
           c.email AS customer_email,
           c.phone AS customer_phone
-        {$from_sql}
-        {$where}
+        FROM {$audit_table} t
+        LEFT JOIN {$users_table} u ON u.ID = t.actor_wp_user_id
+        LEFT JOIN {$customers_table} c ON c.id = t.customer_id
+        WHERE (%d = 0 OR t.event = %s)
+          AND (%d = 0 OR t.actor_type = %s)
+          AND (%d = 0 OR t.actor_wp_user_id = %d)
+          AND (%d = 0 OR t.booking_id = %d)
+          AND (%d = 0 OR t.customer_id = %d)
+          AND (%d = 0 OR t.created_at >= %s)
+          AND (%d = 0 OR t.created_at <= %s)
+          AND (%d = 0 OR (
+            t.event LIKE %s
+            OR t.actor_type LIKE %s
+            OR t.actor_ip LIKE %s
+            OR t.meta LIKE %s
+            OR u.display_name LIKE %s
+            OR u.user_login LIKE %s
+            OR u.user_email LIKE %s
+            OR CONCAT(COALESCE(c.first_name,''),' ',COALESCE(c.last_name,'')) LIKE %s
+            OR c.email LIKE %s
+            OR c.phone LIKE %s
+          ))
         ORDER BY t.id DESC
         LIMIT %d",
-        $params
+        $event_value !== '' ? 1 : 0,
+        $event_value,
+        $actor_type_value !== '' ? 1 : 0,
+        $actor_type_value,
+        $actor_wp_user_id > 0 ? 1 : 0,
+        $actor_wp_user_id,
+        $booking_id > 0 ? 1 : 0,
+        $booking_id,
+        $customer_id > 0 ? 1 : 0,
+        $customer_id,
+        $date_from_value !== '' ? 1 : 0,
+        $date_from_value,
+        $date_to_value !== '' ? 1 : 0,
+        $date_to_value,
+        $like !== '' ? 1 : 0,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $limit
       ),
       ARRAY_A
     ) ?: [];
@@ -121,22 +183,92 @@ final class POINTLYBOOKING_AuditModel {
     $page = max(1, absint($args['page'] ?? 1));
     $per_page = max(10, min(200, absint($args['per_page'] ?? 50)));
     $offset = ($page - 1) * $per_page;
+    $table = $wpdb->prefix . 'pointlybooking_audit_log';
+    $users_table = $wpdb->users;
+    $customers_table = $wpdb->prefix . 'pointlybooking_customers';
+    if (
+      !self::is_safe_sql_identifier($table)
+      || !self::is_safe_sql_identifier($users_table)
+      || !self::is_safe_sql_identifier($customers_table)
+    ) {
+      return [
+        'items' => [],
+        'total' => 0,
+        'page' => $page,
+        'per_page' => $per_page,
+      ];
+    }
+    $audit_table = $table;
 
-    $params = [];
-    $where = self::build_where($args, $params);
-    $from_sql = self::base_from_sql();
+    $event = sanitize_text_field($args['event'] ?? '');
+    $booking_id = absint($args['booking_id'] ?? 0);
+    $customer_id = absint($args['customer_id'] ?? 0);
+    $actor_type = sanitize_text_field($args['actor_type'] ?? '');
+    $actor_wp_user_id = absint($args['actor_wp_user_id'] ?? 0);
+    $date_from = sanitize_text_field($args['date_from'] ?? '');
+    $date_to = sanitize_text_field($args['date_to'] ?? '');
+    $q = sanitize_text_field($args['q'] ?? '');
+    $event_value = $event !== '' ? $event : '';
+    $actor_type_value = ($actor_type !== '' && in_array($actor_type, ['admin','customer','system'], true)) ? $actor_type : '';
+    $date_from_value = ($date_from !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) ? ($date_from . ' 00:00:00') : '';
+    $date_to_value = ($date_to !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) ? ($date_to . ' 23:59:59') : '';
+    $like = $q !== '' ? ('%' . $wpdb->esc_like($q) . '%') : '';
 
     $total = (int)$wpdb->get_var(
       $wpdb->prepare(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table names are generated from hardcoded suffixes via pointlybooking_table(); $where contains only hardcoded SQL fragments with placeholders.
-        "SELECT COUNT(*) {$from_sql} {$where}",
-        $params
+        "SELECT COUNT(*)
+        FROM {$audit_table} t
+        LEFT JOIN {$users_table} u ON u.ID = t.actor_wp_user_id
+        LEFT JOIN {$customers_table} c ON c.id = t.customer_id
+        WHERE (%d = 0 OR t.event = %s)
+          AND (%d = 0 OR t.actor_type = %s)
+          AND (%d = 0 OR t.actor_wp_user_id = %d)
+          AND (%d = 0 OR t.booking_id = %d)
+          AND (%d = 0 OR t.customer_id = %d)
+          AND (%d = 0 OR t.created_at >= %s)
+          AND (%d = 0 OR t.created_at <= %s)
+          AND (%d = 0 OR (
+            t.event LIKE %s
+            OR t.actor_type LIKE %s
+            OR t.actor_ip LIKE %s
+            OR t.meta LIKE %s
+            OR u.display_name LIKE %s
+            OR u.user_login LIKE %s
+            OR u.user_email LIKE %s
+            OR CONCAT(COALESCE(c.first_name,''),' ',COALESCE(c.last_name,'')) LIKE %s
+            OR c.email LIKE %s
+            OR c.phone LIKE %s
+          ))",
+        $event_value !== '' ? 1 : 0,
+        $event_value,
+        $actor_type_value !== '' ? 1 : 0,
+        $actor_type_value,
+        $actor_wp_user_id > 0 ? 1 : 0,
+        $actor_wp_user_id,
+        $booking_id > 0 ? 1 : 0,
+        $booking_id,
+        $customer_id > 0 ? 1 : 0,
+        $customer_id,
+        $date_from_value !== '' ? 1 : 0,
+        $date_from_value,
+        $date_to_value !== '' ? 1 : 0,
+        $date_to_value,
+        $like !== '' ? 1 : 0,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like
       )
     );
 
     $items = $wpdb->get_results(
       $wpdb->prepare(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table names are generated from hardcoded suffixes via pointlybooking_table(); $where contains only hardcoded SQL fragments with placeholders.
         "SELECT
           t.*,
           u.display_name AS actor_wp_display_name,
@@ -146,11 +278,57 @@ final class POINTLYBOOKING_AuditModel {
           c.last_name AS customer_last_name,
           c.email AS customer_email,
           c.phone AS customer_phone
-        {$from_sql}
-        {$where}
+        FROM {$audit_table} t
+        LEFT JOIN {$users_table} u ON u.ID = t.actor_wp_user_id
+        LEFT JOIN {$customers_table} c ON c.id = t.customer_id
+        WHERE (%d = 0 OR t.event = %s)
+          AND (%d = 0 OR t.actor_type = %s)
+          AND (%d = 0 OR t.actor_wp_user_id = %d)
+          AND (%d = 0 OR t.booking_id = %d)
+          AND (%d = 0 OR t.customer_id = %d)
+          AND (%d = 0 OR t.created_at >= %s)
+          AND (%d = 0 OR t.created_at <= %s)
+          AND (%d = 0 OR (
+            t.event LIKE %s
+            OR t.actor_type LIKE %s
+            OR t.actor_ip LIKE %s
+            OR t.meta LIKE %s
+            OR u.display_name LIKE %s
+            OR u.user_login LIKE %s
+            OR u.user_email LIKE %s
+            OR CONCAT(COALESCE(c.first_name,''),' ',COALESCE(c.last_name,'')) LIKE %s
+            OR c.email LIKE %s
+            OR c.phone LIKE %s
+          ))
         ORDER BY t.id DESC
         LIMIT %d OFFSET %d",
-        array_merge($params, [$per_page, $offset])
+        $event_value !== '' ? 1 : 0,
+        $event_value,
+        $actor_type_value !== '' ? 1 : 0,
+        $actor_type_value,
+        $actor_wp_user_id > 0 ? 1 : 0,
+        $actor_wp_user_id,
+        $booking_id > 0 ? 1 : 0,
+        $booking_id,
+        $customer_id > 0 ? 1 : 0,
+        $customer_id,
+        $date_from_value !== '' ? 1 : 0,
+        $date_from_value,
+        $date_to_value !== '' ? 1 : 0,
+        $date_to_value,
+        $like !== '' ? 1 : 0,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $per_page,
+        $offset
       ),
       ARRAY_A
     ) ?: [];
@@ -165,8 +343,14 @@ final class POINTLYBOOKING_AuditModel {
 
   public static function distinct_events() : array {
     global $wpdb;
-    $t = self::table();
-    $rows = $wpdb->get_col("SELECT DISTINCT event FROM {$t} ORDER BY event ASC");
+    $t = $wpdb->prefix . 'pointlybooking_audit_log';
+    if (!self::is_safe_sql_identifier($t)) {
+      return [];
+    }
+    $rows = $wpdb->get_col(
+      "SELECT DISTINCT event FROM {$t} ORDER BY event ASC"
+    );
     return array_values(array_filter(array_map('strval', $rows ?: [])));
   }
 }
+

@@ -3,6 +3,14 @@ defined('ABSPATH') || exit;
 
 final class POINTLYBOOKING_ServiceModel extends POINTLYBOOKING_Model {
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
   public static function table() : string {
     return pointlybooking_table('services');
   }
@@ -13,13 +21,12 @@ final class POINTLYBOOKING_ServiceModel extends POINTLYBOOKING_Model {
 
   public static function get_category_ids(int $service_id): array {
     global $wpdb;
-    $t = self::map_table_categories();
+    $service_categories_table = $wpdb->prefix . 'pointlybooking_service_categories';
+    if (!self::is_safe_sql_identifier($service_categories_table)) {
+      return [];
+    }
     $ids = $wpdb->get_col(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT category_id FROM %i WHERE service_id=%d",
-        [$t],
-        [$service_id]
-      )
+      $wpdb->prepare("SELECT category_id FROM {$service_categories_table} WHERE service_id=%d", $service_id)
     );
     return array_map('intval', $ids ?: []);
   }
@@ -42,22 +49,22 @@ final class POINTLYBOOKING_ServiceModel extends POINTLYBOOKING_Model {
 
     $name = trim((string)($data['name'] ?? ''));
     if ($name === '') {
-      $errors['name'] = __('Service name is required.', 'bookpoint-booking');
+      $errors['name'] = __('Service name is required.', 'pointly-booking');
     }
 
     $duration = (int)($data['duration_minutes'] ?? 0);
     if ($duration < 5 || $duration > 1440) {
-      $errors['duration_minutes'] = __('Duration must be between 5 and 1440 minutes.', 'bookpoint-booking');
+      $errors['duration_minutes'] = __('Duration must be between 5 and 1440 minutes.', 'pointly-booking');
     }
 
     $price_cents = (int)($data['price_cents'] ?? 0);
     if ($price_cents < 0) {
-      $errors['price_cents'] = __('Price must be 0 or more.', 'bookpoint-booking');
+      $errors['price_cents'] = __('Price must be 0 or more.', 'pointly-booking');
     }
 
     $currency = strtoupper(trim((string)($data['currency'] ?? 'USD')));
     if (!preg_match('/^[A-Z]{3}$/', $currency)) {
-      $errors['currency'] = __('Currency must be a 3-letter code like USD.', 'bookpoint-booking');
+      $errors['currency'] = __('Currency must be a 3-letter code like USD.', 'pointly-booking');
     }
 
     // Step 15: Service-based availability validation
@@ -66,13 +73,13 @@ final class POINTLYBOOKING_ServiceModel extends POINTLYBOOKING_Model {
     $capacity      = (int)($data['capacity'] ?? 1);
 
     if ($buffer_before < 0 || $buffer_before > 240) {
-      $errors['buffer_before_minutes'] = __('Buffer before must be 0-240 minutes.', 'bookpoint-booking');
+      $errors['buffer_before_minutes'] = __('Buffer before must be 0-240 minutes.', 'pointly-booking');
     }
     if ($buffer_after < 0 || $buffer_after > 240) {
-      $errors['buffer_after_minutes'] = __('Buffer after must be 0-240 minutes.', 'bookpoint-booking');
+      $errors['buffer_after_minutes'] = __('Buffer after must be 0-240 minutes.', 'pointly-booking');
     }
     if ($capacity < 1 || $capacity > 50) {
-      $errors['capacity'] = __('Capacity must be between 1 and 50.', 'bookpoint-booking');
+      $errors['capacity'] = __('Capacity must be between 1 and 50.', 'pointly-booking');
     }
 
     return $errors;
@@ -80,26 +87,25 @@ final class POINTLYBOOKING_ServiceModel extends POINTLYBOOKING_Model {
 
   public static function all(array $args = []) : array {
     global $wpdb;
-    $table = self::table();
+    $services_table = $wpdb->prefix . 'pointlybooking_services';
+    if (!self::is_safe_sql_identifier($services_table)) {
+      return [];
+    }
 
     $is_active = isset($args['is_active']) && $args['is_active'] !== '' ? (int)$args['is_active'] : null;
     $cache_key = 'pointlybooking_services_all_' . ($is_active === null ? 'all' : ('active_' . $is_active));
     $cached = get_transient($cache_key);
     if (is_array($cached)) return $cached;
 
-    $where_clauses = ['1=1'];
-    $params = [];
-    if ($is_active !== null) {
-      $where_clauses[] = 'is_active = %d';
-      $params[] = $is_active;
-    }
-    $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
-    $sql = "SELECT * FROM %i " . $where_sql . " ORDER BY id DESC";
+    $apply_active_filter = ($is_active !== null) ? 1 : 0;
+    $active_value = ($is_active !== null) ? $is_active : 0;
     $list = $wpdb->get_results(
-      pointlybooking_prepare_query_with_identifiers(
-        $sql,
-        [$table],
-        $params
+      $wpdb->prepare(
+        "SELECT * FROM {$services_table}
+        WHERE (%d = 0 OR is_active = %d)
+        ORDER BY id DESC",
+        $apply_active_filter,
+        $active_value
       ),
       ARRAY_A
     );
@@ -110,13 +116,12 @@ final class POINTLYBOOKING_ServiceModel extends POINTLYBOOKING_Model {
 
   public static function find(int $id) : ?array {
     global $wpdb;
-    $table = self::table();
+    $services_table = $wpdb->prefix . 'pointlybooking_services';
+    if (!self::is_safe_sql_identifier($services_table)) {
+      return null;
+    }
     $row = $wpdb->get_row(
-      pointlybooking_prepare_query_with_identifiers(
-        "SELECT * FROM %i WHERE id = %d",
-        [$table],
-        [$id]
-      ),
+      $wpdb->prepare("SELECT * FROM {$services_table} WHERE id = %d", $id),
       ARRAY_A
     );
     return $row ?: null;
@@ -203,3 +208,4 @@ final class POINTLYBOOKING_ServiceModel extends POINTLYBOOKING_Model {
     return $ok;
   }
 }
+

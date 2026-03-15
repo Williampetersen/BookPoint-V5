@@ -9,25 +9,12 @@ final class POINTLYBOOKING_DashboardHelper {
     return 'pointlybooking_dashboard_' . md5($suffix);
   }
 
-  private static function prepare_with_identifiers(string $query, array $identifiers, array $args = []): string {
-    global $wpdb;
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
 
-    $identifiers = array_values(array_map('strval', $identifiers));
-
-    if (method_exists($wpdb, 'has_cap') && $wpdb->has_cap('identifier_placeholders')) {
-      return $wpdb->prepare($query, array_merge($identifiers, $args));
-    }
-
-    foreach ($identifiers as $identifier) {
-      $safe_identifier = preg_replace('/[^A-Za-z0-9_]/', '', $identifier);
-      $query = preg_replace('/%i/', '`' . $safe_identifier . '`', $query, 1);
-    }
-
-    if (empty($args)) {
-      return (string) $query;
-    }
-
-    return $wpdb->prepare($query, $args);
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . str_replace('`', '``', $identifier) . '`';
   }
 
   private static function valid_ymd(string $value): bool {
@@ -38,8 +25,17 @@ final class POINTLYBOOKING_DashboardHelper {
     return checkdate($month, $day, $year);
   }
 
+  private static function request_raw(string $key): string {
+    $value = filter_input(INPUT_GET, $key, FILTER_UNSAFE_RAW);
+    if ($value === null || $value === false || !is_scalar($value)) {
+      return '';
+    }
+
+    return (string) $value;
+  }
+
   private static function dashboard_filter_nonce_ok(): bool {
-    $nonce = sanitize_text_field(wp_unslash($_GET['pointlybooking_filter_nonce'] ?? ''));
+    $nonce = sanitize_text_field(self::request_raw('pointlybooking_filter_nonce'));
     if ($nonce === '') {
       return false;
     }
@@ -61,14 +57,23 @@ final class POINTLYBOOKING_DashboardHelper {
       ];
     }
 
-    $range = sanitize_text_field(wp_unslash($_GET['range'] ?? (string) $default_days));
+    $range = sanitize_text_field(self::request_raw('range'));
+    if ($range === '') {
+      $range = (string) $default_days;
+    }
     if (!in_array($range, ['7', '14', '30', '90', 'custom'], true)) {
       $range = (string) $default_days;
     }
 
     if ($range === 'custom') {
-      $from = sanitize_text_field(wp_unslash($_GET['from'] ?? $default_from));
-      $to = sanitize_text_field(wp_unslash($_GET['to'] ?? $today));
+      $from = sanitize_text_field(self::request_raw('from'));
+      $to = sanitize_text_field(self::request_raw('to'));
+      if ($from === '') {
+        $from = $default_from;
+      }
+      if ($to === '') {
+        $to = $today;
+      }
 
       if (!self::valid_ymd($from)) {
         $from = $default_from;
@@ -107,46 +112,37 @@ final class POINTLYBOOKING_DashboardHelper {
     }
 
     global $wpdb;
-    $table_bookings = pointlybooking_table('bookings');
+    $table_bookings = $wpdb->prefix . 'pointlybooking_bookings';
+    if (!self::is_safe_sql_identifier($table_bookings)) {
+      return [
+        'total' => 0,
+        'pending' => 0,
+        'confirmed' => 0,
+        'cancelled' => 0,
+        'revenue' => 0.0,
+      ];
+    }
+
+    $bookings_table = $table_bookings;
 
     $total = (int) $wpdb->get_var(
-      self::prepare_with_identifiers(
-        "SELECT COUNT(*) FROM %i WHERE DATE(created_at) BETWEEN %s AND %s",
-        [$table_bookings],
-        [$from, $to]
-      )
+      $wpdb->prepare("SELECT COUNT(*) FROM {$bookings_table} WHERE DATE(created_at) BETWEEN %s AND %s", $from, $to)
     );
 
     $pending = (int) $wpdb->get_var(
-      self::prepare_with_identifiers(
-        "SELECT COUNT(*) FROM %i WHERE status = %s AND DATE(created_at) BETWEEN %s AND %s",
-        [$table_bookings],
-        ['pending', $from, $to]
-      )
+      $wpdb->prepare("SELECT COUNT(*) FROM {$bookings_table} WHERE status = %s AND DATE(created_at) BETWEEN %s AND %s", 'pending', $from, $to)
     );
 
     $confirmed = (int) $wpdb->get_var(
-      self::prepare_with_identifiers(
-        "SELECT COUNT(*) FROM %i WHERE status = %s AND DATE(created_at) BETWEEN %s AND %s",
-        [$table_bookings],
-        ['confirmed', $from, $to]
-      )
+      $wpdb->prepare("SELECT COUNT(*) FROM {$bookings_table} WHERE status = %s AND DATE(created_at) BETWEEN %s AND %s", 'confirmed', $from, $to)
     );
 
     $cancelled = (int) $wpdb->get_var(
-      self::prepare_with_identifiers(
-        "SELECT COUNT(*) FROM %i WHERE status = %s AND DATE(created_at) BETWEEN %s AND %s",
-        [$table_bookings],
-        ['cancelled', $from, $to]
-      )
+      $wpdb->prepare("SELECT COUNT(*) FROM {$bookings_table} WHERE status = %s AND DATE(created_at) BETWEEN %s AND %s", 'cancelled', $from, $to)
     );
 
     $revenue = (float) $wpdb->get_var(
-      self::prepare_with_identifiers(
-        "SELECT COALESCE(SUM(total_price),0) FROM %i WHERE status = %s AND DATE(created_at) BETWEEN %s AND %s",
-        [$table_bookings],
-        ['confirmed', $from, $to]
-      )
+      $wpdb->prepare("SELECT COALESCE(SUM(total_price),0) FROM {$bookings_table} WHERE status = %s AND DATE(created_at) BETWEEN %s AND %s", 'confirmed', $from, $to)
     );
 
     $result = [
@@ -168,13 +164,18 @@ final class POINTLYBOOKING_DashboardHelper {
     }
 
     global $wpdb;
-    $table_bookings = pointlybooking_table('bookings');
+    $table_bookings = $wpdb->prefix . 'pointlybooking_bookings';
+    if (!self::is_safe_sql_identifier($table_bookings)) {
+      return ['labels' => [], 'values' => []];
+    }
+
+    $bookings_table = $table_bookings;
 
     $rows = $wpdb->get_results(
-      self::prepare_with_identifiers(
-        "SELECT DATE(created_at) as d, COUNT(*) as c FROM %i WHERE DATE(created_at) BETWEEN %s AND %s GROUP BY DATE(created_at) ORDER BY d ASC",
-        [$table_bookings],
-        [$from, $to]
+      $wpdb->prepare(
+        "SELECT DATE(created_at) as d, COUNT(*) as c FROM {$bookings_table} WHERE DATE(created_at) BETWEEN %s AND %s GROUP BY DATE(created_at) ORDER BY d ASC",
+        $from,
+        $to
       ),
       ARRAY_A
     );
@@ -211,14 +212,22 @@ final class POINTLYBOOKING_DashboardHelper {
     global $wpdb;
 
     $limit = max(1, min(50, $limit));
-    $table_bookings = pointlybooking_table('bookings');
-    $table_services = pointlybooking_table('services');
+    $table_bookings = $wpdb->prefix . 'pointlybooking_bookings';
+    $table_services = $wpdb->prefix . 'pointlybooking_services';
+    if (!self::is_safe_sql_identifier($table_bookings) || !self::is_safe_sql_identifier($table_services)) {
+      return [];
+    }
+
+    $bookings_table = $table_bookings;
+    $services_table = $table_services;
 
     $result = $wpdb->get_results(
-      self::prepare_with_identifiers(
-        "SELECT b.service_id, COALESCE(s.name,'(deleted)') as name, COUNT(*) as bookings, COALESCE(SUM(b.total_price),0) as revenue FROM %i b LEFT JOIN %i s ON s.id = b.service_id WHERE b.status = %s AND DATE(b.created_at) BETWEEN %s AND %s GROUP BY b.service_id ORDER BY revenue DESC LIMIT %d",
-        [$table_bookings, $table_services],
-        ['confirmed', $from, $to, $limit]
+      $wpdb->prepare(
+        "SELECT b.service_id, COALESCE(s.name,'(deleted)') as name, COUNT(*) as bookings, COALESCE(SUM(b.total_price),0) as revenue FROM {$bookings_table} b LEFT JOIN {$services_table} s ON s.id = b.service_id WHERE b.status = %s AND DATE(b.created_at) BETWEEN %s AND %s GROUP BY b.service_id ORDER BY revenue DESC LIMIT %d",
+        'confirmed',
+        $from,
+        $to,
+        $limit
       ),
       ARRAY_A
     ) ?: [];
@@ -236,14 +245,22 @@ final class POINTLYBOOKING_DashboardHelper {
     global $wpdb;
 
     $limit = max(1, min(50, $limit));
-    $table_bookings = pointlybooking_table('bookings');
-    $table_agents = pointlybooking_table('agents');
+    $table_bookings = $wpdb->prefix . 'pointlybooking_bookings';
+    $table_agents = $wpdb->prefix . 'pointlybooking_agents';
+    if (!self::is_safe_sql_identifier($table_bookings) || !self::is_safe_sql_identifier($table_agents)) {
+      return [];
+    }
+
+    $bookings_table = $table_bookings;
+    $agents_table = $table_agents;
 
     $result = $wpdb->get_results(
-      self::prepare_with_identifiers(
-        "SELECT b.agent_id, COALESCE(a.name,'(deleted)') as name, COUNT(*) as bookings, COALESCE(SUM(b.total_price),0) as revenue FROM %i b LEFT JOIN %i a ON a.id = b.agent_id WHERE b.status = %s AND DATE(b.created_at) BETWEEN %s AND %s GROUP BY b.agent_id ORDER BY revenue DESC LIMIT %d",
-        [$table_bookings, $table_agents],
-        ['confirmed', $from, $to, $limit]
+      $wpdb->prepare(
+        "SELECT b.agent_id, COALESCE(a.name,'(deleted)') as name, COUNT(*) as bookings, COALESCE(SUM(b.total_price),0) as revenue FROM {$bookings_table} b LEFT JOIN {$agents_table} a ON a.id = b.agent_id WHERE b.status = %s AND DATE(b.created_at) BETWEEN %s AND %s GROUP BY b.agent_id ORDER BY revenue DESC LIMIT %d",
+        'confirmed',
+        $from,
+        $to,
+        $limit
       ),
       ARRAY_A
     ) ?: [];
@@ -261,15 +278,28 @@ final class POINTLYBOOKING_DashboardHelper {
     global $wpdb;
 
     $limit = max(1, min(50, $limit));
-    $table_bookings = pointlybooking_table('bookings');
-    $table_service_categories = pointlybooking_table('service_categories');
-    $table_categories = pointlybooking_table('categories');
+    $table_bookings = $wpdb->prefix . 'pointlybooking_bookings';
+    $table_service_categories = $wpdb->prefix . 'pointlybooking_service_categories';
+    $table_categories = $wpdb->prefix . 'pointlybooking_categories';
+    if (
+      !self::is_safe_sql_identifier($table_bookings) ||
+      !self::is_safe_sql_identifier($table_service_categories) ||
+      !self::is_safe_sql_identifier($table_categories)
+    ) {
+      return [];
+    }
+
+    $bookings_table = $table_bookings;
+    $service_categories_table = $table_service_categories;
+    $categories_table = $table_categories;
 
     $result = $wpdb->get_results(
-      self::prepare_with_identifiers(
-        "SELECT c.id as category_id, COALESCE(c.name,'(deleted)') as name, COUNT(DISTINCT b.id) as bookings, COALESCE(SUM(b.total_price),0) as revenue FROM %i b LEFT JOIN %i m ON m.service_id = b.service_id LEFT JOIN %i c ON c.id = m.category_id WHERE b.status = %s AND DATE(b.created_at) BETWEEN %s AND %s GROUP BY c.id ORDER BY revenue DESC LIMIT %d",
-        [$table_bookings, $table_service_categories, $table_categories],
-        ['confirmed', $from, $to, $limit]
+      $wpdb->prepare(
+        "SELECT c.id as category_id, COALESCE(c.name,'(deleted)') as name, COUNT(DISTINCT b.id) as bookings, COALESCE(SUM(b.total_price),0) as revenue FROM {$bookings_table} b LEFT JOIN {$service_categories_table} m ON m.service_id = b.service_id LEFT JOIN {$categories_table} c ON c.id = m.category_id WHERE b.status = %s AND DATE(b.created_at) BETWEEN %s AND %s GROUP BY c.id ORDER BY revenue DESC LIMIT %d",
+        'confirmed',
+        $from,
+        $to,
+        $limit
       ),
       ARRAY_A
     ) ?: [];
@@ -287,13 +317,18 @@ final class POINTLYBOOKING_DashboardHelper {
     global $wpdb;
 
     $limit = max(1, min(100, $limit));
-    $table_bookings = pointlybooking_table('bookings');
+    $table_bookings = $wpdb->prefix . 'pointlybooking_bookings';
+    if (!self::is_safe_sql_identifier($table_bookings)) {
+      return [];
+    }
+
+    $bookings_table = $table_bookings;
 
     $result = $wpdb->get_results(
-      self::prepare_with_identifiers(
-        "SELECT id, customer_name, customer_email, start_date, start_time, total_price, created_at FROM %i WHERE status = %s ORDER BY id DESC LIMIT %d",
-        [$table_bookings],
-        ['pending', $limit]
+      $wpdb->prepare(
+        "SELECT id, customer_name, customer_email, start_date, start_time, total_price, created_at FROM {$bookings_table} WHERE status = %s ORDER BY id DESC LIMIT %d",
+        'pending',
+        $limit
       ),
       ARRAY_A
     ) ?: [];
@@ -311,13 +346,17 @@ final class POINTLYBOOKING_DashboardHelper {
     global $wpdb;
 
     $limit = max(1, min(100, $limit));
-    $table_bookings = pointlybooking_table('bookings');
+    $table_bookings = $wpdb->prefix . 'pointlybooking_bookings';
+    if (!self::is_safe_sql_identifier($table_bookings)) {
+      return [];
+    }
+
+    $bookings_table = $table_bookings;
 
     $rows = $wpdb->get_results(
-      self::prepare_with_identifiers(
-        "SELECT id, customer_name, customer_email, status, total_price, created_at, start_date, start_time FROM %i ORDER BY id DESC LIMIT %d",
-        [$table_bookings],
-        [$limit]
+      $wpdb->prepare(
+        "SELECT id, customer_name, customer_email, status, total_price, created_at, start_date, start_time FROM {$bookings_table} ORDER BY id DESC LIMIT %d",
+        $limit
       ),
       ARRAY_A
     );
@@ -326,3 +365,4 @@ final class POINTLYBOOKING_DashboardHelper {
     return $result;
   }
 }
+

@@ -3,6 +3,14 @@ defined('ABSPATH') || exit;
 
 final class POINTLYBOOKING_ServiceAgentModel {
 
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  private static function quote_sql_identifier(string $identifier): string {
+    return '`' . $identifier . '`';
+  }
+
   public static function table() : string {
     global $wpdb;
     return $wpdb->prefix . 'pointlybooking_service_agents';
@@ -10,12 +18,11 @@ final class POINTLYBOOKING_ServiceAgentModel {
 
   public static function set_agents_for_service(int $service_id, array $agent_ids) : void {
     global $wpdb;
-    $table = self::table();
+    $table = $wpdb->prefix . 'pointlybooking_service_agents';
 
     if ($service_id <= 0) return;
 
-    $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
-    if ($exists !== $table && class_exists('POINTLYBOOKING_MigrationsHelper')) {
+    if (!pointlybooking_db_table_exists($table) && class_exists('POINTLYBOOKING_MigrationsHelper')) {
       POINTLYBOOKING_MigrationsHelper::create_tables();
     }
 
@@ -37,16 +44,18 @@ final class POINTLYBOOKING_ServiceAgentModel {
 
   public static function get_agent_ids_for_service(int $service_id) : array {
     global $wpdb;
-    $table = self::table();
+    $service_agents_table = $wpdb->prefix . 'pointlybooking_service_agents';
+    if (!self::is_safe_sql_identifier($service_agents_table)) {
+      return [];
+    }
 
     $cache_key = 'pointlybooking_service_agents_' . $service_id;
     $cached = get_transient($cache_key);
     if (is_array($cached)) return $cached;
 
-    $rows = $wpdb->get_col($wpdb->prepare(
-      "SELECT agent_id FROM {$table} WHERE service_id = %d",
-      $service_id
-    ));
+    $rows = $wpdb->get_col(
+      $wpdb->prepare("SELECT agent_id FROM {$service_agents_table} WHERE service_id = %d", $service_id)
+    );
 
     $ids = array_values(array_unique(array_map('intval', $rows ?: [])));
     set_transient($cache_key, $ids, 5 * MINUTE_IN_SECONDS);
@@ -65,3 +74,4 @@ final class POINTLYBOOKING_ServiceAgentModel {
     return $agents;
   }
 }
+

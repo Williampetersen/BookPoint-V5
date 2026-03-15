@@ -1,0 +1,96 @@
+<?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+defined('ABSPATH') || exit;
+require_once __DIR__ . '/legacy_shell.php';
+
+$id = (int)($item['id'] ?? 0);
+$label = (string)($item['label'] ?? '');
+$name_key = (string)($item['name_key'] ?? '');
+$type = (string)($item['type'] ?? 'text');
+$required = isset($item['required']) ? (int)$item['required'] : 0;
+$is_active = isset($item['is_active']) ? (int)$item['is_active'] : 1;
+$sort_order = (int)($item['sort_order'] ?? 0);
+
+$options_raw = '';
+if (!empty($item['options_json'])) {
+  $decoded = json_decode((string)$item['options_json'], true);
+  if (is_array($decoded)) $options_raw = implode("\n", $decoded);
+}
+
+$types = ['text','email','tel','textarea','select','checkbox','radio','date'];
+
+$pointlybooking_actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=bp-form-fields&scope=' . $scope)) . '">' . esc_html__('Back to Form Fields', 'bookpoint-booking') . '</a>';
+pointlybooking_render_legacy_shell_start(
+  $id ? esc_html__('Edit Field', 'bookpoint-booking') : esc_html__('Add Field', 'bookpoint-booking'),
+  esc_html__('Manage the customer form fields used in the booking wizard.', 'bookpoint-booking'),
+  $pointlybooking_actions_html,
+  'form-fields'
+);
+?>
+
+  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+    <?php wp_nonce_field('pointlybooking_admin'); ?>
+    <input type="hidden" name="action" value="pointlybooking_admin_form_fields_save">
+    <input type="hidden" name="id" value="<?php echo esc_attr((string)$id); ?>">
+    <input type="hidden" name="scope" value="<?php echo esc_attr($scope); ?>">
+
+    <table class="form-table" role="presentation">
+      <tr>
+        <th><label><?php echo esc_html__('Label', 'bookpoint-booking'); ?></label></th>
+        <td><input type="text" name="label" value="<?php echo esc_attr($label); ?>" class="regular-text" required></td>
+      </tr>
+
+      <tr>
+        <th><label><?php echo esc_html__('Key (unique)', 'bookpoint-booking'); ?></label></th>
+        <td>
+          <input type="text" name="name_key" value="<?php echo esc_attr($name_key); ?>" class="regular-text" required placeholder="e.g. company_name">
+          <p class="description">Only lowercase/underscores recommended. Used as JSON key.</p>
+        </td>
+      </tr>
+
+      <tr>
+        <th><label><?php echo esc_html__('Type', 'bookpoint-booking'); ?></label></th>
+        <td>
+          <select name="type">
+            <?php foreach ($types as $t): ?>
+              <option value="<?php echo esc_attr($t); ?>" <?php selected($type, $t); ?>><?php echo esc_html($t); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </td>
+      </tr>
+
+      <tr>
+        <th><label><?php echo esc_html__('Options', 'bookpoint-booking'); ?></label></th>
+        <td>
+          <textarea name="options_raw" class="large-text" rows="5" placeholder="For select/radio: one option per line"><?php echo esc_textarea($options_raw); ?></textarea>
+          <p class="description">Used only for select/radio. One per line (stored as JSON).</p>
+        </td>
+      </tr>
+
+      <tr>
+        <th><label><?php echo esc_html__('Sort Order', 'bookpoint-booking'); ?></label></th>
+        <td><input type="number" name="sort_order" value="<?php echo esc_attr((string)$sort_order); ?>" class="small-text"></td>
+      </tr>
+
+      <tr>
+        <th><label><?php echo esc_html__('Required', 'bookpoint-booking'); ?></label></th>
+        <td><label><input type="checkbox" name="required" value="1" <?php checked($required, 1); ?>> Required</label></td>
+      </tr>
+
+      <tr>
+        <th><label><?php echo esc_html__('Active', 'bookpoint-booking'); ?></label></th>
+        <td><label><input type="checkbox" name="is_active" value="1" <?php checked($is_active, 1); ?>> Enabled</label></td>
+      </tr>
+    </table>
+
+    <p class="submit">
+      <button type="submit" class="bp-btn bp-btn-primary">
+        <?php echo esc_html($id ? __('Save Changes', 'bookpoint-booking') : __('Create Field', 'bookpoint-booking')); ?>
+      </button>
+      <a class="bp-btn" href="<?php echo esc_url(admin_url('admin.php?page=bp-form-fields&scope=' . $scope)); ?>">
+        <?php echo esc_html__('Back', 'bookpoint-booking'); ?>
+      </a>
+    </p>
+  </form>
+
+<?php pointlybooking_render_legacy_shell_end(); ?>
