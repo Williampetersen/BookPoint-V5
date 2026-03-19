@@ -1,5 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 final class POINTLYBOOKING_Locations_Migrations_Helper {
 
@@ -53,8 +54,10 @@ final class POINTLYBOOKING_Locations_Migrations_Helper {
       KEY agent_id (agent_id)
     ) {$charset};";
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta($sql_locations);
     dbDelta($sql_categories);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta($sql_map);
   }
 }

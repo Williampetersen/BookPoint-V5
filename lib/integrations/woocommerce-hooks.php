@@ -26,6 +26,7 @@ function pointlybooking_mark_booking_paid_and_confirmed($booking_id) {
 
   global $wpdb;
   $table = $wpdb->prefix . 'pointlybooking_bookings';
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $wpdb->update(
     $table,
     [

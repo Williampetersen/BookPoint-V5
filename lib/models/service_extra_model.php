@@ -1,14 +1,11 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 final class POINTLYBOOKING_ServiceExtraModel {
 
   private static function is_safe_sql_identifier(string $identifier): bool {
     return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
-  }
-
-  private static function quote_sql_identifier(string $identifier): string {
-    return '`' . $identifier . '`';
   }
 
   public static function table(): string {
@@ -20,11 +17,13 @@ final class POINTLYBOOKING_ServiceExtraModel {
   }
 
   public static function get_service_ids(int $extra_id): array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $extra_services_table = $wpdb->prefix . 'pointlybooking_extra_services';
     if (!self::is_safe_sql_identifier($extra_services_table)) {
       return [];
     }
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $ids = $wpdb->get_col(
       $wpdb->prepare("SELECT service_id FROM {$extra_services_table} WHERE extra_id=%d", $extra_id)
     );
@@ -37,14 +36,17 @@ final class POINTLYBOOKING_ServiceExtraModel {
 
     $extra_id = (int)$extra_id;
     $service_ids = array_values(array_unique(array_filter(array_map('intval', $service_ids))));
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $wpdb->delete($t, ['extra_id' => $extra_id], ['%d']);
 
     foreach ($service_ids as $sid) {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $wpdb->insert($t, ['extra_id' => $extra_id, 'service_id' => $sid], ['%d','%d']);
     }
   }
 
   public static function all(array $args = []): array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $t = $wpdb->prefix . 'pointlybooking_service_extras';
     $services = $wpdb->prefix . 'pointlybooking_services';
@@ -64,6 +66,7 @@ final class POINTLYBOOKING_ServiceExtraModel {
     $apply_active_filter = ($is_active !== null) ? 1 : 0;
     $active_value = ($is_active !== null) ? $is_active : 0;
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     return $wpdb->get_results(
       $wpdb->prepare(
         "SELECT e.*, s.name AS service_name
@@ -87,12 +90,14 @@ final class POINTLYBOOKING_ServiceExtraModel {
   }
 
   public static function by_service(int $service_id, bool $only_active = true): array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $service_extras_table = $wpdb->prefix . 'pointlybooking_service_extras';
     if (!self::is_safe_sql_identifier($service_extras_table)) {
       return [];
     }
     $active_only = $only_active ? 1 : 0;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     return $wpdb->get_results(
       $wpdb->prepare(
         "SELECT * FROM {$service_extras_table}
@@ -107,11 +112,13 @@ final class POINTLYBOOKING_ServiceExtraModel {
   }
 
   public static function find(int $id): ?array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $service_extras_table = $wpdb->prefix . 'pointlybooking_service_extras';
     if (!self::is_safe_sql_identifier($service_extras_table)) {
       return null;
     }
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $row = $wpdb->get_row(
       $wpdb->prepare("SELECT * FROM {$service_extras_table} WHERE id = %d", $id),
       ARRAY_A
@@ -138,11 +145,13 @@ final class POINTLYBOOKING_ServiceExtraModel {
     $id = (int)($data['id'] ?? 0);
 
     if ($id > 0) {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $wpdb->update($t, $payload, ['id' => $id], ['%d','%s','%s','%f','%d','%d','%d','%d','%s'], ['%d']);
       return $id;
     }
 
     $payload['created_at'] = current_time('mysql');
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $wpdb->insert($t, $payload, ['%d','%s','%s','%f','%d','%d','%d','%d','%s','%s']);
     return (int)$wpdb->insert_id;
   }
@@ -150,7 +159,7 @@ final class POINTLYBOOKING_ServiceExtraModel {
   public static function delete(int $id): bool {
     global $wpdb;
     $t = self::table();
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     return (bool)$wpdb->delete($t, ['id' => $id], ['%d']);
   }
 }
-

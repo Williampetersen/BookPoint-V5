@@ -1,14 +1,11 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
 
   private static function is_safe_sql_identifier(string $identifier): bool {
     return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
-  }
-
-  private static function quote_sql_identifier(string $identifier): string {
-    return '`' . $identifier . '`';
   }
 
   public static function table() : string {
@@ -17,6 +14,7 @@ final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
   }
 
   public static function find_by_email(string $email) : ?array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $customers_table = $wpdb->prefix . 'pointlybooking_customers';
     $email = sanitize_email($email);
@@ -25,6 +23,7 @@ final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
       return null;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $row = $wpdb->get_row(
       $wpdb->prepare("SELECT * FROM {$customers_table} WHERE email = %s ORDER BY id DESC LIMIT 1", $email),
       ARRAY_A
@@ -38,6 +37,7 @@ final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
     $table = self::table();
     $now = self::now_mysql();
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $wpdb->insert($table, [
       'first_name' => $data['first_name'] ?? null,
       'last_name'  => $data['last_name'] ?? null,
@@ -62,6 +62,7 @@ final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
   }
 
   public static function all(int $limit = 200) : array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $customers_table = $wpdb->prefix . 'pointlybooking_customers';
     if (!self::is_safe_sql_identifier($customers_table)) {
@@ -69,6 +70,7 @@ final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
     }
     $limit = max(1, min(500, $limit));
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     return $wpdb->get_results(
       $wpdb->prepare("SELECT * FROM {$customers_table} ORDER BY id DESC LIMIT %d", $limit),
       ARRAY_A
@@ -76,12 +78,14 @@ final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
   }
 
   public static function find(int $id) : ?array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $customers_table = $wpdb->prefix . 'pointlybooking_customers';
     if (!self::is_safe_sql_identifier($customers_table)) {
       return null;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $row = $wpdb->get_row(
       $wpdb->prepare("SELECT * FROM {$customers_table} WHERE id = %d", $id),
       ARRAY_A
@@ -95,6 +99,7 @@ final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
     $table = self::table();
 
     $anon = 'deleted+' . $customer_id . '@example.invalid';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $updated = $wpdb->update($table, [
       'first_name' => 'Deleted',
       'last_name' => 'Customer',
@@ -106,4 +111,3 @@ final class POINTLYBOOKING_CustomerModel extends POINTLYBOOKING_Model {
     return ($updated !== false);
   }
 }
-

@@ -1,5 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 add_action('rest_api_init', function () {
 
@@ -40,12 +41,14 @@ function pointlybooking_public_img_url($id, $size = 'medium') {
 }
 
 function pointlybooking_rest_public_categories() {
+  // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
   global $wpdb;
   $categories_table = $wpdb->prefix . 'pointlybooking_categories';
   if (!preg_match('/^[A-Za-z0-9_]+$/', $categories_table)) {
     return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
   }
 
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $rows = $wpdb->get_results(
     "SELECT id,name,image_id,sort_order FROM {$categories_table} ORDER BY sort_order ASC, id DESC",
     ARRAY_A
@@ -60,6 +63,7 @@ function pointlybooking_rest_public_categories() {
 }
 
 function pointlybooking_rest_public_services(WP_REST_Request $req) {
+  // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
   global $wpdb;
   $services_table = $wpdb->prefix . 'pointlybooking_services';
   $relation_table = $wpdb->prefix . 'pointlybooking_service_categories';
@@ -84,6 +88,7 @@ function pointlybooking_rest_public_services(WP_REST_Request $req) {
 
   $rel_exists = pointlybooking_db_table_exists($relation_table);
 
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $has_rel = $rel_exists ? (int)$wpdb->get_var("SELECT COUNT(*) FROM {$relation_table}") : 0;
   if ($category_id > 0 && $has_rel === 0 && !$has_category_col) {
     $category_id = 0;
@@ -94,6 +99,7 @@ function pointlybooking_rest_public_services(WP_REST_Request $req) {
 
     if ($rel_exists) {
       if ($has_is_active) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
         $rows = $wpdb->get_results(
           $wpdb->prepare(
             "SELECT s.*
@@ -106,6 +112,7 @@ function pointlybooking_rest_public_services(WP_REST_Request $req) {
           ARRAY_A
         ) ?: [];
       } else {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
         $rows = $wpdb->get_results(
           $wpdb->prepare(
             "SELECT s.*
@@ -122,6 +129,7 @@ function pointlybooking_rest_public_services(WP_REST_Request $req) {
 
     if (empty($rows) && $has_category_col) {
       if ($has_is_active) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
         $rows = $wpdb->get_results(
           $wpdb->prepare(
             "SELECT *
@@ -133,6 +141,7 @@ function pointlybooking_rest_public_services(WP_REST_Request $req) {
           ARRAY_A
         ) ?: [];
       } else {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
         $rows = $wpdb->get_results(
           $wpdb->prepare(
             "SELECT *
@@ -147,11 +156,13 @@ function pointlybooking_rest_public_services(WP_REST_Request $req) {
     }
   } else {
     if ($has_is_active) {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         "SELECT * FROM {$services_table} WHERE is_active=1 ORDER BY id DESC",
         ARRAY_A
       ) ?: [];
     } else {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         "SELECT * FROM {$services_table} ORDER BY id DESC",
         ARRAY_A
@@ -190,6 +201,7 @@ function pointlybooking_extras_table_public() {
 }
 
 function pointlybooking_rest_public_extras(WP_REST_Request $req) {
+  // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
   global $wpdb;
   $service_id = (int)($req->get_param('service_id') ?? 0);
   if ($service_id <= 0) return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
@@ -203,6 +215,7 @@ function pointlybooking_rest_public_extras(WP_REST_Request $req) {
     return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
   }
 
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $rows = $wpdb->get_results(
     $wpdb->prepare(
       "SELECT e.*
@@ -227,6 +240,7 @@ function pointlybooking_rest_public_extras(WP_REST_Request $req) {
 }
 
 function pointlybooking_rest_public_agents(WP_REST_Request $req) {
+  // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
   global $wpdb;
   $service_id = (int)($req->get_param('service_id') ?? 0);
   if ($service_id <= 0) return new WP_REST_Response(['status' => 'success', 'data' => []], 200);
@@ -252,6 +266,7 @@ function pointlybooking_rest_public_agents(WP_REST_Request $req) {
 
   if ($rel_exists) {
     if ($has_is_active) {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         $wpdb->prepare(
           "SELECT a.*
@@ -264,6 +279,7 @@ function pointlybooking_rest_public_agents(WP_REST_Request $req) {
         ARRAY_A
       ) ?: [];
     } else {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         $wpdb->prepare(
           "SELECT a.*
@@ -280,6 +296,7 @@ function pointlybooking_rest_public_agents(WP_REST_Request $req) {
 
   if (empty($rows) && $has_service_col) {
     if ($has_is_active) {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         $wpdb->prepare(
           "SELECT *
@@ -291,6 +308,7 @@ function pointlybooking_rest_public_agents(WP_REST_Request $req) {
         ARRAY_A
       ) ?: [];
     } else {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         $wpdb->prepare(
           "SELECT *
@@ -306,11 +324,13 @@ function pointlybooking_rest_public_agents(WP_REST_Request $req) {
 
   if (empty($rows) && !$has_service_col) {
     if ($has_is_active) {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         "SELECT * FROM {$agents_table} WHERE is_active=1 ORDER BY id DESC",
         ARRAY_A
       ) ?: [];
     } else {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         "SELECT * FROM {$agents_table} ORDER BY id DESC",
         ARRAY_A

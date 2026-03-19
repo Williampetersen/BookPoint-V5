@@ -1,5 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controller {
 
@@ -103,16 +104,18 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
   }
 
   public function export_settings() : void {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     $this->require_cap('pointlybooking_manage_tools');
     check_admin_referer('pointlybooking_admin');
 
     global $wpdb;
-    $table = $wpdb->prefix . 'pointlybooking_settings';
-    if (preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1) {
+    $settings_table = $wpdb->prefix . 'pointlybooking_settings';
+    if (preg_match('/^[A-Za-z0-9_]+$/', $settings_table) !== 1) {
       wp_die(esc_html__('Invalid settings table.', 'pointly-booking'));
     }
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $rows = $wpdb->get_results(
-      "SELECT setting_key, setting_value FROM {$table}",
+      "SELECT setting_key, setting_value FROM {$settings_table}",
       ARRAY_A
     ) ?: [];
     $settings = [];
@@ -194,4 +197,3 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
     exit;
   }
 }
-

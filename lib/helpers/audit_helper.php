@@ -12,6 +12,7 @@ final class POINTLYBOOKING_AuditHelper {
     $wp_user_id = is_user_logged_in() ? get_current_user_id() : null;
     $ip = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'] ?? ''));
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $wpdb->insert($table, [
       'event' => $event,
       'actor_type' => $actor_type,

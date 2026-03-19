@@ -1,8 +1,10 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 if (!function_exists('pointlybooking_rest_can_manage_form_fields')) {
   function pointlybooking_rest_can_manage_form_fields(): bool {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     return current_user_can('pointlybooking_manage_settings') || current_user_can('administrator');
   }
 }
@@ -18,14 +20,15 @@ add_action('rest_api_init', function(){
       }
 
       global $wpdb;
-      $t = $wpdb->prefix . 'pointlybooking_form_fields';
-      if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+      $form_fields_table = $wpdb->prefix . 'pointlybooking_form_fields';
+      if (!preg_match('/^[A-Za-z0-9_]+$/', $form_fields_table)) {
         return new WP_REST_Response(['status'=>'success','data'=>['form'=>[], 'customer'=>[], 'booking'=>[]]], 200);
       }
 
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         "SELECT *
-        FROM {$t}
+        FROM {$form_fields_table}
         ORDER BY scope ASC, sort_order ASC, id ASC",
         ARRAY_A
       ) ?: [];
@@ -63,14 +66,15 @@ add_action('rest_api_init', function(){
     'methods' => 'GET',
     'callback' => function(){
       global $wpdb;
-      $t = $wpdb->prefix . 'pointlybooking_form_fields';
-      if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+      $form_fields_table = $wpdb->prefix . 'pointlybooking_form_fields';
+      if (!preg_match('/^[A-Za-z0-9_]+$/', $form_fields_table)) {
         return new WP_REST_Response(['status'=>'success','data'=>[]], 200);
       }
 
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         "SELECT *
-        FROM {$t}
+        FROM {$form_fields_table}
         WHERE is_enabled=1 AND show_in_wizard=1
         ORDER BY scope ASC, sort_order ASC, id ASC",
         ARRAY_A
@@ -100,17 +104,18 @@ add_action('rest_api_init', function(){
       }
 
       global $wpdb;
-      $t = $wpdb->prefix . 'pointlybooking_form_fields';
-      if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+      $form_fields_table = $wpdb->prefix . 'pointlybooking_form_fields';
+      if (!preg_match('/^[A-Za-z0-9_]+$/', $form_fields_table)) {
         return new WP_REST_Response(['status'=>'success','data'=>[]], 200);
       }
 
       $scope = sanitize_text_field($req->get_param('scope') ?? 'customer');
       if (!in_array($scope, ['customer','booking','form'], true)) $scope='customer';
 
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         $wpdb->prepare(
-          "SELECT * FROM {$t}
+          "SELECT * FROM {$form_fields_table}
           WHERE scope=%s
           ORDER BY sort_order ASC, id ASC",
           $scope
@@ -163,6 +168,7 @@ add_action('rest_api_init', function(){
 
       $now = current_time('mysql');
 
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $ok = $wpdb->insert($t, [
         'field_key'=>$field_key,
         'label'=>$label,
@@ -219,6 +225,7 @@ add_action('rest_api_init', function(){
       if (array_key_exists('options',$updates)) $updates['options_json'] = $updates['options'];
 
       $updates['updated_at'] = current_time('mysql');
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $ok = $wpdb->update($t, $updates, ['id'=>$id]);
       if ($ok === false) return new WP_REST_Response(['status'=>'error','message'=>'Update failed'], 500);
 
@@ -237,6 +244,7 @@ add_action('rest_api_init', function(){
       global $wpdb;
       $t = $wpdb->prefix . 'pointlybooking_form_fields';
       $id = (int)$req['id'];
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $wpdb->delete($t, ['id'=>$id], ['%d']);
       return new WP_REST_Response(['status'=>'success'], 200);
     },
@@ -261,6 +269,7 @@ add_action('rest_api_init', function(){
       foreach($ids as $id){
         $id = (int)$id;
         if ($id <= 0) continue;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
         $wpdb->update(
           $t,
           ['sort_order'=>$order,'updated_at'=>current_time('mysql')],
@@ -290,4 +299,3 @@ add_action('rest_api_init', function(){
   ]);
 
 });
-

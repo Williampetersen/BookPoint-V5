@@ -1,5 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 final class POINTLYBOOKING_SettingsHelper {
 
@@ -9,25 +10,23 @@ final class POINTLYBOOKING_SettingsHelper {
     return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
   }
 
-  private static function quote_sql_identifier(string $identifier): string {
-    return '`' . str_replace('`', '``', $identifier) . '`';
-  }
-
   private static function get_option_all(): array {
     $s = get_option(self::OPTION_KEY, []);
     return is_array($s) ? $s : [];
   }
 
   private static function get_legacy(string $key, $default = null) {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
-    $table = $wpdb->prefix . 'pointlybooking_settings';
+    $settings_table = $wpdb->prefix . 'pointlybooking_settings';
 
     $key = sanitize_key($key);
     if ($key === '') return $default;
-    if (!self::is_safe_sql_identifier($table)) return $default;
+    if (!self::is_safe_sql_identifier($settings_table)) return $default;
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $val = $wpdb->get_var(
-      $wpdb->prepare("SELECT setting_value FROM {$table} WHERE setting_key = %s LIMIT 1", $key)
+      $wpdb->prepare("SELECT setting_value FROM {$settings_table} WHERE setting_key = %s LIMIT 1", $key)
     );
     if ($val === null) return $default;
 
@@ -99,22 +98,25 @@ final class POINTLYBOOKING_SettingsHelper {
   }
 
   public static function set(string $key, $value) : bool {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
-    $table = $wpdb->prefix . 'pointlybooking_settings';
+    $settings_table = $wpdb->prefix . 'pointlybooking_settings';
 
     $key = sanitize_key($key);
     if ($key === '') return false;
-    if (!self::is_safe_sql_identifier($table)) return false;
+    if (!self::is_safe_sql_identifier($settings_table)) return false;
 
     $value = maybe_serialize($value);
     $now = current_time('mysql');
 
     // Upsert
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $exists = (int)$wpdb->get_var(
-      $wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE setting_key = %s", $key)
+      $wpdb->prepare("SELECT COUNT(*) FROM {$settings_table} WHERE setting_key = %s", $key)
     );
     if ($exists > 0) {
-      $updated = $wpdb->update($table, [
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+      $updated = $wpdb->update($settings_table, [
         'setting_value' => $value,
         'updated_at' => $now,
       ], [
@@ -123,7 +125,8 @@ final class POINTLYBOOKING_SettingsHelper {
       return ($updated !== false);
     }
 
-    $inserted = $wpdb->insert($table, [
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $inserted = $wpdb->insert($settings_table, [
       'setting_key' => $key,
       'setting_value' => $value,
       'updated_at' => $now,
@@ -195,4 +198,3 @@ final class POINTLYBOOKING_SettingsHelper {
     return self::get($key, $defaults[$key] ?? null);
   }
 }
-

@@ -141,6 +141,7 @@ function pointlybooking_paypal_start(WP_REST_Request $req) {
 
   if ($order_id !== '') {
     global $wpdb;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $wpdb->update(
       $wpdb->prefix . 'pointlybooking_bookings',
       ['payment_provider_ref' => $order_id],

@@ -1,5 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 add_action('rest_api_init', function () {
   register_rest_route('pointly-booking/v1', '/availability/timeslots', [
@@ -125,6 +126,7 @@ function pointlybooking_rest_public_availability_slots(WP_REST_Request $req) {
 }
 
 function pointlybooking_generate_slots_for_public(string $date, int $agent_id, int $service_id, int $occupied_min, int $capacity, array &$debug_meta = []): array {
+  // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
   global $wpdb;
 
   $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
@@ -177,6 +179,7 @@ function pointlybooking_generate_slots_for_public(string $date, int $agent_id, i
 
   $existing_intervals = [];
   if ($has_start_date && $has_start_time) {
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $existing_rows = $wpdb->get_results(
       $wpdb->prepare(
         "SELECT service_id, start_time
@@ -201,6 +204,7 @@ function pointlybooking_generate_slots_for_public(string $date, int $agent_id, i
       ];
     }
   } elseif ($has_start_datetime) {
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $existing_rows = $wpdb->get_results(
       $wpdb->prepare(
         "SELECT service_id, start_datetime

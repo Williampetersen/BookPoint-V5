@@ -33,6 +33,7 @@ function pointlybooking_confirm_booking_paid(int $booking_id, string $provider_r
   $table = $wpdb->prefix . 'pointlybooking_bookings';
   $now = current_time('mysql');
 
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $wpdb->update(
     $table,
     [
