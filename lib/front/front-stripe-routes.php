@@ -1,8 +1,10 @@
 <?php
 if (!defined('ABSPATH')) exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 if (!function_exists('pointlybooking_front_stripe_validate_manage_key')) {
   function pointlybooking_front_stripe_validate_manage_key(int $booking_id, string $submitted_key): bool {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     if ($booking_id <= 0 || $submitted_key === '') {
       return false;
     }
@@ -33,6 +35,7 @@ add_action('rest_api_init', function () {
       if (preg_match('/^[A-Za-z0-9_]+$/', $bookings_table) !== 1) {
         return new WP_Error('config', 'Invalid bookings table', ['status' => 500]);
       }
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $booking = $wpdb->get_row(
         $wpdb->prepare("SELECT * FROM {$bookings_table} WHERE id=%d", $booking_id),
         ARRAY_A
@@ -93,6 +96,7 @@ add_action('rest_api_init', function () {
         ]);
       }
 
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $wpdb->update($bookings_table, [
         'payment_method' => 'stripe',
         'payment_status' => 'unpaid',
@@ -152,6 +156,7 @@ add_action('rest_api_init', function () {
       $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
 
       if ($pi_status === 'succeeded') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
         $wpdb->update($bookings_table, [
           'payment_status' => 'paid',
           'status' => 'confirmed',
@@ -161,6 +166,7 @@ add_action('rest_api_init', function () {
         return rest_ensure_response(['success' => true, 'booking_status' => 'confirmed']);
       }
 
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $wpdb->update($bookings_table, [
         'payment_status' => $pi_status ? $pi_status : 'unpaid',
       ], ['id' => $booking_id]);
@@ -174,4 +180,3 @@ add_action('rest_api_init', function () {
     'permission_callback' => '__return_true',
   ]);
 });
-

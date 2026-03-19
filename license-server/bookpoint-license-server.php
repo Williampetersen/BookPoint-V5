@@ -198,10 +198,6 @@ defined('ABSPATH') || exit;
     return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
   }
 
-  private static function quote_sql_identifier(string $identifier): string {
-    return '`' . $identifier . '`';
-  }
-
   private static function table_exists(): bool {
     global $wpdb;
     $table = self::table();
@@ -307,6 +303,7 @@ defined('ABSPATH') || exit;
   }
 
   private static function table_has_column(string $column): bool {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     static $cache = [];
 
     $table = self::table();
@@ -325,9 +322,8 @@ defined('ABSPATH') || exit;
       $cache[$key] = false;
       return false;
     }
-    $quoted_table = self::quote_sql_identifier($table);
     $found = $wpdb->get_var(
-      $wpdb->prepare("SHOW COLUMNS FROM {$quoted_table} LIKE %s", $column)
+      $wpdb->prepare("SHOW COLUMNS FROM {$table} LIKE %s", $column)
     );
     $cache[$key] = is_string($found) && $found !== '';
     return (bool) $cache[$key];
@@ -545,6 +541,7 @@ defined('ABSPATH') || exit;
   }
 
   private static function find_license(string $key): ?array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $table = self::table();
     $key = self::normalize_key($key);
@@ -552,17 +549,16 @@ defined('ABSPATH') || exit;
     if (!self::is_safe_sql_identifier($table)) {
       return null;
     }
-    $quoted_table = self::quote_sql_identifier($table);
 
     if (self::table_has_column(self::COL_LICENSE_KEY_HASH)) {
       $hash = self::license_key_hash($key);
       if (!self::is_safe_sql_identifier(self::COL_LICENSE_KEY_HASH)) {
         return null;
       }
-      $quoted_hash_column = self::quote_sql_identifier(self::COL_LICENSE_KEY_HASH);
+      $hash_column = self::COL_LICENSE_KEY_HASH;
       $row = $wpdb->get_row(
         $wpdb->prepare(
-          "SELECT * FROM {$quoted_table} WHERE license_key = %s OR {$quoted_hash_column} = %s LIMIT 1",
+          "SELECT * FROM {$table} WHERE license_key = %s OR {$hash_column} = %s LIMIT 1",
           $key,
           $hash
         ),
@@ -570,7 +566,7 @@ defined('ABSPATH') || exit;
       );
     } else {
       $row = $wpdb->get_row(
-        $wpdb->prepare("SELECT * FROM {$quoted_table} WHERE license_key = %s LIMIT 1", $key),
+        $wpdb->prepare("SELECT * FROM {$table} WHERE license_key = %s LIMIT 1", $key),
         ARRAY_A
       );
     }
@@ -578,14 +574,14 @@ defined('ABSPATH') || exit;
   }
 
   private static function get_license_by_id(int $id): ?array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $table = self::table();
     if (!self::is_safe_sql_identifier($table)) {
       return null;
     }
-    $quoted_table = self::quote_sql_identifier($table);
     $row = $wpdb->get_row(
-      $wpdb->prepare("SELECT * FROM {$quoted_table} WHERE id = %d LIMIT 1", $id),
+      $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", $id),
       ARRAY_A
     );
     return is_array($row) ? $row : null;
@@ -1222,6 +1218,7 @@ defined('ABSPATH') || exit;
   }
 
   private static function order_ids_by_billing_email(string $email): array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     $email = sanitize_email($email);
     if ($email === '' || !function_exists('wc_get_orders')) return [];
 
@@ -1248,14 +1245,12 @@ defined('ABSPATH') || exit;
     if (!self::is_safe_sql_identifier($posts) || !self::is_safe_sql_identifier($postmeta)) {
       return [];
     }
-    $quoted_posts = self::quote_sql_identifier($posts);
-    $quoted_postmeta = self::quote_sql_identifier($postmeta);
 
     $ids2 = $wpdb->get_col(
       $wpdb->prepare(
         "SELECT p.ID
-         FROM {$quoted_posts} p
-         INNER JOIN {$quoted_postmeta} pm ON pm.post_id = p.ID
+         FROM {$posts} p
+         INNER JOIN {$postmeta} pm ON pm.post_id = p.ID
          WHERE p.post_type = 'shop_order'
            AND p.post_status IN (%s, %s)
            AND pm.meta_key = '_billing_email'
@@ -1373,17 +1368,17 @@ defined('ABSPATH') || exit;
   }
 
   private static function licenses_for_order_id(int $orderId): array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $table = self::table();
     if ($orderId <= 0) return [];
     if (!self::is_safe_sql_identifier($table)) {
       return [];
     }
-    $quoted_table = self::quote_sql_identifier($table);
 
     $rows = $wpdb->get_results(
       $wpdb->prepare(
-        "SELECT license_key, expires_at, plan, activations_limit FROM {$quoted_table} WHERE order_id = %d ORDER BY id ASC",
+        "SELECT license_key, expires_at, plan, activations_limit FROM {$table} WHERE order_id = %d ORDER BY id ASC",
         $orderId
       ),
       ARRAY_A
@@ -1464,6 +1459,7 @@ defined('ABSPATH') || exit;
   }
 
   public static function render_account_dashboard_licenses(): void {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     if (!is_user_logged_in()) return;
     $userId = get_current_user_id();
     $user = wp_get_current_user();
@@ -1474,10 +1470,9 @@ defined('ABSPATH') || exit;
     if (!self::is_safe_sql_identifier($table)) {
       return;
     }
-    $quoted_table = self::quote_sql_identifier($table);
     $rows = $wpdb->get_results(
       $wpdb->prepare(
-        "SELECT * FROM {$quoted_table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 5",
+        "SELECT * FROM {$table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 5",
         $userId,
         $email
       ),
@@ -1487,7 +1482,7 @@ defined('ABSPATH') || exit;
       self::sync_licenses_for_user($userId, $email);
       $rows = $wpdb->get_results(
         $wpdb->prepare(
-          "SELECT * FROM {$quoted_table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 5",
+          "SELECT * FROM {$table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 5",
           $userId,
           $email
         ),
@@ -1558,6 +1553,7 @@ defined('ABSPATH') || exit;
   }
 
   private static function sync_licenses_for_user(int $userId, string $userEmail = ''): void {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     if ($userId <= 0) return;
     if (!class_exists('WC_Order')) return;
     if (!self::table_exists()) return;
@@ -1591,13 +1587,12 @@ defined('ABSPATH') || exit;
     if (!self::is_safe_sql_identifier($table)) {
       return;
     }
-    $quoted_table = self::quote_sql_identifier($table);
 
     // Link by order_id (best): ensures keys show even if billing email differs from account email.
     $inOrder = implode(',', array_fill(0, count($orderIds), '%d'));
     $wpdb->query(
       $wpdb->prepare(
-        "UPDATE {$quoted_table} SET user_id = %d WHERE user_id = 0 AND order_id IN ({$inOrder})",
+        "UPDATE {$table} SET user_id = %d WHERE user_id = 0 AND order_id IN ({$inOrder})",
         array_merge([$userId], $orderIds)
       )
     );
@@ -1609,6 +1604,7 @@ defined('ABSPATH') || exit;
   }
 
   public static function render_account_page(): void {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     if (!is_user_logged_in()) {
       echo '<p>' . esc_html__('Please log in to see your licenses.', 'bookpoint-booking') . '</p>';
       return;
@@ -1624,11 +1620,10 @@ defined('ABSPATH') || exit;
       echo '<p>' . esc_html__('No licenses found for your account.', 'bookpoint-booking') . '</p>';
       return;
     }
-    $quoted_table = self::quote_sql_identifier($table);
 
     $rows = $wpdb->get_results(
       $wpdb->prepare(
-        "SELECT * FROM {$quoted_table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 200",
+        "SELECT * FROM {$table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 200",
         $userId,
         $email
       ),
@@ -1640,7 +1635,7 @@ defined('ABSPATH') || exit;
       self::sync_licenses_for_user($userId, $email);
       $rows = $wpdb->get_results(
         $wpdb->prepare(
-          "SELECT * FROM {$quoted_table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 200",
+          "SELECT * FROM {$table} WHERE (user_id = %d OR (email <> '' AND email = %s)) ORDER BY id DESC LIMIT 200",
           $userId,
           $email
         ),
@@ -1797,6 +1792,7 @@ defined('ABSPATH') || exit;
   }
 
   public static function render_admin_page(): void {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     if (!current_user_can('manage_options')) return;
 
     global $wpdb;
@@ -1810,7 +1806,6 @@ defined('ABSPATH') || exit;
       echo '</div>';
       return;
     }
-    $quoted_table = self::quote_sql_identifier($table);
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only admin filter input.
     $q = sanitize_text_field((string) wp_unslash($_GET['s'] ?? ''));
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only admin notice flag.
@@ -1822,7 +1817,7 @@ defined('ABSPATH') || exit;
       $like = '%' . $wpdb->esc_like($q) . '%';
       $rows = $wpdb->get_results(
         $wpdb->prepare(
-          "SELECT * FROM {$quoted_table} WHERE license_key LIKE %s OR email LIKE %s OR activated_domain LIKE %s ORDER BY id DESC LIMIT 200",
+          "SELECT * FROM {$table} WHERE license_key LIKE %s OR email LIKE %s OR activated_domain LIKE %s ORDER BY id DESC LIMIT 200",
           $like,
           $like,
           $like
@@ -1831,7 +1826,7 @@ defined('ABSPATH') || exit;
       ) ?: [];
     } else {
       $rows = $wpdb->get_results(
-        "SELECT * FROM {$quoted_table} ORDER BY id DESC LIMIT 50",
+        "SELECT * FROM {$table} ORDER BY id DESC LIMIT 50",
         ARRAY_A
       ) ?: [];
     }

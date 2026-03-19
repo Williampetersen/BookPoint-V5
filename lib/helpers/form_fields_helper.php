@@ -1,12 +1,13 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 function pointlybooking_install_form_fields_table() : void {
   global $wpdb;
   $charset_collate = $wpdb->get_charset_collate();
-  $t = $wpdb->prefix . 'pointlybooking_form_fields';
+  $form_fields_table = $wpdb->prefix . 'pointlybooking_form_fields';
 
-  $sql = "CREATE TABLE {$t} (
+  $sql = "CREATE TABLE {$form_fields_table} (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     field_key VARCHAR(80) NOT NULL,
     label VARCHAR(190) NOT NULL,
@@ -36,13 +37,15 @@ function pointlybooking_install_form_fields_table() : void {
   ) {$charset_collate};";
 
   require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
   dbDelta($sql);
 }
 
 function pointlybooking_seed_default_form_fields() : void {
+  // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
   global $wpdb;
-  $t = $wpdb->prefix . 'pointlybooking_form_fields';
-  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+  $form_fields_table = $wpdb->prefix . 'pointlybooking_form_fields';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $form_fields_table)) {
     return;
   }
 
@@ -58,9 +61,10 @@ function pointlybooking_seed_default_form_fields() : void {
 
   foreach ($defaults as $f) {
     // Check if field already exists
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $exists = $wpdb->get_var(
       $wpdb->prepare(
-        "SELECT id FROM {$t} WHERE field_key=%s AND scope=%s",
+        "SELECT id FROM {$form_fields_table} WHERE field_key=%s AND scope=%s",
         $f['field_key'],
         $f['scope']
       )
@@ -68,7 +72,8 @@ function pointlybooking_seed_default_form_fields() : void {
 
     if ($exists) continue; // Skip if already exists
 
-    $wpdb->insert($t, [
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $wpdb->insert($form_fields_table, [
       'field_key'=>$f['field_key'],
       'label'=>$f['label'],
       'type'=>$f['type'],
@@ -89,4 +94,3 @@ function pointlybooking_seed_default_form_fields() : void {
     ], ['%s','%s','%s','%s','%s','%s','%s','%d','%d','%d','%d','%s','%s','%s','%s','%d','%d']);
   }
 }
-

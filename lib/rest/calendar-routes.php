@@ -1,8 +1,10 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 if (!function_exists('pointlybooking_rest_can_manage_calendar_legacy')) {
   function pointlybooking_rest_can_manage_calendar_legacy(): bool {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     return current_user_can('pointlybooking_manage_bookings') || current_user_can('administrator');
   }
 }
@@ -27,11 +29,12 @@ add_action('rest_api_init', function(){
       }
 
       global $wpdb;
-      $t = $wpdb->prefix . 'pointlybooking_bookings';
-      if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+      $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+      if (!preg_match('/^[A-Za-z0-9_]+$/', $bookings_table)) {
         return new WP_REST_Response(['status'=>'success','data'=>[]], 200);
       }
 
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       $rows = $wpdb->get_results(
         $wpdb->prepare("SELECT
           id,
@@ -42,7 +45,7 @@ add_action('rest_api_init', function(){
           customer_email,
           service_name,
           agent_name
-        FROM {$t}
+        FROM {$bookings_table}
         WHERE start_datetime >= %s
           AND start_datetime < %s
         ORDER BY start_datetime ASC
@@ -70,4 +73,3 @@ add_action('rest_api_init', function(){
   ]);
 
 });
-

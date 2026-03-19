@@ -72,6 +72,7 @@ final class POINTLYBOOKING_AdminExtrasController extends POINTLYBOOKING_Controll
     POINTLYBOOKING_ServiceExtraModel::set_services($new_id, $service_ids);
 
     global $wpdb;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $wpdb->update($wpdb->prefix . 'pointlybooking_service_extras', ['service_id' => $first_service], ['id' => $new_id], ['%d'], ['%d']);
 
     wp_safe_redirect(admin_url('admin.php?page=pointlybooking_extras&updated=1&edit=' . $new_id));

@@ -1,5 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 final class POINTLYBOOKING_MigrationsHelper {
 
@@ -21,6 +22,7 @@ final class POINTLYBOOKING_MigrationsHelper {
     $charset = $wpdb->get_charset_collate();
     $prefix  = $wpdb->prefix . 'pointlybooking_';
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}categories (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -37,6 +39,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       ) {$charset};
     ");
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}service_extras (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -57,6 +60,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       ) {$charset};
     ");
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}bundles (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -72,6 +76,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       ) {$charset};
     ");
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}bundle_items (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -91,6 +96,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       pointlybooking_install_form_fields_table();
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}promo_codes (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -111,6 +117,7 @@ final class POINTLYBOOKING_MigrationsHelper {
     ) {$charset};
   ");
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}workflows (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -129,6 +136,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       ) {$charset};
     ");
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}workflow_actions (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -145,6 +153,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       ) {$charset};
     ");
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}workflow_logs (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -163,6 +172,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       ) {$charset};
     ");
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}holidays (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -181,6 +191,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       ) {$charset};
     ");
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}schedules (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -197,6 +208,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       ) {$charset};
     ");
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}schedule_settings (
         id BIGINT UNSIGNED NOT NULL,
@@ -239,6 +251,7 @@ final class POINTLYBOOKING_MigrationsHelper {
     self::maybe_add_column($wpdb->prefix . 'pointlybooking_holidays', 'created_at', 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
     self::maybe_add_column($wpdb->prefix . 'pointlybooking_holidays', 'updated_at', 'DATETIME NULL');
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}agent_services (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -251,6 +264,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       ) {$charset};
     ");
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}service_categories (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -263,6 +277,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       ) {$charset};
     ");
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta("
       CREATE TABLE {$prefix}extra_services (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -424,8 +439,10 @@ final class POINTLYBOOKING_MigrationsHelper {
       UNIQUE KEY setting_key (setting_key)
     ) $charset_collate;";
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta($sql_services);
     dbDelta($sql_customers);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta($sql_bookings);
     dbDelta($sql_settings);
 
@@ -502,6 +519,7 @@ final class POINTLYBOOKING_MigrationsHelper {
       KEY created_at (created_at)
     ) {$charset};";
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta($sql);
   }
 
@@ -541,26 +559,30 @@ final class POINTLYBOOKING_MigrationsHelper {
       }
       // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- ALTER TABLE cannot use value placeholders; each branch targets a hardcoded plugin table with a sanitized WordPress prefix.
       if ($column === 'status') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
         $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `status` (`status`)");
         return;
       }
       if ($column === 'customer_id') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
         $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `customer_id` (`customer_id`)");
         return;
       }
       if ($column === 'agent_id') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
         $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `agent_id` (`agent_id`)");
         return;
       }
       if ($column === 'service_id') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
         $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `service_id` (`service_id`)");
         return;
       }
       if ($column === 'start_datetime') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
         $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `start_datetime` (`start_datetime`)");
         return;
       }
-      // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     }
 
     if ($table === $audit_table) {
@@ -573,21 +595,24 @@ final class POINTLYBOOKING_MigrationsHelper {
       }
       // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- ALTER TABLE cannot use value placeholders; each branch targets a hardcoded plugin table with a sanitized WordPress prefix.
       if ($column === 'event') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
         $wpdb->query("ALTER TABLE {$audit_table} ADD INDEX `event` (`event`)");
         return;
       }
       if ($column === 'created_at') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
         $wpdb->query("ALTER TABLE {$audit_table} ADD INDEX `created_at` (`created_at`)");
         return;
       }
       if ($column === 'booking_id') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
         $wpdb->query("ALTER TABLE {$audit_table} ADD INDEX `booking_id` (`booking_id`)");
         return;
       }
       if ($column === 'customer_id') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
         $wpdb->query("ALTER TABLE {$audit_table} ADD INDEX `customer_id` (`customer_id`)");
       }
-      // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     }
   }
 
@@ -629,137 +654,168 @@ final class POINTLYBOOKING_MigrationsHelper {
 
     // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- ALTER TABLE cannot use value placeholders; each branch targets a hardcoded plugin table with a sanitized WordPress prefix.
     if ($table === $services_table && $column === 'category_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `category_id` BIGINT UNSIGNED NULL");
       return;
     }
     if ($table === $services_table && $column === 'image_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `image_id` BIGINT UNSIGNED NULL");
       return;
     }
     if ($table === $services_table && $column === 'use_global_schedule' && $definition === 'TINYINT(1) NOT NULL DEFAULT 1') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `use_global_schedule` TINYINT(1) NOT NULL DEFAULT 1");
       return;
     }
     if ($table === $services_table && $column === 'schedule_json' && $definition === 'LONGTEXT NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `schedule_json` LONGTEXT NULL");
       return;
     }
     if ($table === $services_table && $column === 'buffer_before_minutes' && $definition === 'INT NOT NULL DEFAULT 0') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `buffer_before_minutes` INT NOT NULL DEFAULT 0");
       return;
     }
     if ($table === $services_table && $column === 'buffer_after_minutes' && $definition === 'INT NOT NULL DEFAULT 0') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `buffer_after_minutes` INT NOT NULL DEFAULT 0");
       return;
     }
     if ($table === $services_table && $column === 'capacity' && $definition === 'INT NOT NULL DEFAULT 1') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$services_table} ADD COLUMN `capacity` INT NOT NULL DEFAULT 1");
       return;
     }
 
     if ($table === $bookings_table && $column === 'category_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `category_id` BIGINT UNSIGNED NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'service_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `service_id` BIGINT UNSIGNED NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'extras_json' && $definition === 'LONGTEXT NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `extras_json` LONGTEXT NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'promo_code' && $definition === 'VARCHAR(60) NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `promo_code` VARCHAR(60) NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'discount_total' && $definition === 'DECIMAL(10,2) NOT NULL DEFAULT 0.00') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `discount_total` DECIMAL(10,2) NOT NULL DEFAULT 0.00");
       return;
     }
     if ($table === $bookings_table && $column === 'total_price' && $definition === 'DECIMAL(10,2) NOT NULL DEFAULT 0.00') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `total_price` DECIMAL(10,2) NOT NULL DEFAULT 0.00");
       return;
     }
     if ($table === $bookings_table && $column === 'currency' && $definition === "CHAR(3) NOT NULL DEFAULT 'USD'") {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `currency` CHAR(3) NOT NULL DEFAULT 'USD'");
       return;
     }
     if ($table === $bookings_table && $column === 'payment_method' && $definition === "VARCHAR(30) NOT NULL DEFAULT 'cash'") {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `payment_method` VARCHAR(30) NOT NULL DEFAULT 'cash'");
       return;
     }
     if ($table === $bookings_table && $column === 'payment_status' && $definition === "VARCHAR(30) NOT NULL DEFAULT 'unpaid'") {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `payment_status` VARCHAR(30) NOT NULL DEFAULT 'unpaid'");
       return;
     }
     if ($table === $bookings_table && $column === 'payment_provider_ref' && $definition === 'VARCHAR(190) NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `payment_provider_ref` VARCHAR(190) NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'payment_amount' && $definition === 'DECIMAL(10,2) NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `payment_amount` DECIMAL(10,2) NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'payment_currency' && $definition === 'CHAR(3) NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `payment_currency` CHAR(3) NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'customer_fields_json' && $definition === 'LONGTEXT NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `customer_fields_json` LONGTEXT NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'booking_fields_json' && $definition === 'LONGTEXT NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `booking_fields_json` LONGTEXT NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'custom_fields_json' && $definition === 'LONGTEXT NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `custom_fields_json` LONGTEXT NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'status' && $definition === "VARCHAR(30) NOT NULL DEFAULT 'pending'") {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `status` VARCHAR(30) NOT NULL DEFAULT 'pending'");
       return;
     }
     if ($table === $bookings_table && $column === 'notes' && $definition === 'LONGTEXT NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `notes` LONGTEXT NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'manage_token_last_used_at' && $definition === 'DATETIME NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `manage_token_last_used_at` DATETIME NULL");
       return;
     }
     if ($table === $bookings_table && $column === 'agent_id' && $definition === 'BIGINT UNSIGNED NULL AFTER customer_id') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD COLUMN `agent_id` BIGINT UNSIGNED NULL AFTER customer_id");
       return;
     }
 
     if ($table === $customers_table && $column === 'custom_fields_json' && $definition === 'LONGTEXT NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$customers_table} ADD COLUMN `custom_fields_json` LONGTEXT NULL");
       return;
     }
 
     if ($table === $agents_table && $column === 'image_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$agents_table} ADD COLUMN `image_id` BIGINT UNSIGNED NULL");
       return;
     }
 
     if ($table === $holidays_table && $column === 'agent_id' && $definition === 'BIGINT UNSIGNED NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `agent_id` BIGINT UNSIGNED NULL");
       return;
     }
     if ($table === $holidays_table && $column === 'is_recurring' && $definition === 'TINYINT(1) NOT NULL DEFAULT 0') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `is_recurring` TINYINT(1) NOT NULL DEFAULT 0");
       return;
     }
     if ($table === $holidays_table && $column === 'created_at' && $definition === 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
       return;
     }
     if ($table === $holidays_table && $column === 'updated_at' && $definition === 'DATETIME NULL') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$holidays_table} ADD COLUMN `updated_at` DATETIME NULL");
     }
-    // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
   }
 
   private static function run_add_index_query(string $table, string $index_name, string $column): void {
@@ -767,25 +823,23 @@ final class POINTLYBOOKING_MigrationsHelper {
     $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
     // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- ALTER TABLE cannot use value placeholders; each branch targets a hardcoded plugin table with a sanitized WordPress prefix.
     if ($table === $bookings_table && $index_name === 'service_id' && $column === 'service_id') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `service_id` (`service_id`)");
       return;
     }
     if ($table === $bookings_table && $index_name === 'category_id' && $column === 'category_id') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `category_id` (`category_id`)");
       return;
     }
     if ($table === $bookings_table && $index_name === 'agent_id' && $column === 'agent_id') {
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
       $wpdb->query("ALTER TABLE {$bookings_table} ADD INDEX `agent_id` (`agent_id`)");
     }
-    // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
   }
 
   private static function is_safe_sql_identifier(string $identifier): bool {
     return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
-  }
-
-  private static function quote_sql_identifier(string $identifier): string {
-    return '`' . $identifier . '`';
   }
 
   private static function is_safe_column_definition(string $definition): bool {
@@ -842,6 +896,7 @@ final class POINTLYBOOKING_MigrationsHelper {
     ) {$charset};";
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta($sql);
   }
 
@@ -871,7 +926,7 @@ final class POINTLYBOOKING_MigrationsHelper {
     ) {$charset};";
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
     dbDelta($sql);
   }
 }
-

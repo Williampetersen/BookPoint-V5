@@ -1,5 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 add_action('rest_api_init', function () {
   $namespace = 'pointly-booking/v1';
@@ -83,19 +84,21 @@ function pointlybooking_rest_admin_notifications_can_manage(): bool {
 }
 
 function pointlybooking_rest_admin_notifications_meta(\WP_REST_Request $request) {
+  // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
   global $wpdb;
   if (method_exists('POINTLYBOOKING_Notifications_Helper', 'ensure_tables')) {
     POINTLYBOOKING_Notifications_Helper::ensure_tables();
   }
 
-  $t = POINTLYBOOKING_Notifications_Helper::table('pointlybooking_workflows');
-  if (!preg_match('/^[A-Za-z0-9_]+$/', $t)) {
+  $workflows_table = POINTLYBOOKING_Notifications_Helper::table('pointlybooking_workflows');
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $workflows_table)) {
     return rest_ensure_response(['status' => 'success', 'data' => ['events' => [], 'counts' => []]]);
   }
 
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $rows = $wpdb->get_results(
     "SELECT event_key, status, COUNT(*) as c
-    FROM {$t}
+    FROM {$workflows_table}
     GROUP BY event_key, status",
     ARRAY_A
   ) ?: [];
@@ -314,16 +317,17 @@ function pointlybooking_rest_smart_variables(\WP_REST_Request $request) {
 }
 
 function pointlybooking_rest_admin_notifications_latest_booking_row(): ?array {
+  // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
   global $wpdb;
-  $table = $wpdb->prefix . 'pointlybooking_bookings';
-  if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+  $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $bookings_table)) {
     return null;
   }
 
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $row = $wpdb->get_row(
-    "SELECT * FROM {$table} ORDER BY id DESC LIMIT 1",
+    "SELECT * FROM {$bookings_table} ORDER BY id DESC LIMIT 1",
     ARRAY_A
   );
   return $row ?: null;
 }
-

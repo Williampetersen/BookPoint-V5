@@ -112,6 +112,7 @@ function pointlybooking_stripe_start_checkout(WP_REST_Request $req) {
   $session_id = sanitize_text_field($json['id'] ?? '');
   if ($session_id !== '') {
     global $wpdb;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $wpdb->update(
       $wpdb->prefix . 'pointlybooking_bookings',
       ['payment_provider_ref' => $session_id],

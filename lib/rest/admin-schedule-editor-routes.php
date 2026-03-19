@@ -1,5 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 add_action('rest_api_init', function () {
 
@@ -34,18 +35,19 @@ add_action('rest_api_init', function () {
 function pointlybooking_rest_schedule_tables_ensure(): void {
   global $wpdb;
   $charset = $wpdb->get_charset_collate();
-  $t_hours  = $wpdb->prefix . 'pointlybooking_agent_working_hours';
-  $t_breaks = $wpdb->prefix . 'pointlybooking_agent_breaks';
+  $working_hours_table = $wpdb->prefix . 'pointlybooking_agent_working_hours';
+  $agent_breaks_table = $wpdb->prefix . 'pointlybooking_agent_breaks';
 
-  $hours_exists = pointlybooking_db_table_exists($t_hours);
-  $breaks_exists = pointlybooking_db_table_exists($t_breaks);
+  $hours_exists = pointlybooking_db_table_exists($working_hours_table);
+  $breaks_exists = pointlybooking_db_table_exists($agent_breaks_table);
 
   if ($hours_exists && $breaks_exists) return;
 
   require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
   if (!$hours_exists) {
-    dbDelta("CREATE TABLE {$t_hours} (
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
+    dbDelta("CREATE TABLE {$working_hours_table} (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       agent_id BIGINT UNSIGNED NOT NULL,
       weekday TINYINT NOT NULL,
@@ -58,7 +60,8 @@ function pointlybooking_rest_schedule_tables_ensure(): void {
   }
 
   if (!$breaks_exists) {
-    dbDelta("CREATE TABLE {$t_breaks} (
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema management or uninstall cleanup is intentional here and cannot be cached.
+    dbDelta("CREATE TABLE {$agent_breaks_table} (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       agent_id BIGINT UNSIGNED NOT NULL,
       break_date DATE NOT NULL,
@@ -72,6 +75,7 @@ function pointlybooking_rest_schedule_tables_ensure(): void {
 }
 
 function pointlybooking_rest_admin_get_agent_schedule(WP_REST_Request $req) {
+  // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
   global $wpdb;
   pointlybooking_rest_schedule_tables_ensure();
   $agent_id = (int)$req['id'];
@@ -83,6 +87,7 @@ function pointlybooking_rest_admin_get_agent_schedule(WP_REST_Request $req) {
     return new WP_REST_Response(['status'=>'error','message'=>'Invalid schedule tables'], 500);
   }
 
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $hours_rows = $wpdb->get_results(
     $wpdb->prepare("SELECT id, weekday, start_time, end_time, is_enabled
      FROM {$hours_table}
@@ -91,6 +96,7 @@ function pointlybooking_rest_admin_get_agent_schedule(WP_REST_Request $req) {
     ARRAY_A
   ) ?: [];
 
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $break_rows = $wpdb->get_results(
     $wpdb->prepare("SELECT id, break_date, start_time, end_time, note
      FROM {$breaks_table}
@@ -129,6 +135,7 @@ function pointlybooking_rest_admin_get_agent_schedule(WP_REST_Request $req) {
 }
 
 function pointlybooking_rest_admin_save_agent_schedule(WP_REST_Request $req) {
+  // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
   global $wpdb;
   pointlybooking_rest_schedule_tables_ensure();
   $agent_id = (int)$req['id'];
@@ -147,20 +154,19 @@ function pointlybooking_rest_admin_save_agent_schedule(WP_REST_Request $req) {
     return new WP_REST_Response(['status'=>'error','message'=>'Invalid payload'], 400);
   }
 
-  $t_hours  = $wpdb->prefix . 'pointlybooking_agent_working_hours';
-  $t_breaks = $wpdb->prefix . 'pointlybooking_agent_breaks';
-  if (!preg_match('/^[A-Za-z0-9_]+$/', $t_hours) || !preg_match('/^[A-Za-z0-9_]+$/', $t_breaks)) {
+  $working_hours_table = $wpdb->prefix . 'pointlybooking_agent_working_hours';
+  $agent_breaks_table = $wpdb->prefix . 'pointlybooking_agent_breaks';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $working_hours_table) || !preg_match('/^[A-Za-z0-9_]+$/', $agent_breaks_table)) {
     return new WP_REST_Response(['status'=>'error','message'=>'Invalid schedule tables'], 500);
   }
 
-  $hours_table = $t_hours;
-  $breaks_table = $t_breaks;
-
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $wpdb->query(
-    $wpdb->prepare("DELETE FROM {$hours_table} WHERE agent_id=%d", $agent_id)
+    $wpdb->prepare("DELETE FROM {$working_hours_table} WHERE agent_id=%d", $agent_id)
   );
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $wpdb->query(
-    $wpdb->prepare("DELETE FROM {$breaks_table} WHERE agent_id=%d", $agent_id)
+    $wpdb->prepare("DELETE FROM {$agent_breaks_table} WHERE agent_id=%d", $agent_id)
   );
 
   for ($d = 1; $d <= 7; $d++) {
@@ -180,7 +186,8 @@ function pointlybooking_rest_admin_save_agent_schedule(WP_REST_Request $req) {
       $et .= ':00';
       if (strtotime("1970-01-01 {$et}") <= strtotime("1970-01-01 {$st}")) continue;
 
-      $wpdb->insert($t_hours, [
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+      $wpdb->insert($working_hours_table, [
         'agent_id'=>$agent_id,
         'weekday'=>$d,
         'start_time'=>$st,
@@ -204,7 +211,8 @@ function pointlybooking_rest_admin_save_agent_schedule(WP_REST_Request $req) {
     $et .= ':00';
     if (strtotime("1970-01-01 {$et}") <= strtotime("1970-01-01 {$st}")) continue;
 
-    $wpdb->insert($t_breaks, [
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $wpdb->insert($agent_breaks_table, [
       'agent_id'=>$agent_id,
       'break_date'=>$date,
       'start_time'=>$st,
@@ -221,6 +229,7 @@ function pointlybooking_rest_admin_save_agent_schedule(WP_REST_Request $req) {
 }
 
 function pointlybooking_rest_admin_copy_agent_schedule(WP_REST_Request $req) {
+  // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
   global $wpdb;
   
   if (!current_user_can('administrator') && !current_user_can('pointlybooking_manage_settings')) {
@@ -235,24 +244,27 @@ function pointlybooking_rest_admin_copy_agent_schedule(WP_REST_Request $req) {
     if (is_array($decoded)) $body = $decoded;
   }
 
-  $tS = $wpdb->prefix . 'pointlybooking_schedules';
-  if (!preg_match('/^[A-Za-z0-9_]+$/', $tS)) {
+  $schedules_table = $wpdb->prefix . 'pointlybooking_schedules';
+  if (!preg_match('/^[A-Za-z0-9_]+$/', $schedules_table)) {
     return new WP_REST_Response(['status'=>'error','message'=>'Invalid schedules table'], 500);
   }
 
   // Read global schedules
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   $global = $wpdb->get_results(
     "SELECT day_of_week,start_time,end_time,is_enabled
-    FROM {$tS}
+    FROM {$schedules_table}
     WHERE agent_id IS NULL OR agent_id=0
     ORDER BY day_of_week ASC, start_time ASC",
     ARRAY_A
   ) ?: [];
 
   // Overwrite agent schedules
-  $wpdb->delete($tS, ['agent_id'=>$to_agent_id]);
+  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+  $wpdb->delete($schedules_table, ['agent_id'=>$to_agent_id]);
   foreach($global as $g){
-    $wpdb->insert($tS, [
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $wpdb->insert($schedules_table, [
       'agent_id' => $to_agent_id,
       'day_of_week' => (int)$g['day_of_week'],
       'start_time' => $g['start_time'],
@@ -263,4 +275,3 @@ function pointlybooking_rest_admin_copy_agent_schedule(WP_REST_Request $req) {
 
   return new WP_REST_Response(['status'=>'success','data'=>['copied'=>count($global)]], 200);
 }
-

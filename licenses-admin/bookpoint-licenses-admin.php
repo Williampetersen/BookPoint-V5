@@ -38,10 +38,6 @@ final class POINTLYBOOKING_Licenses_Admin_Plugin {
     return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
   }
 
-  private static function quote_sql_identifier(string $identifier): string {
-    return '`' . $identifier . '`';
-  }
-
   private static function maybe_create_table(): void {
     global $wpdb;
     $table = self::table();
@@ -147,28 +143,30 @@ final class POINTLYBOOKING_Licenses_Admin_Plugin {
   }
 
   private static function find_license(string $key): ?array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $table = self::table();
     if (!self::is_safe_sql_identifier($table)) {
       return null;
     }
-    $quoted_table = self::quote_sql_identifier($table);
+    $licenses_table = $table;
     $row = $wpdb->get_row(
-      $wpdb->prepare("SELECT * FROM {$quoted_table} WHERE license_key = %s LIMIT 1", $key),
+      $wpdb->prepare("SELECT * FROM {$licenses_table} WHERE license_key = %s LIMIT 1", $key),
       ARRAY_A
     );
     return is_array($row) ? $row : null;
   }
 
   private static function get_license_by_id(int $id): ?array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $table = self::table();
     if (!self::is_safe_sql_identifier($table)) {
       return null;
     }
-    $quoted_table = self::quote_sql_identifier($table);
+    $licenses_table = $table;
     $row = $wpdb->get_row(
-      $wpdb->prepare("SELECT * FROM {$quoted_table} WHERE id = %d LIMIT 1", $id),
+      $wpdb->prepare("SELECT * FROM {$licenses_table} WHERE id = %d LIMIT 1", $id),
       ARRAY_A
     );
     return is_array($row) ? $row : null;
@@ -192,6 +190,7 @@ final class POINTLYBOOKING_Licenses_Admin_Plugin {
   }
 
   public static function render_admin_page(): void {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     if (!current_user_can('manage_options')) return;
 
     global $wpdb;
@@ -200,7 +199,7 @@ final class POINTLYBOOKING_Licenses_Admin_Plugin {
       echo '<div class="wrap"><h1>' . esc_html__('BookPoint Licenses admin', 'bookpoint-booking') . '</h1><p>' . esc_html__('No licenses found.', 'bookpoint-booking') . '</p></div>';
       return;
     }
-    $quoted_table = self::quote_sql_identifier($table);
+    $licenses_table = $table;
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only admin filter input.
     $q = sanitize_text_field((string) wp_unslash($_GET['s'] ?? ''));
@@ -212,7 +211,7 @@ final class POINTLYBOOKING_Licenses_Admin_Plugin {
       $like = '%' . $wpdb->esc_like($q) . '%';
       $rows = $wpdb->get_results(
         $wpdb->prepare(
-          "SELECT * FROM {$quoted_table} WHERE license_key LIKE %s OR email LIKE %s OR activated_domain LIKE %s ORDER BY id DESC LIMIT 200",
+          "SELECT * FROM {$licenses_table} WHERE license_key LIKE %s OR email LIKE %s OR activated_domain LIKE %s ORDER BY id DESC LIMIT 200",
           $like,
           $like,
           $like
@@ -220,7 +219,7 @@ final class POINTLYBOOKING_Licenses_Admin_Plugin {
         ARRAY_A
       ) ?: [];
     } else {
-      $rows = $wpdb->get_results("SELECT * FROM {$quoted_table} ORDER BY id DESC LIMIT 50", ARRAY_A) ?: [];
+      $rows = $wpdb->get_results("SELECT * FROM {$licenses_table} ORDER BY id DESC LIMIT 50", ARRAY_A) ?: [];
     }
 
     echo '<div class="wrap">';

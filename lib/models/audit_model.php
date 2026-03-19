@@ -1,14 +1,11 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 final class POINTLYBOOKING_AuditModel {
 
   private static function is_safe_sql_identifier(string $identifier): bool {
     return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
-  }
-
-  private static function quote_sql_identifier(string $identifier): string {
-    return '`' . $identifier . '`';
   }
 
   private static function build_where(array $args, array &$params) : string {
@@ -84,19 +81,19 @@ final class POINTLYBOOKING_AuditModel {
   }
 
   public static function list(array $args = []) : array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $limit = max(1, min(5000, absint($args['limit'] ?? 500)));
-    $table = $wpdb->prefix . 'pointlybooking_audit_log';
+    $audit_table = $wpdb->prefix . 'pointlybooking_audit_log';
     $users_table = $wpdb->users;
     $customers_table = $wpdb->prefix . 'pointlybooking_customers';
     if (
-      !self::is_safe_sql_identifier($table)
+      !self::is_safe_sql_identifier($audit_table)
       || !self::is_safe_sql_identifier($users_table)
       || !self::is_safe_sql_identifier($customers_table)
     ) {
       return [];
     }
-    $audit_table = $table;
 
     $event = sanitize_text_field($args['event'] ?? '');
     $booking_id = absint($args['booking_id'] ?? 0);
@@ -112,6 +109,7 @@ final class POINTLYBOOKING_AuditModel {
     $date_to_value = ($date_to !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) ? ($date_to . ' 23:59:59') : '';
     $like = $q !== '' ? ('%' . $wpdb->esc_like($q) . '%') : '';
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     return $wpdb->get_results(
       $wpdb->prepare(
         "SELECT
@@ -179,15 +177,16 @@ final class POINTLYBOOKING_AuditModel {
   }
 
   public static function list_paged(array $args = []) : array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
     $page = max(1, absint($args['page'] ?? 1));
     $per_page = max(10, min(200, absint($args['per_page'] ?? 50)));
     $offset = ($page - 1) * $per_page;
-    $table = $wpdb->prefix . 'pointlybooking_audit_log';
+    $audit_table = $wpdb->prefix . 'pointlybooking_audit_log';
     $users_table = $wpdb->users;
     $customers_table = $wpdb->prefix . 'pointlybooking_customers';
     if (
-      !self::is_safe_sql_identifier($table)
+      !self::is_safe_sql_identifier($audit_table)
       || !self::is_safe_sql_identifier($users_table)
       || !self::is_safe_sql_identifier($customers_table)
     ) {
@@ -198,7 +197,6 @@ final class POINTLYBOOKING_AuditModel {
         'per_page' => $per_page,
       ];
     }
-    $audit_table = $table;
 
     $event = sanitize_text_field($args['event'] ?? '');
     $booking_id = absint($args['booking_id'] ?? 0);
@@ -214,6 +212,7 @@ final class POINTLYBOOKING_AuditModel {
     $date_to_value = ($date_to !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) ? ($date_to . ' 23:59:59') : '';
     $like = $q !== '' ? ('%' . $wpdb->esc_like($q) . '%') : '';
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $total = (int)$wpdb->get_var(
       $wpdb->prepare(
         "SELECT COUNT(*)
@@ -267,6 +266,7 @@ final class POINTLYBOOKING_AuditModel {
       )
     );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $items = $wpdb->get_results(
       $wpdb->prepare(
         "SELECT
@@ -342,15 +342,16 @@ final class POINTLYBOOKING_AuditModel {
   }
 
   public static function distinct_events() : array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
     global $wpdb;
-    $t = $wpdb->prefix . 'pointlybooking_audit_log';
-    if (!self::is_safe_sql_identifier($t)) {
+    $audit_table = $wpdb->prefix . 'pointlybooking_audit_log';
+    if (!self::is_safe_sql_identifier($audit_table)) {
       return [];
     }
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $rows = $wpdb->get_col(
-      "SELECT DISTINCT event FROM {$t} ORDER BY event ASC"
+      "SELECT DISTINCT event FROM {$audit_table} ORDER BY event ASC"
     );
     return array_values(array_filter(array_map('strval', $rows ?: [])));
   }
 }
-

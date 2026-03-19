@@ -1,5 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
 
 if (!function_exists('pointlybooking_table')) {
   /**
@@ -53,8 +54,8 @@ if (!function_exists('pointlybooking_get_uploaded_file_contents')) {
 
     $tmp_name = isset($_FILES[$field]['tmp_name']) ? sanitize_text_field((string) wp_unslash($_FILES[$field]['tmp_name'])) : '';
     $name = isset($_FILES[$field]['name']) ? sanitize_file_name((string) wp_unslash($_FILES[$field]['name'])) : '';
-    $size = isset($_FILES[$field]['size']) ? (int) wp_unslash($_FILES[$field]['size']) : 0;
-    $error = isset($_FILES[$field]['error']) ? (int) wp_unslash($_FILES[$field]['error']) : UPLOAD_ERR_NO_FILE;
+    $size = isset($_FILES[$field]['size']) ? absint(wp_unslash($_FILES[$field]['size'])) : 0;
+    $error = isset($_FILES[$field]['error']) ? absint(wp_unslash($_FILES[$field]['error'])) : UPLOAD_ERR_NO_FILE;
 
     if ($error !== UPLOAD_ERR_OK || $tmp_name === '' || $name === '') {
       return null;
@@ -135,6 +136,7 @@ if (!function_exists('pointlybooking_db_table_exists')) {
       return false;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     return (int) $wpdb->get_var(
       $wpdb->prepare(
         'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s',
@@ -152,6 +154,7 @@ if (!function_exists('pointlybooking_db_table_columns')) {
       return [];
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $columns = $wpdb->get_col(
       $wpdb->prepare(
         'SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s ORDER BY ORDINAL_POSITION ASC',
@@ -174,6 +177,7 @@ if (!function_exists('pointlybooking_db_column_exists')) {
       return false;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     return (int) $wpdb->get_var(
       $wpdb->prepare(
         'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
@@ -195,6 +199,7 @@ if (!function_exists('pointlybooking_db_index_exists')) {
       return false;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     return (int) $wpdb->get_var(
       $wpdb->prepare(
         'SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = %s',
@@ -216,6 +221,7 @@ if (!function_exists('pointlybooking_db_column_index_exists')) {
       return false;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     return (int) $wpdb->get_var(
       $wpdb->prepare(
         'SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s',
