@@ -1,0 +1,23 @@
+# WordPress.org upload package exclusions
+/.git/
+/.github/
+/.vscode/
+/dist/
+/node_modules/
+/scripts/
+/license-server/
+/licenses-admin/
+/pro-addon/
+/src/
+/package.json
+/package-lock.json
+/babel.config.js
+/README.md
+/bookpoint-pro.php
+/How
+/MANAGE
+/temp_check.py
+/temp_replace.py
+/test.css
+/*.zip
+/zipcheck*/

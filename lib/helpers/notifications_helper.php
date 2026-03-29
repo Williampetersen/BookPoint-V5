@@ -171,7 +171,7 @@ final class POINTLYBOOKING_Notifications_Helper {
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-    $total = (int)$wpdb->get_var(
+    $total = (int)$wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Workflow dashboard count should stay fresh.
       $wpdb->prepare(
         "SELECT COUNT(*) FROM {$workflows_table}
          WHERE (%d = 0 OR status = %s)
@@ -188,7 +188,7 @@ final class POINTLYBOOKING_Notifications_Helper {
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifiers are validated plugin table names built from $wpdb->prefix and fixed suffixes.
-    $rows = $wpdb->get_results(
+    $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Workflow dashboard list should stay fresh.
       $wpdb->prepare(
         "SELECT w.*,
           (
@@ -235,7 +235,7 @@ final class POINTLYBOOKING_Notifications_Helper {
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-    $row = $wpdb->get_row(
+    $row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Workflow detail lookup should stay fresh.
       $wpdb->prepare("SELECT * FROM {$workflows_table} WHERE id = %d", $workflow_id),
       ARRAY_A
     );
@@ -343,7 +343,7 @@ final class POINTLYBOOKING_Notifications_Helper {
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-    $sort_order = (int)$wpdb->get_var(
+    $sort_order = (int)$wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Next sort-order lookup should stay fresh.
       $wpdb->prepare("SELECT IFNULL(MAX(sort_order), 0) + 1 FROM {$actions_table} WHERE workflow_id = %d", $workflow_id)
     );
 
@@ -408,7 +408,7 @@ final class POINTLYBOOKING_Notifications_Helper {
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-    $row = $wpdb->get_row(
+    $row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Action detail lookup should stay fresh.
       $wpdb->prepare("SELECT * FROM {$actions_table} WHERE id = %d", $action_id),
       ARRAY_A
     );
@@ -447,7 +447,7 @@ final class POINTLYBOOKING_Notifications_Helper {
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-    $rows = $wpdb->get_results(
+    $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Active workflow fetch should stay fresh.
       $wpdb->prepare("SELECT * FROM {$workflows_table} WHERE event_key = %s AND status = 'active' ORDER BY updated_at DESC", $event_key),
       ARRAY_A
     );
@@ -463,7 +463,7 @@ final class POINTLYBOOKING_Notifications_Helper {
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-    $rows = $wpdb->get_results(
+    $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Workflow action fetch should stay fresh.
       $wpdb->prepare("SELECT * FROM {$actions_table} WHERE workflow_id = %d ORDER BY sort_order ASC", $workflow_id),
       ARRAY_A
     );
@@ -509,7 +509,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     $context = $payload['context'] ?? [];
 
     $to = self::render_template_value($config['to'] ?? '', $context);
-    $subject = self::render_template_value($config['subject'] ?? __('Booking Notification', 'pointly-booking'), $context);
+    $subject = self::render_template_value($config['subject'] ?? __('Booking Notification', 'bookpoint-booking'), $context);
     $body = self::render_template_value($config['body'] ?? '', $context);
     $from_name = $config['from_name'] ?? null;
     $from_email = $config['from_email'] ?? null;
@@ -632,7 +632,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     }
 
     $service_name = trim((string)($service['name'] ?? ''));
-    $service_name = $service_name === '' ? __('Service', 'pointly-booking') : $service_name;
+    $service_name = $service_name === '' ? __('Service', 'bookpoint-booking') : $service_name;
 
     $context = [
       'site_name' => (string)get_bloginfo('name'),
@@ -681,63 +681,63 @@ final class POINTLYBOOKING_Notifications_Helper {
   private static function smart_variables_data(): array {
     $vars = [
       [
-        'label' => __('Site', 'pointly-booking'),
+        'label' => __('Site', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'site_name', 'label' => __('Site name', 'pointly-booking')],
-          ['key' => 'site_url', 'label' => __('Site URL', 'pointly-booking')],
-          ['key' => 'admin_email', 'label' => __('Admin email', 'pointly-booking')],
+          ['key' => 'site_name', 'label' => __('Site name', 'bookpoint-booking')],
+          ['key' => 'site_url', 'label' => __('Site URL', 'bookpoint-booking')],
+          ['key' => 'admin_email', 'label' => __('Admin email', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Appointment', 'pointly-booking'),
+        'label' => __('Appointment', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'booking_id', 'label' => __('Booking ID', 'pointly-booking')],
-          ['key' => 'booking_status', 'label' => __('Status', 'pointly-booking')],
-          ['key' => 'start_date', 'label' => __('Start date', 'pointly-booking')],
-          ['key' => 'start_time', 'label' => __('Start time', 'pointly-booking')],
-          ['key' => 'end_date', 'label' => __('End date', 'pointly-booking')],
-          ['key' => 'end_time', 'label' => __('End time', 'pointly-booking')],
-          ['key' => 'booking_duration', 'label' => __('Duration (minutes)', 'pointly-booking')],
+          ['key' => 'booking_id', 'label' => __('Booking ID', 'bookpoint-booking')],
+          ['key' => 'booking_status', 'label' => __('Status', 'bookpoint-booking')],
+          ['key' => 'start_date', 'label' => __('Start date', 'bookpoint-booking')],
+          ['key' => 'start_time', 'label' => __('Start time', 'bookpoint-booking')],
+          ['key' => 'end_date', 'label' => __('End date', 'bookpoint-booking')],
+          ['key' => 'end_time', 'label' => __('End time', 'bookpoint-booking')],
+          ['key' => 'booking_duration', 'label' => __('Duration (minutes)', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Customer', 'pointly-booking'),
+        'label' => __('Customer', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'customer_name', 'label' => __('Name', 'pointly-booking')],
-          ['key' => 'customer_email', 'label' => __('Email', 'pointly-booking')],
-          ['key' => 'customer_phone', 'label' => __('Phone', 'pointly-booking')],
+          ['key' => 'customer_name', 'label' => __('Name', 'bookpoint-booking')],
+          ['key' => 'customer_email', 'label' => __('Email', 'bookpoint-booking')],
+          ['key' => 'customer_phone', 'label' => __('Phone', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Agent', 'pointly-booking'),
+        'label' => __('Agent', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'agent_name', 'label' => __('Name', 'pointly-booking')],
-          ['key' => 'agent_email', 'label' => __('Email', 'pointly-booking')],
-          ['key' => 'agent_phone', 'label' => __('Phone', 'pointly-booking')],
+          ['key' => 'agent_name', 'label' => __('Name', 'bookpoint-booking')],
+          ['key' => 'agent_email', 'label' => __('Email', 'bookpoint-booking')],
+          ['key' => 'agent_phone', 'label' => __('Phone', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Service', 'pointly-booking'),
+        'label' => __('Service', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'service_name', 'label' => __('Name', 'pointly-booking')],
-          ['key' => 'service_duration', 'label' => __('Duration (minutes)', 'pointly-booking')],
+          ['key' => 'service_name', 'label' => __('Name', 'bookpoint-booking')],
+          ['key' => 'service_duration', 'label' => __('Duration (minutes)', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Pricing', 'pointly-booking'),
+        'label' => __('Pricing', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'subtotal', 'label' => __('Subtotal', 'pointly-booking')],
-          ['key' => 'discount', 'label' => __('Discount', 'pointly-booking')],
-          ['key' => 'tax', 'label' => __('Tax', 'pointly-booking')],
-          ['key' => 'total', 'label' => __('Total', 'pointly-booking')],
-          ['key' => 'promo_code', 'label' => __('Promo code', 'pointly-booking')],
+          ['key' => 'subtotal', 'label' => __('Subtotal', 'bookpoint-booking')],
+          ['key' => 'discount', 'label' => __('Discount', 'bookpoint-booking')],
+          ['key' => 'tax', 'label' => __('Tax', 'bookpoint-booking')],
+          ['key' => 'total', 'label' => __('Total', 'bookpoint-booking')],
+          ['key' => 'promo_code', 'label' => __('Promo code', 'bookpoint-booking')],
         ],
       ],
       [
-        'label' => __('Links', 'pointly-booking'),
+        'label' => __('Links', 'bookpoint-booking'),
         'variables' => [
-          ['key' => 'manage_booking_url_customer', 'label' => __('Manage booking (customer)', 'pointly-booking')],
-          ['key' => 'manage_booking_url_agent', 'label' => __('Manage booking (agent)', 'pointly-booking')],
+          ['key' => 'manage_booking_url_customer', 'label' => __('Manage booking (customer)', 'bookpoint-booking')],
+          ['key' => 'manage_booking_url_agent', 'label' => __('Manage booking (agent)', 'bookpoint-booking')],
         ],
       ],
     ];
@@ -745,7 +745,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     $custom = self::active_custom_fields();
     if ($custom) {
       $group = [
-        'label' => __('Custom fields', 'pointly-booking'),
+        'label' => __('Custom fields', 'bookpoint-booking'),
         'variables' => [],
       ];
       foreach ($custom as $field) {
@@ -837,7 +837,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     }
 
     $uid = uniqid('bp-wf-', true);
-    $summary = sanitize_text_field($service['name'] ?? __('Booking', 'pointly-booking'));
+    $summary = sanitize_text_field($service['name'] ?? __('Booking', 'bookpoint-booking'));
     $description = sanitize_text_field($payload['context']['booking_status'] ?? '');
 
     $ics = "BEGIN:VCALENDAR\\r\\n";

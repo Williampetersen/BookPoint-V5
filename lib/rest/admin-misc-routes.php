@@ -1018,7 +1018,7 @@ function pointlybooking_rest_admin_tools_export_settings(WP_REST_Request $req) {
   }
 
   $payload = [
-    'plugin' => 'pointly-booking',
+    'plugin' => 'bookpoint-booking',
     'exported_at' => current_time('mysql'),
     'pointlybooking_settings' => $settings,
     'wp_options' => [
@@ -1040,7 +1040,7 @@ function pointlybooking_rest_admin_tools_export_settings(WP_REST_Request $req) {
 function pointlybooking_rest_admin_tools_import_settings(WP_REST_Request $req) {
   $data = $req->get_json_params();
   $plugin_id = is_array($data) ? (string)($data['plugin'] ?? '') : '';
-  if (!is_array($data) || !in_array($plugin_id, ['pointly-booking', 'pointly-booking', 'bookpoint'], true)) {
+  if (!is_array($data) || !in_array($plugin_id, ['bookpoint-booking', 'pointly-booking', 'bookpoint'], true)) {
     return new WP_REST_Response(['status' => 'error', 'message' => 'Invalid file'], 400);
   }
 

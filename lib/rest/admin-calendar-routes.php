@@ -116,8 +116,8 @@ function pointlybooking_admin_calendar_fetch_rows_by_ids(string $entity_type, ar
     if (!pointlybooking_is_safe_sql_identifier($services_table)) {
       return [];
     }
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Direct lookup reads use a validated plugin table name and should remain uncached.
-    $rows = $wpdb->get_results(
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct lookup reads use a validated plugin table name and should remain uncached.
+    $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is prefix-based fixed suffix and validated before use.
       // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Validated plugin table identifier and runtime-sized integer placeholder list are required in this lookup.
       $wpdb->prepare("SELECT * FROM {$services_table} WHERE id IN ({$id_placeholders})", ...$ids),
       // phpcs:enable
@@ -128,8 +128,8 @@ function pointlybooking_admin_calendar_fetch_rows_by_ids(string $entity_type, ar
     if (!pointlybooking_is_safe_sql_identifier($agents_table)) {
       return [];
     }
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Direct lookup reads use a validated plugin table name and should remain uncached.
-    $rows = $wpdb->get_results(
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct lookup reads use a validated plugin table name and should remain uncached.
+    $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is prefix-based fixed suffix and validated before use.
       // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Validated plugin table identifier and runtime-sized integer placeholder list are required in this lookup.
       $wpdb->prepare("SELECT * FROM {$agents_table} WHERE id IN ({$id_placeholders})", ...$ids),
       // phpcs:enable
@@ -140,8 +140,8 @@ function pointlybooking_admin_calendar_fetch_rows_by_ids(string $entity_type, ar
     if (!pointlybooking_is_safe_sql_identifier($customers_table)) {
       return [];
     }
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Direct lookup reads use a validated plugin table name and should remain uncached.
-    $rows = $wpdb->get_results(
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct lookup reads use a validated plugin table name and should remain uncached.
+    $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is prefix-based fixed suffix and validated before use.
       // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Validated plugin table identifier and runtime-sized integer placeholder list are required in this lookup.
       $wpdb->prepare("SELECT * FROM {$customers_table} WHERE id IN ({$id_placeholders})", ...$ids),
       // phpcs:enable
@@ -281,7 +281,7 @@ function pointlybooking_admin_calendar_get_bookings(WP_REST_Request $req) {
   if ($has_start_datetime) {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-    $rows = $wpdb->get_results(
+    $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Calendar reads must remain uncached for fresh scheduling data.
       $wpdb->prepare(
         "SELECT *
         FROM {$bookings_table}
@@ -306,7 +306,7 @@ function pointlybooking_admin_calendar_get_bookings(WP_REST_Request $req) {
   } else {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-    $rows = $wpdb->get_results(
+    $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Calendar reads must remain uncached for fresh scheduling data.
       $wpdb->prepare(
         "SELECT *
         FROM {$bookings_table}
@@ -415,7 +415,7 @@ function pointlybooking_rest_admin_calendar_events(WP_REST_Request $req) {
   if ($has_start_datetime) {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-    $rows = $wpdb->get_results(
+    $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Calendar reads must remain uncached for fresh scheduling data.
       $wpdb->prepare(
         "SELECT *
         FROM {$bookings_table}
@@ -439,7 +439,7 @@ function pointlybooking_rest_admin_calendar_events(WP_REST_Request $req) {
   } else {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-    $rows = $wpdb->get_results(
+    $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Calendar reads must remain uncached for fresh scheduling data.
       $wpdb->prepare(
         "SELECT *
         FROM {$bookings_table}
@@ -550,7 +550,7 @@ function pointlybooking_rest_admin_booking_reschedule(WP_REST_Request $req) {
 
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-  $booking = $wpdb->get_row(
+  $booking = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking lookup must remain uncached for fresh reschedule checks.
     $wpdb->prepare(
       "SELECT * FROM {$bookings_table} WHERE id=%d",
       $id
@@ -627,7 +627,7 @@ function pointlybooking_rest_admin_booking_reschedule(WP_REST_Request $req) {
       $window_to = gmdate('Y-m-d H:i:s', $new_end_dt_occ);
       // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-      $conflict_rows = $wpdb->get_results(
+      $conflict_rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Conflict checks must remain uncached for freshness.
         $wpdb->prepare(
           "SELECT id, service_id, start_datetime
           FROM {$bookings_table}
@@ -659,7 +659,7 @@ function pointlybooking_rest_admin_booking_reschedule(WP_REST_Request $req) {
       $window_to = gmdate('Y-m-d', $new_end_dt_occ);
       // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
       // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-      $conflict_rows = $wpdb->get_results(
+      $conflict_rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Conflict checks must remain uncached for freshness.
         $wpdb->prepare(
           "SELECT id, service_id, start_date, start_time
           FROM {$bookings_table}

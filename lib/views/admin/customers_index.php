@@ -3,22 +3,22 @@
 defined('ABSPATH') || exit; ?>
 <?php require_once __DIR__ . '/legacy_shell.php'; ?>
 <?php
-  pointlybooking_render_legacy_shell_start(esc_html__('Customers', 'pointly-booking'), esc_html__('View and manage customer details.', 'pointly-booking'), '', 'customers');
+  pointlybooking_render_legacy_shell_start(esc_html__('Customers', 'bookpoint-booking'), esc_html__('View and manage customer details.', 'bookpoint-booking'), '', 'customers');
 ?>
 
   <table class="widefat striped">
     <thead>
       <tr>
         <th>ID</th>
-        <th><?php esc_html_e('Name', 'pointly-booking'); ?></th>
-        <th><?php esc_html_e('Email', 'pointly-booking'); ?></th>
-        <th><?php esc_html_e('Phone', 'pointly-booking'); ?></th>
-        <th><?php esc_html_e('Actions', 'pointly-booking'); ?></th>
+        <th><?php esc_html_e('Name', 'bookpoint-booking'); ?></th>
+        <th><?php esc_html_e('Email', 'bookpoint-booking'); ?></th>
+        <th><?php esc_html_e('Phone', 'bookpoint-booking'); ?></th>
+        <th><?php esc_html_e('Actions', 'bookpoint-booking'); ?></th>
       </tr>
     </thead>
     <tbody>
       <?php if (empty($items)) : ?>
-        <tr><td colspan="5"><?php esc_html_e('No customers yet.', 'pointly-booking'); ?></td></tr>
+        <tr><td colspan="5"><?php esc_html_e('No customers yet.', 'bookpoint-booking'); ?></td></tr>
       <?php else : foreach ($items as $c) : ?>
         <tr>
           <td><?php echo esc_html($c['id']); ?></td>
@@ -27,7 +27,7 @@ defined('ABSPATH') || exit; ?>
           <td><?php echo esc_html($c['phone'] ?? '-'); ?></td>
           <td>
             <a href="<?php echo esc_url(admin_url('admin.php?page=pointlybooking_customers_view&id=' . absint($c['id']))); ?>">
-              <?php esc_html_e('View', 'pointly-booking'); ?>
+              <?php esc_html_e('View', 'bookpoint-booking'); ?>
             </a>
             <?php
               $gdpr_url = wp_nonce_url(
@@ -35,8 +35,8 @@ defined('ABSPATH') || exit; ?>
                 'pointlybooking_admin'
               );
             ?>
-            | <a href="<?php echo esc_url($gdpr_url); ?>" onclick="return confirm('<?php echo esc_js(__('Anonymize this customer?', 'pointly-booking')); ?>');">
-              <?php esc_html_e('GDPR Delete', 'pointly-booking'); ?>
+            | <a href="<?php echo esc_url($gdpr_url); ?>" onclick="return confirm('<?php echo esc_js(__('Anonymize this customer?', 'bookpoint-booking')); ?>');">
+              <?php esc_html_e('GDPR Delete', 'bookpoint-booking'); ?>
             </a>
           </td>
         </tr>

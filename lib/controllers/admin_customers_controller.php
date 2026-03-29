@@ -18,12 +18,12 @@ final class POINTLYBOOKING_AdminCustomersController extends POINTLYBOOKING_Contr
 
     $id = $this->query_absint('id');
     if ($id <= 0) {
-      wp_die(esc_html__('Invalid customer.', 'pointly-booking'));
+      wp_die(esc_html__('Invalid customer.', 'bookpoint-booking'));
     }
 
     $customer = POINTLYBOOKING_CustomerModel::find($id);
     if (!$customer) {
-      wp_die(esc_html__('Customer not found.', 'pointly-booking'));
+      wp_die(esc_html__('Customer not found.', 'bookpoint-booking'));
     }
 
     $bookings = POINTLYBOOKING_BookingModel::find_by_customer($id);

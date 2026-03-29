@@ -29,11 +29,17 @@ if (!function_exists('pointlybooking_user_can_manage')) {
 
 if (!function_exists('pointlybooking_verify_admin_nonce')) {
   function pointlybooking_verify_admin_nonce(string $action, string $field = '_wpnonce'): bool {
-    $nonce = filter_input(INPUT_POST, $field, FILTER_UNSAFE_RAW);
-    if (!is_string($nonce) || $nonce === '') {
-      $nonce = filter_input(INPUT_GET, $field, FILTER_UNSAFE_RAW);
+    $nonce = '';
+    $post_nonce = pointlybooking_request_scalar('post', $field);
+    if ($post_nonce !== '') {
+      $nonce = sanitize_text_field($post_nonce);
     }
-    $nonce = sanitize_text_field(is_string($nonce) ? $nonce : '');
+    if ($nonce === '') {
+      $get_nonce = pointlybooking_request_scalar('get', $field);
+      if ($get_nonce !== '') {
+        $nonce = sanitize_text_field($get_nonce);
+      }
+    }
     if ($nonce === '') {
       return false;
     }

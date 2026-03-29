@@ -116,7 +116,7 @@ function pointlybooking_rest_admin_locations_list() {
 
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifiers are validated plugin table names built from $wpdb->prefix and fixed suffixes.
-  $rows = $wpdb->get_results(
+  $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct admin read should stay uncached for fresh data.
     "SELECT l.*, c.name AS category_name, c.image_id AS category_image_id
        FROM {$locations_table} l
        LEFT JOIN {$categories_table} c ON c.id = l.category_id
@@ -191,7 +191,7 @@ function pointlybooking_rest_admin_locations_get($req) {
   $locations_table = $loc;
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-  $row = $wpdb->get_row(
+  $row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct admin read should stay uncached for fresh data.
     $wpdb->prepare("SELECT * FROM {$locations_table} WHERE id=%d", $id),
     ARRAY_A
   );
@@ -279,7 +279,7 @@ function pointlybooking_rest_admin_locations_agents_get(WP_REST_Request $req) {
   $map_table = $map;
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-  $rows = $wpdb->get_results(
+  $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct admin read should stay uncached for fresh data.
     $wpdb->prepare("SELECT * FROM {$map_table} WHERE location_id=%d", $id),
     ARRAY_A
   ) ?: [];
@@ -342,7 +342,7 @@ function pointlybooking_rest_admin_location_categories_list() {
 
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-  $rows = $wpdb->get_results(
+  $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct admin read should stay uncached for fresh data.
     "SELECT * FROM {$location_categories_table} WHERE status='active' ORDER BY id DESC",
     ARRAY_A
   ) ?: [];

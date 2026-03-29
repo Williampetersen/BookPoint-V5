@@ -11,17 +11,24 @@ abstract class POINTLYBOOKING_Controller {
 
   protected function require_cap(string $cap) : void {
     if (!current_user_can($cap)) {
-      wp_die(esc_html__('You do not have permission to access this page.', 'pointly-booking'));
+      wp_die(esc_html__('You do not have permission to access this page.', 'bookpoint-booking'));
     }
   }
 
   protected function request_raw(int $type, string $key): string {
-    $value = filter_input($type, $key, FILTER_UNSAFE_RAW);
-    if ($value === null || $value === false || !is_scalar($value)) {
-      return '';
+    if ($type === INPUT_GET) {
+      return pointlybooking_request_scalar('get', $key);
     }
 
-    return (string) $value;
+    if ($type === INPUT_POST) {
+      return pointlybooking_request_scalar('post', $key);
+    }
+
+    if ($type === INPUT_SERVER) {
+      return pointlybooking_request_scalar('server', $key);
+    }
+
+    return '';
   }
 
   protected function query_text(string $key): string {
@@ -53,16 +60,20 @@ abstract class POINTLYBOOKING_Controller {
   }
 
   protected function has_post_field(string $key): bool {
-    return filter_input(INPUT_POST, $key, FILTER_UNSAFE_RAW) !== null;
+    return pointlybooking_request_has_key('post', $key);
   }
 
   protected function post_array(string $key): array {
-    $value = filter_input(INPUT_POST, $key, FILTER_DEFAULT, FILTER_REQUIRE_ARRAY);
-    if (!is_array($value)) {
+    if (!pointlybooking_request_has_key('post', '_wpnonce')) {
       return [];
     }
 
-    return $value;
+    $nonce = sanitize_text_field($this->post_raw('_wpnonce'));
+    if ($nonce === '' || !wp_verify_nonce($nonce, 'pointlybooking_admin')) {
+      return [];
+    }
+
+    return pointlybooking_request_array('post', $key);
   }
 
   protected function post_id_list(string $key): array {
@@ -92,4 +103,3 @@ abstract class POINTLYBOOKING_Controller {
     include $view_file;
   }
 }
-

@@ -6,7 +6,7 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
 
   public function index() : void {
     if (!current_user_can('pointlybooking_manage_tools') && !current_user_can('pointlybooking_manage_settings')) {
-      wp_die(esc_html__('You do not have permission to access this page.', 'pointly-booking'));
+      wp_die(esc_html__('You do not have permission to access this page.', 'bookpoint-booking'));
     }
 
     global $wpdb;
@@ -111,7 +111,7 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
     global $wpdb;
     $settings_table = $wpdb->prefix . 'pointlybooking_settings';
     if (preg_match('/^[A-Za-z0-9_]+$/', $settings_table) !== 1) {
-      wp_die(esc_html__('Invalid settings table.', 'pointly-booking'));
+      wp_die(esc_html__('Invalid settings table.', 'bookpoint-booking'));
     }
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $rows = $wpdb->get_results(
@@ -124,7 +124,7 @@ final class POINTLYBOOKING_AdminToolsController extends POINTLYBOOKING_Controlle
     }
 
     $payload = [
-      'plugin' => 'pointly-booking',
+      'plugin' => 'bookpoint-booking',
       'exported_at' => current_time('mysql'),
       'pointlybooking_settings' => $settings,
       'wp_options' => [

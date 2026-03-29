@@ -5,71 +5,95 @@ add_action('rest_api_init', function () {
 
   // ---------- Catalog CRUD ----------
   register_rest_route('pointly-booking/v1', '/admin/categories', [
-    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_categories_list', 'permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_categories_create','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_categories_list', 'permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_categories_create','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
   ]);
   register_rest_route('pointly-booking/v1', '/admin/categories/(?P<id>\d+)', [
-    ['methods'=>'GET',  'callback'=>'pointlybooking_rest_admin_categories_get',  'permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_categories_patch','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_categories_delete','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'GET',  'callback'=>'pointlybooking_rest_admin_categories_get',  'permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_categories_patch','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_categories_delete','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
   ]);
 
   register_rest_route('pointly-booking/v1', '/admin/services', [
-    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_services_create','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_services_create','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
   ]);
   register_rest_route('pointly-booking/v1', '/admin/services/(?P<id>\d+)', [
-    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_services_get','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_services_patch','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_services_delete','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_services_get','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_services_patch','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_services_delete','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
   ]);
 
   // If your extras table is not pointlybooking_service_extras, change only the table name in helpers below.
   register_rest_route('pointly-booking/v1', '/admin/extras', [
-    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_extras_list', 'permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_extras_create','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_extras_list', 'permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_extras_create','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
   ]);
   register_rest_route('pointly-booking/v1', '/admin/extras/(?P<id>\d+)', [
-    ['methods'=>'GET',  'callback'=>'pointlybooking_rest_admin_extras_get',  'permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_extras_patch','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_extras_delete','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'GET',  'callback'=>'pointlybooking_rest_admin_extras_get',  'permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_extras_patch','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_extras_delete','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
   ]);
 
   register_rest_route('pointly-booking/v1', '/admin/agents', [
     // you already have GET /admin/agents in A2; keep it or use this one (this returns image too)
-    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_agents_list_full', 'permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_agents_create', 'permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_agents_list_full', 'permission_callback'=>'pointlybooking_rest_can_view_agents_for_catalog'],
+    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_agents_create', 'permission_callback'=>'pointlybooking_rest_can_manage_agents_catalog'],
   ]);
   register_rest_route('pointly-booking/v1', '/admin/agents-full', [
-    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_agents_list_full', 'permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_agents_list_full', 'permission_callback'=>'pointlybooking_rest_can_manage_agents_catalog'],
   ]);
   register_rest_route('pointly-booking/v1', '/admin/agents/(?P<id>\d+)', [
-    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_agents_get', 'permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_agents_patch', 'permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_agents_delete','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_agents_get', 'permission_callback'=>'pointlybooking_rest_can_manage_agents_catalog'],
+    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_agents_patch', 'permission_callback'=>'pointlybooking_rest_can_manage_agents_catalog'],
+    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_agents_delete','permission_callback'=>'pointlybooking_rest_can_manage_agents_catalog'],
   ]);
 
   // ---------- Relations ----------
   register_rest_route('pointly-booking/v1', '/admin/services/(?P<id>\d+)/categories', [
-    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_service_set_categories','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_service_get_categories','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_service_set_categories','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_service_get_categories','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
   ]);
 
   register_rest_route('pointly-booking/v1', '/admin/extras/(?P<id>\d+)/services', [
-    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_extra_set_services','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_extra_get_services','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_extra_set_services','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_extra_get_services','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
   ]);
 
   register_rest_route('pointly-booking/v1', '/admin/agents/(?P<id>\d+)/services', [
-    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_agent_set_services','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
-    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_agent_get_services','permission_callback'=>'pointlybooking_rest_can_manage_catalog'],
+    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_agent_set_services','permission_callback'=>'pointlybooking_rest_can_manage_agent_service_relations'],
+    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_agent_get_services','permission_callback'=>'pointlybooking_rest_can_view_agent_service_relations'],
   ]);
 });
 
-function pointlybooking_rest_can_manage_catalog() {
+function pointlybooking_rest_can_manage_service_catalog() {
   return current_user_can('pointlybooking_manage_services')
-    || current_user_can('pointlybooking_manage_agents')
     || current_user_can('pointlybooking_manage_settings')
     || current_user_can('manage_options');
+}
+
+function pointlybooking_rest_can_manage_agents_catalog() {
+  return current_user_can('pointlybooking_manage_agents')
+    || current_user_can('pointlybooking_manage_settings')
+    || current_user_can('manage_options');
+}
+
+function pointlybooking_rest_can_view_agents_for_catalog() {
+  return current_user_can('pointlybooking_manage_agents')
+    || current_user_can('pointlybooking_manage_services')
+    || current_user_can('pointlybooking_manage_bookings')
+    || current_user_can('pointlybooking_manage_settings')
+    || current_user_can('manage_options');
+}
+
+function pointlybooking_rest_can_manage_agent_service_relations() {
+  return current_user_can('pointlybooking_manage_services')
+    || current_user_can('pointlybooking_manage_settings')
+    || current_user_can('manage_options');
+}
+
+function pointlybooking_rest_can_view_agent_service_relations() {
+  return pointlybooking_rest_can_manage_agent_service_relations()
+    || current_user_can('pointlybooking_manage_agents');
 }
 
 function pointlybooking_is_safe_identifier(string $identifier): bool {
@@ -169,17 +193,17 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
   $raw = trim((string) $raw);
   if ($raw === '') return null;
   if (strlen($raw) > 5000) {
-    $error = __('Schedule JSON is too large.', 'pointly-booking');
+    $error = __('Schedule JSON is too large.', 'bookpoint-booking');
     return null;
   }
 
   $decoded = json_decode($raw, true);
   if (!is_array($decoded) || json_last_error() !== JSON_ERROR_NONE) {
-    $error = __('Schedule JSON must be a valid JSON object.', 'pointly-booking');
+    $error = __('Schedule JSON must be a valid JSON object.', 'bookpoint-booking');
     return null;
   }
   if (count($decoded) > 7) {
-    $error = __('Schedule JSON can contain at most 7 weekday entries.', 'pointly-booking');
+    $error = __('Schedule JSON can contain at most 7 weekday entries.', 'bookpoint-booking');
     return null;
   }
 
@@ -187,11 +211,11 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
   foreach ($decoded as $day => $range) {
     $day_key = (string) $day;
     if (!preg_match('/^[0-6]$/', $day_key)) {
-      $error = __('Schedule JSON keys must be weekday numbers 0-6.', 'pointly-booking');
+      $error = __('Schedule JSON keys must be weekday numbers 0-6.', 'bookpoint-booking');
       return null;
     }
     if (is_array($range) || is_object($range)) {
-      $error = __('Schedule values must be strings like HH:MM-HH:MM or empty.', 'pointly-booking');
+      $error = __('Schedule values must be strings like HH:MM-HH:MM or empty.', 'bookpoint-booking');
       return null;
     }
     $range_str = trim((string) $range);
@@ -201,12 +225,12 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
     }
     $parsed = pointlybooking_parse_hhmm_range($range_str);
     if ($parsed === null) {
-      $error = __('Schedule values must use HH:MM-HH:MM format.', 'pointly-booking');
+      $error = __('Schedule values must use HH:MM-HH:MM format.', 'bookpoint-booking');
       return null;
     }
     [$open, $close] = $parsed;
     if (pointlybooking_hhmm_to_minutes($close) <= pointlybooking_hhmm_to_minutes($open)) {
-      $error = __('Schedule range end must be after start.', 'pointly-booking');
+      $error = __('Schedule range end must be after start.', 'bookpoint-booking');
       return null;
     }
     $normalized[$day_key] = $open . '-' . $close;
@@ -215,7 +239,7 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
   ksort($normalized, SORT_NUMERIC);
   $normalized_json = wp_json_encode($normalized);
   if (!is_string($normalized_json) || $normalized_json === '') {
-    $error = __('Schedule JSON could not be normalized.', 'pointly-booking');
+    $error = __('Schedule JSON could not be normalized.', 'bookpoint-booking');
     return null;
   }
 
@@ -259,7 +283,7 @@ function pointlybooking_rest_admin_categories_list(WP_REST_Request $req) {
   $relation_table = $t_rel;
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifiers are validated plugin table names built from $wpdb->prefix and fixed suffixes.
-  $rows = $wpdb->get_results(
+  $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct admin lookup should remain uncached for fresh results.
     "SELECT c.*, COUNT(r.service_id) AS services_count
        FROM {$categories_table} c
        LEFT JOIN {$relation_table} r ON r.category_id = c.id
@@ -296,7 +320,7 @@ function pointlybooking_rest_admin_categories_get(WP_REST_Request $req) {
 
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifiers are validated plugin table names built from $wpdb->prefix and fixed suffixes.
-  $row = $wpdb->get_row(
+  $row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct admin lookup should remain uncached for fresh results.
     $wpdb->prepare("SELECT c.*, COUNT(r.service_id) AS services_count
        FROM {$categories_table} c
        LEFT JOIN {$relation_table} r ON r.category_id = c.id
@@ -394,7 +418,7 @@ function pointlybooking_rest_admin_services_get(WP_REST_Request $req) {
 
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-  $row = $wpdb->get_row(
+  $row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct admin lookup should remain uncached for fresh results.
     $wpdb->prepare("SELECT * FROM {$services_table} WHERE id=%d", $id),
     ARRAY_A
   );
@@ -582,7 +606,7 @@ function pointlybooking_rest_admin_extras_list(WP_REST_Request $req) {
 
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-  $rows = $wpdb->get_results(
+  $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct admin lookup should remain uncached for fresh results.
     "SELECT * FROM {$extras_table} ORDER BY sort_order ASC, id DESC",
     ARRAY_A
   ) ?: [];
@@ -609,7 +633,7 @@ function pointlybooking_rest_admin_extras_get(WP_REST_Request $req) {
 
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-  $row = $wpdb->get_row(
+  $row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct admin lookup should remain uncached for fresh results.
     $wpdb->prepare("SELECT * FROM {$extras_table} WHERE id=%d", $id),
     ARRAY_A
   );
@@ -712,7 +736,7 @@ function pointlybooking_rest_admin_agents_list_full(WP_REST_Request $req) {
   $relation_table = $t_rel;
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifiers are validated plugin table names built from $wpdb->prefix and fixed suffixes.
-  $rows = $wpdb->get_results(
+  $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct admin lookup should remain uncached for fresh results.
     "SELECT a.*, COUNT(r.service_id) AS services_count
        FROM {$agents_table} a
        LEFT JOIN {$relation_table} r ON r.agent_id = a.id
@@ -750,7 +774,7 @@ function pointlybooking_rest_admin_agents_get(WP_REST_Request $req) {
 
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifiers are validated plugin table names built from $wpdb->prefix and fixed suffixes.
-  $row = $wpdb->get_row(
+  $row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct admin lookup should remain uncached for fresh results.
     $wpdb->prepare("SELECT a.*, COUNT(r.service_id) AS services_count
        FROM {$agents_table} a
        LEFT JOIN {$relation_table} r ON r.agent_id = a.id
@@ -897,7 +921,7 @@ function pointlybooking_rest_admin_service_get_categories(WP_REST_Request $req) 
 
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-  $ids = $wpdb->get_col(
+  $ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct relation lookup should remain uncached for fresh results.
     $wpdb->prepare("SELECT category_id FROM {$service_categories_table} WHERE service_id=%d", $service_id)
   ) ?: [];
   $ids = array_map('intval', $ids);
@@ -934,7 +958,7 @@ function pointlybooking_rest_admin_extra_get_services(WP_REST_Request $req) {
 
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-  $ids = $wpdb->get_col(
+  $ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct relation lookup should remain uncached for fresh results.
     $wpdb->prepare("SELECT service_id FROM {$extra_services_table} WHERE extra_id=%d", $extra_id)
   ) ?: [];
   $ids = array_map('intval', $ids);
@@ -971,7 +995,7 @@ function pointlybooking_rest_admin_agent_get_services(WP_REST_Request $req) {
 
   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier is a validated plugin table name built from $wpdb->prefix and a fixed suffix.
-  $ids = $wpdb->get_col(
+  $ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct relation lookup should remain uncached for fresh results.
     $wpdb->prepare("SELECT service_id FROM {$agent_services_table} WHERE agent_id=%d", $agent_id)
   ) ?: [];
   $ids = array_map('intval', $ids);

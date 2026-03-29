@@ -49,7 +49,7 @@ final class POINTLYBOOKING_AdminFormFieldsController extends POINTLYBOOKING_Cont
     $scope = $this->scope();
     $id = $this->query_absint('id');
     if ($id > 0 && !$this->has_valid_edit_nonce($id)) {
-      wp_die(esc_html__('Invalid request.', 'pointly-booking'));
+      wp_die(esc_html__('Invalid request.', 'bookpoint-booking'));
     }
     $item = $id > 0 ? POINTLYBOOKING_FormFieldModel::find($id) : null;
 

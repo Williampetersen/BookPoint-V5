@@ -23,12 +23,7 @@ final class POINTLYBOOKING_DashboardHelper {
   }
 
   private static function request_raw(string $key): string {
-    $value = filter_input(INPUT_GET, $key, FILTER_UNSAFE_RAW);
-    if ($value === null || $value === false || !is_scalar($value)) {
-      return '';
-    }
-
-    return (string) $value;
+    return pointlybooking_request_scalar('get', $key);
   }
 
   private static function dashboard_filter_nonce_ok(): bool {

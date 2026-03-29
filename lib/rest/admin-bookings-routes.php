@@ -40,14 +40,6 @@ add_action('rest_api_init', function () {
     },
   ]);
 
-  // Agents list (for dropdown)
-  register_rest_route('pointly-booking/v1', '/admin/agents', [
-    'methods'  => 'GET',
-    'callback' => 'pointlybooking_rest_admin_agents_list',
-    'permission_callback' => function () {
-      return current_user_can('pointlybooking_manage_bookings');
-    },
-  ]);
 });
 
 function pointlybooking_rest_admin_booking_create(WP_REST_Request $req) {
