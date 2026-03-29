@@ -1,0 +1,106 @@
+<?php
+defined('ABSPATH') || exit;
+
+if (!function_exists('pointlybooking_rest_can_manage_settings')) {
+  function pointlybooking_rest_can_manage_settings(): bool {
+    return current_user_can('pointlybooking_manage_settings') || current_user_can('administrator');
+  }
+}
+
+add_action('rest_api_init', function(){
+  register_rest_route('pointly-booking/v1', '/admin/settings', [
+    'methods' => 'GET',
+    'callback' => function(){
+      if (!current_user_can('pointlybooking_manage_settings') && !current_user_can('administrator')) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+      }
+      $data = POINTLYBOOKING_SettingsHelper::get_all();
+      $data['pointlybooking_remove_data_on_uninstall'] = (int)get_option('pointlybooking_remove_data_on_uninstall', 0);
+      return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
+    },
+    'permission_callback' => 'pointlybooking_rest_can_manage_settings',
+  ]);
+
+  register_rest_route('pointly-booking/v1', '/admin/settings', [
+    'methods' => 'POST',
+    'callback' => function(WP_REST_Request $req){
+      if (!current_user_can('pointlybooking_manage_settings') && !current_user_can('administrator')) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+      }
+      $p = $req->get_json_params();
+      if (!is_array($p)) $p = [];
+
+      $sanitize_value = function($val) use (&$sanitize_value) {
+        if (is_array($val)) {
+          $out = [];
+          foreach ($val as $k => $v) {
+            $out[$k] = $sanitize_value($v);
+          }
+          return $out;
+        }
+        if (is_bool($val) || is_int($val) || is_float($val)) return $val;
+        if (is_string($val)) return sanitize_text_field($val);
+        return $val;
+      };
+
+      $interval = isset($p['slot_interval_minutes']) ? intval($p['slot_interval_minutes']) : null;
+      if ($interval !== null) {
+        if ($interval < 5) $interval = 5;
+        if ($interval > 60) $interval = 60;
+      }
+
+      $currency = isset($p['currency']) ? strtoupper(sanitize_text_field($p['currency'])) : null;
+      $currency_pos = isset($p['currency_position']) ? sanitize_text_field($p['currency_position']) : null;
+
+      $allowed_pos = ['before','after'];
+      if ($currency_pos !== null && !in_array($currency_pos, $allowed_pos, true)) {
+        $currency_pos = 'before';
+      }
+
+      $updates = [];
+      foreach ($p as $k => $v) {
+        $key = sanitize_key($k);
+        if ($key === '') continue;
+        $updates[$key] = $sanitize_value($v);
+      }
+
+      if ($interval !== null) $updates['slot_interval_minutes'] = $interval;
+      if ($currency !== null) $updates['currency'] = $currency;
+      if ($currency_pos !== null) $updates['currency_position'] = $currency_pos;
+
+      $remove_flag = null;
+      if (array_key_exists('pointlybooking_remove_data_on_uninstall', $updates)) {
+        $remove_flag = (int)!empty($updates['pointlybooking_remove_data_on_uninstall']);
+        unset($updates['pointlybooking_remove_data_on_uninstall']);
+      }
+      if (array_key_exists('remove_data_on_uninstall', $updates)) {
+        $remove_flag = (int)!empty($updates['remove_data_on_uninstall']);
+        unset($updates['remove_data_on_uninstall']);
+      }
+
+      if ($remove_flag !== null) {
+        update_option('pointlybooking_remove_data_on_uninstall', $remove_flag, false);
+      }
+
+      $merged = POINTLYBOOKING_SettingsHelper::merge($updates);
+      if ($remove_flag !== null) {
+        $merged['pointlybooking_remove_data_on_uninstall'] = $remove_flag;
+      }
+      return new WP_REST_Response(['status'=>'success','data'=>$merged], 200);
+    },
+    'permission_callback' => 'pointlybooking_rest_can_manage_settings',
+  ]);
+
+  register_rest_route('pointly-booking/v1', '/public/settings', [
+    'methods' => 'GET',
+    'callback' => function(){
+      $data = [
+        'slot_interval_minutes' => intval(POINTLYBOOKING_SettingsHelper::get('slot_interval_minutes', 15)),
+        'currency' => POINTLYBOOKING_SettingsHelper::get('currency', 'USD'),
+        'currency_position' => POINTLYBOOKING_SettingsHelper::get('currency_position', 'before'),
+      ];
+      return new WP_REST_Response(['status'=>'success','data'=>$data], 200);
+    },
+    'permission_callback' => '__return_true',
+  ]);
+});

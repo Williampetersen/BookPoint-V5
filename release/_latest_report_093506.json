@@ -1,0 +1,204 @@
+﻿{
+    "generated_at": "2026-03-29 09:35:06",
+    "plugin": "BookPoint Booking & Appointments",
+    "results": {
+        "bookpoint-v5.php": [
+            {
+                "message": "Processing form data without nonce verification.",
+                "code": "WordPress.Security.NonceVerification.Recommended",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 44,
+                "column": 18
+            },
+            {
+                "message": "Detected usage of a non-sanitized input variable: $_GET[$key]",
+                "code": "WordPress.Security.ValidatedSanitizedInput.InputNotSanitized",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 48,
+                "column": 34
+            },
+            {
+                "message": "Processing form data without nonce verification.",
+                "code": "WordPress.Security.NonceVerification.Missing",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 52,
+                "column": 18
+            },
+            {
+                "message": "Detected usage of a non-sanitized input variable: $_POST[$key]",
+                "code": "WordPress.Security.ValidatedSanitizedInput.InputNotSanitized",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 56,
+                "column": 34
+            },
+            {
+                "message": "Detected usage of a non-sanitized input variable: $_SERVER[$key]",
+                "code": "WordPress.Security.ValidatedSanitizedInput.InputNotSanitized",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 63,
+                "column": 34
+            },
+            {
+                "message": "Processing form data without nonce verification.",
+                "code": "WordPress.Security.NonceVerification.Recommended",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 74,
+                "column": 18
+            },
+            {
+                "message": "Processing form data without nonce verification.",
+                "code": "WordPress.Security.NonceVerification.Recommended",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 79,
+                "column": 27
+            },
+            {
+                "message": "Processing form data without nonce verification.",
+                "code": "WordPress.Security.NonceVerification.Missing",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 81,
+                "column": 18
+            },
+            {
+                "message": "Processing form data without nonce verification.",
+                "code": "WordPress.Security.NonceVerification.Missing",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 86,
+                "column": 27
+            },
+            {
+                "message": "Processing form data without nonce verification.",
+                "code": "WordPress.Security.NonceVerification.Recommended",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 109,
+                "column": 18
+            },
+            {
+                "message": "Processing form data without nonce verification.",
+                "code": "WordPress.Security.NonceVerification.Recommended",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 114,
+                "column": 27
+            },
+            {
+                "message": "Processing form data without nonce verification.",
+                "code": "WordPress.Security.NonceVerification.Missing",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 116,
+                "column": 18
+            },
+            {
+                "message": "Processing form data without nonce verification.",
+                "code": "WordPress.Security.NonceVerification.Missing",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 121,
+                "column": 27
+            }
+        ],
+        "lib/rest/admin-locations-routes.php": [
+            {
+                "message": "File has mixed line endings; this may cause incorrect results",
+                "code": "Internal.LineEndings.Mixed",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 1,
+                "column": 1
+            }
+        ],
+        "lib/rest/admin-calendar-routes.php": [
+            {
+                "message": "File has mixed line endings; this may cause incorrect results",
+                "code": "Internal.LineEndings.Mixed",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 1,
+                "column": 1
+            },
+            {
+                "message": "Unescaped parameter $services_table used in $wpdb-&gt;get_results()\\n$services_table assigned unsafely at line 115.",
+                "code": "PluginCheck.Security.DirectDB.UnescapedDBParameter",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 120,
+                "column": 20
+            },
+            {
+                "message": "Unescaped parameter $agents_table used in $wpdb-&gt;get_results()\\n$agents_table assigned unsafely at line 126.",
+                "code": "PluginCheck.Security.DirectDB.UnescapedDBParameter",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 131,
+                "column": 20
+            },
+            {
+                "message": "Unescaped parameter $customers_table used in $wpdb-&gt;get_results()\\n$customers_table assigned unsafely at line 137.",
+                "code": "PluginCheck.Security.DirectDB.UnescapedDBParameter",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 142,
+                "column": 20
+            }
+        ],
+        "lib/helpers/notifications_helper.php": [
+            {
+                "message": "File has mixed line endings; this may cause incorrect results",
+                "code": "Internal.LineEndings.Mixed",
+                "link": null,
+                "docs": "",
+                "severity": 5,
+                "type": "WARNING",
+                "line": 1,
+                "column": 1
+            }
+        ]
+    }
+}

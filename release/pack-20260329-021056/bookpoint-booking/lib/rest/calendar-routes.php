@@ -1,0 +1,75 @@
+<?php
+defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
+
+if (!function_exists('pointlybooking_rest_can_manage_calendar_legacy')) {
+  function pointlybooking_rest_can_manage_calendar_legacy(): bool {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
+    return current_user_can('pointlybooking_manage_bookings') || current_user_can('administrator');
+  }
+}
+
+add_action('rest_api_init', function(){
+
+  register_rest_route('pointly-booking/v1', '/admin/calendar-legacy', [
+    'methods' => 'GET',
+    'permission_callback' => 'pointlybooking_rest_can_manage_calendar_legacy',
+    'callback' => function(WP_REST_Request $req){
+
+      if (!current_user_can('pointlybooking_manage_bookings') && !current_user_can('administrator')) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Forbidden'], 403);
+      }
+
+      $start = sanitize_text_field($req->get_param('start') ?? '');
+      $end   = sanitize_text_field($req->get_param('end') ?? '');
+
+      // validate YYYY-MM-DD
+      if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
+        return new WP_REST_Response(['status'=>'error','message'=>'Invalid date range'], 400);
+      }
+
+      global $wpdb;
+      $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+      if (!preg_match('/^[A-Za-z0-9_]+$/', $bookings_table)) {
+        return new WP_REST_Response(['status'=>'success','data'=>[]], 200);
+      }
+
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+      $rows = $wpdb->get_results(
+        $wpdb->prepare("SELECT
+          id,
+          start_datetime,
+          end_datetime,
+          status,
+          customer_name,
+          customer_email,
+          service_name,
+          agent_name
+        FROM {$bookings_table}
+        WHERE start_datetime >= %s
+          AND start_datetime < %s
+        ORDER BY start_datetime ASC
+        LIMIT 2000", $start . ' 00:00:00', $end . ' 23:59:59'),
+        ARRAY_A
+      ) ?: [];
+
+      $events = [];
+      foreach($rows as $r){
+        $events[] = [
+          'id' => (int)$r['id'],
+          'title' => trim(($r['service_name'] ?: 'Booking') . ' - ' . ($r['customer_name'] ?: 'Customer')),
+          'start' => $r['start_datetime'],
+          'end'   => $r['end_datetime'],
+          'status'=> $r['status'] ?: 'pending',
+          'customer_name' => $r['customer_name'],
+          'customer_email'=> $r['customer_email'],
+          'service_name'  => $r['service_name'],
+          'agent_name'    => $r['agent_name'],
+        ];
+      }
+
+      return new WP_REST_Response(['status'=>'success','data'=>$events], 200);
+    }
+  ]);
+
+});

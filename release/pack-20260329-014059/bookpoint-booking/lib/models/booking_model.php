@@ -1,0 +1,569 @@
+<?php
+defined('ABSPATH') || exit;
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This file's wpdb SQL paths interpolate only hardcoded plugin table names with a sanitized WordPress prefix; dynamic values remain prepared or static by design.
+
+final class POINTLYBOOKING_BookingModel extends POINTLYBOOKING_Model {
+
+  private static function is_safe_sql_identifier(string $identifier): bool {
+    return preg_match('/^[A-Za-z0-9_]+$/', $identifier) === 1;
+  }
+
+  public static function table() : string {
+    global $wpdb;
+    return $wpdb->prefix . 'pointlybooking_bookings';
+  }
+
+  public static function create(array $data) : int {
+    global $wpdb;
+    $table = self::table();
+    $now = self::now_mysql();
+
+    $manage_key = bin2hex(random_bytes(32));
+
+    // Step 16: Include agent_id if specified
+    $agent_id = isset($data['agent_id']) && $data['agent_id'] > 0 ? (int)$data['agent_id'] : null;
+
+    $default_status = $data['status'] ?? null;
+    if (!$default_status && class_exists('POINTLYBOOKING_SettingsHelper')) {
+      $default_status = POINTLYBOOKING_SettingsHelper::get('pointlybooking_default_booking_status', 'pending');
+    }
+    $default_status = sanitize_key((string)($default_status ?: 'pending'));
+    if (!in_array($default_status, ['pending', 'pending_payment', 'confirmed', 'cancelled', 'completed', 'failed_payment'], true)) {
+      $default_status = 'pending';
+    }
+
+    $payment_currency = $data['payment_currency'] ?? ($data['currency'] ?? null);
+    $payment_amount = isset($data['payment_amount'])
+      ? (float)$data['payment_amount']
+      : (isset($data['total_price']) ? (float)$data['total_price'] : 0);
+
+    $payload = [
+      'service_id'      => (int)$data['service_id'],
+      'customer_id'     => (int)$data['customer_id'],
+      'agent_id'        => $agent_id,
+      'start_datetime'  => $data['start_datetime'],
+      'end_datetime'    => $data['end_datetime'],
+      'status'          => $default_status,
+      'notes'           => $data['notes'] ?? null,
+      'payment_method'  => $data['payment_method'] ?? null,
+      'payment_status'  => $data['payment_status'] ?? null,
+      'payment_provider_ref' => $data['payment_provider_ref'] ?? null,
+      'payment_amount' => $payment_amount,
+      'payment_currency' => $payment_currency,
+      'currency'        => $data['currency'] ?? null,
+      'total_price'     => isset($data['total_price']) ? (float)$data['total_price'] : 0,
+      'customer_fields_json' => $data['customer_fields_json'] ?? null,
+      'booking_fields_json' => $data['booking_fields_json'] ?? null,
+      'custom_fields_json' => $data['custom_fields_json'] ?? null,
+      'manage_key'      => $manage_key,
+      'created_at'      => $now,
+      'updated_at'      => $now,
+    ];
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $wpdb->insert(
+      $table,
+      $payload,
+      ['%d','%d','%d','%s','%s','%s','%s','%s','%s','%s','%f','%s','%s','%f','%s','%s','%s','%s','%s','%s']
+    );
+    $booking_id = (int)$wpdb->insert_id;
+
+    // Notifications: trigger workflows for booking_created
+    if ($booking_id) {
+      if (class_exists('POINTLYBOOKING_Notifications_Helper')) {
+        POINTLYBOOKING_Notifications_Helper::run_workflows_for_event('booking_created', $booking_id);
+      }
+    }
+    return $booking_id;
+  }
+
+  public static function find_by_manage_key(string $key) : ?array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
+    global $wpdb;
+    $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+
+    $key = preg_replace('/[^a-f0-9]/', '', strtolower($key));
+    if (strlen($key) !== 64) return null;
+    if (!self::is_safe_sql_identifier($bookings_table)) {
+      return null;
+    }
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $row = $wpdb->get_row(
+      $wpdb->prepare("SELECT * FROM {$bookings_table} WHERE manage_key = %s LIMIT 1", $key),
+      ARRAY_A
+    );
+
+    return $row ?: null;
+  }
+
+  public static function rotate_manage_token(int $booking_id, int $days_valid = 30) : ?string {
+    $token = bin2hex(random_bytes(20));
+    $ok = self::set_manage_token($booking_id, $token);
+    return $ok ? $token : null;
+  }
+
+  public static function set_manage_token(int $booking_id, string $token) : bool {
+    global $wpdb;
+    $table = self::table();
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $updated = $wpdb->update(
+      $table,
+      [
+        'manage_key' => $token,
+        'updated_at' => self::now_mysql(),
+      ],
+      ['id' => $booking_id],
+      ['%s','%s'],
+      ['%d']
+    );
+
+    return ($updated !== false);
+  }
+
+  public static function mark_token_used(int $booking_id) : void {
+    global $wpdb;
+    $table = self::table();
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $wpdb->update(
+      $table,
+      ['manage_token_last_used_at' => current_time('mysql')],
+      ['id' => $booking_id],
+      ['%s'],
+      ['%d']
+    );
+  }
+
+  public static function update_times_public(int $id, string $start_dt, string $end_dt) : bool {
+    return self::update_times($id, $start_dt, $end_dt);
+  }
+
+  public static function update_times(int $id, string $start_dt, string $end_dt) : bool {
+    global $wpdb;
+    $table = self::table();
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $updated = $wpdb->update(
+      $table,
+      [
+        'start_datetime' => $start_dt,
+        'end_datetime' => $end_dt,
+        'updated_at' => self::now_mysql(),
+      ],
+      ['id' => $id],
+      ['%s','%s','%s'],
+      ['%d']
+    );
+
+    return ($updated !== false);
+  }
+
+  public static function cancel_by_key(string $key) : bool {
+    global $wpdb;
+    $table = self::table();
+
+    $key = preg_replace('/[^a-f0-9]/', '', strtolower($key));
+    if (strlen($key) !== 64) return false;
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $updated = $wpdb->update(
+      $table,
+      [
+        'status' => 'cancelled',
+        'updated_at' => self::now_mysql(),
+      ],
+      [
+        'manage_key' => $key,
+      ],
+      ['%s','%s'],
+      ['%s']
+    );
+
+    return ($updated !== false);
+  }
+
+  public static function all_with_relations(int $limit = 200) : array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
+    global $wpdb;
+
+    $bookings = $wpdb->prefix . 'pointlybooking_bookings';
+    $services = $wpdb->prefix . 'pointlybooking_services';
+    $customers = $wpdb->prefix . 'pointlybooking_customers';
+    if (
+      !self::is_safe_sql_identifier($bookings)
+      || !self::is_safe_sql_identifier($services)
+      || !self::is_safe_sql_identifier($customers)
+    ) {
+      return [];
+    }
+    $bookings_table = $bookings;
+    $services_table = $services;
+    $customers_table = $customers;
+
+    $limit = max(1, min(500, $limit));
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    return $wpdb->get_results(
+      $wpdb->prepare("SELECT
+          b.*,
+          s.name AS service_name,
+          c.first_name AS customer_first_name,
+          c.last_name AS customer_last_name,
+          c.email AS customer_email
+        FROM {$bookings_table} b
+        LEFT JOIN {$services_table} s ON s.id = b.service_id
+        LEFT JOIN {$customers_table} c ON c.id = b.customer_id
+        ORDER BY b.id DESC
+        LIMIT %d", $limit),
+      ARRAY_A
+    ) ?: [];
+  }
+
+  public static function admin_list(array $args = []) : array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
+    global $wpdb;
+
+    $b = $wpdb->prefix . 'pointlybooking_bookings';
+    $s = $wpdb->prefix . 'pointlybooking_services';
+    $c = $wpdb->prefix . 'pointlybooking_customers';
+    $a = $wpdb->prefix . 'pointlybooking_agents';
+    if (
+      !self::is_safe_sql_identifier($b)
+      || !self::is_safe_sql_identifier($s)
+      || !self::is_safe_sql_identifier($c)
+      || !self::is_safe_sql_identifier($a)
+    ) {
+      return [];
+    }
+    $bookings_table = $b;
+    $services_table = $s;
+    $customers_table = $c;
+    $agents_table = $a;
+
+    $q = trim((string)($args['q'] ?? ''));
+    $status = trim((string)($args['status'] ?? ''));
+    $service_id = absint($args['service_id'] ?? 0);
+    $agent_id = absint($args['agent_id'] ?? 0);
+    $date_from = trim((string)($args['date_from'] ?? ''));
+    $date_to = trim((string)($args['date_to'] ?? ''));
+    $status_value = ($status !== '' && in_array($status, ['pending','confirmed','cancelled'], true)) ? $status : '';
+    $date_from_value = ($date_from !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) ? ($date_from . ' 00:00:00') : '';
+    $date_to_value = ($date_to !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) ? ($date_to . ' 23:59:59') : '';
+    $like = ($q !== '') ? ('%' . $wpdb->esc_like($q) . '%') : '';
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    return $wpdb->get_results(
+      $wpdb->prepare(
+        "SELECT
+          b.*,
+          s.name AS service_name,
+          CONCAT(IFNULL(c.first_name,''),' ',IFNULL(c.last_name,'')) AS customer_name,
+          c.email AS customer_email,
+          c.phone AS customer_phone,
+          CONCAT(IFNULL(a.first_name,''),' ',IFNULL(a.last_name,'')) AS agent_name
+        FROM {$bookings_table} b
+        LEFT JOIN {$services_table} s ON s.id = b.service_id
+        LEFT JOIN {$customers_table} c ON c.id = b.customer_id
+        LEFT JOIN {$agents_table} a ON a.id = b.agent_id
+        WHERE (%d = 0 OR b.status = %s)
+          AND (%d = 0 OR b.service_id = %d)
+          AND (%d = 0 OR b.agent_id = %d)
+          AND (%d = 0 OR b.start_datetime >= %s)
+          AND (%d = 0 OR b.start_datetime <= %s)
+          AND (%d = 0 OR (
+            s.name LIKE %s OR
+            c.first_name LIKE %s OR c.last_name LIKE %s OR
+            c.email LIKE %s OR c.phone LIKE %s OR
+            a.first_name LIKE %s OR a.last_name LIKE %s
+          ))
+        ORDER BY b.start_datetime DESC
+        LIMIT 500",
+        $status_value !== '' ? 1 : 0,
+        $status_value,
+        $service_id > 0 ? 1 : 0,
+        $service_id,
+        $agent_id > 0 ? 1 : 0,
+        $agent_id,
+        $date_from_value !== '' ? 1 : 0,
+        $date_from_value,
+        $date_to_value !== '' ? 1 : 0,
+        $date_to_value,
+        $like !== '' ? 1 : 0,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like
+      ),
+      ARRAY_A
+    ) ?: [];
+  }
+
+  public static function admin_list_paged(array $args = []) : array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
+    global $wpdb;
+
+    $page = max(1, absint($args['page'] ?? 1));
+    $per_page = max(10, min(200, absint($args['per_page'] ?? 50)));
+    $offset = ($page - 1) * $per_page;
+
+    $b = $wpdb->prefix . 'pointlybooking_bookings';
+    $s = $wpdb->prefix . 'pointlybooking_services';
+    $c = $wpdb->prefix . 'pointlybooking_customers';
+    $a = $wpdb->prefix . 'pointlybooking_agents';
+    if (
+      !self::is_safe_sql_identifier($b)
+      || !self::is_safe_sql_identifier($s)
+      || !self::is_safe_sql_identifier($c)
+      || !self::is_safe_sql_identifier($a)
+    ) {
+      return [
+        'items' => [],
+        'total' => 0,
+        'page' => $page,
+        'per_page' => $per_page,
+      ];
+    }
+    $bookings_table = $b;
+    $services_table = $s;
+    $customers_table = $c;
+    $agents_table = $a;
+
+    $q = trim((string)($args['q'] ?? ''));
+    $status = trim((string)($args['status'] ?? ''));
+    $service_id = absint($args['service_id'] ?? 0);
+    $agent_id = absint($args['agent_id'] ?? 0);
+    $date_from = trim((string)($args['date_from'] ?? ''));
+    $date_to = trim((string)($args['date_to'] ?? ''));
+
+    $status_value = ($status !== '' && in_array($status, ['pending','confirmed','cancelled'], true)) ? $status : '';
+    $date_from_value = ($date_from !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) ? ($date_from . ' 00:00:00') : '';
+    $date_to_value = ($date_to !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) ? ($date_to . ' 23:59:59') : '';
+    $like = ($q !== '') ? ('%' . $wpdb->esc_like($q) . '%') : '';
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $total = (int)$wpdb->get_var(
+      $wpdb->prepare(
+        "SELECT COUNT(*)
+         FROM {$bookings_table} b
+         LEFT JOIN {$services_table} s ON s.id = b.service_id
+         LEFT JOIN {$customers_table} c ON c.id = b.customer_id
+         LEFT JOIN {$agents_table} a ON a.id = b.agent_id
+         WHERE (%d = 0 OR b.status = %s)
+           AND (%d = 0 OR b.service_id = %d)
+           AND (%d = 0 OR b.agent_id = %d)
+           AND (%d = 0 OR b.start_datetime >= %s)
+           AND (%d = 0 OR b.start_datetime <= %s)
+           AND (%d = 0 OR (
+             s.name LIKE %s OR
+             c.first_name LIKE %s OR c.last_name LIKE %s OR
+             c.email LIKE %s OR c.phone LIKE %s OR
+             a.first_name LIKE %s OR a.last_name LIKE %s
+           ))",
+        $status_value !== '' ? 1 : 0,
+        $status_value,
+        $service_id > 0 ? 1 : 0,
+        $service_id,
+        $agent_id > 0 ? 1 : 0,
+        $agent_id,
+        $date_from_value !== '' ? 1 : 0,
+        $date_from_value,
+        $date_to_value !== '' ? 1 : 0,
+        $date_to_value,
+        $like !== '' ? 1 : 0,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like
+      )
+    );
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $items = $wpdb->get_results(
+      $wpdb->prepare(
+        "SELECT
+          b.*,
+          s.name AS service_name,
+          CONCAT(IFNULL(c.first_name,''),' ',IFNULL(c.last_name,'')) AS customer_name,
+          c.email AS customer_email,
+          c.phone AS customer_phone,
+          CONCAT(IFNULL(a.first_name,''),' ',IFNULL(a.last_name,'')) AS agent_name
+        FROM {$bookings_table} b
+        LEFT JOIN {$services_table} s ON s.id = b.service_id
+        LEFT JOIN {$customers_table} c ON c.id = b.customer_id
+        LEFT JOIN {$agents_table} a ON a.id = b.agent_id
+        WHERE (%d = 0 OR b.status = %s)
+          AND (%d = 0 OR b.service_id = %d)
+          AND (%d = 0 OR b.agent_id = %d)
+          AND (%d = 0 OR b.start_datetime >= %s)
+          AND (%d = 0 OR b.start_datetime <= %s)
+          AND (%d = 0 OR (
+            s.name LIKE %s OR
+            c.first_name LIKE %s OR c.last_name LIKE %s OR
+            c.email LIKE %s OR c.phone LIKE %s OR
+            a.first_name LIKE %s OR a.last_name LIKE %s
+          ))
+        ORDER BY b.start_datetime DESC
+        LIMIT %d OFFSET %d",
+        $status_value !== '' ? 1 : 0,
+        $status_value,
+        $service_id > 0 ? 1 : 0,
+        $service_id,
+        $agent_id > 0 ? 1 : 0,
+        $agent_id,
+        $date_from_value !== '' ? 1 : 0,
+        $date_from_value,
+        $date_to_value !== '' ? 1 : 0,
+        $date_to_value,
+        $like !== '' ? 1 : 0,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $per_page,
+        $offset
+      ),
+      ARRAY_A
+    ) ?: [];
+
+    return [
+      'items' => $items,
+      'total' => $total,
+      'page' => $page,
+      'per_page' => $per_page,
+    ];
+  }
+
+  public static function update_status(int $id, string $status) : bool {
+    global $wpdb;
+    $table = self::table();
+
+    $allowed = ['pending','pending_payment','confirmed','cancelled','completed','failed_payment'];
+    if (!in_array($status, $allowed, true)) return false;
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $updated = $wpdb->update(
+      $table,
+      [
+        'status' => $status,
+        'updated_at' => self::now_mysql(),
+      ],
+      ['id' => $id],
+      ['%s','%s'],
+      ['%d']
+    );
+
+    // Notifications: trigger workflows for booking_updated and status-specific events
+    if ($updated !== false && class_exists('POINTLYBOOKING_Notifications_Helper')) {
+      POINTLYBOOKING_Notifications_Helper::run_workflows_for_event('booking_updated', $id);
+      if ($status === 'confirmed') {
+        POINTLYBOOKING_Notifications_Helper::run_workflows_for_event('booking_confirmed', $id);
+      } elseif ($status === 'cancelled') {
+        POINTLYBOOKING_Notifications_Helper::run_workflows_for_event('booking_cancelled', $id);
+      }
+    }
+    return ($updated !== false);
+  }
+
+  public static function update_notes(int $id, string $notes) : bool {
+    global $wpdb;
+    $table = self::table();
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $updated = $wpdb->update(
+      $table,
+      [
+        'notes' => $notes,
+        'updated_at' => current_time('mysql'),
+      ],
+      ['id' => $id],
+      ['%s','%s'],
+      ['%d']
+    );
+
+    return ($updated !== false);
+  }
+
+  public static function find(int $id) : ?array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
+    global $wpdb;
+    $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+    if (!self::is_safe_sql_identifier($bookings_table)) {
+      return null;
+    }
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $row = $wpdb->get_row(
+      $wpdb->prepare("SELECT * FROM {$bookings_table} WHERE id = %d", $id),
+      ARRAY_A
+    );
+
+    return $row ?: null;
+  }
+
+  public static function find_by_customer_email(string $email) : array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
+    global $wpdb;
+
+    $b = $wpdb->prefix . 'pointlybooking_bookings';
+    $c = $wpdb->prefix . 'pointlybooking_customers';
+    if (!self::is_safe_sql_identifier($b) || !self::is_safe_sql_identifier($c)) {
+      return [];
+    }
+    $bookings_table = $b;
+    $customers_table = $c;
+
+    $email = sanitize_email($email);
+    if ($email === '') return [];
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    return $wpdb->get_results(
+      $wpdb->prepare("SELECT b.*
+        FROM {$bookings_table} b
+        INNER JOIN {$customers_table} c ON c.id = b.customer_id
+        WHERE c.email = %s
+        ORDER BY b.start_datetime DESC
+        LIMIT 200", $email),
+      ARRAY_A
+    ) ?: [];
+  }
+
+  public static function detach_customer(int $customer_id) : void {
+    global $wpdb;
+    $table = self::table();
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    $wpdb->update(
+      $table,
+      ['customer_id' => null],
+      ['customer_id' => $customer_id],
+      ['%d'],
+      ['%d']
+    );
+  }
+
+  public static function find_by_customer(int $customer_id) : array {
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names in this function are validated local plugin table names built from hardcoded plugin suffixes.
+    global $wpdb;
+    $bookings_table = $wpdb->prefix . 'pointlybooking_bookings';
+    if (!self::is_safe_sql_identifier($bookings_table)) {
+      return [];
+    }
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
+    return $wpdb->get_results(
+      $wpdb->prepare("SELECT * FROM {$bookings_table} WHERE customer_id = %d ORDER BY start_datetime DESC", $customer_id),
+      ARRAY_A
+    ) ?: [];
+  }
+}
