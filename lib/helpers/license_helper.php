@@ -199,7 +199,7 @@ final class POINTLYBOOKING_LicenseHelper {
         return ['res' => $last, 'attempts' => $allAttempts, 'used_url' => $usedUrl];
       }
 
-      // Any failure: try the next URL (e.g. admin-ajax fallback).
+      // Any failure: try the next stable fallback URL.
       // These endpoints are designed to always return 200 JSON for application-level errors, so
       // non-200 responses typically mean infrastructure/security issues.
       continue;
@@ -319,14 +319,6 @@ final class POINTLYBOOKING_LicenseHelper {
 
   public static function api_updates_url() : string {
     return self::api_base() . '/wp-json/bookpoint/v1/updates';
-  }
-
-  public static function api_ajax_validate_url() : string {
-    return self::api_base() . '/wp-admin/admin-ajax.php?action=pointlybooking_ls_validate';
-  }
-
-  public static function api_ajax_deactivate_url() : string {
-    return self::api_base() . '/wp-admin/admin-ajax.php?action=pointlybooking_ls_deactivate';
   }
 
   public static function api_public_validate_urls() : array {
@@ -461,7 +453,6 @@ final class POINTLYBOOKING_LicenseHelper {
     $publicPayload = self::public_packed_payload($payload);
     $remote = self::post_with_fallback_url_payloads([
       ['url' => $deactivate_url, 'payload' => $payload],
-      ['url' => self::api_ajax_deactivate_url(), 'payload' => $payload],
       ['url' => self::api_public_deactivate_urls()[0] ?? '', 'payload' => $publicPayload, 'modes' => ['form'], 'payload_kind' => 'packed_public'],
       ['url' => self::api_public_deactivate_urls()[0] ?? '', 'payload' => $payload, 'modes' => ['form'], 'payload_kind' => 'plain_public'],
       ['url' => self::api_public_deactivate_urls()[1] ?? '', 'payload' => $publicPayload, 'modes' => ['form'], 'payload_kind' => 'packed_public'],
@@ -504,7 +495,6 @@ final class POINTLYBOOKING_LicenseHelper {
         if ($packed !== '') {
           $getUrls = [
             $deactivate_url,
-            self::api_ajax_deactivate_url(),
             self::api_public_deactivate_urls()[0] ?? '',
             self::api_public_deactivate_urls()[1] ?? '',
           ];
@@ -603,7 +593,6 @@ final class POINTLYBOOKING_LicenseHelper {
     $publicPayload = self::public_packed_payload($payload);
     $remote = self::post_with_fallback_url_payloads([
       ['url' => $validate_url, 'payload' => $payload],
-      ['url' => self::api_ajax_validate_url(), 'payload' => $payload],
       ['url' => self::api_public_validate_urls()[0] ?? '', 'payload' => $publicPayload, 'modes' => ['form'], 'payload_kind' => 'packed_public'],
       ['url' => self::api_public_validate_urls()[0] ?? '', 'payload' => $payload, 'modes' => ['form'], 'payload_kind' => 'plain_public'],
       ['url' => self::api_public_validate_urls()[1] ?? '', 'payload' => $publicPayload, 'modes' => ['form'], 'payload_kind' => 'packed_public'],
@@ -647,7 +636,6 @@ final class POINTLYBOOKING_LicenseHelper {
         if ($packed !== '') {
           $getUrls = [
             $validate_url,
-            self::api_ajax_validate_url(),
             self::api_public_validate_urls()[0] ?? '',
             self::api_public_validate_urls()[1] ?? '',
           ];

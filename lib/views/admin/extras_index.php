@@ -3,17 +3,17 @@
 defined('ABSPATH') || exit; ?>
 <?php require_once __DIR__ . '/legacy_shell.php'; ?>
 <?php
-  $pointlybooking_actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=pointlybooking_extras&action=edit')) . '">' . esc_html__('Add New', 'bookpoint-booking') . '</a>';
-  pointlybooking_render_legacy_shell_start(esc_html__('Service Extras', 'bookpoint-booking'), esc_html__('Manage add-ons attached to services.', 'bookpoint-booking'), $pointlybooking_actions_html, 'extras');
+  $pointlybooking_actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=pointlybooking_extras&action=edit')) . '">' . esc_html__('Add New', 'bookpoint-v5') . '</a>';
+  pointlybooking_render_legacy_shell_start(esc_html__('Service Extras', 'bookpoint-v5'), esc_html__('Manage add-ons attached to services.', 'bookpoint-v5'), $pointlybooking_actions_html, 'extras');
 ?>
 
   <form method="get" style="margin:12px 0;">
     <input type="hidden" name="page" value="pointlybooking_extras">
     <?php wp_nonce_field('pointlybooking_admin_filter', 'pointlybooking_filter_nonce'); ?>
-    <input type="text" name="q" value="<?php echo esc_attr($q); ?>" placeholder="<?php echo esc_attr__('Search...', 'bookpoint-booking'); ?>" />
+    <input type="text" name="q" value="<?php echo esc_attr($q); ?>" placeholder="<?php echo esc_attr__('Search...', 'bookpoint-v5'); ?>" />
 
     <select name="service_id">
-      <option value="0"><?php echo esc_html__('All Services', 'bookpoint-booking'); ?></option>
+      <option value="0"><?php echo esc_html__('All Services', 'bookpoint-v5'); ?></option>
       <?php foreach ($services as $s): ?>
         <option value="<?php echo esc_attr((string) (int) ($s['id'] ?? 0)); ?>" <?php selected($service_id, (int)$s['id']); ?>>
           <?php echo esc_html($s['name']); ?>
@@ -22,29 +22,29 @@ defined('ABSPATH') || exit; ?>
     </select>
 
     <select name="is_active">
-      <option value=""><?php echo esc_html__('All', 'bookpoint-booking'); ?></option>
-      <option value="1" <?php selected($is_active, '1'); ?>><?php echo esc_html__('Active', 'bookpoint-booking'); ?></option>
-      <option value="0" <?php selected($is_active, '0'); ?>><?php echo esc_html__('Inactive', 'bookpoint-booking'); ?></option>
+      <option value=""><?php echo esc_html__('All', 'bookpoint-v5'); ?></option>
+      <option value="1" <?php selected($is_active, '1'); ?>><?php echo esc_html__('Active', 'bookpoint-v5'); ?></option>
+      <option value="0" <?php selected($is_active, '0'); ?>><?php echo esc_html__('Inactive', 'bookpoint-v5'); ?></option>
     </select>
 
-    <button class="button"><?php echo esc_html__('Filter', 'bookpoint-booking'); ?></button>
+    <button class="button"><?php echo esc_html__('Filter', 'bookpoint-v5'); ?></button>
   </form>
 
   <table class="widefat striped">
     <thead>
       <tr>
-        <th style="width:60px;"><?php echo esc_html__('Image', 'bookpoint-booking'); ?></th>
-        <th><?php echo esc_html__('Extra', 'bookpoint-booking'); ?></th>
-        <th><?php echo esc_html__('Service', 'bookpoint-booking'); ?></th>
-        <th style="width:120px;"><?php echo esc_html__('Price', 'bookpoint-booking'); ?></th>
-        <th style="width:110px;"><?php echo esc_html__('Duration', 'bookpoint-booking'); ?></th>
-        <th style="width:110px;"><?php echo esc_html__('Status', 'bookpoint-booking'); ?></th>
-        <th style="width:180px;"><?php echo esc_html__('Actions', 'bookpoint-booking'); ?></th>
+        <th style="width:60px;"><?php echo esc_html__('Image', 'bookpoint-v5'); ?></th>
+        <th><?php echo esc_html__('Extra', 'bookpoint-v5'); ?></th>
+        <th><?php echo esc_html__('Service', 'bookpoint-v5'); ?></th>
+        <th style="width:120px;"><?php echo esc_html__('Price', 'bookpoint-v5'); ?></th>
+        <th style="width:110px;"><?php echo esc_html__('Duration', 'bookpoint-v5'); ?></th>
+        <th style="width:110px;"><?php echo esc_html__('Status', 'bookpoint-v5'); ?></th>
+        <th style="width:180px;"><?php echo esc_html__('Actions', 'bookpoint-v5'); ?></th>
       </tr>
     </thead>
     <tbody>
       <?php if (empty($items)): ?>
-        <tr><td colspan="7" style="text-align:center;"><?php echo esc_html__('No extras yet.', 'bookpoint-booking'); ?></td></tr>
+        <tr><td colspan="7" style="text-align:center;"><?php echo esc_html__('No extras yet.', 'bookpoint-v5'); ?></td></tr>
       <?php else: foreach ($items as $row):
         $pointlybooking_img = '<span class="bp-muted">-</span>';
         $pointlybooking_id = (int) ($row['id'] ?? 0);
@@ -73,10 +73,10 @@ defined('ABSPATH') || exit; ?>
           <td><?php echo esc_html($row['service_name'] ?? '-'); ?></td>
           <td><?php echo esc_html(number_format((float)$row['price'], 2)); ?></td>
           <td><?php echo !empty($row['duration_min']) ? esc_html((string)(int)$row['duration_min'].' min') : esc_html('-'); ?></td>
-          <td><?php echo esc_html((int)$row['is_active'] === 1 ? __('Active', 'bookpoint-booking') : __('Inactive', 'bookpoint-booking')); ?></td>
+          <td><?php echo esc_html((int)$row['is_active'] === 1 ? __('Active', 'bookpoint-v5') : __('Inactive', 'bookpoint-v5')); ?></td>
           <td>
             <a class="button button-small" href="<?php echo esc_url($pointlybooking_edit_url); ?>">
-              <?php echo esc_html__('Edit', 'bookpoint-booking'); ?>
+              <?php echo esc_html__('Edit', 'bookpoint-v5'); ?>
             </a>
             <a class="button button-small button-link-delete" href="<?php
               echo esc_url(wp_nonce_url(
@@ -84,7 +84,7 @@ defined('ABSPATH') || exit; ?>
                 'pointlybooking_admin'
               ));
             ?>" onclick="return confirm('Delete this extra?');">
-              <?php echo esc_html__('Delete', 'bookpoint-booking'); ?>
+              <?php echo esc_html__('Delete', 'bookpoint-v5'); ?>
             </a>
           </td>
         </tr>

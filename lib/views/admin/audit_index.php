@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 $pointlybooking_filters = $filters ?? [];
 require_once __DIR__ . '/legacy_shell.php';
-pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-booking'), esc_html__('Review system activity and changes.', 'bookpoint-booking'), '', 'audit');
+pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-v5'), esc_html__('Review system activity and changes.', 'bookpoint-v5'), '', 'audit');
 ?>
 
   <?php $pointlybooking_pagination_state = $pagination ?? ['page' => 1, 'per_page' => 50, 'total' => 0]; ?>
@@ -15,7 +15,7 @@ pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-book
     <input type="hidden" name="per_page" value="<?php echo esc_attr((string)($pointlybooking_pagination_state['per_page'] ?? 50)); ?>">
 
     <select name="event">
-      <option value=""><?php esc_html_e('All events', 'bookpoint-booking'); ?></option>
+      <option value=""><?php esc_html_e('All events', 'bookpoint-v5'); ?></option>
       <?php foreach (($events ?? []) as $ev) : ?>
         <option value="<?php echo esc_attr($ev); ?>" <?php selected(($pointlybooking_filters['event'] ?? ''), $ev); ?>>
           <?php echo esc_html($ev); ?>
@@ -24,7 +24,7 @@ pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-book
     </select>
 
     <select name="actor_type">
-      <option value=""><?php esc_html_e('All actors', 'bookpoint-booking'); ?></option>
+      <option value=""><?php esc_html_e('All actors', 'bookpoint-v5'); ?></option>
       <?php foreach (['admin','customer','system'] as $at) : ?>
         <option value="<?php echo esc_attr($at); ?>" <?php selected(($pointlybooking_filters['actor_type'] ?? ''), $at); ?>>
           <?php echo esc_html(ucfirst($at)); ?>
@@ -38,8 +38,8 @@ pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-book
     <input type="date" name="date_from" value="<?php echo esc_attr($pointlybooking_filters['date_from'] ?? ''); ?>">
     <input type="date" name="date_to" value="<?php echo esc_attr($pointlybooking_filters['date_to'] ?? ''); ?>">
 
-    <button class="button"><?php esc_html_e('Filter', 'bookpoint-booking'); ?></button>
-    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=pointlybooking_audit')); ?>"><?php esc_html_e('Reset', 'bookpoint-booking'); ?></a>
+    <button class="button"><?php esc_html_e('Filter', 'bookpoint-v5'); ?></button>
+    <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=pointlybooking_audit')); ?>"><?php esc_html_e('Reset', 'bookpoint-v5'); ?></a>
   </form>
 
   <?php
@@ -61,19 +61,19 @@ pointlybooking_render_legacy_shell_start(esc_html__('Audit Log', 'bookpoint-book
   <table class="widefat striped">
     <thead>
       <tr>
-        <th><?php esc_html_e('ID', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Time', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Event', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Actor', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Booking', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Customer', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Meta', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('IP', 'bookpoint-booking'); ?></th>
+        <th><?php esc_html_e('ID', 'bookpoint-v5'); ?></th>
+        <th><?php esc_html_e('Time', 'bookpoint-v5'); ?></th>
+        <th><?php esc_html_e('Event', 'bookpoint-v5'); ?></th>
+        <th><?php esc_html_e('Actor', 'bookpoint-v5'); ?></th>
+        <th><?php esc_html_e('Booking', 'bookpoint-v5'); ?></th>
+        <th><?php esc_html_e('Customer', 'bookpoint-v5'); ?></th>
+        <th><?php esc_html_e('Meta', 'bookpoint-v5'); ?></th>
+        <th><?php esc_html_e('IP', 'bookpoint-v5'); ?></th>
       </tr>
     </thead>
     <tbody>
       <?php if (empty($items)) : ?>
-        <tr><td colspan="8"><?php esc_html_e('No logs found.', 'bookpoint-booking'); ?></td></tr>
+        <tr><td colspan="8"><?php esc_html_e('No logs found.', 'bookpoint-v5'); ?></td></tr>
       <?php else : foreach ($items as $r) : ?>
         <tr>
           <td><?php echo esc_html((string) (int) ($r['id'] ?? 0)); ?></td>

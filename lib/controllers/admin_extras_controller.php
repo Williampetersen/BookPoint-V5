@@ -35,7 +35,7 @@ final class POINTLYBOOKING_AdminExtrasController extends POINTLYBOOKING_Controll
     if ($id > 0) {
       $nonce = $this->query_text('pointlybooking_edit_nonce');
       if (!wp_verify_nonce($nonce, 'pointlybooking_edit_extra_' . $id)) {
-        wp_die(esc_html__('Security check failed.', 'bookpoint-booking'));
+        wp_die(esc_html__('Security check failed.', 'bookpoint-v5'));
       }
     }
     $item = $id > 0 ? POINTLYBOOKING_ServiceExtraModel::find($id) : null;

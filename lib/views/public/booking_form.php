@@ -18,62 +18,62 @@ $allow_service_select = !empty($options['allow_service_select']);
 
   <?php if ($allow_service_select) : ?>
   <p>
-    <label><?php echo esc_html__('Service', 'bookpoint-booking'); ?></label><br>
+    <label><?php echo esc_html__('Service', 'bookpoint-v5'); ?></label><br>
     <select class="bp-service">
-      <option value="0"><?php echo esc_html__('Select a service', 'bookpoint-booking'); ?></option>
+      <option value="0"><?php echo esc_html__('Select a service', 'bookpoint-v5'); ?></option>
     </select>
   </p>
   <?php endif; ?>
 
   <p>
-    <label><?php echo esc_html__('Date', 'bookpoint-booking'); ?></label><br>
+    <label><?php echo esc_html__('Date', 'bookpoint-v5'); ?></label><br>
     <input type="date" class="bp-date" value="<?php echo esc_attr($default_date); ?>">
   </p>
 
   <p>
-    <label><?php echo esc_html__('Agent', 'bookpoint-booking'); ?></label><br>
+    <label><?php echo esc_html__('Agent', 'bookpoint-v5'); ?></label><br>
     <select class="bp-agent">
-      <option value="0"><?php echo esc_html__('Any agent', 'bookpoint-booking'); ?></option>
+      <option value="0"><?php echo esc_html__('Any agent', 'bookpoint-v5'); ?></option>
     </select>
   </p>
 
   <p>
-    <label><?php echo esc_html__('Time', 'bookpoint-booking'); ?></label><br>
+    <label><?php echo esc_html__('Time', 'bookpoint-v5'); ?></label><br>
     <select class="bp-time">
-      <option value=""><?php echo esc_html__('Select a date first', 'bookpoint-booking'); ?></option>
+      <option value=""><?php echo esc_html__('Select a date first', 'bookpoint-v5'); ?></option>
     </select>
   </p>
 
   <p>
-    <label><?php echo esc_html__('First name', 'bookpoint-booking'); ?></label><br>
+    <label><?php echo esc_html__('First name', 'bookpoint-v5'); ?></label><br>
     <input type="text" class="bp-first-name">
   </p>
 
   <p>
-    <label><?php echo esc_html__('Last name', 'bookpoint-booking'); ?></label><br>
+    <label><?php echo esc_html__('Last name', 'bookpoint-v5'); ?></label><br>
     <input type="text" class="bp-last-name">
   </p>
 
   <p>
-    <label><?php echo esc_html__('Email', 'bookpoint-booking'); ?></label><br>
+    <label><?php echo esc_html__('Email', 'bookpoint-v5'); ?></label><br>
     <input type="email" class="bp-email">
   </p>
 
   <p>
-    <label><?php echo esc_html__('Phone', 'bookpoint-booking'); ?></label><br>
+    <label><?php echo esc_html__('Phone', 'bookpoint-v5'); ?></label><br>
     <input type="text" class="bp-phone" <?php echo esc_attr($require_phone ? 'required' : ''); ?>>
   </p>
 
   <?php if (!$hide_notes) : ?>
   <p>
-    <label><?php echo esc_html__('Notes', 'bookpoint-booking'); ?></label><br>
+    <label><?php echo esc_html__('Notes', 'bookpoint-v5'); ?></label><br>
     <textarea class="bp-notes" rows="3"></textarea>
   </p>
   <?php endif; ?>
 
   <p>
     <button type="button" class="bp-submit button">
-      <?php echo esc_html__('Book now', 'bookpoint-booking'); ?>
+      <?php echo esc_html__('Book now', 'bookpoint-v5'); ?>
     </button>
   </p>
 </div>

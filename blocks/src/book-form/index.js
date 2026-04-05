@@ -42,7 +42,7 @@ registerBlockType(metadata.name, {
     }, []);
 
     const options = useMemo(() => {
-      const base = [{ label: __('Select a serviceÃ¢â‚¬Â¦', 'bookpoint-booking'), value: '0' }];
+      const base = [{ label: __('Select a serviceÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦', 'bookpoint-v5'), value: '0' }];
       const mapped = services.map((s) => ({
         label: `${s.name} (${s.duration_minutes} min)`,
         value: String(s.id),
@@ -58,49 +58,49 @@ registerBlockType(metadata.name, {
     return (
       <>
         <InspectorControls>
-          <PanelBody title={__('BookPoint Settings', 'bookpoint-booking')} initialOpen={true}>
+          <PanelBody title={__('BookPoint Settings', 'bookpoint-v5')} initialOpen={true}>
 
             {loading && (
               <Notice status="info" isDismissible={false}>
-                {__('Loading servicesÃ¢â‚¬Â¦', 'bookpoint-booking')}
+                {__('Loading servicesÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦', 'bookpoint-v5')}
               </Notice>
             )}
 
             {!!loadError && (
               <Notice status="error" isDismissible={false}>
-                {__('Could not load services:', 'bookpoint-booking')} {loadError}
+                {__('Could not load services:', 'bookpoint-v5')} {loadError}
               </Notice>
             )}
 
             <SelectControl
-              label={__('Service', 'bookpoint-booking')}
+              label={__('Service', 'bookpoint-v5')}
               value={String(serviceId || 0)}
               options={options}
               onChange={(val) => setAttributes({ serviceId: parseInt(val || '0', 10) || 0 })}
-              help={__('Services are loaded from BookPoint Ã¢â€ â€™ Services.', 'bookpoint-booking')}
+              help={__('Services are loaded from BookPoint ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Services.', 'bookpoint-v5')}
             />
 
             <TextControl
-              label={__('Default Date (YYYY-MM-DD)', 'bookpoint-booking')}
+              label={__('Default Date (YYYY-MM-DD)', 'bookpoint-v5')}
               value={attributes.defaultDate || ''}
               onChange={(val) => setAttributes({ defaultDate: val || '' })}
               placeholder="2026-01-19"
             />
 
             <ToggleControl
-              label={__('Hide Notes Field', 'bookpoint-booking')}
+              label={__('Hide Notes Field', 'bookpoint-v5')}
               checked={!!attributes.hideNotes}
               onChange={(val) => setAttributes({ hideNotes: !!val })}
             />
 
             <ToggleControl
-              label={__('Require Phone', 'bookpoint-booking')}
+              label={__('Require Phone', 'bookpoint-v5')}
               checked={!!attributes.requirePhone}
               onChange={(val) => setAttributes({ requirePhone: !!val })}
             />
 
             <ToggleControl
-              label={__('Compact Layout', 'bookpoint-booking')}
+              label={__('Compact Layout', 'bookpoint-v5')}
               checked={!!attributes.compact}
               onChange={(val) => setAttributes({ compact: !!val })}
             />
@@ -109,16 +109,16 @@ registerBlockType(metadata.name, {
         </InspectorControls>
 
         <div style={{ padding: '14px', border: '1px solid #ddd', borderRadius: '6px' }}>
-          <strong>{__('BookPoint Ã¢â‚¬â€œ Booking Form', 'bookpoint-booking')}</strong>
+          <strong>{__('BookPoint ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ Booking Form', 'bookpoint-v5')}</strong>
 
           {serviceId > 0 ? (
             <p style={{ marginTop: '8px' }}>
-              {__('This block will render the booking form for:', 'bookpoint-booking')}{' '}
+              {__('This block will render the booking form for:', 'bookpoint-v5')}{' '}
               <code>{selectedLabel || `#${serviceId}`}</code>
             </p>
           ) : (
             <Notice status="warning" isDismissible={false}>
-              {__('Please choose a service in the block settings.', 'bookpoint-booking')}
+              {__('Please choose a service in the block settings.', 'bookpoint-v5')}
             </Notice>
           )}
         </div>

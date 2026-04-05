@@ -15,17 +15,19 @@ Lightweight appointment booking plugin for WordPress with services, calendar, an
 
 BookPoint Booking & Appointments is a lightweight and modern appointment booking plugin for WordPress.
 
+It helps you manage services, schedules, availability, customers, bookings, and payments through a clean booking workflow.
+
 This plugin is fully functional without any license key and includes:
 
-* Services & Categories management
+* Services and categories management
 * Locations management
 * Service extras
 * Promo codes
 * Holidays and time-off management
-* Booking widget (block and shortcode support)
+* Booking widget with block and shortcode support
 * Calendar, schedule, and availability configuration
 * Customers and bookings management
-* Online payments configuration (Cash, WooCommerce, Stripe, PayPal)
+* Online payments configuration for Cash, WooCommerce, Stripe, and PayPal
 * Lightweight and fast performance
 * Mobile responsive booking interface
 * No locked or trial-only built-in features in this WordPress.org package
@@ -34,22 +36,30 @@ This WordPress.org package does not gate built-in functionality behind licenses,
 
 == Source Code / Build ==
 
-Generated asset files shipped in this plugin are built from human-readable source files included in the plugin package:
+Generated asset files shipped in this plugin are built from human-readable source files included in the plugin package.
 
 Source directories:
 
-* `src/admin/` (admin React source)
-* `src/front/` (front-end React source)
-* `blocks/src/book-form/` (Gutenberg block source)
+* `src/admin/` - admin React source
+* `src/front/` - front-end React source
+* `blocks/src/book-form/` - Gutenberg block source
 
 Generated files:
 
-* `build/admin.js`, `build/index.jsx.css`, `build/index.jsx-rtl.css`
-* `public/build/front.js`, `public/build/index.jsx.css`, `public/build/index.jsx-rtl.css`
-* `public/front.js`, `public/index.jsx.css`, `public/index.jsx-rtl.css` (legacy compatibility copies generated from the same `src/front/` sources)
+* `build/admin.js`
+* `build/index.jsx.css`
+* `build/index.jsx-rtl.css`
+* `public/build/front.js`
+* `public/build/index.jsx.css`
+* `public/build/index.jsx-rtl.css`
+* `public/front.js`
+* `public/index.jsx.css`
+* `public/index.jsx-rtl.css`
 * `blocks/build/book-form/index.js`
 
-Generated files should not be edited manually. Edit sources in `src/` or `blocks/src/` and rebuild.
+The files in `public/` listed above include legacy compatibility copies generated from the same `src/front/` sources.
+
+Generated files should not be edited manually. Edit the source files in `src/` or `blocks/src/` and rebuild.
 
 Build commands:
 
@@ -62,18 +72,24 @@ Build tooling is declared in `package.json` and uses `@wordpress/scripts`.
 
 == Installation ==
 
-1. Upload the plugin folder to the `/wp-content/plugins/` directory, or install via the WordPress Plugins screen.
-2. Activate the plugin through the 'Plugins' menu in WordPress.
-3. Configure services and schedules in the BookPoint admin menu.
-4. Add the booking widget using the provided block or shortcode.
+1. Upload the plugin folder to the `/wp-content/plugins/` directory, or install it through the WordPress Plugins screen.
+2. Activate the plugin through the Plugins menu in WordPress.
+3. Configure services, schedules, locations, and availability in the BookPoint admin menu.
+4. Add the booking widget using the included block or shortcode.
 
 == Frequently Asked Questions ==
 
 = Does the free version require a license? =
+
 No. The plugin works fully without any license key.
 
 = Is the plugin mobile friendly? =
-Yes. The booking interface is fully responsive and works on all devices.
+
+Yes. The booking interface is fully responsive and works on desktop, tablet, and mobile devices.
+
+= Does this plugin support payments? =
+
+Yes. The plugin includes payment configuration for Cash, WooCommerce, Stripe, and PayPal.
 
 == Screenshots ==
 
@@ -84,25 +100,59 @@ Yes. The booking interface is fully responsive and works on all devices.
 
 == External services ==
 
-This plugin connects to third-party payment services when online payments are enabled by the site administrator.
+Some optional features in this plugin connect to external services for payments, license-related operations, and optional webhook delivery.
 
 Stripe
-Used to create and confirm payment intents for card payments.
-Data sent when a customer initiates payment: booking reference, order amount, currency, and required payment metadata.
-Service provider: Stripe
-Terms of service: https://stripe.com/legal
-Privacy policy: https://stripe.com/privacy
+
+What the service is: Stripe is a payment processing platform.
+
+What it is used for: The plugin uses Stripe to create payment sessions, create payment intents, and confirm payment-related transactions when Stripe payments are enabled.
+
+What data is sent: This may include booking reference data, order amount, currency, return or cancel URLs, and payment metadata required to process the transaction.
+
+When data is sent: Data is sent only when a customer starts a Stripe payment flow or when the site requests payment confirmation or related payment processing actions.
+
+Terms of service URL: https://stripe.com/legal
+Privacy policy URL: https://stripe.com/privacy
 
 PayPal
-Used to create and capture PayPal payment orders.
-Data sent when a customer initiates payment: booking reference, order amount, currency, and required payment metadata.
-Service provider: PayPal
-Terms of service: https://www.paypal.com/webapps/mpp/ua/legalhub-full
-Privacy policy: https://www.paypal.com/webapps/mpp/ua/privacy-full
 
-Webhooks (optional)
-When enabled by the site administrator, the plugin can send booking event payloads to the webhook URLs configured in the plugin settings.
-Data sent depends on the event (for example booking_id, status, service_id, customer_id, agent_id, and timestamps).
+What the service is: PayPal is a payment processing platform.
+
+What it is used for: The plugin uses PayPal to obtain API access tokens, create checkout orders, and capture approved payments when PayPal payments are enabled.
+
+What data is sent: This may include booking reference data, order amount, currency, return or cancel URLs, and PayPal order data required to process the payment.
+
+When data is sent: Data is sent only when a customer starts a PayPal checkout flow and when an approved PayPal order is captured or verified.
+
+Terms of service URL: https://www.paypal.com/webapps/mpp/ua/legalhub-full
+Privacy policy URL: https://www.paypal.com/webapps/mpp/ua/privacy-full
+
+BookPoint licensing and activation service
+
+What the service is: This is a vendor-operated licensing service provided through wpbookpoint.com.
+
+What it is used for: The plugin uses this service for license-related operations such as validating, activating, deactivating, and checking the status of a license when those features are used.
+
+What data is sent: This may include the license key, site URL or domain, plugin identifier, plugin version, instance or activation identifier, and related data required to process the licensing request.
+
+When data is sent: Data is sent only when an administrator validates, activates, deactivates, or checks the status of a license, or when a license status check is triggered by the plugin.
+
+Terms of service URL: https://wpbookpoint.com/terms-and-conditions/
+Privacy policy URL: https://wpbookpoint.com/privacy-policy/
+
+Optional administrator-configured webhook destination
+
+What the service is: This is an optional external webhook endpoint configured by the site administrator. The destination is not pre-defined by the plugin.
+
+What it is used for: The plugin can send booking event notifications to an external automation, CRM, or integration endpoint chosen by the site administrator.
+
+What data is sent: This may include the event name, site URL, timestamp, and event payload such as booking ID, status, service ID, customer ID, agent ID, and related booking fields.
+
+When data is sent: Data is sent only if the webhook feature is enabled and the site administrator has configured an external webhook URL for the relevant event.
+
+Terms of service URL: The terms of service of the external provider chosen by the site administrator.
+Privacy policy URL: The privacy policy of the external provider chosen by the site administrator.
 
 == Changelog ==
 

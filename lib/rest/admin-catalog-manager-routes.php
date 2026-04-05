@@ -5,95 +5,215 @@ add_action('rest_api_init', function () {
 
   // ---------- Catalog CRUD ----------
   register_rest_route('pointly-booking/v1', '/admin/categories', [
-    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_categories_list', 'permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
-    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_categories_create','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_categories_list', 'permission_callback'=>'pointlybooking_rest_can_read_categories_catalog'],
+    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_categories_create','permission_callback'=>'pointlybooking_rest_can_manage_categories_catalog'],
   ]);
   register_rest_route('pointly-booking/v1', '/admin/categories/(?P<id>\d+)', [
-    ['methods'=>'GET',  'callback'=>'pointlybooking_rest_admin_categories_get',  'permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
-    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_categories_patch','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
-    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_categories_delete','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'GET',  'callback'=>'pointlybooking_rest_admin_categories_get',  'permission_callback'=>'pointlybooking_rest_can_read_categories_catalog'],
+    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_categories_patch','permission_callback'=>'pointlybooking_rest_can_manage_categories_catalog'],
+    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_categories_delete','permission_callback'=>'pointlybooking_rest_can_manage_categories_catalog'],
   ]);
 
   register_rest_route('pointly-booking/v1', '/admin/services', [
-    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_services_create','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_services_create','permission_callback'=>'pointlybooking_rest_can_manage_services_catalog'],
   ]);
   register_rest_route('pointly-booking/v1', '/admin/services/(?P<id>\d+)', [
-    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_services_get','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
-    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_services_patch','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
-    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_services_delete','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_services_get','permission_callback'=>'pointlybooking_rest_can_read_services_catalog'],
+    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_services_patch','permission_callback'=>'pointlybooking_rest_can_manage_services_catalog'],
+    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_services_delete','permission_callback'=>'pointlybooking_rest_can_manage_services_catalog'],
   ]);
 
   // If your extras table is not pointlybooking_service_extras, change only the table name in helpers below.
   register_rest_route('pointly-booking/v1', '/admin/extras', [
-    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_extras_list', 'permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
-    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_extras_create','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_extras_list', 'permission_callback'=>'pointlybooking_rest_can_read_extras_catalog'],
+    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_extras_create','permission_callback'=>'pointlybooking_rest_can_manage_extras_catalog'],
   ]);
   register_rest_route('pointly-booking/v1', '/admin/extras/(?P<id>\d+)', [
-    ['methods'=>'GET',  'callback'=>'pointlybooking_rest_admin_extras_get',  'permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
-    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_extras_patch','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
-    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_extras_delete','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'GET',  'callback'=>'pointlybooking_rest_admin_extras_get',  'permission_callback'=>'pointlybooking_rest_can_read_extras_catalog'],
+    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_extras_patch','permission_callback'=>'pointlybooking_rest_can_manage_extras_catalog'],
+    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_extras_delete','permission_callback'=>'pointlybooking_rest_can_manage_extras_catalog'],
   ]);
 
   register_rest_route('pointly-booking/v1', '/admin/agents', [
     // you already have GET /admin/agents in A2; keep it or use this one (this returns image too)
-    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_agents_list_full', 'permission_callback'=>'pointlybooking_rest_can_view_agents_for_catalog'],
-    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_agents_create', 'permission_callback'=>'pointlybooking_rest_can_manage_agents_catalog'],
+    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_agents_list_full', 'permission_callback'=>'pointlybooking_rest_can_read_agents_for_catalog'],
+    ['methods'=>'POST','callback'=>'pointlybooking_rest_admin_agents_create', 'permission_callback'=>'pointlybooking_rest_can_create_agents_for_catalog'],
   ]);
   register_rest_route('pointly-booking/v1', '/admin/agents-full', [
-    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_agents_list_full', 'permission_callback'=>'pointlybooking_rest_can_manage_agents_catalog'],
+    ['methods'=>'GET', 'callback'=>'pointlybooking_rest_admin_agents_list_full', 'permission_callback'=>'pointlybooking_rest_can_read_full_agents_catalog'],
   ]);
   register_rest_route('pointly-booking/v1', '/admin/agents/(?P<id>\d+)', [
-    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_agents_get', 'permission_callback'=>'pointlybooking_rest_can_manage_agents_catalog'],
-    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_agents_patch', 'permission_callback'=>'pointlybooking_rest_can_manage_agents_catalog'],
-    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_agents_delete','permission_callback'=>'pointlybooking_rest_can_manage_agents_catalog'],
+    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_agents_get', 'permission_callback'=>'pointlybooking_rest_can_read_agent_record_for_catalog'],
+    ['methods'=>'PATCH','callback'=>'pointlybooking_rest_admin_agents_patch', 'permission_callback'=>'pointlybooking_rest_can_update_agents_for_catalog'],
+    ['methods'=>'DELETE','callback'=>'pointlybooking_rest_admin_agents_delete','permission_callback'=>'pointlybooking_rest_can_delete_agents_for_catalog'],
   ]);
 
   // ---------- Relations ----------
   register_rest_route('pointly-booking/v1', '/admin/services/(?P<id>\d+)/categories', [
-    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_service_set_categories','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
-    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_service_get_categories','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_service_set_categories','permission_callback'=>'pointlybooking_rest_can_manage_service_category_relations'],
+    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_service_get_categories','permission_callback'=>'pointlybooking_rest_can_read_service_category_relations'],
   ]);
 
   register_rest_route('pointly-booking/v1', '/admin/extras/(?P<id>\d+)/services', [
-    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_extra_set_services','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
-    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_extra_get_services','permission_callback'=>'pointlybooking_rest_can_manage_service_catalog'],
+    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_extra_set_services','permission_callback'=>'pointlybooking_rest_can_manage_extra_service_relations'],
+    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_extra_get_services','permission_callback'=>'pointlybooking_rest_can_read_extra_service_relations'],
   ]);
 
   register_rest_route('pointly-booking/v1', '/admin/agents/(?P<id>\d+)/services', [
-    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_agent_set_services','permission_callback'=>'pointlybooking_rest_can_manage_agent_service_relations'],
-    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_agent_get_services','permission_callback'=>'pointlybooking_rest_can_view_agent_service_relations'],
+    ['methods'=>'PUT','callback'=>'pointlybooking_rest_admin_agent_set_services','permission_callback'=>'pointlybooking_rest_can_update_agent_service_relations'],
+    ['methods'=>'GET','callback'=>'pointlybooking_rest_admin_agent_get_services','permission_callback'=>'pointlybooking_rest_can_read_agent_service_relations'],
   ]);
 });
 
 function pointlybooking_rest_can_manage_service_catalog() {
-  return current_user_can('pointlybooking_manage_services')
-    || current_user_can('pointlybooking_manage_settings')
-    || current_user_can('manage_options');
+  $allowed = pointlybooking_rest_has_service_catalog_management_cap();
+  return $allowed;
 }
 
 function pointlybooking_rest_can_manage_agents_catalog() {
-  return current_user_can('pointlybooking_manage_agents')
-    || current_user_can('pointlybooking_manage_settings')
-    || current_user_can('manage_options');
+  $allowed = pointlybooking_rest_has_agent_catalog_management_cap();
+  return $allowed;
 }
 
 function pointlybooking_rest_can_view_agents_for_catalog() {
-  return current_user_can('pointlybooking_manage_agents')
-    || current_user_can('pointlybooking_manage_services')
-    || current_user_can('pointlybooking_manage_bookings')
-    || current_user_can('pointlybooking_manage_settings')
-    || current_user_can('manage_options');
+  $allowed = pointlybooking_rest_has_agent_catalog_read_cap();
+  return $allowed;
 }
 
 function pointlybooking_rest_can_manage_agent_service_relations() {
-  return current_user_can('pointlybooking_manage_services')
-    || current_user_can('pointlybooking_manage_settings')
-    || current_user_can('manage_options');
+  $allowed = pointlybooking_rest_has_agent_service_relation_management_cap();
+  return $allowed;
 }
 
 function pointlybooking_rest_can_view_agent_service_relations() {
-  return pointlybooking_rest_can_manage_agent_service_relations()
-    || current_user_can('pointlybooking_manage_agents');
+  $allowed = pointlybooking_rest_has_agent_service_relation_read_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_has_service_catalog_management_cap(): bool {
+  $can_manage_services = current_user_can('pointlybooking_manage_services');
+  $can_manage_settings = current_user_can('pointlybooking_manage_settings');
+  $can_manage_options = current_user_can('manage_options');
+  return $can_manage_services || $can_manage_settings || $can_manage_options;
+}
+
+function pointlybooking_rest_has_agent_catalog_management_cap(): bool {
+  $can_manage_agents = current_user_can('pointlybooking_manage_agents');
+  $can_manage_settings = current_user_can('pointlybooking_manage_settings');
+  $can_manage_options = current_user_can('manage_options');
+  return $can_manage_agents || $can_manage_settings || $can_manage_options;
+}
+
+function pointlybooking_rest_has_agent_catalog_read_cap(): bool {
+  $can_manage_agents = current_user_can('pointlybooking_manage_agents');
+  $can_manage_services = current_user_can('pointlybooking_manage_services');
+  $can_manage_bookings = current_user_can('pointlybooking_manage_bookings');
+  $can_manage_settings = current_user_can('pointlybooking_manage_settings');
+  $can_manage_options = current_user_can('manage_options');
+  return $can_manage_agents || $can_manage_services || $can_manage_bookings || $can_manage_settings || $can_manage_options;
+}
+
+function pointlybooking_rest_has_agent_service_relation_management_cap(): bool {
+  $can_manage_services = current_user_can('pointlybooking_manage_services');
+  $can_manage_settings = current_user_can('pointlybooking_manage_settings');
+  $can_manage_options = current_user_can('manage_options');
+  return $can_manage_services || $can_manage_settings || $can_manage_options;
+}
+
+function pointlybooking_rest_has_agent_service_relation_read_cap(): bool {
+  $can_manage_relations = pointlybooking_rest_has_agent_service_relation_management_cap();
+  $can_manage_agents = current_user_can('pointlybooking_manage_agents');
+  return $can_manage_relations || $can_manage_agents;
+}
+
+function pointlybooking_rest_can_read_categories_catalog(): bool {
+  $allowed = pointlybooking_rest_has_service_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_manage_categories_catalog(): bool {
+  $allowed = pointlybooking_rest_has_service_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_read_services_catalog(): bool {
+  $allowed = pointlybooking_rest_has_service_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_manage_services_catalog(): bool {
+  $allowed = pointlybooking_rest_has_service_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_read_extras_catalog(): bool {
+  $allowed = pointlybooking_rest_has_service_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_manage_extras_catalog(): bool {
+  $allowed = pointlybooking_rest_has_service_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_read_agents_for_catalog(): bool {
+  $allowed = pointlybooking_rest_has_agent_catalog_read_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_create_agents_for_catalog(): bool {
+  $allowed = pointlybooking_rest_has_agent_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_read_full_agents_catalog(): bool {
+  $allowed = pointlybooking_rest_has_agent_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_read_agent_record_for_catalog(): bool {
+  $allowed = pointlybooking_rest_has_agent_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_update_agents_for_catalog(): bool {
+  $allowed = pointlybooking_rest_has_agent_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_delete_agents_for_catalog(): bool {
+  $allowed = pointlybooking_rest_has_agent_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_read_service_category_relations(): bool {
+  $allowed = pointlybooking_rest_has_service_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_manage_service_category_relations(): bool {
+  $allowed = pointlybooking_rest_has_service_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_read_extra_service_relations(): bool {
+  $allowed = pointlybooking_rest_has_service_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_manage_extra_service_relations(): bool {
+  $allowed = pointlybooking_rest_has_service_catalog_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_update_agent_service_relations(): bool {
+  $allowed = pointlybooking_rest_has_agent_service_relation_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_read_agent_service_relations(): bool {
+  $allowed = pointlybooking_rest_has_agent_service_relation_read_cap();
+  return $allowed;
 }
 
 function pointlybooking_is_safe_identifier(string $identifier): bool {
@@ -193,17 +313,17 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
   $raw = trim((string) $raw);
   if ($raw === '') return null;
   if (strlen($raw) > 5000) {
-    $error = __('Schedule JSON is too large.', 'bookpoint-booking');
+    $error = __('Schedule JSON is too large.', 'bookpoint-v5');
     return null;
   }
 
   $decoded = json_decode($raw, true);
   if (!is_array($decoded) || json_last_error() !== JSON_ERROR_NONE) {
-    $error = __('Schedule JSON must be a valid JSON object.', 'bookpoint-booking');
+    $error = __('Schedule JSON must be a valid JSON object.', 'bookpoint-v5');
     return null;
   }
   if (count($decoded) > 7) {
-    $error = __('Schedule JSON can contain at most 7 weekday entries.', 'bookpoint-booking');
+    $error = __('Schedule JSON can contain at most 7 weekday entries.', 'bookpoint-v5');
     return null;
   }
 
@@ -211,11 +331,11 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
   foreach ($decoded as $day => $range) {
     $day_key = (string) $day;
     if (!preg_match('/^[0-6]$/', $day_key)) {
-      $error = __('Schedule JSON keys must be weekday numbers 0-6.', 'bookpoint-booking');
+      $error = __('Schedule JSON keys must be weekday numbers 0-6.', 'bookpoint-v5');
       return null;
     }
     if (is_array($range) || is_object($range)) {
-      $error = __('Schedule values must be strings like HH:MM-HH:MM or empty.', 'bookpoint-booking');
+      $error = __('Schedule values must be strings like HH:MM-HH:MM or empty.', 'bookpoint-v5');
       return null;
     }
     $range_str = trim((string) $range);
@@ -225,12 +345,12 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
     }
     $parsed = pointlybooking_parse_hhmm_range($range_str);
     if ($parsed === null) {
-      $error = __('Schedule values must use HH:MM-HH:MM format.', 'bookpoint-booking');
+      $error = __('Schedule values must use HH:MM-HH:MM format.', 'bookpoint-v5');
       return null;
     }
     [$open, $close] = $parsed;
     if (pointlybooking_hhmm_to_minutes($close) <= pointlybooking_hhmm_to_minutes($open)) {
-      $error = __('Schedule range end must be after start.', 'bookpoint-booking');
+      $error = __('Schedule range end must be after start.', 'bookpoint-v5');
       return null;
     }
     $normalized[$day_key] = $open . '-' . $close;
@@ -239,7 +359,7 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
   ksort($normalized, SORT_NUMERIC);
   $normalized_json = wp_json_encode($normalized);
   if (!is_string($normalized_json) || $normalized_json === '') {
-    $error = __('Schedule JSON could not be normalized.', 'bookpoint-booking');
+    $error = __('Schedule JSON could not be normalized.', 'bookpoint-v5');
     return null;
   }
 

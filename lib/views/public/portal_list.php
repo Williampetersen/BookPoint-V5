@@ -4,18 +4,18 @@ defined('ABSPATH') || exit; ?>
 
 <div class="bp-wrap">
   <div class="bp-card">
-    <h2 class="bp-h2"><?php esc_html_e('Your Bookings', 'bookpoint-booking'); ?></h2>
+    <h2 class="bp-h2"><?php esc_html_e('Your Bookings', 'bookpoint-v5'); ?></h2>
 
   <?php
   $session = sanitize_text_field((string)($session ?? ''));
   if (!$session || !POINTLYBOOKING_PortalHelper::is_session_valid($email, $session)) {
-    echo '<p>' . esc_html__('Session expired. Please request a new code.', 'bookpoint-booking') . '</p>';
+    echo '<p>' . esc_html__('Session expired. Please request a new code.', 'bookpoint-v5') . '</p>';
     return;
   }
 
   $items = POINTLYBOOKING_BookingModel::find_by_customer_email($email);
   if (empty($items)) {
-    echo '<p>' . esc_html__('No bookings found for this email.', 'bookpoint-booking') . '</p>';
+    echo '<p>' . esc_html__('No bookings found for this email.', 'bookpoint-v5') . '</p>';
     return;
   }
   ?>
@@ -23,10 +23,10 @@ defined('ABSPATH') || exit; ?>
   <table class="bp-table">
     <thead>
       <tr>
-        <th><?php esc_html_e('Date', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Service', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Status', 'bookpoint-booking'); ?></th>
-        <th><?php esc_html_e('Action', 'bookpoint-booking'); ?></th>
+        <th><?php esc_html_e('Date', 'bookpoint-v5'); ?></th>
+        <th><?php esc_html_e('Service', 'bookpoint-v5'); ?></th>
+        <th><?php esc_html_e('Status', 'bookpoint-v5'); ?></th>
+        <th><?php esc_html_e('Action', 'bookpoint-v5'); ?></th>
       </tr>
     </thead>
     <tbody>
@@ -51,7 +51,7 @@ defined('ABSPATH') || exit; ?>
           <td><?php echo esc_html($dt); ?></td>
           <td><?php echo esc_html($svc); ?></td>
           <td><span class="bp-badge"><?php echo esc_html($st); ?></span></td>
-          <td class="bp-actions"><a class="bp-btn secondary" href="<?php echo esc_url($manage_url); ?>"><?php esc_html_e('Manage', 'bookpoint-booking'); ?></a></td>
+          <td class="bp-actions"><a class="bp-btn secondary" href="<?php echo esc_url($manage_url); ?>"><?php esc_html_e('Manage', 'bookpoint-v5'); ?></a></td>
         </tr>
       <?php endforeach; ?>
     </tbody>
@@ -65,7 +65,7 @@ defined('ABSPATH') || exit; ?>
         }
       ?>
       <a class="bp-btn secondary" href="<?php echo esc_url(remove_query_arg(['step','email','s','bpv','error'], $pointlybooking_logout_base)); ?>">
-        <?php esc_html_e('Logout', 'bookpoint-booking'); ?>
+        <?php esc_html_e('Logout', 'bookpoint-v5'); ?>
       </a>
     </p>
   </div>

@@ -3,16 +3,16 @@
 defined('ABSPATH') || exit;
 
 $tabs = [
-  'form' => __('Form Fields', 'bookpoint-booking'),
-  'customer' => __('Customer Fields', 'bookpoint-booking'),
-  'booking' => __('Booking Fields', 'bookpoint-booking'),
+  'form' => __('Form Fields', 'bookpoint-v5'),
+  'customer' => __('Customer Fields', 'bookpoint-v5'),
+  'booking' => __('Booking Fields', 'bookpoint-v5'),
 ];
 ?>
 
 <div class="wrap">
   <h1 class="wp-heading-inline"><?php echo esc_html($tabs[$scope] ?? 'Fields'); ?></h1>
   <a class="page-title-action" href="<?php echo esc_url(admin_url('admin.php?page=pointlybooking_form_fields&scope='.$scope.'&action=edit')); ?>">
-    <?php echo esc_html__('Add New', 'bookpoint-booking'); ?>
+    <?php echo esc_html__('Add New', 'bookpoint-v5'); ?>
   </a>
   <hr class="wp-header-end">
 
@@ -29,39 +29,39 @@ $tabs = [
     <input type="hidden" name="page" value="pointlybooking_form_fields">
     <input type="hidden" name="scope" value="<?php echo esc_attr($scope); ?>">
     <?php wp_nonce_field('pointlybooking_admin_filter', 'pointlybooking_filter_nonce'); ?>
-    <input type="text" name="q" value="<?php echo esc_attr($q); ?>" placeholder="<?php echo esc_attr__('Search...', 'bookpoint-booking'); ?>">
+    <input type="text" name="q" value="<?php echo esc_attr($q); ?>" placeholder="<?php echo esc_attr__('Search...', 'bookpoint-v5'); ?>">
     <select name="is_active">
-      <option value=""><?php echo esc_html__('All', 'bookpoint-booking'); ?></option>
-      <option value="1" <?php selected($is_active, '1'); ?>><?php echo esc_html__('Active', 'bookpoint-booking'); ?></option>
-      <option value="0" <?php selected($is_active, '0'); ?>><?php echo esc_html__('Inactive', 'bookpoint-booking'); ?></option>
+      <option value=""><?php echo esc_html__('All', 'bookpoint-v5'); ?></option>
+      <option value="1" <?php selected($is_active, '1'); ?>><?php echo esc_html__('Active', 'bookpoint-v5'); ?></option>
+      <option value="0" <?php selected($is_active, '0'); ?>><?php echo esc_html__('Inactive', 'bookpoint-v5'); ?></option>
     </select>
-    <button class="button"><?php echo esc_html__('Filter', 'bookpoint-booking'); ?></button>
+    <button class="button"><?php echo esc_html__('Filter', 'bookpoint-v5'); ?></button>
   </form>
 
   <table class="widefat striped">
     <thead>
       <tr>
-        <th><?php echo esc_html__('Label', 'bookpoint-booking'); ?></th>
-        <th><?php echo esc_html__('Key', 'bookpoint-booking'); ?></th>
-        <th><?php echo esc_html__('Type', 'bookpoint-booking'); ?></th>
-        <th><?php echo esc_html__('Required', 'bookpoint-booking'); ?></th>
-        <th><?php echo esc_html__('Active', 'bookpoint-booking'); ?></th>
-        <th style="width:180px;"><?php echo esc_html__('Actions', 'bookpoint-booking'); ?></th>
+        <th><?php echo esc_html__('Label', 'bookpoint-v5'); ?></th>
+        <th><?php echo esc_html__('Key', 'bookpoint-v5'); ?></th>
+        <th><?php echo esc_html__('Type', 'bookpoint-v5'); ?></th>
+        <th><?php echo esc_html__('Required', 'bookpoint-v5'); ?></th>
+        <th><?php echo esc_html__('Active', 'bookpoint-v5'); ?></th>
+        <th style="width:180px;"><?php echo esc_html__('Actions', 'bookpoint-v5'); ?></th>
       </tr>
     </thead>
     <tbody>
       <?php if (empty($items)): ?>
-        <tr><td colspan="6" style="text-align:center;"><?php echo esc_html__('No fields yet.', 'bookpoint-booking'); ?></td></tr>
+        <tr><td colspan="6" style="text-align:center;"><?php echo esc_html__('No fields yet.', 'bookpoint-v5'); ?></td></tr>
       <?php else: foreach ($items as $row): ?>
         <tr>
           <td><strong><?php echo esc_html($row['label']); ?></strong></td>
           <td><code><?php echo esc_html($row['name_key']); ?></code></td>
           <td><?php echo esc_html($row['type']); ?></td>
-          <td><?php echo ((int)$row['required'] === 1) ? esc_html__('Yes', 'bookpoint-booking') : esc_html__('No', 'bookpoint-booking'); ?></td>
-          <td><?php echo ((int)$row['is_active'] === 1) ? esc_html__('Yes', 'bookpoint-booking') : esc_html__('No', 'bookpoint-booking'); ?></td>
+          <td><?php echo ((int)$row['required'] === 1) ? esc_html__('Yes', 'bookpoint-v5') : esc_html__('No', 'bookpoint-v5'); ?></td>
+          <td><?php echo ((int)$row['is_active'] === 1) ? esc_html__('Yes', 'bookpoint-v5') : esc_html__('No', 'bookpoint-v5'); ?></td>
           <td>
             <a class="button button-small" href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=pointlybooking_form_fields&scope='.$scope.'&action=edit&id='.(int)$row['id']), 'pointlybooking_edit_form_field_' . (int)$row['id'], 'pointlybooking_edit_nonce')); ?>">
-              <?php echo esc_html__('Edit', 'bookpoint-booking'); ?>
+              <?php echo esc_html__('Edit', 'bookpoint-v5'); ?>
             </a>
             <a class="button button-small button-link-delete" href="<?php
               echo esc_url(wp_nonce_url(
@@ -69,7 +69,7 @@ $tabs = [
                 'pointlybooking_admin'
               ));
             ?>" onclick="return confirm('Delete this field?');">
-              <?php echo esc_html__('Delete', 'bookpoint-booking'); ?>
+              <?php echo esc_html__('Delete', 'bookpoint-v5'); ?>
             </a>
           </td>
         </tr>

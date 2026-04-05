@@ -509,7 +509,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     $context = $payload['context'] ?? [];
 
     $to = self::render_template_value($config['to'] ?? '', $context);
-    $subject = self::render_template_value($config['subject'] ?? __('Booking Notification', 'bookpoint-booking'), $context);
+    $subject = self::render_template_value($config['subject'] ?? __('Booking Notification', 'bookpoint-v5'), $context);
     $body = self::render_template_value($config['body'] ?? '', $context);
     $from_name = $config['from_name'] ?? null;
     $from_email = $config['from_email'] ?? null;
@@ -632,7 +632,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     }
 
     $service_name = trim((string)($service['name'] ?? ''));
-    $service_name = $service_name === '' ? __('Service', 'bookpoint-booking') : $service_name;
+    $service_name = $service_name === '' ? __('Service', 'bookpoint-v5') : $service_name;
 
     $context = [
       'site_name' => (string)get_bloginfo('name'),
@@ -681,63 +681,63 @@ final class POINTLYBOOKING_Notifications_Helper {
   private static function smart_variables_data(): array {
     $vars = [
       [
-        'label' => __('Site', 'bookpoint-booking'),
+        'label' => __('Site', 'bookpoint-v5'),
         'variables' => [
-          ['key' => 'site_name', 'label' => __('Site name', 'bookpoint-booking')],
-          ['key' => 'site_url', 'label' => __('Site URL', 'bookpoint-booking')],
-          ['key' => 'admin_email', 'label' => __('Admin email', 'bookpoint-booking')],
+          ['key' => 'site_name', 'label' => __('Site name', 'bookpoint-v5')],
+          ['key' => 'site_url', 'label' => __('Site URL', 'bookpoint-v5')],
+          ['key' => 'admin_email', 'label' => __('Admin email', 'bookpoint-v5')],
         ],
       ],
       [
-        'label' => __('Appointment', 'bookpoint-booking'),
+        'label' => __('Appointment', 'bookpoint-v5'),
         'variables' => [
-          ['key' => 'booking_id', 'label' => __('Booking ID', 'bookpoint-booking')],
-          ['key' => 'booking_status', 'label' => __('Status', 'bookpoint-booking')],
-          ['key' => 'start_date', 'label' => __('Start date', 'bookpoint-booking')],
-          ['key' => 'start_time', 'label' => __('Start time', 'bookpoint-booking')],
-          ['key' => 'end_date', 'label' => __('End date', 'bookpoint-booking')],
-          ['key' => 'end_time', 'label' => __('End time', 'bookpoint-booking')],
-          ['key' => 'booking_duration', 'label' => __('Duration (minutes)', 'bookpoint-booking')],
+          ['key' => 'booking_id', 'label' => __('Booking ID', 'bookpoint-v5')],
+          ['key' => 'booking_status', 'label' => __('Status', 'bookpoint-v5')],
+          ['key' => 'start_date', 'label' => __('Start date', 'bookpoint-v5')],
+          ['key' => 'start_time', 'label' => __('Start time', 'bookpoint-v5')],
+          ['key' => 'end_date', 'label' => __('End date', 'bookpoint-v5')],
+          ['key' => 'end_time', 'label' => __('End time', 'bookpoint-v5')],
+          ['key' => 'booking_duration', 'label' => __('Duration (minutes)', 'bookpoint-v5')],
         ],
       ],
       [
-        'label' => __('Customer', 'bookpoint-booking'),
+        'label' => __('Customer', 'bookpoint-v5'),
         'variables' => [
-          ['key' => 'customer_name', 'label' => __('Name', 'bookpoint-booking')],
-          ['key' => 'customer_email', 'label' => __('Email', 'bookpoint-booking')],
-          ['key' => 'customer_phone', 'label' => __('Phone', 'bookpoint-booking')],
+          ['key' => 'customer_name', 'label' => __('Name', 'bookpoint-v5')],
+          ['key' => 'customer_email', 'label' => __('Email', 'bookpoint-v5')],
+          ['key' => 'customer_phone', 'label' => __('Phone', 'bookpoint-v5')],
         ],
       ],
       [
-        'label' => __('Agent', 'bookpoint-booking'),
+        'label' => __('Agent', 'bookpoint-v5'),
         'variables' => [
-          ['key' => 'agent_name', 'label' => __('Name', 'bookpoint-booking')],
-          ['key' => 'agent_email', 'label' => __('Email', 'bookpoint-booking')],
-          ['key' => 'agent_phone', 'label' => __('Phone', 'bookpoint-booking')],
+          ['key' => 'agent_name', 'label' => __('Name', 'bookpoint-v5')],
+          ['key' => 'agent_email', 'label' => __('Email', 'bookpoint-v5')],
+          ['key' => 'agent_phone', 'label' => __('Phone', 'bookpoint-v5')],
         ],
       ],
       [
-        'label' => __('Service', 'bookpoint-booking'),
+        'label' => __('Service', 'bookpoint-v5'),
         'variables' => [
-          ['key' => 'service_name', 'label' => __('Name', 'bookpoint-booking')],
-          ['key' => 'service_duration', 'label' => __('Duration (minutes)', 'bookpoint-booking')],
+          ['key' => 'service_name', 'label' => __('Name', 'bookpoint-v5')],
+          ['key' => 'service_duration', 'label' => __('Duration (minutes)', 'bookpoint-v5')],
         ],
       ],
       [
-        'label' => __('Pricing', 'bookpoint-booking'),
+        'label' => __('Pricing', 'bookpoint-v5'),
         'variables' => [
-          ['key' => 'subtotal', 'label' => __('Subtotal', 'bookpoint-booking')],
-          ['key' => 'discount', 'label' => __('Discount', 'bookpoint-booking')],
-          ['key' => 'tax', 'label' => __('Tax', 'bookpoint-booking')],
-          ['key' => 'total', 'label' => __('Total', 'bookpoint-booking')],
-          ['key' => 'promo_code', 'label' => __('Promo code', 'bookpoint-booking')],
+          ['key' => 'subtotal', 'label' => __('Subtotal', 'bookpoint-v5')],
+          ['key' => 'discount', 'label' => __('Discount', 'bookpoint-v5')],
+          ['key' => 'tax', 'label' => __('Tax', 'bookpoint-v5')],
+          ['key' => 'total', 'label' => __('Total', 'bookpoint-v5')],
+          ['key' => 'promo_code', 'label' => __('Promo code', 'bookpoint-v5')],
         ],
       ],
       [
-        'label' => __('Links', 'bookpoint-booking'),
+        'label' => __('Links', 'bookpoint-v5'),
         'variables' => [
-          ['key' => 'manage_booking_url_customer', 'label' => __('Manage booking (customer)', 'bookpoint-booking')],
-          ['key' => 'manage_booking_url_agent', 'label' => __('Manage booking (agent)', 'bookpoint-booking')],
+          ['key' => 'manage_booking_url_customer', 'label' => __('Manage booking (customer)', 'bookpoint-v5')],
+          ['key' => 'manage_booking_url_agent', 'label' => __('Manage booking (agent)', 'bookpoint-v5')],
         ],
       ],
     ];
@@ -745,7 +745,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     $custom = self::active_custom_fields();
     if ($custom) {
       $group = [
-        'label' => __('Custom fields', 'bookpoint-booking'),
+        'label' => __('Custom fields', 'bookpoint-v5'),
         'variables' => [],
       ];
       foreach ($custom as $field) {
@@ -837,7 +837,7 @@ final class POINTLYBOOKING_Notifications_Helper {
     }
 
     $uid = uniqid('bp-wf-', true);
-    $summary = sanitize_text_field($service['name'] ?? __('Booking', 'bookpoint-booking'));
+    $summary = sanitize_text_field($service['name'] ?? __('Booking', 'bookpoint-v5'));
     $description = sanitize_text_field($payload['context']['booking_status'] ?? '');
 
     $ics = "BEGIN:VCALENDAR\\r\\n";

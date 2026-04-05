@@ -60,7 +60,7 @@ final class POINTLYBOOKING_EmailHelper {
     if (empty($customer['email'])) return;
 
     /* translators: %s: Service name. */
-    $subject = sprintf(__('Your booking request: %s', 'bookpoint-booking'), (string)($service['name'] ?? ''));
+    $subject = sprintf(__('Your booking request: %s', 'bookpoint-v5'), (string)($service['name'] ?? ''));
     $body = self::tpl_customer_created($booking, $service, $customer);
 
     self::send($customer['email'], $subject, $body);
@@ -71,7 +71,7 @@ final class POINTLYBOOKING_EmailHelper {
     if ($to === '') return;
 
     /* translators: %s: Service name. */
-    $subject = sprintf(__('New booking: %s', 'bookpoint-booking'), (string)($service['name'] ?? ''));
+    $subject = sprintf(__('New booking: %s', 'bookpoint-v5'), (string)($service['name'] ?? ''));
     $body = self::tpl_admin_created($booking, $service, $customer);
 
     self::send($to, $subject, $body);
@@ -81,18 +81,18 @@ final class POINTLYBOOKING_EmailHelper {
     if (empty($customer['email'])) return;
 
     /* translators: %s: Service name. */
-    $subject = sprintf(__('Booking status updated: %s', 'bookpoint-booking'), (string)($service['name'] ?? ''));
+    $subject = sprintf(__('Booking status updated: %s', 'bookpoint-v5'), (string)($service['name'] ?? ''));
     $body = self::tpl_customer_status($booking, $service, $customer, $old, $new);
 
     self::send($customer['email'], $subject, $body);
   }
 
   public static function customer_booking_subject() : string {
-    return __('Your booking request', 'bookpoint-booking');
+    return __('Your booking request', 'bookpoint-v5');
   }
 
   public static function admin_booking_subject() : string {
-    return __('New booking received', 'bookpoint-booking');
+    return __('New booking received', 'bookpoint-v5');
   }
 
   public static function customer_template(array $booking, array $service, array $customer, string $manage_url) : string {
@@ -101,15 +101,15 @@ final class POINTLYBOOKING_EmailHelper {
     $end   = esc_html($booking['end_datetime'] ?? '-');
 
     $name = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? ''));
-    $name = $name ? esc_html($name) : esc_html__('Customer', 'bookpoint-booking');
+    $name = $name ? esc_html($name) : esc_html__('Customer', 'bookpoint-v5');
 
     return "
       <p><strong>{$name}</strong>,</p>
-      <p>" . esc_html__('Your booking was created successfully.', 'bookpoint-booking') . "</p>
-      <p><strong>" . esc_html__('Service:', 'bookpoint-booking') . "</strong> {$service_name}<br>
-      <strong>" . esc_html__('Start:', 'bookpoint-booking') . "</strong> {$start}<br>
-      <strong>" . esc_html__('End:', 'bookpoint-booking') . "</strong> {$end}</p>
-      <p><a href=\"" . esc_url($manage_url) . "\">" . esc_html__('Manage your booking', 'bookpoint-booking') . "</a></p>
+      <p>" . esc_html__('Your booking was created successfully.', 'bookpoint-v5') . "</p>
+      <p><strong>" . esc_html__('Service:', 'bookpoint-v5') . "</strong> {$service_name}<br>
+      <strong>" . esc_html__('Start:', 'bookpoint-v5') . "</strong> {$start}<br>
+      <strong>" . esc_html__('End:', 'bookpoint-v5') . "</strong> {$end}</p>
+      <p><a href=\"" . esc_url($manage_url) . "\">" . esc_html__('Manage your booking', 'bookpoint-v5') . "</a></p>
     ";
   }
 
@@ -119,23 +119,23 @@ final class POINTLYBOOKING_EmailHelper {
     $end   = esc_html($booking['end_datetime'] ?? '-');
 
     $name = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? ''));
-    $name = $name ? esc_html($name) : esc_html__('(No name)', 'bookpoint-booking');
+    $name = $name ? esc_html($name) : esc_html__('(No name)', 'bookpoint-v5');
 
     $email = esc_html($customer['email'] ?? '-');
     $phone = esc_html($customer['phone'] ?? '-');
 
     return "
-      <p><strong>" . esc_html__('New booking received', 'bookpoint-booking') . "</strong></p>
-      <p><strong>" . esc_html__('Service:', 'bookpoint-booking') . "</strong> {$service_name}<br>
-      <strong>" . esc_html__('Start:', 'bookpoint-booking') . "</strong> {$start}<br>
-      <strong>" . esc_html__('End:', 'bookpoint-booking') . "</strong> {$end}<br>
-      <strong>" . esc_html__('Status:', 'bookpoint-booking') . "</strong> " . esc_html($booking['status'] ?? '-') . "</p>
+      <p><strong>" . esc_html__('New booking received', 'bookpoint-v5') . "</strong></p>
+      <p><strong>" . esc_html__('Service:', 'bookpoint-v5') . "</strong> {$service_name}<br>
+      <strong>" . esc_html__('Start:', 'bookpoint-v5') . "</strong> {$start}<br>
+      <strong>" . esc_html__('End:', 'bookpoint-v5') . "</strong> {$end}<br>
+      <strong>" . esc_html__('Status:', 'bookpoint-v5') . "</strong> " . esc_html($booking['status'] ?? '-') . "</p>
 
-      <p><strong>" . esc_html__('Customer:', 'bookpoint-booking') . "</strong> {$name}<br>
-      <strong>" . esc_html__('Email:', 'bookpoint-booking') . "</strong> {$email}<br>
-      <strong>" . esc_html__('Phone:', 'bookpoint-booking') . "</strong> {$phone}</p>
+      <p><strong>" . esc_html__('Customer:', 'bookpoint-v5') . "</strong> {$name}<br>
+      <strong>" . esc_html__('Email:', 'bookpoint-v5') . "</strong> {$email}<br>
+      <strong>" . esc_html__('Phone:', 'bookpoint-v5') . "</strong> {$phone}</p>
 
-      <p><a href=\"" . esc_url($manage_url) . "\">" . esc_html__('Manage link', 'bookpoint-booking') . "</a></p>
+      <p><a href=\"" . esc_url($manage_url) . "\">" . esc_html__('Manage link', 'bookpoint-v5') . "</a></p>
     ";
   }
 

@@ -6,12 +6,12 @@ add_action('rest_api_init', function () {
   register_rest_route('pointly-booking/v1', '/admin/locations', [
     [
       'methods' => WP_REST_Server::READABLE,
-      'permission_callback' => 'pointlybooking_rest_can_manage_locations',
+      'permission_callback' => 'pointlybooking_rest_can_read_locations',
       'callback' => 'pointlybooking_rest_admin_locations_list',
     ],
     [
       'methods' => WP_REST_Server::CREATABLE,
-      'permission_callback' => 'pointlybooking_rest_can_manage_locations',
+      'permission_callback' => 'pointlybooking_rest_can_create_locations',
       'callback' => 'pointlybooking_rest_admin_locations_create',
     ],
   ]);
@@ -19,17 +19,17 @@ add_action('rest_api_init', function () {
   register_rest_route('pointly-booking/v1', '/admin/locations/(?P<id>\d+)', [
     [
       'methods' => WP_REST_Server::READABLE,
-      'permission_callback' => 'pointlybooking_rest_can_manage_locations',
+      'permission_callback' => 'pointlybooking_rest_can_read_locations',
       'callback' => 'pointlybooking_rest_admin_locations_get',
     ],
     [
       'methods' => WP_REST_Server::EDITABLE,
-      'permission_callback' => 'pointlybooking_rest_can_manage_locations',
+      'permission_callback' => 'pointlybooking_rest_can_update_locations',
       'callback' => 'pointlybooking_rest_admin_locations_update',
     ],
     [
       'methods' => WP_REST_Server::DELETABLE,
-      'permission_callback' => 'pointlybooking_rest_can_manage_locations',
+      'permission_callback' => 'pointlybooking_rest_can_delete_locations',
       'callback' => 'pointlybooking_rest_admin_locations_delete',
     ],
   ]);
@@ -37,12 +37,12 @@ add_action('rest_api_init', function () {
   register_rest_route('pointly-booking/v1', '/admin/locations/(?P<id>\d+)/agents', [
     [
       'methods' => WP_REST_Server::READABLE,
-      'permission_callback' => 'pointlybooking_rest_can_manage_locations',
+      'permission_callback' => 'pointlybooking_rest_can_read_location_agent_relations',
       'callback' => 'pointlybooking_rest_admin_locations_agents_get',
     ],
     [
       'methods' => WP_REST_Server::CREATABLE,
-      'permission_callback' => 'pointlybooking_rest_can_manage_locations',
+      'permission_callback' => 'pointlybooking_rest_can_manage_location_agent_relations',
       'callback' => 'pointlybooking_rest_admin_locations_agents_set',
     ],
   ]);
@@ -50,12 +50,12 @@ add_action('rest_api_init', function () {
   register_rest_route('pointly-booking/v1', '/admin/location-categories', [
     [
       'methods' => WP_REST_Server::READABLE,
-      'permission_callback' => 'pointlybooking_rest_can_manage_locations',
+      'permission_callback' => 'pointlybooking_rest_can_read_location_categories',
       'callback' => 'pointlybooking_rest_admin_location_categories_list',
     ],
     [
       'methods' => WP_REST_Server::CREATABLE,
-      'permission_callback' => 'pointlybooking_rest_can_manage_locations',
+      'permission_callback' => 'pointlybooking_rest_can_create_location_categories',
       'callback' => 'pointlybooking_rest_admin_location_categories_create',
     ],
   ]);
@@ -63,19 +63,76 @@ add_action('rest_api_init', function () {
   register_rest_route('pointly-booking/v1', '/admin/location-categories/(?P<id>\d+)', [
     [
       'methods' => WP_REST_Server::EDITABLE,
-      'permission_callback' => 'pointlybooking_rest_can_manage_locations',
+      'permission_callback' => 'pointlybooking_rest_can_update_location_categories',
       'callback' => 'pointlybooking_rest_admin_location_categories_update',
     ],
     [
       'methods' => WP_REST_Server::DELETABLE,
-      'permission_callback' => 'pointlybooking_rest_can_manage_locations',
+      'permission_callback' => 'pointlybooking_rest_can_delete_location_categories',
       'callback' => 'pointlybooking_rest_admin_location_categories_delete',
     ],
   ]);
 });
 
+function pointlybooking_rest_has_location_management_cap(): bool {
+  $can_manage_settings = current_user_can('pointlybooking_manage_settings');
+  $can_manage_options = current_user_can('manage_options');
+  return $can_manage_settings || $can_manage_options;
+}
+
+function pointlybooking_rest_can_read_locations(): bool {
+  $allowed = pointlybooking_rest_has_location_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_create_locations(): bool {
+  $allowed = pointlybooking_rest_has_location_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_update_locations(): bool {
+  $allowed = pointlybooking_rest_has_location_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_delete_locations(): bool {
+  $allowed = pointlybooking_rest_has_location_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_read_location_agent_relations(): bool {
+  $allowed = pointlybooking_rest_has_location_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_manage_location_agent_relations(): bool {
+  $allowed = pointlybooking_rest_has_location_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_read_location_categories(): bool {
+  $allowed = pointlybooking_rest_has_location_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_create_location_categories(): bool {
+  $allowed = pointlybooking_rest_has_location_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_update_location_categories(): bool {
+  $allowed = pointlybooking_rest_has_location_management_cap();
+  return $allowed;
+}
+
+function pointlybooking_rest_can_delete_location_categories(): bool {
+  $allowed = pointlybooking_rest_has_location_management_cap();
+  return $allowed;
+}
+
 function pointlybooking_rest_can_manage_locations(): bool {
-  return current_user_can('manage_options') || current_user_can('pointlybooking_manage_settings');
+  $allowed = pointlybooking_rest_has_location_management_cap();
+  return $allowed;
 }
 
 function pointlybooking_locations_img_url($image_id, $size = 'thumbnail') {

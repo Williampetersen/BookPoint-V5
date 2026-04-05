@@ -2,11 +2,11 @@
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
   "name": "bookpoint/booking-form",
-  "title": "BookPoint â€“ Booking Form",
+  "title": "BookPoint Ã¢â‚¬â€œ Booking Form",
   "category": "widgets",
   "icon": "calendar-alt",
   "description": "Insert the BookPoint booking form.",
-  "textdomain": "bookpoint-booking",
+  "textdomain": "bookpoint-v5",
   "attributes": {
     "serviceId": {
       "type": "number",
