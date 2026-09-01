@@ -230,6 +230,21 @@ export default function AgentsEditScreen() {
     return "";
   }
 
+  async function onDelete() {
+    if (!id) return;
+    if (!window.confirm("Delete this agent? This cannot be undone.")) return;
+    setSaving(true);
+    setError("");
+    try {
+      await bpFetch(`/admin/agents/${id}`, { method: "DELETE" });
+      window.location.href = "admin.php?page=pointlybooking_agents";
+    } catch (e) {
+      setError(e?.message || "Delete failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function onSave() {
     const msg = validate();
     if (msg) {
@@ -296,7 +311,7 @@ export default function AgentsEditScreen() {
       {error ? <div className="bp-error">{error}</div> : null}
 
       {loading ? (
-        <div className="bp-card">Loadingâ€¦</div>
+        <div className="bp-card">Loading…</div>
       ) : (
         <div className="bp-agent-edit__grid">
           <section className="bp-agent-edit__main">
@@ -438,7 +453,7 @@ export default function AgentsEditScreen() {
 
               <div className="bp-agent-edit__services">
                 {servicesLoading ? (
-                  <div className="bp-muted">Loading servicesâ€¦</div>
+                  <div className="bp-muted">Loading services…</div>
                 ) : filteredServices.length === 0 ? (
                   <div className="bp-muted">No services found.</div>
                 ) : (
@@ -477,7 +492,7 @@ export default function AgentsEditScreen() {
                   Inactive
                 </button>
               </div>
-              <div className="bp-muted">Inactive agents wonâ€™t appear for booking selection.</div>
+              <div className="bp-muted">Inactive agents won't appear for booking selection.</div>
             </div>
 
             <div className="bp-agent-edit__avatar">
@@ -501,6 +516,14 @@ export default function AgentsEditScreen() {
                 Remove
               </button>
             </div>
+
+            {id ? (
+              <div className="bp-agent-edit__danger">
+                <button type="button" className="bp-agent-edit__dangerbtn" onClick={onDelete} disabled={saving}>
+                  Delete agent
+                </button>
+              </div>
+            ) : null}
           </aside>
         </div>
       )}

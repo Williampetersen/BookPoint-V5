@@ -42,7 +42,7 @@ registerBlockType(metadata.name, {
     }, []);
 
     const options = useMemo(() => {
-      const base = [{ label: __('Select a serviceÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦', 'bookpoint-v5'), value: '0' }];
+      const base = [{ label: __('Select a service…', 'bookpoint-v5'), value: '0' }];
       const mapped = services.map((s) => ({
         label: `${s.name} (${s.duration_minutes} min)`,
         value: String(s.id),
@@ -62,7 +62,7 @@ registerBlockType(metadata.name, {
 
             {loading && (
               <Notice status="info" isDismissible={false}>
-                {__('Loading servicesÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦', 'bookpoint-v5')}
+                {__('Loading services…', 'bookpoint-v5')}
               </Notice>
             )}
 
@@ -77,7 +77,7 @@ registerBlockType(metadata.name, {
               value={String(serviceId || 0)}
               options={options}
               onChange={(val) => setAttributes({ serviceId: parseInt(val || '0', 10) || 0 })}
-              help={__('Services are loaded from BookPoint ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Services.', 'bookpoint-v5')}
+              help={__('Services are loaded from BookPoint → Services.', 'bookpoint-v5')}
             />
 
             <TextControl
@@ -109,7 +109,7 @@ registerBlockType(metadata.name, {
         </InspectorControls>
 
         <div style={{ padding: '14px', border: '1px solid #ddd', borderRadius: '6px' }}>
-          <strong>{__('BookPoint ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ Booking Form', 'bookpoint-v5')}</strong>
+          <strong>{__('BookPoint – Booking Form', 'bookpoint-v5')}</strong>
 
           {serviceId > 0 ? (
             <p style={{ marginTop: '8px' }}>

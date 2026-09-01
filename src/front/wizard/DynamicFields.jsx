@@ -32,9 +32,10 @@ export default function DynamicFields({ defs = [], layout = [], values, onChange
         const width = l.width === 'half' ? 'half' : 'full';
         const key = scope ? `${scope}.${id}` : id;
         const v = (values || {})[key] ?? '';
+        const fieldId = `bp-field-${key}`;
 
         const label = (
-          <label className="bp-label">
+          <label className="bp-label" htmlFor={fieldId}>
             {def.label} {required ? <span className="bp-req">*</span> : null}
           </label>
         );
@@ -44,6 +45,7 @@ export default function DynamicFields({ defs = [], layout = [], values, onChange
             <div className={`bp-field bp-${width}`} key={key}>
               {label}
               <textarea
+                id={fieldId}
                 className="bp-textarea"
                 placeholder={def.placeholder || ''}
                 value={v}
@@ -59,6 +61,7 @@ export default function DynamicFields({ defs = [], layout = [], values, onChange
             <div className={`bp-field bp-${width}`} key={key}>
               {label}
               <select
+                id={fieldId}
                 className="bp-select"
                 value={v}
                 onChange={(e) => setVal(id, e.target.value)}
@@ -77,8 +80,9 @@ export default function DynamicFields({ defs = [], layout = [], values, onChange
         if (def.type === 'checkbox') {
           return (
             <div className={`bp-field bp-${width}`} key={key}>
-              <label className="bp-checkbox-row">
+              <label className="bp-checkbox-row" htmlFor={fieldId}>
                 <input
+                  id={fieldId}
                   type="checkbox"
                   checked={!!v}
                   onChange={(e) => setVal(id, e.target.checked)}
@@ -96,6 +100,7 @@ export default function DynamicFields({ defs = [], layout = [], values, onChange
             <div className={`bp-field bp-${width}`} key={key}>
               {label}
               <input
+                id={fieldId}
                 className="bp-input-field"
                 type="date"
                 value={v}
@@ -109,6 +114,7 @@ export default function DynamicFields({ defs = [], layout = [], values, onChange
           <div className={`bp-field bp-${width}`} key={key}>
             {label}
             <input
+              id={fieldId}
               className="bp-input-field"
               type={def.type === 'tel' ? 'tel' : def.type === 'email' ? 'email' : 'text'}
               placeholder={def.placeholder || ''}

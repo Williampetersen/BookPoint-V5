@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { bpFetch } from "../api/client";
 import { bpEmit, bpOn } from "../lib/bpEvents";
 import BookingDrawer from "../components/BookingDrawer";
@@ -134,7 +134,7 @@ export default function CalendarScreen(){
       const status = (ev.status || "pending").toLowerCase();
       return {
         id: String(ev.id),
-        title: `${ev.service_name || "Service"} â€¢ ${ev.customer_name || "Customer"}`,
+        title: `${ev.service_name || "Service"} • ${ev.customer_name || "Customer"}`,
         start: ev.start,
         end: ev.end,
         classNames: [`bp-evt-${status}`],
@@ -230,59 +230,6 @@ export default function CalendarScreen(){
     <div className="myplugin-page bp-calendar">
       <main className="myplugin-content">
       <div className="bp-cal-layout is-side-collapsed">
-        {false ? (
-          <aside className="bp-cal-side">
-            <div className="bp-cal-side__head">
-              <div style={{ fontWeight: 1000 }}>Filters</div>
-              <button className="bp-top-btn" type="button" onClick={() => setSideCollapsed(true)}>
-                Hide
-              </button>
-            </div>
-            <div className="bp-cal-side__body">
-              <div className="bp-filter-group">
-                <label className="bp-filter-label">Agent</label>
-                <select className="bp-input" value={agentId} onChange={(e)=>setAgentId(parseInt(e.target.value,10)||0)}>
-                  <option value={0}>All agents</option>
-                  {agents.map(a => (
-                    <option key={a.id} value={a.id}>{a.name || `${a.first_name || ""} ${a.last_name || ""}`.trim() || `#${a.id}`}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="bp-filter-group">
-                <label className="bp-filter-label">Status</label>
-                <select className="bp-input" value={status} onChange={(e)=>setStatus(e.target.value)}>
-                  <option value="all">All status</option>
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-
-              <div className="bp-filter-group">
-                <label className="bp-filter-label">Search</label>
-                <input
-                  className="bp-input"
-                  placeholder="Customer, email, agentâ€¦"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </div>
-
-              <div className="bp-cal-legend">
-                <div className="bp-filter-label" style={{ marginBottom: 8 }}>Legend</div>
-                <div className="bp-cal-legend__grid">
-                  <span className="bp-cal-legend__item bp-evt-confirmed">Confirmed</span>
-                  <span className="bp-cal-legend__item bp-evt-pending">Pending</span>
-                  <span className="bp-cal-legend__item bp-evt-cancelled">Cancelled</span>
-                  <span className="bp-cal-legend__item bp-evt-completed">Completed</span>
-                </div>
-              </div>
-            </div>
-          </aside>
-        ) : null}
-
         <section className="bp-cal-main">
           <div className="bp-cal-top">
             <div className="bp-cal-title">

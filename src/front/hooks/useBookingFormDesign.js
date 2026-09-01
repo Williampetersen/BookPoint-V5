@@ -12,7 +12,8 @@ export default function useBookingFormDesign(open) {
     setLoading(true);
     setError('');
 
-    const url = `/wp-json/pointly-booking/v1/front/booking-form-design?_t=${Date.now()}`;
+    const base = window.pointlybooking_FRONT?.restUrl || '/wp-json/pointly-booking/v1';
+    const url = `${base}/front/booking-form-design?_t=${Date.now()}`;
 
     fetch(url, { credentials: 'same-origin' })
       .then(async (r) => {

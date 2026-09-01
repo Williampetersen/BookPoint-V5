@@ -58,15 +58,6 @@ function pointlybooking_paypal_start(WP_REST_Request $req) {
   $payload = $req->get_json_params();
   if (!is_array($payload)) $payload = [];
 
-  $amount = (float)($payload['total_price'] ?? ($payload['total'] ?? 0));
-  $currency = strtoupper(sanitize_text_field($payload['currency'] ?? 'USD'));
-  if ($amount <= 0) {
-    return new WP_Error('bad_amount', 'Invalid total amount.', ['status' => 400]);
-  }
-  if (!preg_match('/^[A-Z]{3}$/', $currency)) {
-    $currency = 'USD';
-  }
-
   $booking = pointlybooking_create_pending_payment_booking_from_payload($payload, 'paypal');
   if (is_wp_error($booking)) return $booking;
   $booking_id = (int)($booking['booking_id'] ?? 0);
@@ -75,6 +66,21 @@ function pointlybooking_paypal_start(WP_REST_Request $req) {
   }
   $booking_row = POINTLYBOOKING_BookingModel::find($booking_id);
   $manage_key = sanitize_text_field((string)($booking_row['manage_key'] ?? ''));
+
+  // Amount/currency come from the booking row (computed server-side at creation time),
+  // never from the client payload, so a submitted total can't under-charge PayPal.
+  $amount = isset($booking_row['payment_amount']) && $booking_row['payment_amount'] !== null
+    ? (float)$booking_row['payment_amount']
+    : (float)($booking_row['total_price'] ?? 0);
+  $currency = !empty($booking_row['payment_currency'])
+    ? strtoupper((string)$booking_row['payment_currency'])
+    : (!empty($booking_row['currency']) ? strtoupper((string)$booking_row['currency']) : 'USD');
+  if (!preg_match('/^[A-Z]{3}$/', $currency)) {
+    $currency = 'USD';
+  }
+  if ($amount <= 0) {
+    return new WP_Error('bad_amount', 'Invalid total amount.', ['status' => 400]);
+  }
 
   $return = class_exists('POINTLYBOOKING_SettingsHelper')
     ? (string)POINTLYBOOKING_SettingsHelper::get('payments_paypal_return_url', '')
@@ -182,6 +188,14 @@ function pointlybooking_paypal_capture(WP_REST_Request $req) {
     return new WP_Error('forbidden', 'Invalid booking key', ['status' => 403]);
   }
 
+  // The order_id being captured must be the exact one created for THIS booking at
+  // /front/payments/paypal/start — otherwise a successful order from a different
+  // (possibly cheaper) booking could be replayed to mark this one paid.
+  $stored_ref = (string)($booking['payment_provider_ref'] ?? '');
+  if ($stored_ref === '' || !hash_equals($stored_ref, $order_id)) {
+    return new WP_Error('order_mismatch', 'This payment does not match the booking.', ['status' => 400]);
+  }
+
   $resp = wp_remote_post(pointlybooking_paypal_base() . "/v2/checkout/orders/{$order_id}/capture", [
     'headers' => [
       'Authorization' => 'Bearer ' . $token,
@@ -198,6 +212,24 @@ function pointlybooking_paypal_capture(WP_REST_Request $req) {
   $json = json_decode(wp_remote_retrieve_body($resp), true);
   if ($code < 200 || $code >= 300) {
     return new WP_Error('paypal_error', $json['message'] ?? 'PayPal capture failed', ['status' => 500]);
+  }
+
+  $status = $json['status'] ?? '';
+  $captures = $json['purchase_units'][0]['payments']['captures'][0] ?? [];
+  $captured_amount = isset($captures['amount']['value']) ? (float)$captures['amount']['value'] : null;
+  $captured_custom_id = isset($captures['custom_id']) ? (string)$captures['custom_id'] : (string)($json['purchase_units'][0]['custom_id'] ?? '');
+
+  $expected_amount = isset($booking['payment_amount']) && $booking['payment_amount'] !== null
+    ? (float)$booking['payment_amount']
+    : (float)($booking['total_price'] ?? 0);
+
+  if (
+    $status !== 'COMPLETED' ||
+    $captured_custom_id !== (string)$booking_id ||
+    $captured_amount === null ||
+    abs($captured_amount - $expected_amount) > 0.01
+  ) {
+    return new WP_Error('payment_mismatch', 'Payment verification failed.', ['status' => 400]);
   }
 
   pointlybooking_confirm_booking_paid($booking_id, $order_id);

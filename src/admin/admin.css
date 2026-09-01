@@ -2947,6 +2947,20 @@
 }
 .bp-service-edit__dangerbtn:disabled{opacity:.6;cursor:not-allowed}
 
+/* Agent edit danger zone */
+.bp-agent-edit__danger{margin-top:14px;padding-top:14px;border-top:1px solid rgba(15,23,42,.08)}
+.bp-agent-edit__dangerbtn{
+  width:100%;
+  height:44px;
+  border-radius:14px;
+  border:1px solid #fecaca;
+  background:#fee2e2;
+  color:#991b1b;
+  font-weight:900;
+  cursor:pointer;
+}
+.bp-agent-edit__dangerbtn:disabled{opacity:.6;cursor:not-allowed}
+
 /* Checkbox hardening (scope only to service edit) */
 .bp-service-edit input[type="checkbox"]{
   appearance:auto !important;

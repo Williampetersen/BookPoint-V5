@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { bpFetch } from "../api/client";
 
 function Badge({ status }) {
@@ -61,7 +61,7 @@ export default function DashboardScreen() {
   });
 
   const rangeLabel = useMemo(() => {
-    if (preset === "custom") return `${from} â€“ ${to}`;
+    if (preset === "custom") return `${from} – ${to}`;
     return presetToRange(preset).label;
   }, [preset, from, to]);
 
@@ -214,7 +214,7 @@ export default function DashboardScreen() {
                   aria-haspopup="dialog"
                   aria-expanded={rangeOpen}
                 >
-                  {rangeLabel} <span className="bp-range__caret" aria-hidden="true">â–¾</span>
+                  {rangeLabel} <span className="bp-range__caret" aria-hidden="true">▾</span>
                 </button>
 
                 <div className="bp-range__desktop">
@@ -283,7 +283,6 @@ export default function DashboardScreen() {
                   <>
                     <div className="bp-kpi-top">
                       <div className="bp-kpi-value">{data.kpi.bookings_today}</div>
-                      <div className="bp-kpi-delta up">+0%</div>
                     </div>
                     <div className="bp-kpi-label">Bookings Today</div>
                   </>
@@ -296,7 +295,6 @@ export default function DashboardScreen() {
                   <>
                     <div className="bp-kpi-top">
                       <div className="bp-kpi-value">{data.kpi.upcoming_7d}</div>
-                      <div className="bp-kpi-delta up">+0%</div>
                     </div>
                     <div className="bp-kpi-label">Upcoming (7 days)</div>
                   </>
@@ -309,7 +307,6 @@ export default function DashboardScreen() {
                   <>
                     <div className="bp-kpi-top">
                       <div className="bp-kpi-value">{data.kpi.pending}</div>
-                      <div className="bp-kpi-delta down">-0%</div>
                     </div>
                     <div className="bp-kpi-label">Pending</div>
                   </>
@@ -322,7 +319,6 @@ export default function DashboardScreen() {
                   <>
                     <div className="bp-kpi-top">
                       <div className="bp-kpi-value">{data.kpi.services}</div>
-                      <div className="bp-kpi-delta up">+0%</div>
                     </div>
                     <div className="bp-kpi-label">Services</div>
                   </>

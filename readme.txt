@@ -3,8 +3,8 @@ Contributors: wpbookpoint
 Donate link: https://wpbookpoint.com/
 Tags: booking, appointment booking, scheduling, calendar, service booking
 Requires at least: 6.0
-Tested up to: 6.9
-Stable tag: 1.0.1
+Tested up to: 7.1
+Stable tag: 1.1.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -156,10 +156,24 @@ Privacy policy URL: The privacy policy of the external provider chosen by the si
 
 == Changelog ==
 
+= 1.1.0 =
+* Security: server now computes booking totals from the actual service/extras/promo-code prices instead of trusting the amount sent by the browser, and payment confirmation (Stripe, PayPal) now verifies the payment actually belongs to the booking being marked paid.
+* Fix: bookings using PayPal, WooCommerce, or Cash could get stuck with no way to complete when online payments were enabled; the wizard now routes each payment method correctly.
+* Fix: the Gutenberg block's Service, Default Date, Hide Notes, Require Phone, and Compact Layout settings now actually apply to the booking form.
+* Fix: booking form now loads its stylesheet correctly on RTL sites.
+* Fix: uninstall cleanup now removes all plugin database tables when that option is enabled.
+* Improvement: added a database-level lock around slot booking to prevent double-booking under concurrent requests.
+* Improvement: admin sidebar now links to Schedule, Holidays, Promo Codes, Form Fields, Notifications, Audit Log, and Tools; added the ability to delete an Agent from the admin UI; Booking Form Designer's Fields Layout panel can add fields back after removing them.
+* Fix: corrected garbled/mis-encoded text across the admin UI, booking widget, and block editor.
+* Tested up to WordPress 7.1.
+
 = 1.0.1 =
 * Initial WordPress.org release.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Includes booking payment security fixes; upgrade recommended for all sites accepting online payments.
 
 = 1.0.1 =
 Initial public release of BookPoint Booking & Appointments with core booking features.

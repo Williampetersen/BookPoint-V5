@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { bpFetch } from "../api/client";
 import CustomerDrawer from "../components/CustomerDrawer";
 import { Drawer } from "../ui/Drawer";
@@ -118,7 +118,7 @@ export default function CustomersScreen() {
       <div className="bp-cards" style={{ marginBottom: 14 }}>
         <div className="bp-card">
           <div className="bp-card-label">Total (filtered)</div>
-          <div className="bp-card-value">{loading ? "â€¦" : total}</div>
+          <div className="bp-card-value">{loading ? "…" : total}</div>
         </div>
       </div>
 
@@ -126,7 +126,7 @@ export default function CustomersScreen() {
         <form className="bp-filters" onSubmit={onSearchSubmit}>
           <input
             className="bp-input"
-            placeholder="Search name, email, phoneâ€¦"
+            placeholder="Search name, email, phone…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -161,7 +161,7 @@ export default function CustomersScreen() {
             <div>Actions</div>
           </div>
 
-          {loading ? <div className="bp-muted" style={{ padding: 10 }}>Loadingâ€¦</div> : null}
+          {loading ? <div className="bp-muted" style={{ padding: 10 }}>Loading…</div> : null}
 
           {!loading &&
             items.map((c) => {
@@ -202,16 +202,16 @@ export default function CustomersScreen() {
 
         <div className="bp-pager">
           <button className="bp-top-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-            â† Previous
+            ← Previous
           </button>
           <div className="bp-pager-info bp-muted">
             Page {page} / {pages}
             <div className="bp-pager-sub">
-              Showing {showingFrom}â€“{showingTo} of {total}
+              Showing {showingFrom}–{showingTo} of {total}
             </div>
           </div>
           <button className="bp-top-btn" disabled={page >= pages} onClick={() => setPage((p) => Math.min(pages, p + 1))}>
-            Next â†’
+            Next →
           </button>
         </div>
       </div>

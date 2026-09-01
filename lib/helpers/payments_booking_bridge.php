@@ -6,20 +6,14 @@ function pointlybooking_create_pending_payment_booking_from_payload(array $paylo
     return new WP_Error('booking_handler_missing', 'Booking handler missing', ['status' => 500]);
   }
 
-  $amount = isset($payload['total_price'])
-    ? (float)$payload['total_price']
-    : (float)($payload['total'] ?? 0);
-  $currency = sanitize_text_field($payload['currency'] ?? '');
-
+  // Amount/currency are intentionally omitted here: pointlybooking_insert_booking_from_payload()
+  // computes the authoritative total server-side (service price + valid extras + validated promo
+  // code) rather than trusting client-submitted totals for what actually gets charged.
   $overrides = [
     'status' => 'pending_payment',
     'payment_method' => $method,
     'payment_status' => 'unpaid',
-    'payment_amount' => $amount,
   ];
-  if ($currency !== '') {
-    $overrides['payment_currency'] = $currency;
-  }
 
   return pointlybooking_insert_booking_from_payload($payload, $overrides);
 }

@@ -35,7 +35,7 @@ const todayIso = () => toIso(new Date());
 function formatRange(start, end) {
   const s = String(start || "").slice(0, 10);
   const e = String(end || "").slice(0, 10);
-  return s && e && s !== e ? `${s} - ${e}` : s || e || "â€”";
+  return s && e && s !== e ? `${s} - ${e}` : s || e || "—";
 }
 
 function agentLabel(a) {
@@ -427,7 +427,7 @@ export default function HolidaysScreen({ embedded = false }) {
                             </div>
                             <div className="bp-holidays__rowMeta">
                               <span className="bp-muted">{formatRange(r.start_date, r.end_date)}</span>
-                              <span className="bp-holidays__dot">â€¢</span>
+                              <span className="bp-holidays__dot">•</span>
                               <span className="bp-muted">{scope}</span>
                             </div>
                           </div>

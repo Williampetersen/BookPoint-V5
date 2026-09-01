@@ -1,4 +1,4 @@
-﻿export function normalizeCurrencyCode(input) {
+export function normalizeCurrencyCode(input) {
   const raw = String(input || '').trim();
   if (!raw) return '';
 
@@ -20,8 +20,8 @@ export function currencySymbol(currencyCode) {
   } catch (e) {
     const fallback = {
       USD: '$',
-      EUR: 'â‚¬',
-      GBP: 'Â£',
+      EUR: '€',
+      GBP: '£',
       DKK: 'Kr',
       NOK: 'Kr',
       SEK: 'Kr',

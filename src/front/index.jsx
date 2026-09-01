@@ -12,8 +12,13 @@ function BookPointWidget({ label, mountEl }) {
   const brand = useMemo(() => ({
     imagesBase,
     iconsBase,
-    helpPhone: '+1 234 567 89',
   }), [imagesBase, iconsBase]);
+
+  const presetServiceId = Number(mountEl?.getAttribute('data-bp-service-id') || 0) || null;
+  const presetDate = mountEl?.getAttribute('data-bp-default-date') || null;
+  const hideNotes = mountEl?.getAttribute('data-bp-hide-notes') === '1';
+  const requirePhone = mountEl?.getAttribute('data-bp-require-phone') === '1';
+  const compact = mountEl?.getAttribute('data-bp-compact') === '1';
 
   useEffect(() => attachOpenHandler(mountEl, setOpen), [mountEl]);
 
@@ -33,6 +38,11 @@ function BookPointWidget({ label, mountEl }) {
         open={open}
         onClose={() => setOpen(false)}
         brand={brand}
+        presetServiceId={presetServiceId}
+        presetDate={presetDate}
+        hideNotes={hideNotes}
+        requirePhone={requirePhone}
+        compact={compact}
       />
     </>
   );
@@ -52,7 +62,6 @@ function getBrand() {
   return {
     imagesBase,
     iconsBase,
-    helpPhone: '+1 234 567 89',
   };
 }
 

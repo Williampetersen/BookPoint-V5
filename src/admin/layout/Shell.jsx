@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
 import { iconDataUri } from "../icons/iconData";
 
-export default function Shell({ theme, onToggleTheme, active, children }) {
+export default function Shell({ theme, active, children }) {
   const page = window.pointlybooking_ADMIN?.page || "pointlybooking_dashboard";
   const pluginUrl = String(window.pointlybooking_ADMIN?.pluginUrl || window.bpAdmin?.pluginUrl || "").replace(/\/$/, "");
   const publicImagesUrl = (
@@ -21,8 +21,13 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const pickIcon = (name, isActive) => ICON(name, isActive);
+  const settingsTab = new URLSearchParams(window.location.search).get("tab") || "";
+  const dedicatedSettingsTabs = ["schedule", "holidays", "form_fields", "promo_codes", "notifications", "audit_log", "tools"];
   const is = (p) => {
-    if (page === p) return true;
+    if (page === p) {
+      if (p === "pointlybooking_settings") return !dedicatedSettingsTabs.includes(settingsTab);
+      return true;
+    }
     if (p === "pointlybooking_locations" && (page === "pointlybooking_locations_edit" || page === "pointlybooking_location_categories_edit")) return true;
     if (p === "pointlybooking_bookings" && page === "pointlybooking_bookings_edit") return true;
     if (p === "pointlybooking_services" && page === "pointlybooking_services_edit") return true;
@@ -32,6 +37,7 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
     if (p === "pointlybooking_customers" && page === "pointlybooking_customers_edit") return true;
     return false;
   };
+  const isSettingsTab = (t) => page === "pointlybooking_settings" && settingsTab === t;
 
   useEffect(() => {
     try {
@@ -165,6 +171,48 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
                   <span className="bp-sidebar-text">Settings</span>
                 </span>
               </a>
+              <a className={`bp-nav-item ${isSettingsTab("schedule") ? "active" : ""}`} href="admin.php?page=pointlybooking_settings&tab=schedule">
+                <span className="bp-sidebar-item" title={collapsed ? "Schedule" : ""}>
+                  <img className="bp-sidebar-icon" src={pickIcon("settings", isSettingsTab("schedule"))} alt="" aria-hidden="true" />
+                  <span className="bp-sidebar-text">Schedule</span>
+                </span>
+              </a>
+              <a className={`bp-nav-item ${isSettingsTab("holidays") ? "active" : ""}`} href="admin.php?page=pointlybooking_settings&tab=holidays">
+                <span className="bp-sidebar-item" title={collapsed ? "Holidays" : ""}>
+                  <img className="bp-sidebar-icon" src={pickIcon("settings", isSettingsTab("holidays"))} alt="" aria-hidden="true" />
+                  <span className="bp-sidebar-text">Holidays</span>
+                </span>
+              </a>
+              <a className={`bp-nav-item ${isSettingsTab("promo_codes") ? "active" : ""}`} href="admin.php?page=pointlybooking_settings&tab=promo_codes">
+                <span className="bp-sidebar-item" title={collapsed ? "Promo Codes" : ""}>
+                  <img className="bp-sidebar-icon" src={pickIcon("settings", isSettingsTab("promo_codes"))} alt="" aria-hidden="true" />
+                  <span className="bp-sidebar-text">Promo Codes</span>
+                </span>
+              </a>
+              <a className={`bp-nav-item ${isSettingsTab("form_fields") ? "active" : ""}`} href="admin.php?page=pointlybooking_settings&tab=form_fields">
+                <span className="bp-sidebar-item" title={collapsed ? "Form Fields" : ""}>
+                  <img className="bp-sidebar-icon" src={pickIcon("settings", isSettingsTab("form_fields"))} alt="" aria-hidden="true" />
+                  <span className="bp-sidebar-text">Form Fields</span>
+                </span>
+              </a>
+              <a className={`bp-nav-item ${isSettingsTab("notifications") ? "active" : ""}`} href="admin.php?page=pointlybooking_settings&tab=notifications">
+                <span className="bp-sidebar-item" title={collapsed ? "Notifications" : ""}>
+                  <img className="bp-sidebar-icon" src={pickIcon("settings", isSettingsTab("notifications"))} alt="" aria-hidden="true" />
+                  <span className="bp-sidebar-text">Notifications</span>
+                </span>
+              </a>
+              <a className={`bp-nav-item ${isSettingsTab("audit_log") ? "active" : ""}`} href="admin.php?page=pointlybooking_settings&tab=audit_log">
+                <span className="bp-sidebar-item" title={collapsed ? "Audit Log" : ""}>
+                  <img className="bp-sidebar-icon" src={pickIcon("settings", isSettingsTab("audit_log"))} alt="" aria-hidden="true" />
+                  <span className="bp-sidebar-text">Audit Log</span>
+                </span>
+              </a>
+              <a className={`bp-nav-item ${isSettingsTab("tools") ? "active" : ""}`} href="admin.php?page=pointlybooking_settings&tab=tools">
+                <span className="bp-sidebar-item" title={collapsed ? "Tools" : ""}>
+                  <img className="bp-sidebar-icon" src={pickIcon("settings", isSettingsTab("tools"))} alt="" aria-hidden="true" />
+                  <span className="bp-sidebar-text">Tools</span>
+                </span>
+              </a>
               <a className={`bp-nav-item ${is("pointlybooking_design_form") ? "active" : ""}`} href="admin.php?page=pointlybooking_design_form">
                 <span className="bp-sidebar-item" title={collapsed ? "Booking Form Designer" : ""}>
                   <img className="bp-sidebar-icon" src={pickIcon("designer", is("pointlybooking_design_form"))} alt="" aria-hidden="true" />
@@ -216,21 +264,7 @@ export default function Shell({ theme, onToggleTheme, active, children }) {
               </div>
             </div>
 
-            {page !== "pointlybooking_services_edit" &&
-            page !== "pointlybooking_categories_edit" &&
-            page !== "pointlybooking_extras_edit" &&
-            page !== "pointlybooking_locations_edit" &&
-            page !== "pointlybooking_location_categories_edit" &&
-            page !== "pointlybooking_agents_edit" &&
-            page !== "pointlybooking_customers_edit" ? (
-              <div className="bp-topbar__center">
-                <div className="bp-search">
-                  <input placeholder="Search..." />
-                </div>
-              </div>
-            ) : (
-              <div className="bp-topbar__center" aria-hidden="true" />
-            )}
+            <div className="bp-topbar__center" aria-hidden="true" />
 
             <div className="bp-topbar__right">
               <div className="bp-topbar__dock">

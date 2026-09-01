@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   fetchLocations,
   fetchCategories,
@@ -65,6 +65,36 @@ function normalizeKey(k) {
 
 function toBoolEnabled(v) {
   return v !== false && v !== 0 && v !== '0';
+}
+
+// Ref-counted so multiple WizardModal instances on one page (two shortcodes,
+// or a shortcode + a block) don't unlock scroll behind each other's open modal.
+let bpModalOpenCount = 0;
+function lockBodyScroll() {
+  bpModalOpenCount += 1;
+  document.body.classList.add('bp-modal-open');
+}
+function unlockBodyScroll() {
+  bpModalOpenCount = Math.max(0, bpModalOpenCount - 1);
+  if (bpModalOpenCount === 0) {
+    document.body.classList.remove('bp-modal-open');
+  }
+}
+
+function applyFieldPresets(fields, { hideNotes, requirePhone }) {
+  if (!hideNotes && !requirePhone) return fields;
+
+  const booking = hideNotes
+    ? (fields.booking || []).filter((f) => (f.field_key || f.name_key) !== 'notes')
+    : fields.booking;
+
+  const customer = requirePhone
+    ? (fields.customer || []).map((f) => (
+      (f.field_key || f.name_key) === 'phone' ? { ...f, is_required: 1, required: 1 } : f
+    ))
+    : fields.customer;
+
+  return { ...fields, booking, customer };
 }
 
 function getRestBase() {
@@ -186,7 +216,16 @@ function buildSteps(designConfig) {
   return list;
 }
 
-export default function WizardModal({ open, onClose, brand }) {
+export default function WizardModal({
+  open,
+  onClose,
+  brand,
+  presetServiceId = null,
+  presetDate = null,
+  hideNotes = false,
+  requirePhone = false,
+  compact = false,
+}) {
   const [stepIndex, setStepIndex] = useState(0);
   const { config: designConfig, loading: designLoading, error: designError } = useBookingFormDesign(open);
   const baseSteps = useMemo(() => buildSteps(designConfig), [designConfig]);
@@ -224,6 +263,34 @@ export default function WizardModal({ open, onClose, brand }) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const modalRef = useRef(null);
+  const previouslyFocusedRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    previouslyFocusedRef.current = document.activeElement;
+    const focusTimer = window.setTimeout(() => {
+      modalRef.current?.focus();
+    }, 0);
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose?.();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', onKeyDown);
+      if (previouslyFocusedRef.current instanceof HTMLElement) {
+        previouslyFocusedRef.current.focus();
+      }
+    };
+  }, [open, onClose]);
 
   const paymentEnabledMethods = Array.isArray(bpSettings?.payments_enabled_methods) && bpSettings.payments_enabled_methods.length
     ? bpSettings.payments_enabled_methods
@@ -266,15 +333,15 @@ export default function WizardModal({ open, onClose, brand }) {
     if (!base) return '';
 
     const url = base + file;
-    const v = String(isSvg ? window.pointlybooking_FRONT?.iconsBuild : window.pointlybooking_FRONT?.imagesBuild || '').trim();
+    const v = String((isSvg ? window.pointlybooking_FRONT?.iconsBuild : window.pointlybooking_FRONT?.imagesBuild) || '').trim();
     if (!v) return url;
     const sep = url.includes('?') ? '&' : '?';
     return `${url}${sep}v=${encodeURIComponent(v)}`;
   }, [brand, step]);
   const helpTitle = designConfig?.texts?.helpTitle || 'Need help?';
-  const helpPhone = designConfig?.texts?.helpPhone || designConfig?.layout?.helpPhone || brand?.helpPhone || '';
+  const helpPhone = designConfig?.texts?.helpPhone || designConfig?.layout?.helpPhone || '';
   const showLeft = step?.showLeftPanel !== false;
-  const showHelp = step?.showHelpBox !== false;
+  const showHelp = step?.showHelpBox !== false && !!helpPhone;
   const globalNextLabel = designConfig?.texts?.nextLabel || 'Next ->';
   const globalBackLabel = designConfig?.texts?.backLabel || '<- Back';
   const labels = useMemo(() => ({
@@ -302,8 +369,8 @@ export default function WizardModal({ open, onClose, brand }) {
 
   useEffect(() => {
     if (!open) return;
-    document.body.classList.add('bp-modal-open');
-    return () => document.body.classList.remove('bp-modal-open');
+    lockBodyScroll();
+    return () => unlockBodyScroll();
   }, [open]);
 
   useEffect(() => {
@@ -312,10 +379,10 @@ export default function WizardModal({ open, onClose, brand }) {
     setError('');
     setLocationId(null);
     setCategoryIds([]);
-    setServiceId(null);
+    setServiceId(presetServiceId || null);
     setExtraIds([]);
     setAgentId(null);
-    setDate(null);
+    setDate(presetDate || null);
     setSlot(null);
     setPaymentMethod('');
     setPaymentBookingId(0);
@@ -328,7 +395,7 @@ export default function WizardModal({ open, onClose, brand }) {
     setReturnError('');
     setConfirmData(null);
     setAnswers({});
-  }, [open]);
+  }, [open, presetServiceId, presetDate]);
 
   useEffect(() => {
     if (!open) return;
@@ -479,14 +546,14 @@ export default function WizardModal({ open, onClose, brand }) {
         ]);
         setLocations(locs);
         setCategories(cats);
-        setFormFields(fields);
+        setFormFields(applyFieldPresets(fields, { hideNotes, requirePhone }));
       } catch (e) {
         setError(e?.message || 'Failed to load booking data.');
       } finally {
         setLoading(false);
       }
     })();
-  }, [open, hasLocationStep]);
+  }, [open, hasLocationStep, hideNotes, requirePhone]);
 
   useEffect(() => {
     if (!open) return;
@@ -708,7 +775,7 @@ export default function WizardModal({ open, onClose, brand }) {
 
   if (!open) return null;
   if (designLoading && !designConfig) {
-    return <div className="bp-wizard-loading">Loading booking formâ€¦</div>;
+    return <div className="bp-wizard-loading">Loading booking form…</div>;
   }
   if (designError && !designConfig) {
     return <div className="bp-wizard-loading">Wizard error: {designError}</div>;
@@ -719,7 +786,12 @@ export default function WizardModal({ open, onClose, brand }) {
 
   return (
     <div className="bp-modal-overlay" role="dialog" aria-modal="true">
-      <div className="bp-modal" style={modalStyle}>
+      <div
+        className={compact ? 'bp-modal bp-modal-compact' : 'bp-modal'}
+        style={modalStyle}
+        ref={modalRef}
+        tabIndex={-1}
+      >
         <button className="bp-modal-close" onClick={onClose} aria-label="Close">x</button>
 
         <div className="bp-modal-grid">
@@ -884,7 +956,7 @@ export default function WizardModal({ open, onClose, brand }) {
                 totalLabel={formatMoney(totalAmount, bpSettings)}
                 onBack={back}
                 onNext={async () => {
-                  if (paymentsActive && hasPaymentStep) {
+                  if (paymentsActive && hasPaymentStep && paymentMethod === 'stripe') {
                     await createBookingIfNeeded();
                     goToStepKey('payment');
                     return;

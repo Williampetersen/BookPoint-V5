@@ -2,6 +2,10 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 
+function getRestBase() {
+  return window.pointlybooking_FRONT?.restUrl || "/wp-json/pointly-booking/v1";
+}
+
 function InnerStripePay({ bookingId, onPaid, onBack }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -28,7 +32,7 @@ function InnerStripePay({ bookingId, onPaid, onBack }) {
         return;
       }
 
-      const res = await fetch("/wp-json/pointly-booking/v1/front/payment/stripe/confirm", {
+      const res = await fetch(`${getRestBase()}/front/payment/stripe/confirm`, {
         method: "POST",
         credentials: "same-origin",
         headers: {
@@ -98,7 +102,7 @@ export default function StepPayment({
     setErr("");
     setLoading(true);
 
-    fetch("/wp-json/pointly-booking/v1/front/payment/stripe/start", {
+    fetch(`${getRestBase()}/front/payment/stripe/start`, {
       method: "POST",
       credentials: "same-origin",
       headers: {

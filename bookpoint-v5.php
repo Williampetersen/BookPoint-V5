@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BookPoint Booking & Appointments
  * Description: Lightweight appointment booking plugin for WordPress.
- * Version: 1.0.1
+ * Version: 1.1.0
  * Author: BookPoint Team
  * Author URI: https://wpbookpoint.com/
  * Plugin URI: https://wpbookpoint.com/download-for-free/
@@ -10,6 +10,8 @@
  * Domain Path: /languages
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Requires at least: 6.0
+ * Requires PHP: 7.4
  */
 
 defined('ABSPATH') || exit;
@@ -141,7 +143,7 @@ if (!class_exists('POINTLYBOOKING_Core_Plugin', false)) {
 final class POINTLYBOOKING_Core_Plugin {
 
   // NOTE: Keep plugin header Version in sync with this.
-  const VERSION    = '1.0.1';
+  const VERSION    = '1.1.0';
   const DB_VERSION = '5.0.0';
   const CAPS_SEEDED_OPTION = 'pointlybooking_caps_seeded';
   private static $booted = false;
@@ -248,6 +250,7 @@ final class POINTLYBOOKING_Core_Plugin {
     // Helpers (Portal + Webhooks)
     require_once POINTLYBOOKING_LIB_PATH . 'helpers/portal_helper.php';
     require_once POINTLYBOOKING_LIB_PATH . 'helpers/webhook_helper.php';
+    require_once POINTLYBOOKING_LIB_PATH . 'helpers/pricing_helper.php';
     require_once POINTLYBOOKING_LIB_PATH . 'helpers/payments_booking_bridge.php';
 
     // Helpers (Audit)
@@ -980,24 +983,17 @@ final class POINTLYBOOKING_Core_Plugin {
   }
 
   public static function render_booking_form_block(array $attributes) : string {
-    $service_id = isset($attributes['serviceId']) ? absint($attributes['serviceId']) : 0;
-    if ($service_id <= 0) {
-      return '<p>' . esc_html__('BookPoint: Service ID is required.', 'bookpoint-v5') . '</p>';
+    if (!function_exists('pointlybooking_shortcode_booking_form')) {
+      return '';
     }
 
-    $default_date = isset($attributes['defaultDate']) ? sanitize_text_field($attributes['defaultDate']) : '';
-    $hide_notes = !empty($attributes['hideNotes']) ? 1 : 0;
-    $require_phone = !empty($attributes['requirePhone']) ? 1 : 0;
-    $compact = !empty($attributes['compact']) ? 1 : 0;
-
-    return do_shortcode(sprintf(
-      '[pointlybooking_booking_form service_id="%d" default_date="%s" hide_notes="%d" require_phone="%d" compact="%d"]',
-      $service_id,
-      esc_attr($default_date),
-      $hide_notes,
-      $require_phone,
-      $compact
-    ));
+    return pointlybooking_shortcode_booking_form([
+      'service_id' => isset($attributes['serviceId']) ? absint($attributes['serviceId']) : 0,
+      'default_date' => isset($attributes['defaultDate']) ? sanitize_text_field($attributes['defaultDate']) : '',
+      'hide_notes' => !empty($attributes['hideNotes']) ? 1 : 0,
+      'require_phone' => !empty($attributes['requirePhone']) ? 1 : 0,
+      'compact' => !empty($attributes['compact']) ? 1 : 0,
+    ]);
   }
 
   public static function register_rest_routes() : void {
@@ -1654,16 +1650,6 @@ final class POINTLYBOOKING_Core_Plugin {
       $admin_app_cb
     );
 
-
-    add_submenu_page(
-      'pointlybooking_dashboard',
-      __('Catalog', 'bookpoint-v5'),
-      __('Catalog', 'bookpoint-v5'),
-      $cap('pointlybooking_manage_services'),
-      'pointlybooking_catalog',
-      'pointlybooking_render_admin_app_catalog'
-    );
-
     add_submenu_page(
       'pointlybooking_dashboard',
       __('Services', 'bookpoint-v5'),
@@ -2154,7 +2140,7 @@ final class POINTLYBOOKING_Core_Plugin {
 
     // React admin bundle (All admin pages)
         $admin_react_pages = [
-          'pointlybooking_dashboard', 'pointlybooking_bookings', 'pointlybooking_bookings_edit', 'pointlybooking_calendar', 'pointlybooking_schedule', 'pointlybooking_holidays', 'pointlybooking_catalog',
+          'pointlybooking_dashboard', 'pointlybooking_bookings', 'pointlybooking_bookings_edit', 'pointlybooking_calendar', 'pointlybooking_schedule', 'pointlybooking_holidays',
           'bp-form-fields', 'pointlybooking_form_fields', 'pointlybooking_services', 'pointlybooking_services_edit', 'pointlybooking_categories', 'pointlybooking_categories_edit', 'pointlybooking_extras', 'pointlybooking_extras_edit', 'pointlybooking_locations', 'pointlybooking_promo_codes',
           'pointlybooking_customers', 'pointlybooking_settings', 'pointlybooking_notifications', 'pointlybooking_agents', 'pointlybooking_audit', 'pointlybooking_tools',
           'pointlybooking_locations_edit', 'pointlybooking_location_categories_edit', 'pointlybooking_design_form',
@@ -2243,7 +2229,6 @@ final class POINTLYBOOKING_Core_Plugin {
           'pointlybooking_calendar' => 'calendar',
           'pointlybooking_schedule' => 'schedule',
           'pointlybooking_holidays' => 'holidays',
-          'pointlybooking_catalog' => 'catalog',
           'bp-form-fields' => 'form-fields',
           'pointlybooking_form_fields' => 'form-fields',
           'pointlybooking_design_form' => 'design-form',
@@ -2469,6 +2454,18 @@ final class POINTLYBOOKING_Core_Plugin {
         [],
         $css_ver
       );
+
+      if (function_exists('is_rtl') && is_rtl()) {
+        $front_css_rtl = POINTLYBOOKING_PLUGIN_PATH . $front_dir_rel . '/index.jsx-rtl.css';
+        if (file_exists($front_css_rtl)) {
+          wp_enqueue_style(
+            'pointlybooking-front-rtl',
+            POINTLYBOOKING_PLUGIN_URL . $front_dir_rel . '/index.jsx-rtl.css',
+            ['pointlybooking-front'],
+            $css_ver
+          );
+        }
+      }
     }
 
     $front_css_overrides = POINTLYBOOKING_PLUGIN_PATH . 'public/front-overrides.css';
@@ -3103,7 +3100,18 @@ if (!function_exists('pointlybooking_shortcode_booking_form')) {
   function pointlybooking_shortcode_booking_form($atts = []) {
     $atts = shortcode_atts([
       'label' => __('Book Now', 'bookpoint-v5'),
+      'service_id' => 0,
+      'default_date' => '',
+      'hide_notes' => 0,
+      'require_phone' => 0,
+      'compact' => 0,
     ], $atts);
+
+    $service_id = absint($atts['service_id']);
+    $default_date = sanitize_text_field($atts['default_date']);
+    $hide_notes = !empty($atts['hide_notes']) ? 1 : 0;
+    $require_phone = !empty($atts['require_phone']) ? 1 : 0;
+    $compact = !empty($atts['compact']) ? 1 : 0;
 
     if (class_exists('POINTLYBOOKING_Core_Plugin')) {
       POINTLYBOOKING_Core_Plugin::enqueue_public_assets(true);
@@ -3117,7 +3125,17 @@ if (!function_exists('pointlybooking_shortcode_booking_form')) {
     <button type="button" class="bp-book-btn bp-fallback-btn" data-bp-open="wizard">
       <?php echo esc_html($atts['label']); ?>
     </button>
-    <div class="bp-front-root" data-bp-widget="wizard" data-bp-fallback="1" data-bp-label="<?php echo esc_attr($atts['label']); ?>"></div>
+    <div
+      class="bp-front-root"
+      data-bp-widget="wizard"
+      data-bp-fallback="1"
+      data-bp-label="<?php echo esc_attr($atts['label']); ?>"
+      <?php if ($service_id > 0) : ?>data-bp-service-id="<?php echo esc_attr((string) $service_id); ?>"<?php endif; ?>
+      <?php if ($default_date !== '') : ?>data-bp-default-date="<?php echo esc_attr($default_date); ?>"<?php endif; ?>
+      <?php if ($hide_notes) : ?>data-bp-hide-notes="1"<?php endif; ?>
+      <?php if ($require_phone) : ?>data-bp-require-phone="1"<?php endif; ?>
+      <?php if ($compact) : ?>data-bp-compact="1"<?php endif; ?>
+    ></div>
     <?php
     return ob_get_clean();
   }
@@ -3503,12 +3521,6 @@ if (!function_exists('pointlybooking_rest_validate_promo')) {
 
     $res = pointlybooking_apply_promo_to_subtotal($code, $subtotal, false);
     return rest_ensure_response($res);
-  }
-}
-
-if (!function_exists('pointlybooking_render_admin_app_catalog')) {
-  function pointlybooking_render_admin_app_catalog() {
-    echo '<div id="bp-admin-app" data-route="catalog"></div>';
   }
 }
 

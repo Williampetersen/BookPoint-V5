@@ -15,14 +15,27 @@ function pointlybooking_public_create_booking(WP_REST_Request $req){
   $p = $req->get_json_params();
   if (!is_array($p)) $p = [];
 
-  $allowed_methods = ['cash', 'free', 'woocommerce', 'stripe', 'paypal'];
+  $known_methods = ['cash', 'free', 'woocommerce', 'stripe', 'paypal'];
+  $enabled_methods = class_exists('POINTLYBOOKING_SettingsHelper')
+    ? POINTLYBOOKING_SettingsHelper::get('payments_enabled_methods', $known_methods)
+    : $known_methods;
+  if (!is_array($enabled_methods) || !$enabled_methods) $enabled_methods = $known_methods;
+  $enabled_methods = array_values(array_intersect($known_methods, $enabled_methods));
+
   $default_method = class_exists('POINTLYBOOKING_SettingsHelper')
     ? (string)POINTLYBOOKING_SettingsHelper::get('payments_default_method', 'cash')
     : 'cash';
-  if (!in_array($default_method, $allowed_methods, true)) $default_method = 'cash';
+  if (!in_array($default_method, $enabled_methods, true)) {
+    $default_method = $enabled_methods[0] ?? 'cash';
+  }
 
   $payment_method = sanitize_key($p['payment_method'] ?? $default_method);
-  if (!in_array($payment_method, $allowed_methods, true)) $payment_method = $default_method;
+  if (!in_array($payment_method, $enabled_methods, true)) {
+    // Requested method isn't one the site admin has enabled; don't silently
+    // substitute a method the client didn't ask for (and never confirm/mark
+    // paid on their behalf) — just reject.
+    return new WP_Error('method_not_enabled', 'This payment method is not available.', ['status' => 400]);
+  }
 
   if (!in_array($payment_method, ['cash', 'free'], true)) {
     return new WP_Error('method_requires_checkout', 'This payment method requires checkout flow.', ['status' => 400]);
@@ -146,6 +159,13 @@ function pointlybooking_insert_booking_from_payload(array $p, array $overrides =
     return new WP_Error('service_not_found', 'Service not found', ['status' => 404]);
   }
 
+  $pricing = function_exists('pointlybooking_compute_authoritative_pricing')
+    ? pointlybooking_compute_authoritative_pricing($p)
+    : new WP_Error('pricing_unavailable', 'Pricing engine unavailable', ['status' => 500]);
+  if (is_wp_error($pricing)) {
+    return $pricing;
+  }
+
   $duration = (int)($service['duration_minutes'] ?? 0);
   if ($duration <= 0) $duration = (int)($service['duration'] ?? 30);
 
@@ -176,7 +196,16 @@ function pointlybooking_insert_booking_from_payload(array $p, array $overrides =
     }
   }
 
+  // Serialize concurrent booking attempts for the same agent/day so two requests
+  // can't both pass the availability check before either has inserted (TOCTOU).
+  $lock_name = 'bp_slot_' . md5($agent_id . '|' . $date);
+  $lock_acquired = (int)$wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 5)', $lock_name)) === 1;
+  if (!$lock_acquired) {
+    return new WP_Error('lock_timeout', 'Could not process booking right now, please try again.', ['status' => 503]);
+  }
+
   if (!POINTLYBOOKING_AvailabilityHelper::is_slot_available($service_id, $start_dt_adj, $end_dt_adj, $capacity, $agent_id)) {
+    $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
     return new WP_Error('time_conflict', 'Time conflict', ['status' => 409]);
   }
 
@@ -209,13 +238,8 @@ function pointlybooking_insert_booking_from_payload(array $p, array $overrides =
   $payment_status = $overrides['payment_status'] ?? sanitize_key($p['payment_status'] ?? 'unpaid');
   $payment_provider_ref = $overrides['payment_provider_ref'] ?? null;
 
-  $currency = sanitize_text_field($p['currency'] ?? ($service['currency'] ?? 'USD'));
-  if (!preg_match('/^[A-Z]{3}$/', $currency)) {
-    $currency = 'USD';
-  }
-
-  $total_price = $p['total_price'] ?? ($p['total'] ?? ($p['amount_total'] ?? null));
-  $total_price = $total_price !== null ? (float)$total_price : 0.0;
+  $currency = $pricing['currency'];
+  $total_price = $pricing['total'];
   $payment_amount = isset($overrides['payment_amount']) ? (float)$overrides['payment_amount'] : $total_price;
   $payment_currency = $overrides['payment_currency'] ?? $currency;
 
@@ -240,21 +264,29 @@ function pointlybooking_insert_booking_from_payload(array $p, array $overrides =
   ]);
 
   if ($booking_id <= 0) {
+    $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
     return new WP_Error('insert_failed', 'Insert failed', ['status' => 500]);
   }
 
+  $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
+
   $t_bookings = $wpdb->prefix . 'pointlybooking_bookings';
   $extras_json = $extras ? wp_json_encode($extras) : null;
-  $discount_total = isset($p['discount_total']) ? (float)$p['discount_total'] : null;
+  $applied_promo_code = $pricing['promo_code'];
+  $discount_total = $pricing['discount'];
 
   $update = [];
   $formats = [];
   if ($extras_json !== null) { $update['extras_json'] = $extras_json; $formats[] = '%s'; }
-  if ($promo_code !== '') { $update['promo_code'] = $promo_code; $formats[] = '%s'; }
-  if ($discount_total !== null) { $update['discount_total'] = $discount_total; $formats[] = '%f'; }
+  if ($applied_promo_code !== '') { $update['promo_code'] = $applied_promo_code; $formats[] = '%s'; }
+  if ($discount_total > 0) { $update['discount_total'] = $discount_total; $formats[] = '%f'; }
   if (!empty($update)) {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $wpdb->update($t_bookings, $update, ['id' => $booking_id], $formats, ['%d']);
+  }
+
+  if ($pricing['promo_id'] > 0 && class_exists('POINTLYBOOKING_PromoCodeModel')) {
+    POINTLYBOOKING_PromoCodeModel::increment_use($pricing['promo_id']);
   }
 
   if (class_exists('POINTLYBOOKING_FieldValuesHelper') && $fields) {

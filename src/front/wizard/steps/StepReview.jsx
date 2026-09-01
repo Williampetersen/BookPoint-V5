@@ -29,6 +29,7 @@ export default function StepReview({
   backLabel = '<- Back',
   nextLabel = 'Next ->',
 }) {
+  const busy = !!isCreatingBooking || !!loading;
   const loc = locations.find((x) => String(x.id) === String(locationId));
   const svc = services.find((x) => String(x.id) === String(serviceId));
   const ag = agents.find((x) => String(x.id) === String(agentId));
@@ -72,8 +73,8 @@ export default function StepReview({
 
       <div className="bp-step-footer">
         <button type="button" className="bp-back" onClick={onBack}>{backLabel}</button>
-        <button type="button" className="bp-next" disabled={!!isCreatingBooking} onClick={onNext}>
-          {isCreatingBooking ? (hasPayment ? 'Preparing payment...' : 'Booking...') : nextLabel}
+        <button type="button" className="bp-next" disabled={busy} onClick={onNext}>
+          {busy ? (hasPayment ? 'Preparing payment...' : 'Booking...') : nextLabel}
         </button>
       </div>
     </div>

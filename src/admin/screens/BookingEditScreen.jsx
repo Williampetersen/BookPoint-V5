@@ -300,8 +300,15 @@ export default function BookingEditScreen(){
   async function handleDelete(){
     if (!id) return;
     if (!window.confirm("Delete this booking? This cannot be undone.")) return;
-    await bpFetch(`/admin/bookings/${id}`, { method: "DELETE" });
-    window.location.href = "admin.php?page=pointlybooking_bookings";
+    setSaving(true);
+    setErr("");
+    try {
+      await bpFetch(`/admin/bookings/${id}`, { method: "DELETE" });
+      window.location.href = "admin.php?page=pointlybooking_bookings";
+    } catch (e) {
+      setErr(e?.message || "Delete failed");
+      setSaving(false);
+    }
   }
 
   const booking = data?.booking || data || {};
@@ -460,7 +467,9 @@ export default function BookingEditScreen(){
           <button className="bp-top-btn" onClick={() => window.location.href = "admin.php?page=pointlybooking_bookings"}>
             Back to Bookings
           </button>
-          <button className="bp-btn bp-btn-danger" onClick={handleDelete}>Delete</button>
+          <button className="bp-btn bp-btn-danger" onClick={handleDelete} disabled={saving}>
+            {saving ? "Deleting..." : "Delete"}
+          </button>
         </div>
       </div>
 

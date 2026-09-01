@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
 
@@ -417,7 +417,7 @@ export default function ServicesEditScreen() {
 
                 <div className="bp-service-edit__cats">
                   {catsLoading ? (
-                    <div className="bp-muted" style={{ padding: 10 }}>Loading categoriesâ€¦</div>
+                    <div className="bp-muted" style={{ padding: 10 }}>Loading categories…</div>
                   ) : filteredCategories.length === 0 ? (
                     <div className="bp-muted" style={{ padding: 10 }}>No categories.</div>
                   ) : (
@@ -448,7 +448,7 @@ export default function ServicesEditScreen() {
                         onClick={() => toggleCategory(c.id)}
                         title="Remove"
                       >
-                        {c.name} Ã—
+                        {c.name} ×
                       </button>
                     ))}
                   </div>
@@ -496,7 +496,7 @@ export default function ServicesEditScreen() {
                   </button>
                 </div>
                 <div className="bp-muted bp-text-sm" style={{ marginTop: 8, fontWeight: 800 }}>
-                  Inactive services wonâ€™t be selectable for new bookings.
+                  Inactive services won’t be selectable for new bookings.
                 </div>
               </div>
 

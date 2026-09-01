@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { bpFetch } from "../api/client";
 import { iconDataUri } from "../icons/iconData";
 
@@ -58,11 +58,11 @@ function normalizeOptions(raw) {
 }
 
 function typeLabel(t) {
-  return TYPES.find((x) => x.key === t)?.label || t || "Ã¢â‚¬â€";
+  return TYPES.find((x) => x.key === t)?.label || t || "—";
 }
 
 function stepLabel(s) {
-  return STEPS.find((x) => x.key === s)?.label || s || "Ã¢â‚¬â€";
+  return STEPS.find((x) => x.key === s)?.label || s || "—";
 }
 
 function makeEmpty(scope) {
@@ -760,7 +760,7 @@ export default function FormFieldsScreen({ embedded = false }) {
                     <div className="bp-ff-itemMain">
                       <div className="bp-ff-itemTop">
                         <div className="bp-ff-itemTitle">
-                          <span className="bp-ff-itemLabel">{r.label || "Ã¢â‚¬â€"}</span>
+                          <span className="bp-ff-itemLabel">{r.label || "—"}</span>
                           <span className="bp-ff-pill">{typeLabel(r.type)}</span>
                           {!enabled ? <span className="bp-ff-pill bp-ff-pill--off">Disabled</span> : null}
                           {required ? <span className="bp-ff-pill bp-ff-pill--req">Required</span> : null}
@@ -770,13 +770,13 @@ export default function FormFieldsScreen({ embedded = false }) {
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }} onClick={(e) => e.stopPropagation()}>
                             <button type="button" className="bp-btn-sm" onClick={() => moveRow(r.id, -1)}>Up</button>
                             <button type="button" className="bp-btn-sm" onClick={() => moveRow(r.id, 1)}>Down</button>
-                            <span className="bp-ff-drag" aria-hidden="true">Ã¢â€¹Â®Ã¢â€¹Â®</span>
+                            <span className="bp-ff-drag" aria-hidden="true">⋮⋮</span>
                           </div>
                         ) : null}
                       </div>
                       <div className="bp-ff-itemMeta">
                         <code className="bp-ff-code">{key}</code>
-                        <span className="bp-ff-dot">Ã¢â‚¬Â¢</span>
+                        <span className="bp-ff-dot">•</span>
                         <span className="bp-muted">{stepLabel(r.step_key)}</span>
                       </div>
                     </div>

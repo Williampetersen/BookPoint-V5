@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
 
@@ -342,7 +342,7 @@ export default function ExtrasEditScreen() {
                         onClick={() => toggleService(s.id)}
                         title="Remove"
                       >
-                        {s.name || `Service #${s.id}`} Ãƒâ€”
+                        {s.name || `Service #${s.id}`} ×
                       </button>
                     ))}
                   </div>

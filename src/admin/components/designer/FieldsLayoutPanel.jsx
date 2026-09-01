@@ -82,6 +82,23 @@ export default function FieldsLayoutPanel({ fieldsByGroup, value, onChange }) {
     setLayout(customerLayout, bookingLayout.filter((f) => f.id !== id));
   }
 
+  function addCustomer(id) {
+    if (!id || customerLayout.some((f) => f.id === id)) return;
+    setLayout([...customerLayout, { id, required: false, width: "full" }], bookingLayout);
+  }
+
+  function addBooking(id) {
+    if (!id || bookingLayout.some((f) => f.id === id)) return;
+    setLayout(customerLayout, [...bookingLayout, { id, required: false, width: "full" }]);
+  }
+
+  const availableCustomer = defsCustomer.filter(
+    (d) => !customerLayout.some((f) => f.id === normalizeId(d))
+  );
+  const availableBooking = defsBooking.filter(
+    (d) => !bookingLayout.some((f) => f.id === normalizeId(d))
+  );
+
   return (
     <div>
       <div className="bp-font-800">Fields Layout</div>
@@ -132,6 +149,25 @@ export default function FieldsLayoutPanel({ fieldsByGroup, value, onChange }) {
             </div>
           ))}
         </div>
+        {availableCustomer.length ? (
+          <div className="bp-flex bp-items-center bp-gap-8 bp-mt-8">
+            <select
+              className="bp-select"
+              defaultValue=""
+              onChange={(e) => {
+                addCustomer(e.target.value);
+                e.target.value = "";
+              }}
+            >
+              <option value="" disabled>+ Add customer field...</option>
+              {availableCustomer.map((d) => (
+                <option key={normalizeId(d)} value={normalizeId(d)}>
+                  {d.label || normalizeId(d)}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
       </div>
 
       <div className="bp-mt-14">
@@ -179,6 +215,25 @@ export default function FieldsLayoutPanel({ fieldsByGroup, value, onChange }) {
             </div>
           ))}
         </div>
+        {availableBooking.length ? (
+          <div className="bp-flex bp-items-center bp-gap-8 bp-mt-8">
+            <select
+              className="bp-select"
+              defaultValue=""
+              onChange={(e) => {
+                addBooking(e.target.value);
+                e.target.value = "";
+              }}
+            >
+              <option value="" disabled>+ Add booking field...</option>
+              {availableBooking.map((d) => (
+                <option key={normalizeId(d)} value={normalizeId(d)}>
+                  {d.label || normalizeId(d)}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
       </div>
     </div>
   );

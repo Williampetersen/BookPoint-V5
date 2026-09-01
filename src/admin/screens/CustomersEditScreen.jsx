@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 
 function normalizeCustomer(raw) {
@@ -210,7 +210,7 @@ export default function CustomersEditScreen() {
 
       {loading ? (
         <div className="bp-card bp-customer-edit__section">
-          <div className="bp-muted">Loadingâ€¦</div>
+          <div className="bp-muted">Loading…</div>
         </div>
       ) : (
         <div className="bp-customer-edit__grid">
@@ -271,7 +271,7 @@ export default function CustomersEditScreen() {
                   <input
                     className="bp-input"
                     style={{ maxWidth: 320 }}
-                    placeholder="Search fieldsâ€¦"
+                    placeholder="Search fields…"
                     value={fieldSearch}
                     onChange={(e) => setFieldSearch(e.target.value)}
                   />
@@ -314,7 +314,7 @@ export default function CustomersEditScreen() {
                             value={(v ?? "").toString()}
                             onChange={(e) => setCustomField(k, e.target.value)}
                           >
-                            <option value="">Selectâ€¦</option>
+                            <option value="">Select…</option>
                             {opts.map((o) => (
                               <option key={`${k}-${o.value}`} value={o.value}>
                                 {o.label}
@@ -447,7 +447,7 @@ export default function CustomersEditScreen() {
                 <div className="bp-customer-edit__name">{displayName}</div>
                 <div className="bp-muted">
                   {customer.email ? customer.email : " "}
-                  {customer.phone ? ` â€¢ ${customer.phone}` : ""}
+                  {customer.phone ? ` • ${customer.phone}` : ""}
                 </div>
               </div>
             </div>
@@ -458,7 +458,7 @@ export default function CustomersEditScreen() {
                 <div className="bp-customer-edit__statK">Bookings</div>
               </div>
               <div className="bp-customer-edit__stat">
-                <div className="bp-customer-edit__statV">{customer.created_at ? String(customer.created_at).slice(0, 10) : "â€”"}</div>
+                <div className="bp-customer-edit__statV">{customer.created_at ? String(customer.created_at).slice(0, 10) : "—"}</div>
                 <div className="bp-customer-edit__statK">Created</div>
               </div>
             </div>

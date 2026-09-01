@@ -131,6 +131,15 @@ add_action('rest_api_init', function () {
         return new WP_Error('forbidden', 'Invalid booking key', ['status' => 403]);
       }
 
+      $booking = POINTLYBOOKING_BookingModel::find($booking_id);
+      // The PaymentIntent being confirmed must be the exact one created for THIS
+      // booking at /front/payment/stripe/start — otherwise a successful PaymentIntent
+      // from a different (possibly cheaper) booking could be replayed here.
+      $stored_ref = (string)($booking['payment_provider_ref'] ?? '');
+      if ($stored_ref === '' || !hash_equals($stored_ref, $payment_intent_id)) {
+        return new WP_Error('payment_mismatch', 'This payment does not match the booking.', ['status' => 400]);
+      }
+
       $secret = get_option('pointlybooking_stripe_secret_key', '');
       if ($secret === '') {
         $settings = get_option('pointlybooking_settings', []);

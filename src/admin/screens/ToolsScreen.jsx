@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { bpFetch } from "../api/client";
 
 function downloadText(filename, text, type = "application/octet-stream;charset=utf-8") {
@@ -27,7 +27,7 @@ function prettyTableName(raw) {
   };
 
   const name = String(raw || "").trim();
-  if (!name) return "â€”";
+  if (!name) return "—";
   if (overrides[name]) return overrides[name];
 
   const cleaned = name.replace(/^pointlybooking_/, "").replace(/_/g, " ").trim();
@@ -237,19 +237,19 @@ export default function ToolsScreen() {
         <div className="bp-tools-kpis">
           <div className="bp-tools-kpi">
             <div className="k">Plugin</div>
-            <div className="v">{status?.plugin_version || report?.plugin_version || "â€”"}</div>
+            <div className="v">{status?.plugin_version || report?.plugin_version || "—"}</div>
           </div>
           <div className="bp-tools-kpi">
             <div className="k">DB Version</div>
-            <div className="v">{status?.db_version || report?.db_version || "â€”"}</div>
+            <div className="v">{status?.db_version || report?.db_version || "—"}</div>
           </div>
           <div className="bp-tools-kpi">
             <div className="k">Tables</div>
-            <div className="v">{status ? `${status.tables_ok_count || 0}/${status.tables_total || 0}` : "â€”"}</div>
+            <div className="v">{status ? `${status.tables_ok_count || 0}/${status.tables_total || 0}` : "—"}</div>
           </div>
           <div className="bp-tools-kpi">
             <div className="k">WP / PHP</div>
-            <div className="v">{report ? `${report.wp_version || "â€”"} / ${report.php_version || "â€”"}` : "â€”"}</div>
+            <div className="v">{report ? `${report.wp_version || "—"} / ${report.php_version || "—"}` : "—"}</div>
           </div>
         </div>
 
@@ -359,7 +359,7 @@ export default function ToolsScreen() {
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button type="button" className="bp-btn bp-btn-primary" onClick={exportSettings}>Export settings</button>
               <label className="bp-btn" style={{ cursor: "pointer" }}>
-                Choose fileâ€¦
+                Choose file…
                 <input
                   type="file"
                   accept="application/json"
@@ -387,7 +387,7 @@ export default function ToolsScreen() {
               </button>
             </div>
             <div className="bp-muted bp-text-xs" style={{ marginTop: 8 }}>
-              Selected: {importFileName || "â€”"}
+              Selected: {importFileName || "—"}
             </div>
           </div>
         </div>

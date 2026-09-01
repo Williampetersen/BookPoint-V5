@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 
 export default function LocationsScreen() {
@@ -185,7 +185,7 @@ export default function LocationsScreen() {
                     ) : (
                       <div>
                         <div className="bp-entity-meta-label">Category</div>
-                        <div className="bp-entity-meta-value">Ã¢â‚¬â€</div>
+                        <div className="bp-entity-meta-value">—</div>
                       </div>
                     )}
                     <div>

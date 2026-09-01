@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 import BookingDrawer from "../components/BookingDrawer";
 
@@ -22,7 +22,7 @@ function fmtWhen(start) {
   const s = String(start).replace("T", " ").slice(0, 19);
   const date = s.slice(0, 10);
   const time = s.slice(11, 16);
-  return time ? `${date} â€¢ ${time}` : date;
+  return time ? `${date} • ${time}` : date;
 }
 
 export default function BookingsScreen() {
@@ -240,27 +240,27 @@ export default function BookingsScreen() {
               <div className="bp-bookings__chips" style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 12 }}>
                 {status && status !== "all" ? (
                   <button className="bp-chip-btn" type="button" onClick={() => { setStatus("all"); setPage(1); load({ status: "all", page: 1 }); }}>
-                    Status: {status} Ã—
+                    Status: {status} ×
                   </button>
                 ) : null}
                 {dateFrom ? (
                   <button className="bp-chip-btn" type="button" onClick={() => { setDateFrom(""); setPage(1); load({ dateFrom: "", page: 1 }); }}>
-                    From: {dateFrom} Ã—
+                    From: {dateFrom} ×
                   </button>
                 ) : null}
                 {dateTo ? (
                   <button className="bp-chip-btn" type="button" onClick={() => { setDateTo(""); setPage(1); load({ dateTo: "", page: 1 }); }}>
-                    To: {dateTo} Ã—
+                    To: {dateTo} ×
                   </button>
                 ) : null}
                 {q.trim() ? (
                   <button className="bp-chip-btn" type="button" onClick={() => { setQ(""); setPage(1); load({ q: "", page: 1 }); }}>
-                    Search Ã—
+                    Search ×
                   </button>
                 ) : null}
                 {sort !== "desc" ? (
                   <button className="bp-chip-btn" type="button" onClick={() => { setSortState("desc"); setPage(1); load({ sort: "desc", page: 1 }); }}>
-                    Sort: oldest Ã—
+                    Sort: oldest ×
                   </button>
                 ) : null}
               </div>
@@ -384,16 +384,16 @@ export default function BookingsScreen() {
 
           <div className="bp-pager">
             <button className="bp-top-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-              â† Previous
+              ← Previous
             </button>
             <div className="bp-pager-info bp-muted">
               Page {page} / {pages}
               <div className="bp-pager-sub">
-                Showing {showingFrom}â€“{showingTo} of {total}
+                Showing {showingFrom}–{showingTo} of {total}
               </div>
             </div>
             <button className="bp-top-btn" disabled={page >= pages} onClick={() => setPage((p) => Math.min(pages, p + 1))}>
-              Next â†’
+              Next →
             </button>
           </div>
         </div>

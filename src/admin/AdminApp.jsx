@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Shell from "./layout/Shell";
 
 // Screens
@@ -88,22 +88,9 @@ export default function AdminApp() {
   const page = window.pointlybooking_ADMIN?.page || "pointlybooking_dashboard";
   const screen = useMemo(() => resolveScreen(page), [page]);
 
-  const [theme, setTheme] = useState("light");
-
-  useEffect(() => {
-    setTheme("light");
-    document.documentElement.classList.remove("bp-dark");
-    localStorage.setItem("pointlybooking_theme", "light");
-  }, []);
-
-  function toggleTheme() {
-    return;
-  }
-
   return (
     <Shell
-      theme={theme}
-      onToggleTheme={toggleTheme}
+      theme="light"
       active={screen}
     >
       {screen === "dashboard" ? <DashboardScreen /> : null}
@@ -142,7 +129,7 @@ function ComingSoon({ title }){
     <div className="bp-card">
       <div className="bp-card-label">Page</div>
       <div className="bp-card-value" style={{fontSize:18, marginTop:6}}>
-        {title} (UI shell active âœ…)
+        {title} (UI shell active ✅)
       </div>
       <div className="bp-muted" style={{marginTop:8}}>
         Next: we design and connect this page with Horizon UI layout.

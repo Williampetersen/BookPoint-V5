@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { bpFetch } from "../api/client";
 import { pickImage } from "../ui/wpMedia";
 
@@ -352,7 +352,7 @@ export default function LocationsEditScreen() {
                       value={location.category_id || 0}
                       onChange={(e) => update({ category_id: Number(e.target.value) || 0 })}
                     >
-                      <option value={0}>Ã¢â‚¬â€</option>
+                      <option value={0}>—</option>
                       {categories.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name || `Category #${c.id}`}
@@ -367,7 +367,7 @@ export default function LocationsEditScreen() {
                     className="bp-textarea"
                     value={location.address}
                     onChange={(e) => update({ address: e.target.value })}
-                    placeholder="Street, city, zipÃ¢â‚¬Â¦"
+                    placeholder="Street, city, zip…"
                   />
                 </div>
               </div>
@@ -508,7 +508,7 @@ export default function LocationsEditScreen() {
                             ) : selectedServiceLabels.length ? (
                               <div className="bp-muted bp-text-sm" style={{ fontWeight: 850 }}>
                                 {selectedServiceLabels.join(", ")}
-                                {entry.services && entry.services.length > 3 ? "Ã¢â‚¬Â¦" : ""}
+                                {entry.services && entry.services.length > 3 ? "…" : ""}
                               </div>
                             ) : null}
                           </div>

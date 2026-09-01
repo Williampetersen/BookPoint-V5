@@ -46,7 +46,8 @@ export default function WizardPreview({ config, activeStepKey, device = "desktop
   const isMobile = device === "mobile";
   // On narrow layouts the actual wizard collapses; mimic that in preview by hiding the left panel.
   const showLeft = !isMobile && step?.showLeftPanel !== false;
-  const showHelp = step?.showHelpBox !== false;
+  // Matches the live widget: the help box only renders when a phone number is actually configured.
+  const showHelp = step?.showHelpBox !== false && !!helpPhone;
 
   const fallback = fileUrl(step?.image || "locations.svg");
   const src = step?.imageUrl || fallback;

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const METHODS = [
   { key: 'free', label: 'Free (No payment)' },
@@ -197,7 +197,7 @@ function PaymentsSettingsPro() {
     }
   };
 
-  if (loading) return <div className="bp-card bp-p-14">Loadingâ€¦</div>;
+  if (loading) return <div className="bp-card bp-p-14">Loading…</div>;
 
   return (
     <div className="bp-payments">
