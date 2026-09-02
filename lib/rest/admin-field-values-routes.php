@@ -5,8 +5,11 @@ add_action('rest_api_init', function(){
   register_rest_route('pointly-booking/v1', '/admin/field-values', [
     'methods'=>'GET',
     'callback'=>'pointlybooking_admin_get_field_values',
-    'permission_callback'=>function(){
-      return current_user_can('pointlybooking_manage_bookings') || current_user_can('pointlybooking_manage_settings');
+    'permission_callback'=>function(WP_REST_Request $req){
+      if (current_user_can('manage_options') || current_user_can('pointlybooking_manage_settings')) return true;
+      $entity_type = sanitize_text_field($req->get_param('entity_type') ?? '');
+      if ($entity_type === 'customer') return current_user_can('pointlybooking_manage_customers');
+      return current_user_can('pointlybooking_manage_bookings');
     }
   ]);
 });

@@ -74,8 +74,7 @@ add_action('rest_api_init', function () {
     'methods'  => 'GET',
     'callback' => 'pointlybooking_rest_admin_promo_codes_list',
     'permission_callback' => function () {
-      return current_user_can('pointlybooking_manage_services')
-        || current_user_can('pointlybooking_manage_settings')
+      return current_user_can('pointlybooking_manage_settings')
         || current_user_can('manage_options');
     },
   ]);
@@ -84,8 +83,7 @@ add_action('rest_api_init', function () {
     'methods'  => 'POST',
     'callback' => 'pointlybooking_rest_admin_promo_codes_create',
     'permission_callback' => function () {
-      return current_user_can('pointlybooking_manage_services')
-        || current_user_can('pointlybooking_manage_settings')
+      return current_user_can('pointlybooking_manage_settings')
         || current_user_can('manage_options');
     },
   ]);
@@ -94,8 +92,7 @@ add_action('rest_api_init', function () {
     'methods'  => 'GET',
     'callback' => 'pointlybooking_rest_admin_promo_codes_get',
     'permission_callback' => function () {
-      return current_user_can('pointlybooking_manage_services')
-        || current_user_can('pointlybooking_manage_settings')
+      return current_user_can('pointlybooking_manage_settings')
         || current_user_can('manage_options');
     },
   ]);
@@ -104,8 +101,7 @@ add_action('rest_api_init', function () {
     'methods'  => 'PATCH',
     'callback' => 'pointlybooking_rest_admin_promo_codes_update',
     'permission_callback' => function () {
-      return current_user_can('pointlybooking_manage_services')
-        || current_user_can('pointlybooking_manage_settings')
+      return current_user_can('pointlybooking_manage_settings')
         || current_user_can('manage_options');
     },
   ]);
@@ -114,8 +110,7 @@ add_action('rest_api_init', function () {
     'methods'  => 'DELETE',
     'callback' => 'pointlybooking_rest_admin_promo_codes_delete',
     'permission_callback' => function () {
-      return current_user_can('pointlybooking_manage_services')
-        || current_user_can('pointlybooking_manage_settings')
+      return current_user_can('pointlybooking_manage_settings')
         || current_user_can('manage_options');
     },
   ]);
@@ -124,8 +119,7 @@ add_action('rest_api_init', function () {
     'methods'  => 'POST',
     'callback' => 'pointlybooking_rest_admin_promo_codes_duplicate',
     'permission_callback' => function () {
-      return current_user_can('pointlybooking_manage_services')
-        || current_user_can('pointlybooking_manage_settings')
+      return current_user_can('pointlybooking_manage_settings')
         || current_user_can('manage_options');
     },
   ]);
@@ -185,7 +179,6 @@ add_action('rest_api_init', function () {
     'callback' => 'pointlybooking_rest_admin_tools_run',
     'permission_callback' => function () {
       return current_user_can('pointlybooking_manage_tools')
-        || current_user_can('pointlybooking_manage_settings')
         || current_user_can('manage_options');
     },
   ]);

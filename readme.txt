@@ -4,7 +4,7 @@ Donate link: https://wpbookpoint.com/
 Tags: booking, appointment booking, scheduling, calendar, service booking
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -155,6 +155,10 @@ Terms of service URL: The terms of service of the external provider chosen by th
 Privacy policy URL: The privacy policy of the external provider chosen by the site administrator.
 
 == Changelog ==
+
+= 1.1.1 =
+* Security: narrowed several REST API permission checks (agent schedule, promo codes, tools, calendar bookings, field values) to the specific capability each endpoint actually needs, instead of accepting any of several unrelated capabilities.
+* Hardened the booking-form shortcode/block output to build its HTML through an explicit allow-list instead of returning raw markup.
 
 = 1.1.0 =
 * Security: server now computes booking totals from the actual service/extras/promo-code prices instead of trusting the amount sent by the browser, and payment confirmation (Stripe, PayPal) now verifies the payment actually belongs to the booking being marked paid.

@@ -8,7 +8,7 @@ add_action('rest_api_init', function () {
     'methods'  => 'GET',
     'callback' => 'pointlybooking_admin_calendar_get_bookings',
     'permission_callback' => function () {
-      return current_user_can('pointlybooking_manage_bookings') || current_user_can('pointlybooking_manage_services') || current_user_can('pointlybooking_manage_settings');
+      return current_user_can('pointlybooking_manage_bookings') || current_user_can('manage_options');
     },
   ]);
 

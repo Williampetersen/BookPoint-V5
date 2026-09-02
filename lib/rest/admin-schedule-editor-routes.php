@@ -9,7 +9,7 @@ add_action('rest_api_init', function () {
     'methods'  => 'GET',
     'callback' => 'pointlybooking_rest_admin_get_agent_schedule',
     'permission_callback' => function () {
-      return current_user_can('pointlybooking_manage_bookings') || current_user_can('pointlybooking_manage_services') || current_user_can('pointlybooking_manage_settings');
+      return current_user_can('pointlybooking_manage_agents') || current_user_can('manage_options');
     },
   ]);
 
@@ -18,7 +18,7 @@ add_action('rest_api_init', function () {
     'methods'  => ['PUT', 'POST'],
     'callback' => 'pointlybooking_rest_admin_save_agent_schedule',
     'permission_callback' => function () {
-      return current_user_can('pointlybooking_manage_bookings') || current_user_can('pointlybooking_manage_services') || current_user_can('pointlybooking_manage_settings');
+      return current_user_can('pointlybooking_manage_agents') || current_user_can('manage_options');
     },
   ]);
 
@@ -27,7 +27,7 @@ add_action('rest_api_init', function () {
     'methods'  => 'POST',
     'callback' => 'pointlybooking_rest_admin_copy_agent_schedule',
     'permission_callback' => function () {
-      return current_user_can('pointlybooking_manage_bookings') || current_user_can('pointlybooking_manage_services') || current_user_can('pointlybooking_manage_settings');
+      return current_user_can('pointlybooking_manage_agents') || current_user_can('manage_options');
     },
   ]);
 });
