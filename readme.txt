@@ -4,7 +4,7 @@ Donate link: https://wpbookpoint.com/
 Tags: booking, appointment booking, scheduling, calendar, service booking
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 1.1.1
+Stable tag: 2.6.19
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -156,12 +156,10 @@ Privacy policy URL: The privacy policy of the external provider chosen by the si
 
 == Changelog ==
 
-= 1.1.1 =
-* Security: narrowed several REST API permission checks (agent schedule, promo codes, tools, calendar bookings, field values) to the specific capability each endpoint actually needs, instead of accepting any of several unrelated capabilities.
-* Hardened the booking-form shortcode/block output to build its HTML through an explicit allow-list instead of returning raw markup.
-
-= 1.1.0 =
+= 2.6.19 =
 * Security: server now computes booking totals from the actual service/extras/promo-code prices instead of trusting the amount sent by the browser, and payment confirmation (Stripe, PayPal) now verifies the payment actually belongs to the booking being marked paid.
+* Security: narrowed several REST API permission checks (agent schedule, promo codes, tools, calendar bookings, field values) to the specific capability each endpoint actually needs, instead of accepting any of several unrelated capabilities.
+* Security: booking-form shortcode/block output is now built through an explicit allow-list instead of returning raw markup.
 * Fix: bookings using PayPal, WooCommerce, or Cash could get stuck with no way to complete when online payments were enabled; the wizard now routes each payment method correctly.
 * Fix: the Gutenberg block's Service, Default Date, Hide Notes, Require Phone, and Compact Layout settings now actually apply to the booking form.
 * Fix: booking form now loads its stylesheet correctly on RTL sites.
@@ -171,13 +169,7 @@ Privacy policy URL: The privacy policy of the external provider chosen by the si
 * Fix: corrected garbled/mis-encoded text across the admin UI, booking widget, and block editor.
 * Tested up to WordPress 7.1.
 
-= 1.0.1 =
-* Initial WordPress.org release.
-
 == Upgrade Notice ==
 
-= 1.1.0 =
+= 2.6.19 =
 Includes booking payment security fixes; upgrade recommended for all sites accepting online payments.
-
-= 1.0.1 =
-Initial public release of BookPoint Booking & Appointments with core booking features.
