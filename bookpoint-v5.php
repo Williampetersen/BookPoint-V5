@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BookPoint Booking & Appointments
  * Description: Lightweight appointment booking plugin for WordPress.
- * Version: 2.6.19
+ * Version: 2.6.20
  * Author: BookPoint Team
  * Author URI: https://wpbookpoint.com/
  * Plugin URI: https://wpbookpoint.com/download-for-free/
@@ -143,7 +143,7 @@ if (!class_exists('POINTLYBOOKING_Core_Plugin', false)) {
 final class POINTLYBOOKING_Core_Plugin {
 
   // NOTE: Keep plugin header Version in sync with this.
-  const VERSION    = '2.6.19';
+  const VERSION    = '2.6.20';
   const DB_VERSION = '5.0.0';
   const CAPS_SEEDED_OPTION = 'pointlybooking_caps_seeded';
   private static $booted = false;
@@ -1487,6 +1487,20 @@ final class POINTLYBOOKING_Core_Plugin {
 
     if ($service_id <= 0 || !pointlybooking_is_valid_ymd($date)) {
       return rest_ensure_response(['status' => 'success', 'data' => []]);
+    }
+
+    if ($exclude_id > 0) {
+      // Excluding a specific booking from the "already taken" calculation reveals
+      // information about that booking, so only honor it when the caller proves
+      // ownership via the booking's own manage_key (same pattern used everywhere
+      // else in the plugin for booking-scoped access). Otherwise just ignore the
+      // exclusion rather than failing the whole (still-public) availability check.
+      $submitted_key = sanitize_text_field((string) $req->get_param('key'));
+      $excluded_booking = $submitted_key !== '' ? POINTLYBOOKING_BookingModel::find($exclude_id) : null;
+      $stored_key = (string) ($excluded_booking['manage_key'] ?? '');
+      if ($stored_key === '' || !hash_equals($stored_key, $submitted_key)) {
+        $exclude_id = 0;
+      }
     }
 
     $service = POINTLYBOOKING_ServiceModel::find($service_id);

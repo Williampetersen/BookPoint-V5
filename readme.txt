@@ -4,7 +4,7 @@ Donate link: https://wpbookpoint.com/
 Tags: booking, appointment booking, scheduling, calendar, service booking
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 2.6.19
+Stable tag: 2.6.20
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -155,6 +155,9 @@ Terms of service URL: The terms of service of the external provider chosen by th
 Privacy policy URL: The privacy policy of the external provider chosen by the site administrator.
 
 == Changelog ==
+
+= 2.6.20 =
+* Security: the public "manage booking" reschedule slot-lookup endpoint (`/manage/slots`) accepted an `exclude_booking_id` for any booking with no ownership check, which could leak whether a specific booking exists/its schedule. It now only honors that exclusion when the caller supplies the booking's own manage key.
 
 = 2.6.19 =
 * Security: server now computes booking totals from the actual service/extras/promo-code prices instead of trusting the amount sent by the browser, and payment confirmation (Stripe, PayPal) now verifies the payment actually belongs to the booking being marked paid.

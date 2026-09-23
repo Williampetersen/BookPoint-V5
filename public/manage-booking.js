@@ -54,6 +54,7 @@
     var serviceId = parseInt(root.getAttribute("data-service-id") || "0", 10) || 0;
     var agentId = parseInt(root.getAttribute("data-agent-id") || "0", 10) || 0;
     var excludeBookingId = parseInt(root.getAttribute("data-exclude-booking-id") || "0", 10) || 0;
+    var manageKey = root.getAttribute("data-manage-key") || "";
 
     var dateInput = root.querySelector(".bp-r-date");
     var timeSelect = root.querySelector(".bp-r-time");
@@ -107,6 +108,7 @@
         service_id: String(serviceId),
         agent_id: String(agentId),
         exclude_booking_id: String(excludeBookingId),
+        key: manageKey,
         date: dateYmd,
       });
 

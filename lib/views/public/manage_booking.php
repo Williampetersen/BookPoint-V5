@@ -40,7 +40,8 @@ defined('ABSPATH') || exit;
     <div class="bp-reschedule"
          data-service-id="<?php echo esc_attr((string) (int) ($booking['service_id'] ?? 0)); ?>"
          data-agent-id="<?php echo esc_attr((string) (int) ($booking['agent_id'] ?? 0)); ?>"
-         data-exclude-booking-id="<?php echo esc_attr((string) (int) ($booking['id'] ?? 0)); ?>">
+         data-exclude-booking-id="<?php echo esc_attr((string) (int) ($booking['id'] ?? 0)); ?>"
+         data-manage-key="<?php echo esc_attr($manage_key ?? ''); ?>">
       <div class="bp-row">
         <div class="bp-field">
           <label><?php esc_html_e('New date', 'bookpoint-v5'); ?></label>
