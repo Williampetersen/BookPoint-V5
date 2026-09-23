@@ -3,24 +3,24 @@
 defined('ABSPATH') || exit; ?>
 
 <div class="wrap">
-  <h1><?php esc_html_e('Customer Details', 'bookpoint-v5'); ?></h1>
+  <h1><?php esc_html_e('Customer Details', 'pointly-booking'); ?></h1>
 
-  <p><strong><?php esc_html_e('Name:', 'bookpoint-v5'); ?></strong>
+  <p><strong><?php esc_html_e('Name:', 'pointly-booking'); ?></strong>
     <?php echo esc_html(trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? ''))); ?>
   </p>
 
-  <p><strong><?php esc_html_e('Email:', 'bookpoint-v5'); ?></strong>
+  <p><strong><?php esc_html_e('Email:', 'pointly-booking'); ?></strong>
     <?php echo esc_html($customer['email'] ?? '-'); ?>
   </p>
 
-  <p><strong><?php esc_html_e('Phone:', 'bookpoint-v5'); ?></strong>
+  <p><strong><?php esc_html_e('Phone:', 'pointly-booking'); ?></strong>
     <?php echo esc_html($customer['phone'] ?? '-'); ?>
   </p>
 
-  <h2><?php esc_html_e('Bookings', 'bookpoint-v5'); ?></h2>
+  <h2><?php esc_html_e('Bookings', 'pointly-booking'); ?></h2>
 
   <?php if (empty($bookings)) : ?>
-    <p><?php esc_html_e('No bookings for this customer.', 'bookpoint-v5'); ?></p>
+    <p><?php esc_html_e('No bookings for this customer.', 'pointly-booking'); ?></p>
   <?php else : ?>
     <ul>
       <?php foreach ($bookings as $b) : ?>
@@ -36,7 +36,7 @@ defined('ABSPATH') || exit; ?>
 
   <p>
     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=pointlybooking_customers')); ?>">
-      <?php esc_html_e('Back to Customers', 'bookpoint-v5'); ?>
+      <?php esc_html_e('Back to Customers', 'pointly-booking'); ?>
     </a>
   </p>
 </div>

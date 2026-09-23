@@ -157,7 +157,7 @@ function pointlybooking_rest_admin_notifications_workflow_create(\WP_REST_Reques
   if (!$workflow) {
     $msg = method_exists('POINTLYBOOKING_Notifications_Helper', 'last_error') ? POINTLYBOOKING_Notifications_Helper::last_error() : '';
     if (!$msg) {
-      $msg = __('Could not create workflow.', 'bookpoint-v5');
+      $msg = __('Could not create workflow.', 'pointly-booking');
     }
     return new \WP_Error('pointlybooking_notifications_error', $msg, ['status' => 500]);
   }
@@ -169,7 +169,7 @@ function pointlybooking_rest_admin_notifications_workflow_get(\WP_REST_Request $
   $id = (int)$request['id'];
   $workflow = POINTLYBOOKING_Notifications_Helper::get_workflow($id);
   if (!$workflow) {
-    return new \WP_Error('pointlybooking_notifications_not_found', __('Workflow not found.', 'bookpoint-v5'), ['status' => 404]);
+    return new \WP_Error('pointlybooking_notifications_not_found', __('Workflow not found.', 'pointly-booking'), ['status' => 404]);
   }
   return rest_ensure_response(['status' => 'success', 'data' => $workflow]);
 }
@@ -187,7 +187,7 @@ function pointlybooking_rest_admin_notifications_workflow_update(\WP_REST_Reques
     'time_offset_minutes' => $body['time_offset_minutes'] ?? null,
   ]);
   if (!$updated) {
-    return new \WP_Error('pointlybooking_notifications_update_failed', __('Could not update workflow.', 'bookpoint-v5'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_update_failed', __('Could not update workflow.', 'pointly-booking'), ['status' => 500]);
   }
   return rest_ensure_response(['status' => 'success']);
 }
@@ -196,7 +196,7 @@ function pointlybooking_rest_admin_notifications_workflow_delete(\WP_REST_Reques
   $id = (int)$request['id'];
   $deleted = POINTLYBOOKING_Notifications_Helper::delete_workflow($id);
   if (!$deleted) {
-    return new \WP_Error('pointlybooking_notifications_delete_failed', __('Could not delete workflow.', 'bookpoint-v5'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_delete_failed', __('Could not delete workflow.', 'pointly-booking'), ['status' => 500]);
   }
   return rest_ensure_response(['status' => 'success']);
 }
@@ -205,18 +205,18 @@ function pointlybooking_rest_admin_notifications_workflow_test(\WP_REST_Request 
   $id = (int)$request['id'];
   $workflow = POINTLYBOOKING_Notifications_Helper::get_workflow($id);
   if (!$workflow) {
-    return new \WP_Error('pointlybooking_notifications_not_found', __('Workflow not found.', 'bookpoint-v5'), ['status' => 404]);
+    return new \WP_Error('pointlybooking_notifications_not_found', __('Workflow not found.', 'pointly-booking'), ['status' => 404]);
   }
 
   $booking_id = (int)($request->get_param('booking_id') ?? 0);
   $booking = $booking_id > 0 ? POINTLYBOOKING_BookingModel::find($booking_id) : pointlybooking_rest_admin_notifications_latest_booking_row();
   if (!$booking) {
-    return new \WP_Error('pointlybooking_notifications_booking_missing', __('Booking is required for a test.', 'bookpoint-v5'), ['status' => 400]);
+    return new \WP_Error('pointlybooking_notifications_booking_missing', __('Booking is required for a test.', 'pointly-booking'), ['status' => 400]);
   }
 
   $payload = POINTLYBOOKING_Notifications_Helper::build_payload_from_booking($workflow['event_key'], $booking);
   if (!$payload) {
-    return new \WP_Error('pointlybooking_notifications_payload', __('Could not build payload for booking.', 'bookpoint-v5'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_payload', __('Could not build payload for booking.', 'pointly-booking'), ['status' => 500]);
   }
 
   $actions = is_array($workflow['actions'] ?? null) ? $workflow['actions'] : [];
@@ -252,7 +252,7 @@ function pointlybooking_rest_admin_notifications_action_create(\WP_REST_Request 
     'config' => is_array($body['config'] ?? null) ? $body['config'] : [],
   ]);
   if (!$action) {
-    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not create action.', 'bookpoint-v5'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not create action.', 'pointly-booking'), ['status' => 500]);
   }
   return rest_ensure_response(['status' => 'success', 'data' => $action], 201);
 }
@@ -266,7 +266,7 @@ function pointlybooking_rest_admin_notifications_action_update(\WP_REST_Request 
     'config' => is_array($body['config'] ?? null) ? $body['config'] : null,
   ]);
   if (!$updated) {
-    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not update action.', 'bookpoint-v5'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not update action.', 'pointly-booking'), ['status' => 500]);
   }
   return rest_ensure_response(['status' => 'success']);
 }
@@ -275,7 +275,7 @@ function pointlybooking_rest_admin_notifications_action_delete(\WP_REST_Request 
   $id = (int)$request['id'];
   $deleted = POINTLYBOOKING_Notifications_Helper::delete_action($id);
   if (!$deleted) {
-    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not delete action.', 'bookpoint-v5'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_action_failed', __('Could not delete action.', 'pointly-booking'), ['status' => 500]);
   }
   return rest_ensure_response(['status' => 'success']);
 }
@@ -284,22 +284,22 @@ function pointlybooking_rest_admin_notifications_action_test(\WP_REST_Request $r
   $id = (int)$request['id'];
   $action = POINTLYBOOKING_Notifications_Helper::get_action($id);
   if (!$action) {
-    return new \WP_Error('pointlybooking_notifications_action_not_found', __('Action not found.', 'bookpoint-v5'), ['status' => 404]);
+    return new \WP_Error('pointlybooking_notifications_action_not_found', __('Action not found.', 'pointly-booking'), ['status' => 404]);
   }
   $workflow = POINTLYBOOKING_Notifications_Helper::get_workflow((int)$action['workflow_id']);
   if (!$workflow) {
-    return new \WP_Error('pointlybooking_notifications_workflow_missing', __('Workflow missing.', 'bookpoint-v5'), ['status' => 404]);
+    return new \WP_Error('pointlybooking_notifications_workflow_missing', __('Workflow missing.', 'pointly-booking'), ['status' => 404]);
   }
 
   $booking_id = (int)($request->get_param('booking_id') ?? 0);
   $booking = $booking_id > 0 ? POINTLYBOOKING_BookingModel::find($booking_id) : pointlybooking_rest_admin_notifications_latest_booking_row();
   if (!$booking) {
-    return new \WP_Error('pointlybooking_notifications_booking_missing', __('Booking is required for a test.', 'bookpoint-v5'), ['status' => 400]);
+    return new \WP_Error('pointlybooking_notifications_booking_missing', __('Booking is required for a test.', 'pointly-booking'), ['status' => 400]);
   }
 
   $payload = POINTLYBOOKING_Notifications_Helper::build_payload_from_booking($workflow['event_key'], $booking);
   if (!$payload) {
-    return new \WP_Error('pointlybooking_notifications_payload', __('Could not build payload for booking.', 'bookpoint-v5'), ['status' => 500]);
+    return new \WP_Error('pointlybooking_notifications_payload', __('Could not build payload for booking.', 'pointly-booking'), ['status' => 500]);
   }
 
   $sent = POINTLYBOOKING_Notifications_Helper::test_action($id, $payload);

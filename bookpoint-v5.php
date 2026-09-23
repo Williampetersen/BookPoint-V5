@@ -2,11 +2,11 @@
 /**
  * Plugin Name: BookPoint Booking & Appointments
  * Description: Lightweight appointment booking plugin for WordPress.
- * Version: 2.6.22
+ * Version: 2.6.23
  * Author: BookPoint Team
  * Author URI: https://wpbookpoint.com/
  * Plugin URI: https://wpbookpoint.com/download-for-free/
- * Text Domain: bookpoint-v5
+ * Text Domain: pointly-booking
  * Domain Path: /languages
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -111,14 +111,14 @@ if ($pointlybooking_existing_class !== '') {
         $pointlybooking_existing_display = ltrim((string) $pointlybooking_existing_display, '/\\');
       }
       /* translators: %s: Relative path to the already-loaded plugin file. */
-      $pointlybooking_loaded_from = __('Loaded from: %s', 'bookpoint-v5');
+      $pointlybooking_loaded_from = __('Loaded from: %s', 'pointly-booking');
       $pointlybooking_details = "\n\n" . sprintf($pointlybooking_loaded_from, $pointlybooking_existing_display);
     }
 
     add_action('admin_notices', function () use ($pointlybooking_product, $pointlybooking_details) {
       if (!current_user_can('activate_plugins')) return;
       /* translators: 1: Product name. 2: Product name. 3: Extra details about the loaded plugin path. */
-      $message_template = __('%1$s could not be loaded because another copy of BookPoint is already active. Please deactivate the other BookPoint plugin first, then activate %2$s.%3$s', 'bookpoint-v5');
+      $message_template = __('%1$s could not be loaded because another copy of BookPoint is already active. Please deactivate the other BookPoint plugin first, then activate %2$s.%3$s', 'pointly-booking');
       $message = sprintf(
         $message_template,
         $pointlybooking_product,
@@ -143,7 +143,7 @@ if (!class_exists('POINTLYBOOKING_Core_Plugin', false)) {
 final class POINTLYBOOKING_Core_Plugin {
 
   // NOTE: Keep plugin header Version in sync with this.
-  const VERSION    = '2.6.22';
+  const VERSION    = '2.6.23';
   const DB_VERSION = '5.0.0';
   const CAPS_SEEDED_OPTION = 'pointlybooking_caps_seeded';
   private static $booted = false;
@@ -494,8 +494,8 @@ final class POINTLYBOOKING_Core_Plugin {
     $settings = admin_url('admin.php?page=pointlybooking_settings');
 
     $custom = [
-      '<a href="' . esc_url($dash) . '">' . esc_html__('Open BookPoint', 'bookpoint-v5') . '</a>',
-      '<a href="' . esc_url($settings) . '">' . esc_html__('Settings', 'bookpoint-v5') . '</a>',
+      '<a href="' . esc_url($dash) . '">' . esc_html__('Open BookPoint', 'pointly-booking') . '</a>',
+      '<a href="' . esc_url($settings) . '">' . esc_html__('Settings', 'pointly-booking') . '</a>',
     ];
 
     return array_merge($custom, $links);
@@ -519,7 +519,7 @@ final class POINTLYBOOKING_Core_Plugin {
           /* translators: %s: Plugin name. */
           __(
             '%s cannot be activated while another BookPoint plugin is installed. Please deactivate/remove the other BookPoint plugin first.',
-            'bookpoint-v5'
+            'pointly-booking'
           ),
           $product
         );
@@ -1551,8 +1551,8 @@ final class POINTLYBOOKING_Core_Plugin {
     $admin_app_cb = 'pointlybooking_render_admin_app';
 
     add_menu_page(
-      __('BookPoint', 'bookpoint-v5'),
-      __('BookPoint', 'bookpoint-v5'),
+      __('BookPoint', 'pointly-booking'),
+      __('BookPoint', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_dashboard',
       'pointlybooking_render_admin_app',
@@ -1565,8 +1565,8 @@ final class POINTLYBOOKING_Core_Plugin {
     if (current_user_can('manage_options')) {
       add_submenu_page(
         'options-general.php',
-        __('BookPoint', 'bookpoint-v5'),
-        __('BookPoint', 'bookpoint-v5'),
+        __('BookPoint', 'pointly-booking'),
+        __('BookPoint', 'pointly-booking'),
         'manage_options',
         'pointlybooking_dashboard',
         'pointlybooking_render_admin_app'
@@ -1574,8 +1574,8 @@ final class POINTLYBOOKING_Core_Plugin {
       // Guaranteed fallback access from Plugins screen in restrictive admin-menu environments.
       add_submenu_page(
         'plugins.php',
-        __('BookPoint', 'bookpoint-v5'),
-        __('BookPoint', 'bookpoint-v5'),
+        __('BookPoint', 'pointly-booking'),
+        __('BookPoint', 'pointly-booking'),
         'manage_options',
         'pointlybooking_dashboard',
         'pointlybooking_render_admin_app'
@@ -1584,16 +1584,16 @@ final class POINTLYBOOKING_Core_Plugin {
     if (function_exists('is_network_admin') && is_network_admin() && current_user_can('manage_network_options')) {
       add_submenu_page(
         'settings.php',
-        __('BookPoint', 'bookpoint-v5'),
-        __('BookPoint', 'bookpoint-v5'),
+        __('BookPoint', 'pointly-booking'),
+        __('BookPoint', 'pointly-booking'),
         'manage_network_options',
         'pointlybooking_dashboard',
         'pointlybooking_render_admin_app'
       );
       add_submenu_page(
         'plugins.php',
-        __('BookPoint', 'bookpoint-v5'),
-        __('BookPoint', 'bookpoint-v5'),
+        __('BookPoint', 'pointly-booking'),
+        __('BookPoint', 'pointly-booking'),
         'manage_network_options',
         'pointlybooking_dashboard',
         'pointlybooking_render_admin_app'
@@ -1602,8 +1602,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Dashboard', 'bookpoint-v5'),
-      __('Dashboard', 'bookpoint-v5'),
+      __('Dashboard', 'pointly-booking'),
+      __('Dashboard', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_dashboard',
       'pointlybooking_render_admin_app',
@@ -1612,8 +1612,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('How to Use', 'bookpoint-v5'),
-      __('How to Use', 'bookpoint-v5'),
+      __('How to Use', 'pointly-booking'),
+      __('How to Use', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_how_to_use',
       'pointlybooking_render_admin_app'
@@ -1621,8 +1621,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Bookings', 'bookpoint-v5'),
-      __('Bookings', 'bookpoint-v5'),
+      __('Bookings', 'pointly-booking'),
+      __('Bookings', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_bookings',
       'pointlybooking_render_admin_app'
@@ -1630,8 +1630,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Booking Edit', 'bookpoint-v5'),
-      __('Booking Edit', 'bookpoint-v5'),
+      __('Booking Edit', 'pointly-booking'),
+      __('Booking Edit', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_bookings_edit',
       'pointlybooking_render_admin_app'
@@ -1639,8 +1639,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Calendar', 'bookpoint-v5'),
-      __('Calendar', 'bookpoint-v5'),
+      __('Calendar', 'pointly-booking'),
+      __('Calendar', 'pointly-booking'),
       $cap('pointlybooking_manage_bookings'),
       'pointlybooking_calendar',
       'pointlybooking_render_admin_app'
@@ -1648,8 +1648,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Schedule', 'bookpoint-v5'),
-      __('Schedule', 'bookpoint-v5'),
+      __('Schedule', 'pointly-booking'),
+      __('Schedule', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_schedule',
       'pointlybooking_render_admin_app'
@@ -1657,8 +1657,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Holidays', 'bookpoint-v5'),
-      __('Holidays', 'bookpoint-v5'),
+      __('Holidays', 'pointly-booking'),
+      __('Holidays', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_holidays',
       $admin_app_cb
@@ -1666,8 +1666,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Services', 'bookpoint-v5'),
-      __('Services', 'bookpoint-v5'),
+      __('Services', 'pointly-booking'),
+      __('Services', 'pointly-booking'),
       $cap('pointlybooking_manage_services'),
       'pointlybooking_services',
       'pointlybooking_render_admin_app'
@@ -1675,8 +1675,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Categories', 'bookpoint-v5'),
-      __('Categories', 'bookpoint-v5'),
+      __('Categories', 'pointly-booking'),
+      __('Categories', 'pointly-booking'),
       $cap('pointlybooking_manage_services'),
       'pointlybooking_categories',
       'pointlybooking_render_admin_app'
@@ -1684,8 +1684,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Service Extras', 'bookpoint-v5'),
-      __('Service Extras', 'bookpoint-v5'),
+      __('Service Extras', 'pointly-booking'),
+      __('Service Extras', 'pointly-booking'),
       $cap('pointlybooking_manage_services'),
       'pointlybooking_extras',
       $admin_app_cb
@@ -1693,8 +1693,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Locations', 'bookpoint-v5'),
-      __('Locations', 'bookpoint-v5'),
+      __('Locations', 'pointly-booking'),
+      __('Locations', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_locations',
       $admin_app_cb
@@ -1702,8 +1702,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Promo Codes', 'bookpoint-v5'),
-      __('Promo Codes', 'bookpoint-v5'),
+      __('Promo Codes', 'pointly-booking'),
+      __('Promo Codes', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_promo_codes',
       $admin_app_cb
@@ -1711,16 +1711,16 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Form Fields', 'bookpoint-v5'),
-      __('Form Fields', 'bookpoint-v5'),
+      __('Form Fields', 'pointly-booking'),
+      __('Form Fields', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'bp-form-fields',
       'pointlybooking_render_admin_app'
     );
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Form Fields', 'bookpoint-v5'),
-      __('Form Fields', 'bookpoint-v5'),
+      __('Form Fields', 'pointly-booking'),
+      __('Form Fields', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_form_fields',
       'pointlybooking_render_admin_app'
@@ -1728,8 +1728,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Booking Form Designer', 'bookpoint-v5'),
-      __('Booking Form Designer', 'bookpoint-v5'),
+      __('Booking Form Designer', 'pointly-booking'),
+      __('Booking Form Designer', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_design_form',
       'pointlybooking_render_admin_app'
@@ -1737,8 +1737,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Form Fields', 'bookpoint-v5'),
-      __('Form Fields', 'bookpoint-v5'),
+      __('Form Fields', 'pointly-booking'),
+      __('Form Fields', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_form_fields_edit',
       [__CLASS__, 'render_form_fields_edit']
@@ -1746,8 +1746,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Customers', 'bookpoint-v5'),
-      __('Customers', 'bookpoint-v5'),
+      __('Customers', 'pointly-booking'),
+      __('Customers', 'pointly-booking'),
       $cap('pointlybooking_manage_customers'),
       'pointlybooking_customers',
       'pointlybooking_render_admin_app'
@@ -1755,8 +1755,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Settings', 'bookpoint-v5'),
-      __('Settings', 'bookpoint-v5'),
+      __('Settings', 'pointly-booking'),
+      __('Settings', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_settings',
       'pointlybooking_render_admin_app'
@@ -1764,8 +1764,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Notifications', 'bookpoint-v5'),
-      __('Notifications', 'bookpoint-v5'),
+      __('Notifications', 'pointly-booking'),
+      __('Notifications', 'pointly-booking'),
       $cap('pointlybooking_manage_settings'),
       'pointlybooking_notifications',
       'pointlybooking_render_admin_app'
@@ -1773,8 +1773,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Audit Log', 'bookpoint-v5'),
-      __('Audit Log', 'bookpoint-v5'),
+      __('Audit Log', 'pointly-booking'),
+      __('Audit Log', 'pointly-booking'),
       $cap('pointlybooking_manage_tools'),
       'pointlybooking_audit',
       'pointlybooking_render_admin_app'
@@ -1782,8 +1782,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Tools', 'bookpoint-v5'),
-      __('Tools', 'bookpoint-v5'),
+      __('Tools', 'pointly-booking'),
+      __('Tools', 'pointly-booking'),
       $cap('pointlybooking_manage_tools'),
       'pointlybooking_tools',
       'pointlybooking_render_admin_app'
@@ -1791,8 +1791,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'tools.php',
-      __('BookPoint Tools', 'bookpoint-v5'),
-      __('BookPoint Tools', 'bookpoint-v5'),
+      __('BookPoint Tools', 'pointly-booking'),
+      __('BookPoint Tools', 'pointly-booking'),
       $cap('pointlybooking_manage_tools'),
       'pointlybooking_tools',
       'pointlybooking_render_admin_app'
@@ -1800,8 +1800,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       'pointlybooking_dashboard',
-      __('Agents', 'bookpoint-v5'),
-      __('Agents', 'bookpoint-v5'),
+      __('Agents', 'pointly-booking'),
+      __('Agents', 'pointly-booking'),
       $cap('pointlybooking_manage_agents'),
       'pointlybooking_agents',
       'pointlybooking_render_admin_app'
@@ -1810,8 +1810,8 @@ final class POINTLYBOOKING_Core_Plugin {
     // Hidden pages for internal use
       add_submenu_page(
         null,
-        __('Edit Agent', 'bookpoint-v5'),
-        __('Edit Agent', 'bookpoint-v5'),
+        __('Edit Agent', 'pointly-booking'),
+        __('Edit Agent', 'pointly-booking'),
         'pointlybooking_manage_agents',
         'pointlybooking_agents_edit',
         [__CLASS__, 'render_agents_edit']
@@ -1819,8 +1819,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
       add_submenu_page(
         null,
-        __('Edit Location', 'bookpoint-v5'),
-        __('Edit Location', 'bookpoint-v5'),
+        __('Edit Location', 'pointly-booking'),
+        __('Edit Location', 'pointly-booking'),
         'pointlybooking_manage_settings',
         'pointlybooking_locations_edit',
         $admin_app_cb
@@ -1828,8 +1828,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
       add_submenu_page(
         null,
-        __('Edit Location Category', 'bookpoint-v5'),
-        __('Edit Location Category', 'bookpoint-v5'),
+        __('Edit Location Category', 'pointly-booking'),
+        __('Edit Location Category', 'pointly-booking'),
         'pointlybooking_manage_settings',
         'pointlybooking_location_categories_edit',
         $admin_app_cb
@@ -1837,8 +1837,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Delete Agent', 'bookpoint-v5'),
-      __('Delete Agent', 'bookpoint-v5'),
+      __('Delete Agent', 'pointly-booking'),
+      __('Delete Agent', 'pointly-booking'),
       'pointlybooking_manage_agents',
       'pointlybooking_agents_delete',
       [__CLASS__, 'render_agents_delete']
@@ -1846,8 +1846,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Edit Service', 'bookpoint-v5'),
-      __('Edit Service', 'bookpoint-v5'),
+      __('Edit Service', 'pointly-booking'),
+      __('Edit Service', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_services_edit',
       [__CLASS__, 'render_services_edit']
@@ -1855,8 +1855,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Edit Extra', 'bookpoint-v5'),
-      __('Edit Extra', 'bookpoint-v5'),
+      __('Edit Extra', 'pointly-booking'),
+      __('Edit Extra', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_extras_edit',
       $admin_app_cb
@@ -1864,8 +1864,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Delete Extra', 'bookpoint-v5'),
-      __('Delete Extra', 'bookpoint-v5'),
+      __('Delete Extra', 'pointly-booking'),
+      __('Delete Extra', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_extras_delete',
       [__CLASS__, 'render_extras_delete']
@@ -1873,8 +1873,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Edit Category', 'bookpoint-v5'),
-      __('Edit Category', 'bookpoint-v5'),
+      __('Edit Category', 'pointly-booking'),
+      __('Edit Category', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_categories_edit',
       [__CLASS__, 'render_categories_edit']
@@ -1882,8 +1882,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Delete Category', 'bookpoint-v5'),
-      __('Delete Category', 'bookpoint-v5'),
+      __('Delete Category', 'pointly-booking'),
+      __('Delete Category', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_categories_delete',
       [__CLASS__, 'render_categories_delete']
@@ -1891,8 +1891,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Delete Service', 'bookpoint-v5'),
-      __('Delete Service', 'bookpoint-v5'),
+      __('Delete Service', 'pointly-booking'),
+      __('Delete Service', 'pointly-booking'),
       'pointlybooking_manage_services',
       'pointlybooking_services_delete',
       [__CLASS__, 'render_services_delete']
@@ -1900,8 +1900,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Edit Promo Code', 'bookpoint-v5'),
-      __('Edit Promo Code', 'bookpoint-v5'),
+      __('Edit Promo Code', 'pointly-booking'),
+      __('Edit Promo Code', 'pointly-booking'),
       'pointlybooking_manage_settings',
       'pointlybooking_promo_codes_edit',
       [__CLASS__, 'render_promo_codes_edit']
@@ -1909,8 +1909,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Delete Promo Code', 'bookpoint-v5'),
-      __('Delete Promo Code', 'bookpoint-v5'),
+      __('Delete Promo Code', 'pointly-booking'),
+      __('Delete Promo Code', 'pointly-booking'),
       'pointlybooking_manage_settings',
       'pointlybooking_promo_codes_delete',
       [__CLASS__, 'render_promo_codes_delete']
@@ -1918,8 +1918,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Confirm Booking', 'bookpoint-v5'),
-      __('Confirm Booking', 'bookpoint-v5'),
+      __('Confirm Booking', 'pointly-booking'),
+      __('Confirm Booking', 'pointly-booking'),
       'pointlybooking_manage_bookings',
       'pointlybooking_booking_confirm',
       [__CLASS__, 'render_booking_confirm']
@@ -1927,8 +1927,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('Cancel Booking', 'bookpoint-v5'),
-      __('Cancel Booking', 'bookpoint-v5'),
+      __('Cancel Booking', 'pointly-booking'),
+      __('Cancel Booking', 'pointly-booking'),
       'pointlybooking_manage_bookings',
       'pointlybooking_booking_cancel',
       [__CLASS__, 'render_booking_cancel']
@@ -1936,8 +1936,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     add_submenu_page(
       null,
-      __('View Customer', 'bookpoint-v5'),
-      __('View Customer', 'bookpoint-v5'),
+      __('View Customer', 'pointly-booking'),
+      __('View Customer', 'pointly-booking'),
       'pointlybooking_manage_customers',
       'pointlybooking_customers_view',
       [__CLASS__, 'render_customer_view']
@@ -1946,8 +1946,8 @@ final class POINTLYBOOKING_Core_Plugin {
     // Hidden page for internal use (React)
     add_submenu_page(
       null,
-      __('Edit Customer', 'bookpoint-v5'),
-      __('Edit Customer', 'bookpoint-v5'),
+      __('Edit Customer', 'pointly-booking'),
+      __('Edit Customer', 'pointly-booking'),
       'pointlybooking_manage_customers',
       'pointlybooking_customers_edit',
       'pointlybooking_render_admin_app'
@@ -1970,8 +1970,8 @@ final class POINTLYBOOKING_Core_Plugin {
 
     // Re-add the top-level entry if a plugin/theme removed it.
     add_menu_page(
-      __('BookPoint', 'bookpoint-v5'),
-      __('BookPoint', 'bookpoint-v5'),
+      __('BookPoint', 'pointly-booking'),
+      __('BookPoint', 'pointly-booking'),
       current_user_can('manage_options') ? 'manage_options' : 'activate_plugins',
       'pointlybooking_dashboard',
       'pointlybooking_render_admin_app',
@@ -3088,7 +3088,7 @@ final class POINTLYBOOKING_Core_Plugin {
     set_transient($bucket, $data, $window_sec);
 
     if ((int)$data['count'] > $limit) {
-      wp_die(esc_html__('Too many requests. Please try again later.', 'bookpoint-v5'), 429);
+      wp_die(esc_html__('Too many requests. Please try again later.', 'pointly-booking'), 429);
     }
   }
 }
@@ -3113,7 +3113,7 @@ register_deactivation_hook(__FILE__, ['POINTLYBOOKING_Core_Plugin', 'on_deactiva
 if (!function_exists('pointlybooking_shortcode_booking_form')) {
   function pointlybooking_shortcode_booking_form($atts = []) {
     $atts = shortcode_atts([
-      'label' => __('Book Now', 'bookpoint-v5'),
+      'label' => __('Book Now', 'pointly-booking'),
       'service_id' => 0,
       'default_date' => '',
       'hide_notes' => 0,

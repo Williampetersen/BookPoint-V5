@@ -50,22 +50,22 @@ final class POINTLYBOOKING_ServiceModel extends POINTLYBOOKING_Model {
 
     $name = trim((string)($data['name'] ?? ''));
     if ($name === '') {
-      $errors['name'] = __('Service name is required.', 'bookpoint-v5');
+      $errors['name'] = __('Service name is required.', 'pointly-booking');
     }
 
     $duration = (int)($data['duration_minutes'] ?? 0);
     if ($duration < 5 || $duration > 1440) {
-      $errors['duration_minutes'] = __('Duration must be between 5 and 1440 minutes.', 'bookpoint-v5');
+      $errors['duration_minutes'] = __('Duration must be between 5 and 1440 minutes.', 'pointly-booking');
     }
 
     $price_cents = (int)($data['price_cents'] ?? 0);
     if ($price_cents < 0) {
-      $errors['price_cents'] = __('Price must be 0 or more.', 'bookpoint-v5');
+      $errors['price_cents'] = __('Price must be 0 or more.', 'pointly-booking');
     }
 
     $currency = strtoupper(trim((string)($data['currency'] ?? 'USD')));
     if (!preg_match('/^[A-Z]{3}$/', $currency)) {
-      $errors['currency'] = __('Currency must be a 3-letter code like USD.', 'bookpoint-v5');
+      $errors['currency'] = __('Currency must be a 3-letter code like USD.', 'pointly-booking');
     }
 
     // Step 15: Service-based availability validation
@@ -74,13 +74,13 @@ final class POINTLYBOOKING_ServiceModel extends POINTLYBOOKING_Model {
     $capacity      = (int)($data['capacity'] ?? 1);
 
     if ($buffer_before < 0 || $buffer_before > 240) {
-      $errors['buffer_before_minutes'] = __('Buffer before must be 0-240 minutes.', 'bookpoint-v5');
+      $errors['buffer_before_minutes'] = __('Buffer before must be 0-240 minutes.', 'pointly-booking');
     }
     if ($buffer_after < 0 || $buffer_after > 240) {
-      $errors['buffer_after_minutes'] = __('Buffer after must be 0-240 minutes.', 'bookpoint-v5');
+      $errors['buffer_after_minutes'] = __('Buffer after must be 0-240 minutes.', 'pointly-booking');
     }
     if ($capacity < 1 || $capacity > 50) {
-      $errors['capacity'] = __('Capacity must be between 1 and 50.', 'bookpoint-v5');
+      $errors['capacity'] = __('Capacity must be between 1 and 50.', 'pointly-booking');
     }
 
     return $errors;

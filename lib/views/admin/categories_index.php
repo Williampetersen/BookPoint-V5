@@ -3,35 +3,35 @@
 defined('ABSPATH') || exit; ?>
 <?php require_once __DIR__ . '/legacy_shell.php'; ?>
 <?php
-  $pointlybooking_actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=pointlybooking_categories_edit')) . '">' . esc_html__('Add New', 'bookpoint-v5') . '</a>';
-  pointlybooking_render_legacy_shell_start(esc_html__('Categories', 'bookpoint-v5'), esc_html__('Organize your services into categories.', 'bookpoint-v5'), $pointlybooking_actions_html, 'categories');
+  $pointlybooking_actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=pointlybooking_categories_edit')) . '">' . esc_html__('Add New', 'pointly-booking') . '</a>';
+  pointlybooking_render_legacy_shell_start(esc_html__('Categories', 'pointly-booking'), esc_html__('Organize your services into categories.', 'pointly-booking'), $pointlybooking_actions_html, 'categories');
 ?>
 
   <form method="get" style="margin:12px 0;">
     <input type="hidden" name="page" value="pointlybooking_categories">
     <?php wp_nonce_field('pointlybooking_admin_filter', 'pointlybooking_filter_nonce'); ?>
-    <input type="text" name="q" value="<?php echo esc_attr($q); ?>" placeholder="<?php echo esc_attr__('Search...', 'bookpoint-v5'); ?>" />
+    <input type="text" name="q" value="<?php echo esc_attr($q); ?>" placeholder="<?php echo esc_attr__('Search...', 'pointly-booking'); ?>" />
     <select name="is_active">
-      <option value=""><?php echo esc_html__('All', 'bookpoint-v5'); ?></option>
-      <option value="1" <?php selected($is_active, '1'); ?>><?php echo esc_html__('Active', 'bookpoint-v5'); ?></option>
-      <option value="0" <?php selected($is_active, '0'); ?>><?php echo esc_html__('Inactive', 'bookpoint-v5'); ?></option>
+      <option value=""><?php echo esc_html__('All', 'pointly-booking'); ?></option>
+      <option value="1" <?php selected($is_active, '1'); ?>><?php echo esc_html__('Active', 'pointly-booking'); ?></option>
+      <option value="0" <?php selected($is_active, '0'); ?>><?php echo esc_html__('Inactive', 'pointly-booking'); ?></option>
     </select>
-    <button class="button"><?php echo esc_html__('Filter', 'bookpoint-v5'); ?></button>
+    <button class="button"><?php echo esc_html__('Filter', 'pointly-booking'); ?></button>
   </form>
 
   <table class="widefat striped">
     <thead>
       <tr>
-        <th style="width:60px;"><?php echo esc_html__('Image', 'bookpoint-v5'); ?></th>
-        <th><?php echo esc_html__('Name', 'bookpoint-v5'); ?></th>
-        <th><?php echo esc_html__('Status', 'bookpoint-v5'); ?></th>
-        <th style="width:120px;"><?php echo esc_html__('Sort', 'bookpoint-v5'); ?></th>
-        <th style="width:180px;"><?php echo esc_html__('Actions', 'bookpoint-v5'); ?></th>
+        <th style="width:60px;"><?php echo esc_html__('Image', 'pointly-booking'); ?></th>
+        <th><?php echo esc_html__('Name', 'pointly-booking'); ?></th>
+        <th><?php echo esc_html__('Status', 'pointly-booking'); ?></th>
+        <th style="width:120px;"><?php echo esc_html__('Sort', 'pointly-booking'); ?></th>
+        <th style="width:180px;"><?php echo esc_html__('Actions', 'pointly-booking'); ?></th>
       </tr>
     </thead>
     <tbody>
       <?php if (empty($items)): ?>
-        <tr><td colspan="5" style="text-align:center;"><?php echo esc_html__('No categories yet.', 'bookpoint-v5'); ?></td></tr>
+        <tr><td colspan="5" style="text-align:center;"><?php echo esc_html__('No categories yet.', 'pointly-booking'); ?></td></tr>
       <?php else: foreach ($items as $row):
         $pointlybooking_img = '';
         $pointlybooking_id = (int) ($row['id'] ?? 0);
@@ -67,12 +67,12 @@ defined('ABSPATH') || exit; ?>
             <div style="color:#666;"><?php echo esc_html(wp_trim_words((string)$row['description'], 14)); ?></div>
           </td>
           <td>
-            <?php echo esc_html((int)$row['is_active'] === 1 ? __('Active', 'bookpoint-v5') : __('Inactive', 'bookpoint-v5')); ?>
+            <?php echo esc_html((int)$row['is_active'] === 1 ? __('Active', 'pointly-booking') : __('Inactive', 'pointly-booking')); ?>
           </td>
           <td><?php echo esc_html((string) (int) ($row['sort_order'] ?? 0)); ?></td>
           <td>
             <a class="button button-small" href="<?php echo esc_url($pointlybooking_edit_page_url); ?>">
-              <?php echo esc_html__('Edit', 'bookpoint-v5'); ?>
+              <?php echo esc_html__('Edit', 'pointly-booking'); ?>
             </a>
           </td>
         </tr>

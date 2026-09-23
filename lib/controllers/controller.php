@@ -11,7 +11,7 @@ abstract class POINTLYBOOKING_Controller {
 
   protected function require_cap(string $cap) : void {
     if (!current_user_can($cap)) {
-      wp_die(esc_html__('You do not have permission to access this page.', 'bookpoint-v5'));
+      wp_die(esc_html__('You do not have permission to access this page.', 'pointly-booking'));
     }
   }
 

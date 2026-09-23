@@ -313,17 +313,17 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
   $raw = trim((string) $raw);
   if ($raw === '') return null;
   if (strlen($raw) > 5000) {
-    $error = __('Schedule JSON is too large.', 'bookpoint-v5');
+    $error = __('Schedule JSON is too large.', 'pointly-booking');
     return null;
   }
 
   $decoded = json_decode($raw, true);
   if (!is_array($decoded) || json_last_error() !== JSON_ERROR_NONE) {
-    $error = __('Schedule JSON must be a valid JSON object.', 'bookpoint-v5');
+    $error = __('Schedule JSON must be a valid JSON object.', 'pointly-booking');
     return null;
   }
   if (count($decoded) > 7) {
-    $error = __('Schedule JSON can contain at most 7 weekday entries.', 'bookpoint-v5');
+    $error = __('Schedule JSON can contain at most 7 weekday entries.', 'pointly-booking');
     return null;
   }
 
@@ -331,11 +331,11 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
   foreach ($decoded as $day => $range) {
     $day_key = (string) $day;
     if (!preg_match('/^[0-6]$/', $day_key)) {
-      $error = __('Schedule JSON keys must be weekday numbers 0-6.', 'bookpoint-v5');
+      $error = __('Schedule JSON keys must be weekday numbers 0-6.', 'pointly-booking');
       return null;
     }
     if (is_array($range) || is_object($range)) {
-      $error = __('Schedule values must be strings like HH:MM-HH:MM or empty.', 'bookpoint-v5');
+      $error = __('Schedule values must be strings like HH:MM-HH:MM or empty.', 'pointly-booking');
       return null;
     }
     $range_str = trim((string) $range);
@@ -345,12 +345,12 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
     }
     $parsed = pointlybooking_parse_hhmm_range($range_str);
     if ($parsed === null) {
-      $error = __('Schedule values must use HH:MM-HH:MM format.', 'bookpoint-v5');
+      $error = __('Schedule values must use HH:MM-HH:MM format.', 'pointly-booking');
       return null;
     }
     [$open, $close] = $parsed;
     if (pointlybooking_hhmm_to_minutes($close) <= pointlybooking_hhmm_to_minutes($open)) {
-      $error = __('Schedule range end must be after start.', 'bookpoint-v5');
+      $error = __('Schedule range end must be after start.', 'pointly-booking');
       return null;
     }
     $normalized[$day_key] = $open . '-' . $close;
@@ -359,7 +359,7 @@ function pointlybooking_sanitize_schedule_json_payload($raw, ?string &$error = n
   ksort($normalized, SORT_NUMERIC);
   $normalized_json = wp_json_encode($normalized);
   if (!is_string($normalized_json) || $normalized_json === '') {
-    $error = __('Schedule JSON could not be normalized.', 'bookpoint-v5');
+    $error = __('Schedule JSON could not be normalized.', 'pointly-booking');
     return null;
   }
 

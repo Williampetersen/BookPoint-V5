@@ -58,7 +58,7 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
 
   public function slots() : void {
     if (!check_ajax_referer('pointlybooking_public', '_wpnonce', false)) {
-      $this->json_error('pointlybooking_BAD_NONCE', __('Security check failed.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_BAD_NONCE', __('Security check failed.', 'pointly-booking'));
     }
 
     $service_id = $this->post_absint('service_id');
@@ -67,18 +67,18 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
     $agent_id   = $this->post_absint('agent_id');
 
     if ($service_id <= 0 || !self::is_valid_ymd($date)) {
-      $this->json_error('pointlybooking_INVALID_PARAMS', __('Invalid parameters.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_INVALID_PARAMS', __('Invalid parameters.', 'pointly-booking'));
     }
 
     // Step 14: Validate date is within booking window
     if (!POINTLYBOOKING_ScheduleHelper::is_date_allowed($date)) {
-      $this->json_error('pointlybooking_DATE_OUT_OF_RANGE', __('Booking date is outside allowed range.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_DATE_OUT_OF_RANGE', __('Booking date is outside allowed range.', 'pointly-booking'));
     }
 
     // Get service first for step 15 (service-based schedule)
     $service = POINTLYBOOKING_ServiceModel::find($service_id);
     if (!$service) {
-      $this->json_error('pointlybooking_SERVICE_NOT_FOUND', __('Service not found.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_SERVICE_NOT_FOUND', __('Service not found.', 'pointly-booking'));
     }
 
     // Step 15: Get service-specific or global schedule
@@ -133,13 +133,13 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
 
   public function submit() : void {
     if (!check_ajax_referer('pointlybooking_public', '_wpnonce', false)) {
-      $this->json_error('pointlybooking_BAD_NONCE', __('Security check failed.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_BAD_NONCE', __('Security check failed.', 'pointly-booking'));
     }
 
     // basic spam honeypot (hidden field)
     $hp = $this->post_text('pointlybooking_hp');
     if ($hp !== '') {
-      $this->json_error('pointlybooking_SPAM', __('Spam detected.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_SPAM', __('Spam detected.', 'pointly-booking'));
     }
 
     $service_id = $this->post_absint('service_id');
@@ -155,20 +155,20 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
     $notes      = wp_kses_post($this->post_raw('notes'));
 
     if ($service_id <= 0) {
-      $this->json_error('pointlybooking_INVALID_SERVICE', __('Invalid service.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_INVALID_SERVICE', __('Invalid service.', 'pointly-booking'));
     }
 
     if (!self::is_valid_ymd($date) || !self::is_valid_hm($time)) {
-      $this->json_error('pointlybooking_INVALID_DATE_TIME', __('Invalid date or time.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_INVALID_DATE_TIME', __('Invalid date or time.', 'pointly-booking'));
     }
     if ($email !== '' && !is_email($email)) {
-      $this->json_error('pointlybooking_INVALID_EMAIL', __('Invalid email address.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_INVALID_EMAIL', __('Invalid email address.', 'pointly-booking'));
     }
 
     // Load service to know duration
     $service = POINTLYBOOKING_ServiceModel::find($service_id);
     if (!$service || (int)$service['is_active'] !== 1) {
-      $this->json_error('pointlybooking_SERVICE_NOT_FOUND', __('Service not found.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_SERVICE_NOT_FOUND', __('Service not found.', 'pointly-booking'));
     }
 
     $duration = (int)$service['duration_minutes'];
@@ -177,7 +177,7 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
     // Build start/end datetime in WP timezone as mysql string
     $start_ts = strtotime($date . ' ' . $time);
     if (!$start_ts) {
-      $this->json_error('pointlybooking_INVALID_DATE_TIME', __('Invalid date or time.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_INVALID_DATE_TIME', __('Invalid date or time.', 'pointly-booking'));
     }
     $end_ts = $start_ts + ($duration * 60);
 
@@ -194,7 +194,7 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
 
     // Step 16: Pass agent_id to availability check
     if (!POINTLYBOOKING_AvailabilityHelper::is_slot_available($service_id, $start_dt_adj, $end_dt_adj, $capacity, $agent_id)) {
-      $this->json_error('pointlybooking_NOT_AVAILABLE', __('This time is no longer available. Please choose another slot.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_NOT_AVAILABLE', __('This time is no longer available. Please choose another slot.', 'pointly-booking'));
     }
 
     // Create/find customer
@@ -218,7 +218,7 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
     ]);
 
     if ($booking_id <= 0) {
-      $this->json_error('pointlybooking_CREATE_FAILED', __('Could not create booking.', 'bookpoint-v5'));
+      $this->json_error('pointlybooking_CREATE_FAILED', __('Could not create booking.', 'pointly-booking'));
     }
 
     // Fetch booking for response
@@ -271,7 +271,7 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
     $this->json_success([
       'booking_id' => $booking_id,
       'manage_url' => $manage_url,
-    ], __('Booking created successfully.', 'bookpoint-v5'));
+    ], __('Booking created successfully.', 'pointly-booking'));
   }
 
   public function render_manage_page() : void {
@@ -286,7 +286,7 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
     $message = '';
     $cancelled = $this->query_text('cancelled');
     if ($cancelled === '1') {
-      $message = __('Booking cancelled successfully.', 'bookpoint-v5');
+      $message = __('Booking cancelled successfully.', 'pointly-booking');
     }
 
     $cancel_url = '';
@@ -313,11 +313,11 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
     wp_localize_script('pointlybooking-manage', 'pointlybooking_MANAGE', [
       'restUrl' => esc_url_raw(rest_url('pointly-booking/v1')),
       'i18n' => [
-        'missingRestUrl' => __('Missing REST URL.', 'bookpoint-v5'),
-        'unsupported' => __('This browser does not support required features.', 'bookpoint-v5'),
-        'loadingSlots' => __('Loading available times...', 'bookpoint-v5'),
-        'noSlots' => __('No available times for this date.', 'bookpoint-v5'),
-        'loadError' => __('Could not load available times. Please try again.', 'bookpoint-v5'),
+        'missingRestUrl' => __('Missing REST URL.', 'pointly-booking'),
+        'unsupported' => __('This browser does not support required features.', 'pointly-booking'),
+        'loadingSlots' => __('Loading available times...', 'pointly-booking'),
+        'noSlots' => __('No available times for this date.', 'pointly-booking'),
+        'loadError' => __('Could not load available times. Please try again.', 'pointly-booking'),
       ],
     ]);
 
@@ -338,7 +338,7 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
     if ($request_method === 'POST' && $this->post_key('pointlybooking_manage_action') !== '') {
       $nonce = $this->post_text('_wpnonce');
       if (!wp_verify_nonce($nonce, 'pointlybooking_manage_booking')) {
-        wp_die(esc_html__('Security check failed.', 'bookpoint-v5'));
+        wp_die(esc_html__('Security check failed.', 'pointly-booking'));
       }
 
       $key = $this->post_text('key');
@@ -347,7 +347,7 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
       }
       $booking = POINTLYBOOKING_BookingModel::find_by_manage_key($key);
       if (!$booking) {
-        wp_die(esc_html__('Booking not found.', 'bookpoint-v5'));
+        wp_die(esc_html__('Booking not found.', 'pointly-booking'));
       }
 
       $manage_action = $this->post_key('pointlybooking_manage_action');
@@ -437,12 +437,12 @@ final class POINTLYBOOKING_PublicBookingsController extends POINTLYBOOKING_Contr
 
     $nonce = $this->query_text('_wpnonce');
     if (!wp_verify_nonce($nonce, 'pointlybooking_manage_booking')) {
-      wp_die(esc_html__('Security check failed.', 'bookpoint-v5'));
+      wp_die(esc_html__('Security check failed.', 'pointly-booking'));
     }
 
     $booking = POINTLYBOOKING_BookingModel::find_by_manage_key($key);
     if (!$booking) {
-      wp_die(esc_html__('Booking not found.', 'bookpoint-v5'));
+      wp_die(esc_html__('Booking not found.', 'pointly-booking'));
     }
 
     POINTLYBOOKING_BookingModel::cancel_by_key($key);

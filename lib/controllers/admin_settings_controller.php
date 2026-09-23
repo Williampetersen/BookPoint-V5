@@ -101,28 +101,28 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
       }
 
       if (!preg_match('/^\d{2}:\d{2}$/', $open)) {
-        $errors['open_time'] = __('Open time must be HH:MM', 'bookpoint-v5');
+        $errors['open_time'] = __('Open time must be HH:MM', 'pointly-booking');
       }
       if (!preg_match('/^\d{2}:\d{2}$/', $close)) {
-        $errors['close_time'] = __('Close time must be HH:MM', 'bookpoint-v5');
+        $errors['close_time'] = __('Close time must be HH:MM', 'pointly-booking');
       }
       if ($interval < 5 || $interval > 120) {
-        $errors['slot_interval_minutes'] = __('Slot interval must be between 5 and 120 minutes.', 'bookpoint-v5');
+        $errors['slot_interval_minutes'] = __('Slot interval must be between 5 and 120 minutes.', 'pointly-booking');
       }
       if (!preg_match('/^[A-Z]{3}$/', $currency)) {
-        $errors['default_currency'] = __('Currency must be a 3-letter code.', 'bookpoint-v5');
+        $errors['default_currency'] = __('Currency must be a 3-letter code.', 'pointly-booking');
       }
       if (!in_array($currency_position, ['before','after'], true)) {
-        $errors['currency_position'] = __('Currency position must be before or after.', 'bookpoint-v5');
+        $errors['currency_position'] = __('Currency position must be before or after.', 'pointly-booking');
       }
 
       if ($future_days_limit < 1 || $future_days_limit > 365) {
-        $errors['future_days_limit'] = __('Future days limit must be between 1 and 365.', 'bookpoint-v5');
+        $errors['future_days_limit'] = __('Future days limit must be between 1 and 365.', 'pointly-booking');
       }
 
       for ($i = 0; $i < 7; $i++) {
         if (!empty($schedule[$i]) && !preg_match('/^\d{2}:\d{2}-\d{2}:\d{2}$/', $schedule[$i])) {
-          $errors['schedule_' . $i] = __('Schedule must be empty or HH:MM-HH:MM format', 'bookpoint-v5');
+          $errors['schedule_' . $i] = __('Schedule must be empty or HH:MM-HH:MM format', 'pointly-booking');
         }
       }
 
@@ -131,7 +131,7 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
         foreach ($break_ranges as $br) {
           $br = trim($br);
           if (!empty($br) && !preg_match('/^\d{2}:\d{2}-\d{2}:\d{2}$/', $br)) {
-            $errors['breaks'] = __('Each break must be HH:MM-HH:MM format, comma-separated', 'bookpoint-v5');
+            $errors['breaks'] = __('Each break must be HH:MM-HH:MM format, comma-separated', 'pointly-booking');
             break;
           }
         }
@@ -173,10 +173,10 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
       }
 
       if ($admin_email === '') {
-        $errors['admin_email'] = __('Admin email is invalid.', 'bookpoint-v5');
+        $errors['admin_email'] = __('Admin email is invalid.', 'pointly-booking');
       }
       if ($from_email === '') {
-        $errors['from_email'] = __('From email is invalid.', 'bookpoint-v5');
+        $errors['from_email'] = __('From email is invalid.', 'pointly-booking');
       }
 
       if (!empty($errors)) {
@@ -220,7 +220,7 @@ final class POINTLYBOOKING_AdminSettingsController extends POINTLYBOOKING_Contro
     global $wpdb;
     $settings_table = $wpdb->prefix . 'pointlybooking_settings';
     if (preg_match('/^[A-Za-z0-9_]+$/', $settings_table) !== 1) {
-      wp_die(esc_html__('Invalid settings table.', 'bookpoint-v5'));
+      wp_die(esc_html__('Invalid settings table.', 'pointly-booking'));
     }
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct database access is intentional here; result freshness or surrounding logic makes local persistent caching inappropriate for this path.
     $rows = $wpdb->get_results(

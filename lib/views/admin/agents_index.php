@@ -1,24 +1,24 @@
 <?php defined('ABSPATH') || exit; ?>
 <?php require_once __DIR__ . '/legacy_shell.php'; ?>
 <?php
-  $pointlybooking_actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=pointlybooking_agents_edit')) . '">' . esc_html__('Add New', 'bookpoint-v5') . '</a>';
-  pointlybooking_render_legacy_shell_start(esc_html__('Agents', 'bookpoint-v5'), esc_html__('Manage your team members and assignments.', 'bookpoint-v5'), $pointlybooking_actions_html, 'agents');
+  $pointlybooking_actions_html = '<a class="bp-top-btn" href="' . esc_url(admin_url('admin.php?page=pointlybooking_agents_edit')) . '">' . esc_html__('Add New', 'pointly-booking') . '</a>';
+  pointlybooking_render_legacy_shell_start(esc_html__('Agents', 'pointly-booking'), esc_html__('Manage your team members and assignments.', 'pointly-booking'), $pointlybooking_actions_html, 'agents');
 ?>
 
   <table class="widefat striped">
     <thead>
       <tr>
-        <th style="width:60px;"><?php esc_html_e('Image', 'bookpoint-v5'); ?></th>
+        <th style="width:60px;"><?php esc_html_e('Image', 'pointly-booking'); ?></th>
         <th>ID</th>
-        <th><?php esc_html_e('Name', 'bookpoint-v5'); ?></th>
-        <th><?php esc_html_e('Email', 'bookpoint-v5'); ?></th>
-        <th><?php esc_html_e('Active', 'bookpoint-v5'); ?></th>
-        <th><?php esc_html_e('Actions', 'bookpoint-v5'); ?></th>
+        <th><?php esc_html_e('Name', 'pointly-booking'); ?></th>
+        <th><?php esc_html_e('Email', 'pointly-booking'); ?></th>
+        <th><?php esc_html_e('Active', 'pointly-booking'); ?></th>
+        <th><?php esc_html_e('Actions', 'pointly-booking'); ?></th>
       </tr>
     </thead>
     <tbody>
       <?php if (empty($items)) : ?>
-        <tr><td colspan="6"><?php esc_html_e('No agents yet.', 'bookpoint-v5'); ?></td></tr>
+        <tr><td colspan="6"><?php esc_html_e('No agents yet.', 'pointly-booking'); ?></td></tr>
       <?php else : foreach ($items as $pointlybooking_agent) : ?>
         <?php
           $pointlybooking_url = !empty($pointlybooking_agent['image_id']) ? wp_get_attachment_image_url((int) $pointlybooking_agent['image_id'], 'thumbnail') : '';
@@ -38,11 +38,11 @@
           <td><?php echo esc_html($pointlybooking_agent['email'] ?? '-'); ?></td>
           <td><?php echo esc_html((int) ($pointlybooking_agent['is_active'] ?? 0) === 1 ? 'Yes' : 'No'); ?></td>
           <td>
-            <a href="<?php echo esc_url($pointlybooking_edit_url); ?>"><?php esc_html_e('Edit', 'bookpoint-v5'); ?></a>
+            <a href="<?php echo esc_url($pointlybooking_edit_url); ?>"><?php esc_html_e('Edit', 'pointly-booking'); ?></a>
             |
             <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=pointlybooking_agents_delete&id=' . absint($pointlybooking_agent['id'])), 'pointlybooking_admin')); ?>"
-               onclick="return confirm('<?php echo esc_js(__('Delete agent?', 'bookpoint-v5')); ?>');">
-              <?php esc_html_e('Delete', 'bookpoint-v5'); ?>
+               onclick="return confirm('<?php echo esc_js(__('Delete agent?', 'pointly-booking')); ?>');">
+              <?php esc_html_e('Delete', 'pointly-booking'); ?>
             </a>
           </td>
         </tr>

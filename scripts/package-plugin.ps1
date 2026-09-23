@@ -41,12 +41,15 @@ function New-ZipFromDirectory([string]$SourceDir, [string]$ZipPath) {
 
 $includeDirs = @('lib', 'public', 'build', 'blocks', 'languages', 'src')
 $includeFiles = @(
-  'bookpoint-v5.php',
   'LICENSE.txt',
   'package.json',
   'package-lock.json',
   'uninstall.php',
-  'readme.txt'
+  'readme.txt',
+  'screenshot-1.png',
+  'screenshot-2.png',
+  'screenshot-3.png',
+  'screenshot-4.png'
 )
 
 foreach ($dir in $includeDirs) {
@@ -61,6 +64,19 @@ foreach ($file in $includeFiles) {
   if (Test-Path $src) {
     Copy-Item -Force $src (Join-Path $stagingPluginDir $file)
   }
+}
+
+# The live WordPress.org plugin's main file is named pointly-booking.php (that
+# exact slug/filename pair is what WordPress uses to track activation on every
+# install). Our dev repo keeps the historical name bookpoint-v5.php, so the
+# released package must rename it on the way out or every existing install
+# would be silently deactivated by an update that changes its main file path.
+$mainFileSrc = Join-Path $repoRoot 'bookpoint-v5.php'
+$mainFileDst = Join-Path $stagingPluginDir 'pointly-booking.php'
+if (Test-Path $mainFileSrc) {
+  Copy-Item -Force $mainFileSrc $mainFileDst
+} else {
+  throw "Packaging failed: main plugin file not found at $mainFileSrc"
 }
 
 # Strip UTF-8 BOM from PHP files to prevent "headers already sent" during activation.

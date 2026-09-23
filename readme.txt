@@ -4,7 +4,7 @@ Donate link: https://wpbookpoint.com/
 Tags: booking, appointment booking, scheduling, calendar, service booking
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 2.6.22
+Stable tag: 2.6.23
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -155,6 +155,10 @@ Terms of service URL: The terms of service of the external provider chosen by th
 Privacy policy URL: The privacy policy of the external provider chosen by the site administrator.
 
 == Changelog ==
+
+= 2.6.23 =
+* Fix: every translatable string in the plugin (44 PHP files plus the booking-form block) used a text domain that didn't match the plugin's actual WordPress.org slug, so none of it could ever be loaded through WordPress.org's translation system. All strings and the plugin header now use the correct text domain.
+* Fix: the WordPress.org release package now ships its main file under the same name the live plugin has always used, so this and future updates apply cleanly to existing installs instead of registering as a second, unrelated plugin.
 
 = 2.6.22 =
 * Fix: the Stripe payment step's Back/Pay buttons used CSS classes that only exist in the admin stylesheet, so they rendered as unstyled browser buttons for customers paying by card.

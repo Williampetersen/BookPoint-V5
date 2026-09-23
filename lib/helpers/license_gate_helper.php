@@ -24,7 +24,7 @@ final class POINTLYBOOKING_LicenseGateHelper {
 
     return new WP_Error(
       'pointlybooking_license_required',
-      __('BookPoint Pro requires an active license. Go to BookPoint -> Settings -> License.', 'bookpoint-v5'),
+      __('BookPoint Pro requires an active license. Go to BookPoint -> Settings -> License.', 'pointly-booking'),
       ['status' => 403]
     );
   }
@@ -34,8 +34,8 @@ final class POINTLYBOOKING_LicenseGateHelper {
     if (!current_user_can('administrator') && !current_user_can('pointlybooking_manage_settings')) return;
     $url = admin_url('admin.php?page=pointlybooking_settings&tab=license');
     echo '<div class="notice notice-error"><p>';
-    echo esc_html__('BookPoint Pro is disabled because the license is not active on this site.', 'bookpoint-v5') . ' ';
-    echo '<a href="' . esc_url($url) . '">' . esc_html__('Open License settings', 'bookpoint-v5') . '</a>';
+    echo esc_html__('BookPoint Pro is disabled because the license is not active on this site.', 'pointly-booking') . ' ';
+    echo '<a href="' . esc_url($url) . '">' . esc_html__('Open License settings', 'pointly-booking') . '</a>';
     echo '</p></div>';
   }
 }
