@@ -51,10 +51,11 @@ export default function WizardPreview({ config, activeStepKey, device = "desktop
 
   const fallback = fileUrl(step?.image || "locations.svg");
   const src = step?.imageUrl || fallback;
+  const isDarkPreview = !!config?.appearance?.darkModeDefault;
 
   return (
     <div className={`bp-preview-wrap ${isMobile ? "is-mobile" : ""}`}>
-      <div className={`bp-preview ${rounded ? "bp-rounded" : "bp-flat"}`}>
+      <div className={`bp-preview ${rounded ? "bp-rounded" : "bp-flat"} ${isDarkPreview ? "bp-dark" : ""}`}>
         {showLeft && (
           <div className="bp-preview-left">
             <div className="bp-preview-icon">

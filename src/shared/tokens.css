@@ -1,0 +1,115 @@
+/*
+ * Shared design tokens for BookPoint's admin app, the front-end booking
+ * widget, and the booking wizard. Imported by src/admin/admin.css and
+ * src/front/front.css so both surfaces (and the wizard, which lives inside
+ * the front bundle) share one palette instead of drifting independently.
+ *
+ * Apply the `.bp-dark` class to a surface's root element (#bp-admin-app,
+ * .bp-modal, #bp-front-root) to switch that surface into dark mode; the
+ * token names stay the same, only their values change.
+ */
+
+:root {
+  /* Typography — system font stack (no webfont to load/host) */
+  --bp-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Brand / accent */
+  --bp-color-primary: #4F46E5;
+  --bp-color-primary-hover: #4338CA;
+  --bp-color-primary-active: #3730A3;
+  --bp-color-primary-soft: #EEF2FF;
+  --bp-color-on-primary: #FFFFFF;
+
+  /* Status colors (booking states, KPIs, badges) */
+  --bp-color-success: #16A34A;
+  --bp-color-success-soft: #DCFCE7;
+  --bp-color-warning: #D97706;
+  --bp-color-warning-soft: #FEF3C7;
+  --bp-color-danger: #DC2626;
+  --bp-color-danger-soft: #FEE2E2;
+  --bp-color-neutral: #475569;
+  --bp-color-neutral-soft: #F1F5F9;
+
+  /* Neutral scale (slate) */
+  --bp-gray-50: #F8FAFC;
+  --bp-gray-100: #F1F5F9;
+  --bp-gray-200: #E2E8F0;
+  --bp-gray-300: #CBD5E1;
+  --bp-gray-400: #94A3B8;
+  --bp-gray-500: #64748B;
+  --bp-gray-600: #475569;
+  --bp-gray-700: #334155;
+  --bp-gray-800: #1E293B;
+  --bp-gray-900: #0F172A;
+
+  /* Semantic surface/text tokens — these are what components should use */
+  --bp-bg: #F4F6FB;
+  --bp-surface: #FFFFFF;
+  --bp-surface-alt: var(--bp-gray-50);
+  --bp-surface-translucent: rgba(248, 250, 255, .85);
+  --bp-border: var(--bp-gray-200);
+  --bp-border-strong: var(--bp-gray-300);
+  --bp-text: var(--bp-gray-900);
+  --bp-text-secondary: var(--bp-gray-600);
+  --bp-text-muted: var(--bp-gray-500);
+
+  /* Spacing scale */
+  --bp-space-1: 4px;
+  --bp-space-2: 8px;
+  --bp-space-3: 12px;
+  --bp-space-4: 16px;
+  --bp-space-5: 20px;
+  --bp-space-6: 24px;
+  --bp-space-8: 32px;
+  --bp-space-10: 40px;
+
+  /* Radius scale */
+  --bp-radius-sm: 8px;
+  --bp-radius-md: 12px;
+  --bp-radius-lg: 16px;
+  --bp-radius-xl: 20px;
+  --bp-radius-full: 999px;
+
+  /* Shadows */
+  --bp-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+  --bp-shadow-md: 0 8px 24px rgba(15, 23, 42, .08);
+  --bp-shadow-lg: 0 20px 60px rgba(15, 23, 42, .16);
+
+  /* Focus ring (indigo-tinted) */
+  --bp-focus-ring: 0 0 0 3px rgba(79, 70, 229, .18);
+}
+
+.bp-dark {
+  --bp-color-primary: #6366F1;
+  --bp-color-primary-hover: #818CF8;
+  --bp-color-primary-active: #A5B4FC;
+  --bp-color-primary-soft: rgba(99, 102, 241, .18);
+  --bp-color-on-primary: #FFFFFF;
+
+  --bp-color-success: #4ADE80;
+  --bp-color-success-soft: rgba(22, 163, 74, .22);
+  --bp-color-warning: #FBBF24;
+  --bp-color-warning-soft: rgba(217, 119, 6, .22);
+  --bp-color-danger: #F87171;
+  --bp-color-danger-soft: rgba(220, 38, 38, .22);
+  --bp-color-neutral: #94A3B8;
+  --bp-color-neutral-soft: rgba(71, 85, 105, .3);
+
+  --bp-bg: #0F172A;
+  --bp-surface: #1E293B;
+  --bp-surface-alt: #263449;
+  --bp-surface-translucent: rgba(30, 41, 59, .85);
+  --bp-border: #334155;
+  --bp-border-strong: #475569;
+  --bp-text: #F1F5F9;
+  --bp-text-secondary: #CBD5E1;
+  --bp-text-muted: #94A3B8;
+
+  --bp-shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+  --bp-shadow-md: 0 8px 24px rgba(0, 0, 0, .45);
+  --bp-shadow-lg: 0 20px 60px rgba(0, 0, 0, .55);
+
+  --bp-focus-ring: 0 0 0 3px rgba(99, 102, 241, .3);
+
+  color-scheme: dark;
+}

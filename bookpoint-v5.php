@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BookPoint Booking & Appointments
  * Description: Lightweight appointment booking plugin for WordPress.
- * Version: 2.6.20
+ * Version: 2.6.21
  * Author: BookPoint Team
  * Author URI: https://wpbookpoint.com/
  * Plugin URI: https://wpbookpoint.com/download-for-free/
@@ -143,7 +143,7 @@ if (!class_exists('POINTLYBOOKING_Core_Plugin', false)) {
 final class POINTLYBOOKING_Core_Plugin {
 
   // NOTE: Keep plugin header Version in sync with this.
-  const VERSION    = '2.6.20';
+  const VERSION    = '2.6.21';
   const DB_VERSION = '5.0.0';
   const CAPS_SEEDED_OPTION = 'pointlybooking_caps_seeded';
   private static $booted = false;

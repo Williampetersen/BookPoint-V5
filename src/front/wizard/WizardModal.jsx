@@ -312,6 +312,13 @@ export default function WizardModal({
   const hasAgentStep = useMemo(() => steps.some((s) => s.key === 'agent'), [steps]);
   const step = steps[stepIndex] || steps[0] || DEFAULT_STEPS[0];
 
+  const isDarkMode = useMemo(() => {
+    const explicit = designConfig?.appearance?.darkModeDefault;
+    if (explicit === true || explicit === false) return explicit;
+    // Site hasn't set an explicit preference: fall back to the visitor's OS/browser setting.
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }, [designConfig?.appearance?.darkModeDefault]);
+
   const themePrimary = designConfig?.appearance?.primaryColor || '';
   const accent = (step?.accentOverride && String(step.accentOverride).trim() !== '')
     ? String(step.accentOverride).trim()
@@ -787,7 +794,11 @@ export default function WizardModal({
   return (
     <div className="bp-modal-overlay" role="dialog" aria-modal="true">
       <div
-        className={compact ? 'bp-modal bp-modal-compact' : 'bp-modal'}
+        className={[
+          'bp-modal',
+          compact ? 'bp-modal-compact' : '',
+          isDarkMode ? 'bp-dark' : '',
+        ].filter(Boolean).join(' ')}
         style={modalStyle}
         ref={modalRef}
         tabIndex={-1}
@@ -817,10 +828,14 @@ export default function WizardModal({
           <main className="bp-main">
             <div className="bp-main-head">
               <h2>{step.title}</h2>
-              <div className="bp-step-dots">
-                {steps.slice(0, 8).map((s, idx) => (
-                  <span key={s.key} className={idx === stepIndex ? 'bp-dot active' : 'bp-dot'} />
-                ))}
+              <div className="bp-step-progress" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={stepIndex + 1}>
+                <div className="bp-step-progress-track">
+                  <div
+                    className="bp-step-progress-fill"
+                    style={{ width: `${((stepIndex + 1) / Math.max(1, steps.length)) * 100}%` }}
+                  />
+                </div>
+                <span className="bp-step-progress-label">Step {stepIndex + 1} of {steps.length}</span>
               </div>
             </div>
 

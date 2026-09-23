@@ -4,7 +4,7 @@ Donate link: https://wpbookpoint.com/
 Tags: booking, appointment booking, scheduling, calendar, service booking
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 2.6.20
+Stable tag: 2.6.21
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -155,6 +155,13 @@ Terms of service URL: The terms of service of the external provider chosen by th
 Privacy policy URL: The privacy policy of the external provider chosen by the site administrator.
 
 == Changelog ==
+
+= 2.6.21 =
+* New design system: a shared set of design tokens (colors, spacing, radius, shadows) now drives the admin dashboard and the front-end booking wizard, replacing two independently-drifting color schemes with one consistent look.
+* New: real dark mode for the admin dashboard (toggle in the top bar) and the booking wizard (follows the "Dark mode default" setting in Booking Form Designer, or the visitor's system preference).
+* Improvement: unified the two duplicate primary-button styles, deduplicated repeated input/card CSS rules.
+* Improvement: replaced the booking wizard's step-dot indicator (which broke past 8 steps) with a progress bar that scales to any number of steps.
+* Improvement: Booking Form Designer's live preview now matches the real widget's dark-mode and help-box behavior.
 
 = 2.6.20 =
 * Security: the public "manage booking" reschedule slot-lookup endpoint (`/manage/slots`) accepted an `exclude_booking_id` for any booking with no ownership check, which could leak whether a specific booking exists/its schedule. It now only honors that exclusion when the caller supplies the booking's own manage key.

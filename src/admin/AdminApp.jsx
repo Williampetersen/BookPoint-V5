@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Shell from "./layout/Shell";
 
 // Screens
@@ -84,13 +84,41 @@ function resolveScreen(page) {
   }
 }
 
+function getInitialTheme() {
+  try {
+    const saved = window.localStorage.getItem("pointlybooking_theme");
+    if (saved === "light" || saved === "dark") return saved;
+  } catch (e) {
+    // ignore storage failures (private browsing, etc.)
+  }
+  if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    return "dark";
+  }
+  return "light";
+}
+
 export default function AdminApp() {
   const page = window.pointlybooking_ADMIN?.page || "pointlybooking_dashboard";
   const screen = useMemo(() => resolveScreen(page), [page]);
 
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("pointlybooking_theme", theme);
+    } catch (e) {
+      // ignore storage failures
+    }
+  }, [theme]);
+
+  function toggleTheme() {
+    setTheme((t) => (t === "dark" ? "light" : "dark"));
+  }
+
   return (
     <Shell
-      theme="light"
+      theme={theme}
+      onToggleTheme={toggleTheme}
       active={screen}
     >
       {screen === "dashboard" ? <DashboardScreen /> : null}
