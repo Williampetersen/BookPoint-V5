@@ -1,25 +1,47 @@
 import React from 'react';
 import { imgOf } from '../ui';
 
-export default function StepAgent({ agents, value, onChange, onBack, onNext, backLabel = '<- Back', nextLabel = 'Next ->' }) {
+export default function StepAgent({ agents, value, onChange, onBack, onNext, backLabel = '<- Back', nextLabel = 'Next ->', loading = false }) {
   const filtered = agents || [];
 
   const canNext = !!value;
 
+  if (loading) {
+    return (
+      <div className="bp-step">
+        <div className="bp-cardlist">
+          <div className="bp-skel" style={{ height: 72 }} />
+          <div className="bp-skel" style={{ height: 72 }} />
+        </div>
+        <div className="bp-step-footer">
+          <button type="button" className="bp-back" onClick={onBack}>{backLabel}</button>
+          <button type="button" className="bp-next" disabled>{nextLabel}</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bp-step">
-      <div className="bp-cardlist">
+      <div className="bp-cardlist" role="radiogroup" aria-label="Agent">
         {filtered.map((ag) => {
           const active = String(value) === String(ag.id);
           return (
             <button
               key={ag.id}
               type="button"
+              role="radio"
+              aria-checked={active}
               className={active ? 'bp-pickcard active' : 'bp-pickcard'}
               onClick={() => onChange(ag.id)}
             >
               <div className="bp-pickcard-left">
-                <img className="bp-avatar" src={imgOf(ag, 'default-avatar.jpg')} alt="" />
+                <img
+                  className="bp-avatar"
+                  src={imgOf(ag, 'default-avatar.jpg')}
+                  alt=""
+                  onError={(e) => { e.currentTarget.src = imgOf({}, 'default-avatar.jpg'); }}
+                />
               </div>
 
               <div className="bp-pickcard-mid">

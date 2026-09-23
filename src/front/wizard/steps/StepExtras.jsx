@@ -2,7 +2,7 @@ import React from 'react';
 import { imgOf } from '../ui';
 import { formatMoney } from '../money';
 
-export default function StepExtras({ extras, value, onChange, onBack, onNext, settings, backLabel = '<- Back', nextLabel = 'Next ->' }) {
+export default function StepExtras({ extras, value, onChange, onBack, onNext, settings, backLabel = '<- Back', nextLabel = 'Next ->', loading = false }) {
   const filtered = extras || [];
 
   function toggle(id) {
@@ -15,6 +15,21 @@ export default function StepExtras({ extras, value, onChange, onBack, onNext, se
 
   const canNext = true;
 
+  if (loading) {
+    return (
+      <div className="bp-step">
+        <div className="bp-cardlist">
+          <div className="bp-skel" style={{ height: 84 }} />
+          <div className="bp-skel" style={{ height: 84 }} />
+        </div>
+        <div className="bp-step-footer">
+          <button type="button" className="bp-back" onClick={onBack}>{backLabel}</button>
+          <button type="button" className="bp-next" disabled>{nextLabel}</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bp-step">
       <div className="bp-cardlist">
@@ -24,11 +39,17 @@ export default function StepExtras({ extras, value, onChange, onBack, onNext, se
             <button
               key={ex.id}
               type="button"
+              aria-pressed={selected}
               className={selected ? 'bp-pickcard active' : 'bp-pickcard'}
               onClick={() => toggle(ex.id)}
             >
               <div className="bp-pickcard-left">
-                <img className="bp-thumb" src={imgOf(ex, 'service-image.png')} alt="" />
+                <img
+                  className="bp-thumb"
+                  src={imgOf(ex, 'service-image.png')}
+                  alt=""
+                  onError={(e) => { e.currentTarget.src = imgOf({}, 'service-image.png'); }}
+                />
               </div>
 
               <div className="bp-pickcard-mid">

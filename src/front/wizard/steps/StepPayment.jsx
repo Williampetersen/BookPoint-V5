@@ -69,10 +69,10 @@ function InnerStripePay({ bookingId, onPaid, onBack }) {
       {err ? <div className="bp-alert bp-alert-error">{err}</div> : null}
 
       <div className="bp-pay-actions">
-        <button type="button" className="bp-btn bp-btn-light" onClick={onBack} disabled={loading}>
+        <button type="button" className="bp-back" onClick={onBack} disabled={loading}>
           Back
         </button>
-        <button type="button" className="bp-btn bp-btn-primary" onClick={pay} disabled={!stripe || loading}>
+        <button type="button" className="bp-next" onClick={pay} disabled={!stripe || loading}>
           {loading ? "Processing..." : "Pay now"}
         </button>
       </div>
@@ -136,7 +136,7 @@ export default function StepPayment({
         <h3>Payment</h3>
         <div className="bp-muted">Selected method: {paymentMethod}</div>
         <div className="bp-pay-actions" style={{ marginTop: 12 }}>
-          <button type="button" className="bp-btn bp-btn-light" onClick={onBack}>
+          <button type="button" className="bp-back" onClick={onBack}>
             Back
           </button>
         </div>
@@ -152,7 +152,7 @@ export default function StepPayment({
           Stripe publishable key is missing. Please configure it in BookPoint Settings.
         </div>
         <div className="bp-pay-actions">
-          <button type="button" className="bp-btn bp-btn-light" onClick={onBack}>
+          <button type="button" className="bp-back" onClick={onBack}>
             Back
           </button>
         </div>

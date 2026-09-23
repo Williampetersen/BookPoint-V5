@@ -262,6 +262,8 @@ export default function WizardModal({
   const [agents, setAgents] = useState([]);
 
   const [loading, setLoading] = useState(false);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [extrasAgentsLoading, setExtrasAgentsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const modalRef = useRef(null);
@@ -279,6 +281,25 @@ export default function WizardModal({
       if (e.key === 'Escape') {
         e.stopPropagation();
         onClose?.();
+        return;
+      }
+      if (e.key === 'Tab') {
+        const root = modalRef.current;
+        if (!root) return;
+        const focusable = root.querySelectorAll(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusable.length) return;
+        const list = Array.prototype.slice.call(focusable);
+        const first = list[0];
+        const last = list[list.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -599,34 +620,49 @@ export default function WizardModal({
 
   useEffect(() => {
     if (!open) return;
+    if (!(step.key === 'service' || step.key === 'extras' || step.key === 'agent' || step.key === 'datetime' || step.key === 'review')) {
+      return;
+    }
+    let alive = true;
+    setServicesLoading(true);
     (async () => {
       try {
-        if (step.key === 'service' || step.key === 'extras' || step.key === 'agent' || step.key === 'datetime' || step.key === 'review') {
-          const svc = await fetchServices({ category_ids: categoryIds, location_id: locationId });
-          setServices(svc);
-        }
+        const svc = await fetchServices({ category_ids: categoryIds, location_id: locationId });
+        if (!alive) return;
+        setServices(svc);
       } catch (e) {
+        if (!alive) return;
         setServices([]);
+      } finally {
+        if (alive) setServicesLoading(false);
       }
     })();
+    return () => { alive = false; };
   }, [open, step.key, categoryIds, locationId]);
 
   useEffect(() => {
     if (!open) return;
+    if (!serviceId) return;
+    let alive = true;
+    setExtrasAgentsLoading(true);
     (async () => {
       try {
-        if (!serviceId) return;
         const [ex, ag] = await Promise.all([
           hasExtrasStep ? fetchExtras({ service_id: serviceId }) : Promise.resolve([]),
           fetchAgents({ service_id: serviceId, location_id: locationId }),
         ]);
+        if (!alive) return;
         setExtras(ex);
         setAgents(ag);
       } catch (e) {
+        if (!alive) return;
         setExtras([]);
         setAgents([]);
+      } finally {
+        if (alive) setExtrasAgentsLoading(false);
       }
     })();
+    return () => { alive = false; };
   }, [open, serviceId, locationId, hasExtrasStep]);
 
   function next() {
@@ -792,7 +828,7 @@ export default function WizardModal({
   }
 
   return (
-    <div className="bp-modal-overlay" role="dialog" aria-modal="true">
+    <div className="bp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="bp-wizard-title">
       <div
         className={[
           'bp-modal',
@@ -827,7 +863,7 @@ export default function WizardModal({
 
           <main className="bp-main">
             <div className="bp-main-head">
-              <h2>{step.title}</h2>
+              <h2 id="bp-wizard-title">{step.title}</h2>
               <div className="bp-step-progress" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={stepIndex + 1}>
                 <div className="bp-step-progress-track">
                   <div
@@ -849,6 +885,7 @@ export default function WizardModal({
                 onChange={setLocationId}
                 onNext={next}
                 nextLabel={labels.next}
+                loading={loading}
               />
             )}
 
@@ -861,6 +898,7 @@ export default function WizardModal({
                 onNext={next}
                 backLabel={labels.back}
                 nextLabel={labels.next}
+                loading={loading}
               />
             )}
 
@@ -874,6 +912,7 @@ export default function WizardModal({
                 settings={bpSettings}
                 backLabel={labels.back}
                 nextLabel={labels.next}
+                loading={servicesLoading}
               />
             )}
 
@@ -887,6 +926,7 @@ export default function WizardModal({
                 settings={bpSettings}
                 backLabel={labels.back}
                 nextLabel={labels.next}
+                loading={extrasAgentsLoading}
               />
             )}
 
@@ -895,6 +935,7 @@ export default function WizardModal({
                 agents={agents}
                 value={agentId}
                 onChange={setAgentId}
+                loading={extrasAgentsLoading}
                 onBack={back}
                 onNext={next}
                 backLabel={labels.back}

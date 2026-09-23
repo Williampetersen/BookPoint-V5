@@ -71,6 +71,11 @@ export default function StepCustomer({
         const val = getValue(key);
         if (isEmptyValue(val, def.type)) {
           onError?.(`${def.label || entry.id} is required`);
+          const el = document.getElementById(`bp-field-${key}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.focus({ preventScroll: true });
+          }
           return;
         }
       }

@@ -184,6 +184,7 @@ export default function StepDateTime({
           <button
             type="button"
             className="bp-cal-nav"
+            aria-label="Previous month"
             onClick={() => setViewDate((d) => utcMidday(d.getUTCFullYear(), d.getUTCMonth() - 1, 1))}
           >
             &lt;
@@ -194,6 +195,7 @@ export default function StepDateTime({
           <button
             type="button"
             className="bp-cal-nav"
+            aria-label="Next month"
             onClick={() => setViewDate((d) => utcMidday(d.getUTCFullYear(), d.getUTCMonth() + 1, 1))}
           >
             &gt;
@@ -221,6 +223,8 @@ export default function StepDateTime({
                 type="button"
                 className={`bp-cal-day ${inMonth ? '' : 'is-out'} ${isSelected ? 'is-selected' : ''}`}
                 disabled={disabled}
+                aria-pressed={isSelected}
+                aria-label={dateStr}
                 onClick={() => pickDate(d)}
               >
                 <div>{d.getUTCDate()}</div>
@@ -229,7 +233,7 @@ export default function StepDateTime({
                   width: 28,
                   borderRadius: 999,
                   margin: '6px auto 0',
-                  background: hasSlots ? '#22c55e' : '#e5e7eb',
+                  background: hasSlots ? 'var(--bp-color-success)' : 'var(--bp-gray-200)',
                   opacity: loadingMonth && !info ? 0.3 : 1,
                 }} />
               </button>
@@ -261,6 +265,7 @@ export default function StepDateTime({
               <button
                 key={`${s.time}-${i}`}
                 type="button"
+                aria-pressed={valueSlot?.start_time === s.time}
                 className={`bp-slot ${valueSlot?.start_time === s.time ? 'is-selected' : ''}`}
                 onClick={() => onChangeSlot?.({ start_time: s.time, end_time: s.end || '' })}
               >

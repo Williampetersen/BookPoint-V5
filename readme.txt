@@ -4,7 +4,7 @@ Donate link: https://wpbookpoint.com/
 Tags: booking, appointment booking, scheduling, calendar, service booking
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 2.6.21
+Stable tag: 2.6.22
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -155,6 +155,12 @@ Terms of service URL: The terms of service of the external provider chosen by th
 Privacy policy URL: The privacy policy of the external provider chosen by the site administrator.
 
 == Changelog ==
+
+= 2.6.22 =
+* Fix: the Stripe payment step's Back/Pay buttons used CSS classes that only exist in the admin stylesheet, so they rendered as unstyled browser buttons for customers paying by card.
+* Fix: removed a leftover, unused duplicate payment-method-selection component that was never wired into the wizard.
+* Fix: the date picker's availability indicator used hardcoded colors instead of the shared design tokens, so it didn't adapt in dark mode.
+* Improvement: added keyboard focus trapping to the booking wizard modal so Tab/Shift+Tab no longer escapes to the page behind it, plus an accessible name for screen readers and ARIA state on the date/time picker's calendar days and time slots.
 
 = 2.6.21 =
 * New design system: a shared set of design tokens (colors, spacing, radius, shadows) now drives the admin dashboard and the front-end booking wizard, replacing two independently-drifting color schemes with one consistent look.
