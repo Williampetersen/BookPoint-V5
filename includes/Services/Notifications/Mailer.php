@@ -33,7 +33,7 @@ final class Mailer {
 	 * @param string $subject Subject (used as preheader).
 	 * @return string
 	 */
-	public static function layout( $body, $subject = '' ) {
+	public static function layout( $body, $subject = '' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Used by templates/emails/layout.php.
 		$brand    = Design::get()['appearance']['primaryColor'] ?? '#4f46e5';
 		$business = wp_specialchars_decode( (string) Settings::get( 'business_name', get_bloginfo( 'name' ) ), ENT_QUOTES );
 		$footer   = array_filter(

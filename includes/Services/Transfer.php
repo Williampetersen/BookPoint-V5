@@ -233,15 +233,15 @@ final class Transfer {
 	 */
 	public static function settings_export() {
 		return array(
-			'plugin'                 => 'pointly-booking',
-			'version'                => POINTLYBOOKING_VERSION,
-			'exported_at'            => Dates::now_mysql(),
+			'plugin'                  => 'pointly-booking',
+			'version'                 => POINTLYBOOKING_VERSION,
+			'exported_at'             => Dates::now_mysql(),
 			'pointlybooking_settings' => Settings::legacy_rows(),
-			'wp_options'             => array(
+			'wp_options'              => array(
 				'pointlybooking_settings'            => get_option( Settings::OPTION, array() ),
 				'pointlybooking_booking_form_design' => get_option( Design::OPTION, null ),
 			),
-			'options'                => array(
+			'options'                 => array(
 				'pointlybooking_remove_data_on_uninstall' => (int) get_option( 'pointlybooking_remove_data_on_uninstall', 0 ),
 			),
 		);

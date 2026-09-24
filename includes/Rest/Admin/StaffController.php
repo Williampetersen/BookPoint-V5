@@ -207,10 +207,10 @@ final class StaffController extends Controller {
 		$map = Relations::map( 'agent_services', 'agent_id' );
 		$out = array();
 		foreach ( AgentRepository::all() as $a ) {
-			$row                    = Presenter::agent( $a, $map[ $a['id'] ] ?? array() );
-			$row['services_count']  = count( $row['service_ids'] );
-			$row['has_own_hours']   = ScheduleRepository::agent_has_schedule( $a['id'] ) || '' !== $row['schedule_json'];
-			$out[]                  = $row;
+			$row                   = Presenter::agent( $a, $map[ $a['id'] ] ?? array() );
+			$row['services_count'] = count( $row['service_ids'] );
+			$row['has_own_hours']  = ScheduleRepository::agent_has_schedule( $a['id'] ) || '' !== $row['schedule_json'];
+			$out[]                 = $row;
 		}
 		return $this->ok( $out );
 	}

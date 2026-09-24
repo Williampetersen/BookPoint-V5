@@ -46,8 +46,8 @@ final class DemoData {
 			array( __( 'Premium package', 'pointly-booking' ), 120, 14000 ),
 			array( __( 'Follow-up visit', 'pointly-booking' ), 30, 3000 ),
 		);
-		$first = array( 'Alex', 'Sam', 'Jordan', 'Taylor', 'Morgan', 'Riley', 'Casey', 'Jamie', 'Avery', 'Quinn', 'Robin', 'Charlie' );
-		$last  = array( 'Nielsen', 'Garcia', 'Okafor', 'Kim', 'Rossi', 'Novak', 'Silva', 'Dubois', 'Khan', 'Larsen', 'Moreau', 'Weber' );
+		$first         = array( 'Alex', 'Sam', 'Jordan', 'Taylor', 'Morgan', 'Riley', 'Casey', 'Jamie', 'Avery', 'Quinn', 'Robin', 'Charlie' );
+		$last          = array( 'Nielsen', 'Garcia', 'Okafor', 'Kim', 'Rossi', 'Novak', 'Silva', 'Dubois', 'Khan', 'Larsen', 'Moreau', 'Weber' );
 
 		$category    = CategoryRepository::create(
 			array(

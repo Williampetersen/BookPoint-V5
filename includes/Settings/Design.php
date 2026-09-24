@@ -158,6 +158,21 @@ final class Design {
 	}
 
 	/**
+	 * Custom step image URL. Links to the 2.x bundled images (removed in 3.0) are dropped so
+	 * the step falls back to the built-in illustration.
+	 *
+	 * @param mixed $url URL.
+	 * @return string
+	 */
+	private static function image_url( $url ) {
+		$url = Sanitize::url( $url );
+		if ( '' !== $url && preg_match( '#/wp-content/plugins/[^/]+/public/(images|icons)/#', $url ) ) {
+			return '';
+		}
+		return $url;
+	}
+
+	/**
 	 * Effective design: defaults merged with the stored configuration.
 	 *
 	 * @return array
@@ -269,8 +284,8 @@ final class Design {
 					'enabled'         => in_array( $key, self::REQUIRED_STEPS, true ) ? true : ( ! isset( $step['enabled'] ) || ( false !== $step['enabled'] && 0 !== $step['enabled'] && '0' !== $step['enabled'] ) ),
 					'title'           => self::text( $step['title'] ?? '' ),
 					'subtitle'        => self::text( $step['subtitle'] ?? '', 400 ),
-					'image'           => Sanitize::text( $step['image'] ?? '', 120 ),
-					'imageUrl'        => Sanitize::url( $step['imageUrl'] ?? '' ),
+					'image'           => Sanitize::key( $step['image'] ?? '' ),
+					'imageUrl'        => self::image_url( $step['imageUrl'] ?? '' ),
 					'imageId'         => absint( $step['imageId'] ?? 0 ),
 					'buttonBackLabel' => self::text( $step['buttonBackLabel'] ?? '', 60 ),
 					'buttonNextLabel' => self::text( $step['buttonNextLabel'] ?? '', 60 ),

@@ -141,6 +141,8 @@ final class AvailabilityService {
 	 * Core computation: bookable start minutes per date and agent.
 	 *
 	 * @param array $args {
+	 *     Arguments.
+	 *
 	 *     @type int    $service_id  Service ID (required).
 	 *     @type int    $agent_id    Agent ID (0 = any eligible staff).
 	 *     @type int    $location_id Location ID (0 = none).
@@ -217,13 +219,13 @@ final class AvailabilityService {
 			if ( 'pending_payment' === $booking['status'] && $booking['created_at'] < $stale_limit ) {
 				continue; // Abandoned checkout; no longer holds the slot.
 			}
-			$other      = $services[ (int) $booking['service_id'] ] ?? array(
+			$other                  = $services[ (int) $booking['service_id'] ] ?? array(
 				'buffer_before_minutes' => 0,
 				'buffer_after_minutes'  => 0,
 			);
-			$start      = self::abs_minutes( $booking['start_datetime'], $from );
-			$end        = self::abs_minutes( $booking['end_datetime'], $from );
-			$agent_key  = (int) $booking['agent_id'];
+			$start                  = self::abs_minutes( $booking['start_datetime'], $from );
+			$end                    = self::abs_minutes( $booking['end_datetime'], $from );
+			$agent_key              = (int) $booking['agent_id'];
 			$blocks[ $agent_key ][] = array(
 				'from'    => $start - (int) $other['buffer_before_minutes'],
 				'to'      => $end + (int) $other['buffer_after_minutes'],

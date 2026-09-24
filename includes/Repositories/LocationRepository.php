@@ -143,7 +143,7 @@ final class LocationRepository extends Repository {
 				$rows = $db->get_results( $db->prepare( 'SELECT location_id, agent_id, services_json FROM %i', Tables::name( 'location_agents' ) ), ARRAY_A );
 				$out  = array();
 				foreach ( (array) $rows as $row ) {
-					$services                              = self::json( $row['services_json'] ?? '' );
+					$services                           = self::json( $row['services_json'] ?? '' );
 					$out[ (int) $row['location_id'] ][] = array(
 						'agent_id' => (int) $row['agent_id'],
 						'services' => $services ? array_values( array_map( 'intval', $services ) ) : array(),

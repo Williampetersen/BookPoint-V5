@@ -43,35 +43,35 @@ final class LegacyController extends Controller {
 	 * {@inheritDoc}
 	 */
 	public function register_routes() {
-		$read  = array(
-			'categories'                  => 'categories',
-			'public/categories'           => 'categories',
-			'front/categories'            => 'categories',
-			'services'                    => 'services',
-			'public/services'             => 'services',
-			'front/services'              => 'services',
-			'extras'                      => 'extras',
-			'public/extras'               => 'extras',
-			'front/extras'                => 'extras',
-			'agents'                      => 'agents',
-			'public/agents'               => 'agents',
-			'front/agents'                => 'agents',
-			'service-agents'              => 'agents',
-			'front/locations'             => 'locations',
-			'form-fields'                 => 'form_fields',
-			'public/form-fields'          => 'form_fields',
-			'front/form-fields'           => 'form_fields',
-			'front/form-fields/active'    => 'form_fields_active',
-			'promo/validate'              => 'promo',
-			'public/settings'             => 'settings',
-			'front/settings'              => 'settings',
-			'front/booking-form-design'   => 'design',
-			'front/slots'                 => 'slots',
-			'public/availability-slots'   => 'slots',
-			'availability/timeslots'      => 'slots',
-			'front/availability/day'      => 'slots',
-			'front/availability'          => 'month',
-			'front/availability/month'    => 'month',
+		$read = array(
+			'categories'                     => 'categories',
+			'public/categories'              => 'categories',
+			'front/categories'               => 'categories',
+			'services'                       => 'services',
+			'public/services'                => 'services',
+			'front/services'                 => 'services',
+			'extras'                         => 'extras',
+			'public/extras'                  => 'extras',
+			'front/extras'                   => 'extras',
+			'agents'                         => 'agents',
+			'public/agents'                  => 'agents',
+			'front/agents'                   => 'agents',
+			'service-agents'                 => 'agents',
+			'front/locations'                => 'locations',
+			'form-fields'                    => 'form_fields',
+			'public/form-fields'             => 'form_fields',
+			'front/form-fields'              => 'form_fields',
+			'front/form-fields/active'       => 'form_fields_active',
+			'promo/validate'                 => 'promo',
+			'public/settings'                => 'settings',
+			'front/settings'                 => 'settings',
+			'front/booking-form-design'      => 'design',
+			'front/slots'                    => 'slots',
+			'public/availability-slots'      => 'slots',
+			'availability/timeslots'         => 'slots',
+			'front/availability/day'         => 'slots',
+			'front/availability'             => 'month',
+			'front/availability/month'       => 'month',
 			'front/availability/month-slots' => 'month_slots',
 		);
 		foreach ( $read as $path => $callback ) {
@@ -86,15 +86,15 @@ final class LegacyController extends Controller {
 		}
 
 		$write = array(
-			'booking/create'                 => 'create',
-			'public/bookings'                => 'create',
-			'front/bookings'                 => 'create',
-			'front/booking/create'           => 'create',
-			'front/payments/stripe/start'    => 'start_stripe',
-			'front/payment/stripe/start'     => 'start_stripe',
-			'front/payment/stripe/confirm'   => 'stripe_confirm',
-			'front/payments/paypal/start'    => 'start_paypal',
-			'front/payments/paypal/capture'  => 'paypal_capture',
+			'booking/create'                   => 'create',
+			'public/bookings'                  => 'create',
+			'front/bookings'                   => 'create',
+			'front/booking/create'             => 'create',
+			'front/payments/stripe/start'      => 'start_stripe',
+			'front/payment/stripe/start'       => 'start_stripe',
+			'front/payment/stripe/confirm'     => 'stripe_confirm',
+			'front/payments/paypal/start'      => 'start_paypal',
+			'front/payments/paypal/capture'    => 'paypal_capture',
 			'front/payments/woocommerce/start' => 'start_woocommerce',
 		);
 		foreach ( $write as $path => $callback ) {
@@ -416,7 +416,7 @@ final class LegacyController extends Controller {
 				'to'          => gmdate( 'Y-m-t', strtotime( $from . ' 12:00:00 UTC' ) ),
 			)
 		);
-		$out = array();
+		$out  = array();
 		foreach ( $data['dates'] as $date => $minutes ) {
 			$out[ $date ] = array_map( array( Dates::class, 'from_minutes' ), array_keys( $minutes ) );
 		}

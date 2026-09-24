@@ -198,7 +198,10 @@ final class CatalogController extends Controller {
 		if ( array_key_exists( 'sort_order', $body ) ) {
 			$data['sort_order'] = (int) $body['sort_order'];
 		}
-		foreach ( array( 'buffer_before_minutes' => 'buffer_before', 'buffer_after_minutes' => 'buffer_after' ) as $key => $legacy ) {
+		foreach ( array(
+			'buffer_before_minutes' => 'buffer_before',
+			'buffer_after_minutes'  => 'buffer_after',
+		) as $key => $legacy ) {
 			if ( array_key_exists( $key, $body ) || array_key_exists( $legacy, $body ) ) {
 				$data[ $key ] = Sanitize::int_range( $body[ $key ] ?? $body[ $legacy ], 0, 240 );
 			}

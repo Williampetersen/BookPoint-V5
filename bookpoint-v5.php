@@ -46,6 +46,7 @@ define( 'POINTLYBOOKING_BLOCKS_PATH', POINTLYBOOKING_PLUGIN_DIR . 'build/blocks/
 require_once POINTLYBOOKING_PLUGIN_DIR . 'includes/Autoloader.php';
 PointlyBooking\Autoloader::register();
 require_once POINTLYBOOKING_PLUGIN_DIR . 'includes/Compat/functions.php';
+require_once POINTLYBOOKING_PLUGIN_DIR . 'includes/Compat/classes.php';
 
 register_activation_hook( __FILE__, array( 'PointlyBooking\\Installer', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'PointlyBooking\\Installer', 'deactivate' ) );

@@ -137,7 +137,7 @@ final class WorkflowRepository extends Repository {
 					'total'    => 0,
 				);
 			}
-			$status = 'active' === $row['status'] ? 'active' : 'disabled';
+			$status                    = 'active' === $row['status'] ? 'active' : 'disabled';
 			$out[ $event ][ $status ] += (int) $row['c'];
 			$out[ $event ]['total']   += (int) $row['c'];
 		}

@@ -123,7 +123,7 @@ final class Presenter {
 			$item,
 			array(
 				'notes'           => (string) ( $b['notes'] ?? '' ),
-				'customer_notes'  => $customer_notes !== (string) ( $b['notes'] ?? '' ) ? $customer_notes : '',
+				'customer_notes'  => (string) ( $b['notes'] ?? '' ) !== $customer_notes ? $customer_notes : '',
 				'extras'          => $extras,
 				'promo_code'      => (string) ( $b['promo_code'] ?? '' ),
 				'discount'        => (float) $b['discount_total'],

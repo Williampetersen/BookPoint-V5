@@ -47,6 +47,8 @@ final class BookingService {
 	 * Creates a booking.
 	 *
 	 * @param array $input {
+	 *     Booking data.
+	 *
 	 *     @type int    $service_id     Required.
 	 *     @type int    $agent_id       0 = any available staff member.
 	 *     @type int    $location_id    Optional.
@@ -62,6 +64,8 @@ final class BookingService {
 	 *     @type bool   $force          Skip availability checks (admin).
 	 * }
 	 * @param array $context {
+	 *     Request context.
+	 *
 	 *     @type string $source 'wizard'|'admin'|'legacy'.
 	 *     @type bool   $notify Whether notifications should be sent (default true).
 	 * }
@@ -362,7 +366,7 @@ final class BookingService {
 				if ( '' === $key ) {
 					continue;
 				}
-				$type = $types[ $scope ][ $key ] ?? ( 'email' === $key ? 'email' : ( 'notes' === $key ? 'textarea' : 'text' ) );
+				$type                  = $types[ $scope ][ $key ] ?? ( 'email' === $key ? 'email' : ( 'notes' === $key ? 'textarea' : 'text' ) );
 				$out[ $scope ][ $key ] = Sanitize::field_value( $value, $type );
 			}
 		}

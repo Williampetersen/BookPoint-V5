@@ -40,6 +40,19 @@
 		</properties>
 	</rule>
 
+	<rule ref="WordPress.WP.Capabilities">
+		<properties>
+			<property name="custom_capabilities" type="array">
+				<element value="pointlybooking_manage_bookings"/>
+				<element value="pointlybooking_manage_services"/>
+				<element value="pointlybooking_manage_customers"/>
+				<element value="pointlybooking_manage_agents"/>
+				<element value="pointlybooking_manage_settings"/>
+				<element value="pointlybooking_manage_tools"/>
+			</property>
+		</properties>
+	</rule>
+
 	<!-- Classes live in PSR-4 style files (includes/Foo/Bar.php) loaded by our own autoloader. -->
 	<rule ref="WordPress.Files.FileName">
 		<exclude-pattern>*/includes/*</exclude-pattern>

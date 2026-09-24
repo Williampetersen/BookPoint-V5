@@ -1,0 +1,65 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "bookpoint/booking-form",
+	"version": "3.0.0",
+	"title": "Booking form",
+	"category": "widgets",
+	"icon": "calendar-alt",
+	"description": "Let visitors book an appointment: a button that opens the booking window, or the form embedded in the page.",
+	"keywords": [ "booking", "appointment", "calendar", "schedule" ],
+	"textdomain": "pointly-booking",
+	"attributes": {
+		"display": {
+			"type": "string",
+			"enum": [ "button", "inline" ],
+			"default": "button"
+		},
+		"label": {
+			"type": "string",
+			"default": ""
+		},
+		"serviceId": {
+			"type": "number",
+			"default": 0
+		},
+		"categoryId": {
+			"type": "number",
+			"default": 0
+		},
+		"agentId": {
+			"type": "number",
+			"default": 0
+		},
+		"locationId": {
+			"type": "number",
+			"default": 0
+		},
+		"defaultDate": {
+			"type": "string",
+			"default": ""
+		},
+		"hideNotes": {
+			"type": "boolean",
+			"default": false
+		},
+		"requirePhone": {
+			"type": "boolean",
+			"default": false
+		},
+		"compact": {
+			"type": "boolean",
+			"default": false
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ],
+		"spacing": {
+			"margin": true,
+			"padding": true
+		}
+	},
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css"
+}

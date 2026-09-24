@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 final class Portal {
 
 	const CODE_TTL     = 600;
-	const SESSION_TTL  = 1800;
+	const SESSION_TTL  = 1200;
 	const MAX_ATTEMPTS = 5;
 
 	/**

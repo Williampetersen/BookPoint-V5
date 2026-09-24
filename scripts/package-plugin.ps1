@@ -39,11 +39,15 @@ function New-ZipFromDirectory([string]$SourceDir, [string]$ZipPath) {
   }
 }
 
-$includeDirs = @('lib', 'public', 'build', 'blocks', 'languages', 'src')
+# build/ holds the compiled apps; src/ + build configs are shipped so the minified
+# code can be reviewed and rebuilt (WordPress.org guideline 4).
+$includeDirs = @('includes', 'templates', 'build', 'languages', 'src')
 $includeFiles = @(
   'LICENSE.txt',
   'package.json',
   'package-lock.json',
+  'webpack.config.js',
+  'babel.config.js',
   'uninstall.php',
   'readme.txt',
   'screenshot-1.png',
@@ -107,11 +111,8 @@ Get-ChildItem -Path $stagingPluginDir -Recurse -File -Include $lfExtensions | Fo
   }
 }
 
-# Free (WP.org) package excludes Pro-only licensing/updater code.
+# Free (WP.org) package: Pro licensing code lives in pro-addon/ and is never copied.
 $excludePaths = @(
-  (Join-Path $stagingPluginDir 'lib/helpers/license_helper.php'),
-  (Join-Path $stagingPluginDir 'lib/helpers/license_gate_helper.php'),
-  (Join-Path $stagingPluginDir 'lib/helpers/updates_helper.php'),
   (Join-Path $stagingPluginDir 'assets')
 )
 foreach ($p in $excludePaths) {

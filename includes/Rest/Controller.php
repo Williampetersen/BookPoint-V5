@@ -113,7 +113,7 @@ abstract class Controller {
 	 * @return array
 	 */
 	protected static function arg( $type, $required = false, array $extra = array() ) {
-		$map = array(
+		$map             = array(
 			'id'     => array(
 				'type'              => 'integer',
 				'minimum'           => 0,

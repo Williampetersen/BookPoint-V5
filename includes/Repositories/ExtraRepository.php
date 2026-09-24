@@ -86,7 +86,7 @@ final class ExtraRepository extends Repository {
 	 * @return int
 	 */
 	public static function create( array $data ) {
-		$data = array_merge(
+		$data               = array_merge(
 			array(
 				'service_id' => 0,
 				'created_at' => self::now(),

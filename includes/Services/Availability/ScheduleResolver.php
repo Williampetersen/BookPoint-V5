@@ -165,7 +165,7 @@ final class ScheduleResolver {
 			if ( '' === $range || ! Settings::valid_range( $range ) ) {
 				continue;
 			}
-			list( $start, $end ) = explode( '-', $range );
+			list( $start, $end )        = explode( '-', $range );
 			$out[ 0 === $w ? 7 : $w ][] = array(
 				'start'      => $start,
 				'end'        => $end,

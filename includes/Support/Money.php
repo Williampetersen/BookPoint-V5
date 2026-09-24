@@ -70,11 +70,11 @@ final class Money {
 	/**
 	 * Symbol for a currency.
 	 *
-	 * @param string $code ISO code.
+	 * @param string $code ISO code (defaults to the site currency).
 	 * @return string
 	 */
-	public static function symbol( $code ) {
-		$code = strtoupper( (string) $code );
+	public static function symbol( $code = '' ) {
+		$code = '' !== (string) $code ? strtoupper( (string) $code ) : self::currency();
 		return self::$symbols[ $code ] ?? $code;
 	}
 

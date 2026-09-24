@@ -1,23 +1,21 @@
-# WordPress.org upload package exclusions
+# WordPress.org package exclusions (the release ZIP is built by scripts/package-plugin.ps1).
 /.git/
 /.github/
 /.vscode/
+/.dev/
 /dist/
 /node_modules/
 /scripts/
 /license-server/
 /licenses-admin/
 /pro-addon/
-/src/
-/package.json
-/package-lock.json
-/babel.config.js
-/README.md
 /bookpoint-pro.php
-/How
-/MANAGE
-/temp_check.py
-/temp_replace.py
-/test.css
+/README.md
+/CLAUDE.md
+/DECISIONS.md
+/FEATURES.md
+/BUGS.md
+/DESIGN-SYSTEM.md
+/DESIGN-QA.md
+/phpcs.xml.dist
 /*.zip
-/zipcheck*/

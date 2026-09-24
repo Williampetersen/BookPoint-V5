@@ -33,6 +33,7 @@ final class Routes {
 		Admin\SystemController::class,
 		Front\WizardController::class,
 		Front\ManageController::class,
+		Front\PortalController::class,
 		Front\StripeWebhookController::class,
 		Front\LegacyController::class,
 	);

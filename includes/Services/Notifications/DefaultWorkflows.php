@@ -177,13 +177,34 @@ final class DefaultWorkflows {
 			return;
 		}
 		update_option( self::SEEDED_OPTION, 1, false );
-		if ( WorkflowRepository::count_all() > 0 ) {
-			return;
-		}
+		// 2.x sent these emails from hard-coded code paths; they are workflows now. A default is
+		// skipped only when an active workflow already emails the same recipient for that event.
 		foreach ( self::templates() as $template ) {
-			if ( ! empty( $template['default'] ) ) {
+			if ( ! empty( $template['default'] ) && ! self::covered( $template ) ) {
 				self::install( $template['id'] );
 			}
 		}
+	}
+
+	/**
+	 * Whether an active workflow already sends this template's email.
+	 *
+	 * @param array $template Template.
+	 * @return bool
+	 */
+	private static function covered( array $template ) {
+		$customer = false !== strpos( (string) $template['action']['to'], 'customer_email' );
+		foreach ( WorkflowRepository::active_for( $template['event'] ) as $workflow ) {
+			foreach ( WorkflowRepository::actions( $workflow['id'] ) as $action ) {
+				if ( 'active' !== $action['status'] || 'send_email' !== $action['type'] ) {
+					continue;
+				}
+				$to = (string) ( $action['config']['to'] ?? '' );
+				if ( ( false !== strpos( $to, 'customer_email' ) ) === $customer ) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }

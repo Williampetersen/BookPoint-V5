@@ -33,6 +33,7 @@ final class Plugin {
 		self::$booted = true;
 
 		Database\Migrator::maybe_upgrade();
+		add_filter( 'user_has_cap', array( Installer::class, 'grant_admin_caps' ) );
 
 		// Domain listeners (notifications, webhooks, audit trail).
 		Services\Notifications\WorkflowEngine::register();
@@ -54,7 +55,6 @@ final class Plugin {
 		Frontend\Shortcodes::register();
 		Frontend\Block::register();
 		Frontend\ManagePage::register();
-		Frontend\Portal::register();
 		Frontend\LegacyAjax::register();
 
 		// Admin.

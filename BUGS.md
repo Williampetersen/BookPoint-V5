@@ -24,7 +24,7 @@ Status column: `open` before the rebuild; set to `fixed in 3.0` (with a short no
 | B-013 | Medium | wizard (all strings) | Every customer-facing string is hard-coded English, so the wizard cannot be translated. | open |
 | B-014 | Low | `DynamicFields.jsx` | The `radio` and `number` field types are rendered as plain text inputs, email format is not validated on the client, and there are no `autocomplete` attributes. | open |
 | B-015 | Low | `StepDateTime.jsx` | Weekday headers are hard-coded Monday-first English letters ("M T W…"). | open |
-| B-016 | Low | wizard | Month availability is fetched by a request that runs the full slot generator for every day of the month (see B-060); visibly slow on shared hosting. | open |
+| B-016 | Low | wizard | Month availability is fetched by a request that runs the full slot generator for every day of the month (see B-121); visibly slow on shared hosting. | open |
 | B-017 | Medium | wizard | Slot label end time includes buffers (`occupied_min`), so a 30-min service with a 10-min buffer shows "10:00 – 10:40". | open |
 
 ## B. Booking creation, availability and scheduling (server)

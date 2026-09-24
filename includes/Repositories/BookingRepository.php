@@ -178,9 +178,9 @@ final class BookingRepository extends Repository {
 	 * @return array{items:array,total:int}
 	 */
 	public static function search( array $f ) {
-		$db                     = self::db();
+		$db                      = self::db();
 		list( $select, $idents ) = self::joined_select();
-		$w                      = self::where( $f );
+		$w                       = self::where( $f );
 
 		$orderable = array(
 			'start'    => 'b.start_datetime',
@@ -230,12 +230,12 @@ final class BookingRepository extends Repository {
 	 * @return array
 	 */
 	public static function list_all( array $f, $limit = 5000 ) {
-		$db                     = self::db();
+		$db                      = self::db();
 		list( $select, $idents ) = self::joined_select();
-		$w                      = self::where( $f );
-		$order                  = ( isset( $f['order'] ) && 'desc' === strtolower( (string) $f['order'] ) ) ? 'DESC' : 'ASC';
-		$sql                    = $select . $w->sql() . " ORDER BY b.start_datetime {$order}, b.id {$order} LIMIT %d";
-		$rows                   = $db->get_results( $db->prepare( $sql, array_merge( $idents, $w->params(), array( max( 1, (int) $limit ) ) ) ), ARRAY_A );
+		$w                       = self::where( $f );
+		$order                   = ( isset( $f['order'] ) && 'desc' === strtolower( (string) $f['order'] ) ) ? 'DESC' : 'ASC';
+		$sql                     = $select . $w->sql() . " ORDER BY b.start_datetime {$order}, b.id {$order} LIMIT %d";
+		$rows                    = $db->get_results( $db->prepare( $sql, array_merge( $idents, $w->params(), array( max( 1, (int) $limit ) ) ) ), ARRAY_A );
 		return array_map( array( __CLASS__, 'hydrate' ), (array) $rows );
 	}
 
@@ -246,9 +246,9 @@ final class BookingRepository extends Repository {
 	 * @return array|null
 	 */
 	public static function find_joined( $id ) {
-		$db                     = self::db();
+		$db                      = self::db();
 		list( $select, $idents ) = self::joined_select();
-		$row                    = $db->get_row( $db->prepare( $select . ' WHERE b.id = %d', array_merge( $idents, array( absint( $id ) ) ) ), ARRAY_A );
+		$row                     = $db->get_row( $db->prepare( $select . ' WHERE b.id = %d', array_merge( $idents, array( absint( $id ) ) ) ), ARRAY_A );
 		return $row ? self::hydrate( $row ) : null;
 	}
 
@@ -260,9 +260,9 @@ final class BookingRepository extends Repository {
 	 */
 	public static function status_counts( array $f ) {
 		unset( $f['status'] );
-		$db  = self::db();
-		$w   = self::where( $f );
-		$sql = 'SELECT b.status, COUNT(*) AS c FROM %i b
+		$db   = self::db();
+		$w    = self::where( $f );
+		$sql  = 'SELECT b.status, COUNT(*) AS c FROM %i b
 			LEFT JOIN %i c ON c.id = b.customer_id
 			LEFT JOIN %i s ON s.id = b.service_id
 			LEFT JOIN %i a ON a.id = b.agent_id' . $w->sql() . ' GROUP BY b.status';
@@ -351,9 +351,9 @@ final class BookingRepository extends Repository {
 	 * @return array
 	 */
 	public static function for_email( $email ) {
-		$db                     = self::db();
+		$db                      = self::db();
 		list( $select, $idents ) = self::joined_select();
-		$rows                   = $db->get_results(
+		$rows                    = $db->get_results(
 			$db->prepare( $select . ' WHERE c.email = %s ORDER BY b.start_datetime DESC LIMIT 200', array_merge( $idents, array( (string) $email ) ) ),
 			ARRAY_A
 		);
@@ -404,9 +404,9 @@ final class BookingRepository extends Repository {
 	 * @return array{count:int,revenue:float,by_status:array}
 	 */
 	public static function stats( $from, $to, $column = 'start_datetime' ) {
-		$db     = self::db();
-		$column = 'created_at' === $column ? 'created_at' : 'start_datetime';
-		$rows   = $db->get_results(
+		$db        = self::db();
+		$column    = 'created_at' === $column ? 'created_at' : 'start_datetime';
+		$rows      = $db->get_results(
 			$db->prepare(
 				'SELECT status, COUNT(*) AS c, SUM(CASE WHEN payment_status = %s OR status IN (%s, %s) THEN total_price ELSE 0 END) AS revenue FROM %i WHERE %i >= %s AND %i <= %s GROUP BY status',
 				'paid',

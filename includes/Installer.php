@@ -33,6 +33,22 @@ final class Installer {
 	);
 
 	/**
+	 * Site administrators always hold every plugin capability, even when the role
+	 * was never updated (new multisite sites, role editors).
+	 *
+	 * @param array $allcaps User capabilities.
+	 * @return array
+	 */
+	public static function grant_admin_caps( $allcaps ) {
+		if ( ! empty( $allcaps['manage_options'] ) ) {
+			foreach ( self::CAPS as $cap ) {
+				$allcaps[ $cap ] = true;
+			}
+		}
+		return $allcaps;
+	}
+
+	/**
 	 * Plugin activation.
 	 *
 	 * @param bool $network_wide Network activation.

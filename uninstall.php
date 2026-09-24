@@ -1,55 +1,76 @@
 <?php
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
-if (!defined('WP_UNINSTALL_PLUGIN')) exit;
+/**
+ * Uninstall: removes plugin data only when "Delete all data when the plugin is deleted"
+ * is enabled in Settings → General. Otherwise bookings, customers and settings are kept.
+ *
+ * @package PointlyBooking
+ */
 
-global $wpdb;
+defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
-$remove = (int) get_option('pointlybooking_remove_data_on_uninstall', 0);
-if ($remove !== 1) {
-  delete_option('pointlybooking_remove_data_on_uninstall');
-  return;
+require_once __DIR__ . '/includes/Autoloader.php';
+\PointlyBooking\Autoloader::register();
+
+if ( ! function_exists( 'pointlybooking_uninstall_site' ) ) {
+	/**
+	 * Removes the data of the current site.
+	 *
+	 * @return void
+	 */
+	function pointlybooking_uninstall_site() {
+		global $wpdb;
+
+		// Scheduled events.
+		foreach ( array( 'pointlybooking_cleanup', 'pointlybooking_run_workflow', 'pointlybooking_run_workflow_event' ) as $hook ) {
+			wp_unschedule_hook( $hook );
+		}
+
+		if ( 1 !== (int) get_option( 'pointlybooking_remove_data_on_uninstall', 0 ) ) {
+			return;
+		}
+
+		foreach ( \PointlyBooking\Database\Tables::ALL as $table ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall-only DDL on the plugin's own tables.
+			$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'pointlybooking_' . $table ) );
+		}
+
+		// Options (including legacy 2.x and Pro licence options) and transients.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk cleanup of the plugin's own options.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s",
+				$wpdb->esc_like( 'pointlybooking_' ) . '%',
+				$wpdb->esc_like( '_transient_pointlybooking_' ) . '%',
+				$wpdb->esc_like( '_transient_timeout_pointlybooking_' ) . '%'
+			)
+		);
+
+		// Roles and capabilities.
+		remove_role( 'pointlybooking_manager' );
+		remove_role( 'pointlybooking_staff' );
+		foreach ( wp_roles()->role_objects as $role ) {
+			foreach ( \PointlyBooking\Installer::CAPS as $cap ) {
+				$role->remove_cap( $cap );
+			}
+		}
+
+		if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
+			wp_cache_flush_group( 'pointlybooking' );
+		}
+	}
 }
 
-$plugin_tables = [
-  $wpdb->prefix . 'pointlybooking_service_agents',
-  $wpdb->prefix . 'pointlybooking_audit_log',
-  $wpdb->prefix . 'pointlybooking_bookings',
-  $wpdb->prefix . 'pointlybooking_customers',
-  $wpdb->prefix . 'pointlybooking_agents',
-  $wpdb->prefix . 'pointlybooking_services',
-  $wpdb->prefix . 'pointlybooking_settings',
-  $wpdb->prefix . 'pointlybooking_categories',
-  $wpdb->prefix . 'pointlybooking_service_extras',
-  $wpdb->prefix . 'pointlybooking_bundles',
-  $wpdb->prefix . 'pointlybooking_bundle_items',
-  $wpdb->prefix . 'pointlybooking_promo_codes',
-  $wpdb->prefix . 'pointlybooking_workflows',
-  $wpdb->prefix . 'pointlybooking_workflow_actions',
-  $wpdb->prefix . 'pointlybooking_workflow_logs',
-  $wpdb->prefix . 'pointlybooking_holidays',
-  $wpdb->prefix . 'pointlybooking_schedules',
-  $wpdb->prefix . 'pointlybooking_schedule_settings',
-  $wpdb->prefix . 'pointlybooking_service_categories',
-  $wpdb->prefix . 'pointlybooking_extra_services',
-  $wpdb->prefix . 'pointlybooking_form_fields',
-  $wpdb->prefix . 'pointlybooking_field_values',
-  $wpdb->prefix . 'pointlybooking_locations',
-  $wpdb->prefix . 'pointlybooking_location_categories',
-  $wpdb->prefix . 'pointlybooking_location_agents',
-  $wpdb->prefix . 'pointlybooking_agent_working_hours',
-  $wpdb->prefix . 'pointlybooking_agent_breaks',
-];
-
-foreach ($plugin_tables as $plugin_table) {
-  if (preg_match('/^[A-Za-z0-9_]+$/', $plugin_table) !== 1) {
-    continue;
-  }
-
-  // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- DROP TABLE is uninstall-only DDL and this validated plugin table name cannot be parameterized.
-  $wpdb->query("DROP TABLE IF EXISTS {$plugin_table}");
+if ( is_multisite() ) {
+	foreach ( get_sites(
+		array(
+			'fields' => 'ids',
+			'number' => 0,
+		)
+	) as $pointlybooking_site_id ) {
+		switch_to_blog( $pointlybooking_site_id );
+		pointlybooking_uninstall_site();
+		restore_current_blog();
+	}
+} else {
+	pointlybooking_uninstall_site();
 }
-
-// delete options
-
-delete_option('pointlybooking_db_version');
-delete_option('pointlybooking_remove_data_on_uninstall');

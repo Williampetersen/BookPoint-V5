@@ -1,6 +1,6 @@
 <?php
 /**
- * iCalendar (.ics) generation.
+ * Calendar file (.ics) generation.
  *
  * @package PointlyBooking
  */
@@ -37,12 +37,13 @@ final class Ics {
 	 * @return string
 	 */
 	private static function fold( $line ) {
-		$out = '';
-		while ( strlen( $line ) > 74 ) {
-			$cut  = 74;
-			$part = mb_strcut( $line, 0, $cut, 'UTF-8' );
-			$out .= $part . "\r\n ";
-			$line = substr( $line, strlen( $part ) );
+		$out    = '';
+		$length = strlen( $line );
+		while ( $length > 74 ) {
+			$part   = mb_strcut( $line, 0, 74, 'UTF-8' );
+			$out   .= $part . "\r\n ";
+			$line   = substr( $line, strlen( $part ) );
+			$length = strlen( $line );
 		}
 		return $out . $line;
 	}

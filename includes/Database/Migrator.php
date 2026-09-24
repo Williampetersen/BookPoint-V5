@@ -119,7 +119,7 @@ final class Migrator {
 				Tables::name( 'service_categories' )
 			)
 		);
-		$out['extra_services'] = (int) $wpdb->query(
+		$out['extra_services']     = (int) $wpdb->query(
 			$wpdb->prepare(
 				'UPDATE %i e LEFT JOIN (SELECT extra_id, MIN(service_id) AS sid FROM %i GROUP BY extra_id) m ON m.extra_id = e.id SET e.service_id = IFNULL(m.sid, 0)',
 				Tables::name( 'service_extras' ),

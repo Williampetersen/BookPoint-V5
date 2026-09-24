@@ -17,26 +17,26 @@ final class Intervals {
 	/**
 	 * Sorts and merges overlapping/adjacent intervals; drops empty ones.
 	 *
-	 * @param array $list Intervals.
+	 * @param array $intervals Intervals.
 	 * @return array
 	 */
-	public static function normalize( array $list ) {
-		$list = array_values(
+	public static function normalize( array $intervals ) {
+		$intervals = array_values(
 			array_filter(
-				$list,
+				$intervals,
 				static function ( $i ) {
 					return is_array( $i ) && isset( $i[0], $i[1] ) && $i[1] > $i[0];
 				}
 			)
 		);
 		usort(
-			$list,
+			$intervals,
 			static function ( $a, $b ) {
 				return $a[0] <=> $b[0];
 			}
 		);
 		$out = array();
-		foreach ( $list as $interval ) {
+		foreach ( $intervals as $interval ) {
 			$last = count( $out ) - 1;
 			if ( $last >= 0 && $interval[0] <= $out[ $last ][1] ) {
 				$out[ $last ][1] = max( $out[ $last ][1], $interval[1] );
@@ -99,13 +99,13 @@ final class Intervals {
 	/**
 	 * Whether [start, end) lies fully inside one of the intervals.
 	 *
-	 * @param array $list  Intervals.
+	 * @param array $intervals Intervals.
 	 * @param int   $start Start minute.
 	 * @param int   $end   End minute.
 	 * @return bool
 	 */
-	public static function contains( array $list, $start, $end ) {
-		foreach ( $list as $interval ) {
+	public static function contains( array $intervals, $start, $end ) {
+		foreach ( $intervals as $interval ) {
 			if ( $start >= $interval[0] && $end <= $interval[1] ) {
 				return true;
 			}

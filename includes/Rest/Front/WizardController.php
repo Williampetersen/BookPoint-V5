@@ -234,9 +234,9 @@ final class WizardController extends Controller {
 					$service_rows[]   = $row;
 				}
 
-				$extras      = ExtraRepository::all( true );
-				$extra_map   = Relations::map( 'extra_services', 'extra_id', wp_list_pluck( $extras, 'id' ) );
-				$extra_rows  = array();
+				$extras     = ExtraRepository::all( true );
+				$extra_map  = Relations::map( 'extra_services', 'extra_id', wp_list_pluck( $extras, 'id' ) );
+				$extra_rows = array();
 				foreach ( $extras as $e ) {
 					$links = $extra_map[ $e['id'] ] ?? array();
 					if ( ! $links && ! empty( $e['service_id'] ) ) {
@@ -290,21 +290,21 @@ final class WizardController extends Controller {
 		$data['design']   = Design::get();
 		$data['payment']  = PaymentMethods::public_config();
 		$data['settings'] = array(
-			'currency'         => Money::currency(),
-			'currency_symbol'  => Money::symbol(),
-			'currency_pos'     => (string) Settings::get( 'currency_position', 'before' ),
-			'timezone'         => wp_timezone_string(),
-			'timezone_label'   => self::timezone_label(),
-			'today'            => Dates::today(),
-			'last_date'        => AvailabilityService::last_date(),
-			'week_starts'      => (int) get_option( 'start_of_week', 1 ),
-			'time_format'      => (string) get_option( 'time_format', 'H:i' ),
-			'date_format'      => (string) get_option( 'date_format', 'F j, Y' ),
-			'business_name'    => (string) Settings::get( 'business_name', '' ),
-			'business_phone'   => (string) Settings::get( 'business_phone', '' ),
-			'no_staff'         => ! $data['agents'],
-			'locale'           => str_replace( '_', '-', determine_locale() ),
-			'promo_enabled'    => ! empty( $data['design']['behavior']['showPromoCode'] ),
+			'currency'        => Money::currency(),
+			'currency_symbol' => Money::symbol(),
+			'currency_pos'    => (string) Settings::get( 'currency_position', 'before' ),
+			'timezone'        => wp_timezone_string(),
+			'timezone_label'  => self::timezone_label(),
+			'today'           => Dates::today(),
+			'last_date'       => AvailabilityService::last_date(),
+			'week_starts'     => (int) get_option( 'start_of_week', 1 ),
+			'time_format'     => (string) get_option( 'time_format', 'H:i' ),
+			'date_format'     => (string) get_option( 'date_format', 'F j, Y' ),
+			'business_name'   => (string) Settings::get( 'business_name', '' ),
+			'business_phone'  => (string) Settings::get( 'business_phone', '' ),
+			'no_staff'        => ! $data['agents'],
+			'locale'          => str_replace( '_', '-', determine_locale() ),
+			'promo_enabled'   => ! empty( $data['design']['behavior']['showPromoCode'] ),
 		);
 		return $this->ok( $data );
 	}
@@ -377,7 +377,7 @@ final class WizardController extends Controller {
 			$month = $first ? substr( $first, 0, 7 ) : substr( Dates::today(), 0, 7 );
 		}
 		$data = AvailabilityService::month( $scope['service_id'], $scope['agent_id'], $scope['location_id'], $month );
-		if ( null === $data['first_available'] && $month === substr( Dates::today(), 0, 7 ) ) {
+		if ( null === $data['first_available'] && substr( Dates::today(), 0, 7 ) === $month ) {
 			$data['next_available'] = AvailabilityService::first_available( $scope['service_id'], $scope['agent_id'], $scope['location_id'], Dates::add_days( $month . '-01', 31 ) );
 		}
 		return $this->ok( $data );
