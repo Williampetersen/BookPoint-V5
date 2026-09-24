@@ -1,0 +1,112 @@
+.pbk-root .pbk-tabs {
+	min-width: 0;
+}
+
+.pbk-root .pbk-tabs__list {
+	display: flex;
+	gap: var(--pbk-space-1);
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.pbk-root .pbk-tabs__list::-webkit-scrollbar {
+	display: none;
+}
+
+.pbk-root .pbk-tabs__tab {
+	position: relative;
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: var(--pbk-space-2);
+	min-height: 40px;
+	margin: 0;
+	padding: 0 var(--pbk-space-3);
+	border: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--pbk-text-muted);
+	font-size: var(--pbk-text-md);
+	font-weight: 500;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: color var(--pbk-duration-fast) var(--pbk-ease), background-color var(--pbk-duration-fast) var(--pbk-ease);
+}
+
+.pbk-root .pbk-tabs__tab:hover {
+	color: var(--pbk-text);
+}
+
+.pbk-root .pbk-tabs__tab:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.pbk-root .pbk-tabs__count {
+	min-width: 20px;
+	padding: 0 6px;
+	border-radius: var(--pbk-radius-pill);
+	background: var(--pbk-surface-3);
+	color: var(--pbk-text-muted);
+	font-size: var(--pbk-text-xs);
+	font-weight: 600;
+	line-height: 20px;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Underline */
+.pbk-root .pbk-tabs--underline .pbk-tabs__list {
+	border-block-end: 1px solid var(--pbk-border);
+	gap: var(--pbk-space-2);
+}
+
+.pbk-root .pbk-tabs--underline .pbk-tabs__tab {
+	padding: 0 var(--pbk-space-2);
+	margin-block-end: -1px;
+	border-block-end: 2px solid transparent;
+}
+
+.pbk-root .pbk-tabs--underline .pbk-tabs__tab.is-active {
+	border-block-end-color: var(--pbk-brand-600);
+	color: var(--pbk-text);
+	font-weight: 600;
+}
+
+.pbk-root .pbk-tabs--underline .pbk-tabs__tab.is-active .pbk-tabs__count {
+	background: var(--pbk-brand-soft);
+	color: var(--pbk-brand-text);
+}
+
+/* Pills */
+.pbk-root .pbk-tabs--pills .pbk-tabs__list {
+	display: inline-flex;
+	max-width: 100%;
+	padding: 3px;
+	border-radius: var(--pbk-radius-md);
+	background: var(--pbk-surface-3);
+}
+
+.pbk-root .pbk-tabs--pills .pbk-tabs__tab {
+	min-height: 32px;
+	border-radius: var(--pbk-radius-sm);
+}
+
+.pbk-root .pbk-tabs--pills .pbk-tabs__tab.is-active {
+	background: var(--pbk-surface);
+	box-shadow: var(--pbk-shadow-sm);
+	color: var(--pbk-text);
+	font-weight: 600;
+}
+
+.pbk-root .pbk-tabs__panel {
+	padding-block-start: var(--pbk-space-5);
+	outline: none;
+}
+
+@media (pointer: coarse) {
+
+	.pbk-root .pbk-tabs__tab {
+		min-height: 44px;
+	}
+}

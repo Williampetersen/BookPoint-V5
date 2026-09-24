@@ -1,0 +1,166 @@
+/*
+ * BookPoint design tokens (see DESIGN-SYSTEM.md).
+ * Applied to every .pbk-root (front widgets, admin app, portal containers).
+ * Brand tokens (--pbk-brand-*) are set inline by the theme root from the
+ * chosen colour; the values below are the defaults for #4f46e5.
+ */
+.pbk-root {
+	--pbk-brand-50: #f1f1fe;
+	--pbk-brand-100: #e4e4fc;
+	--pbk-brand-200: #cacaf9;
+	--pbk-brand-300: #a9a6f4;
+	--pbk-brand-400: #817bee;
+	--pbk-brand-500: #6660ea;
+	--pbk-brand-600: #4f46e5;
+	--pbk-brand-700: #4038c0;
+	--pbk-brand-800: #322c96;
+	--pbk-brand-900: #231f6b;
+	--pbk-brand-contrast: #fff;
+	--pbk-brand-text-light: #4f46e5;
+	--pbk-brand-text-dark: #a9a6f4;
+	--pbk-brand-text: var(--pbk-brand-text-light);
+	--pbk-brand-soft: var(--pbk-brand-50);
+	--pbk-brand-ring: rgb(79 70 229 / 28%);
+
+	--pbk-bg: #f5f6f8;
+	--pbk-surface: #fff;
+	--pbk-surface-2: #f9fafb;
+	--pbk-surface-3: #eff1f4;
+	--pbk-border: #e2e5ea;
+	--pbk-border-strong: #cbd0d8;
+	--pbk-text: #171a21;
+	--pbk-text-muted: #4f5767;
+	--pbk-text-subtle: #667085;
+	--pbk-overlay: rgb(15 17 21 / 48%);
+
+	--pbk-success: #12703f;
+	--pbk-success-bg: #e9f7ef;
+	--pbk-success-border: #b6e3c8;
+	--pbk-warning: #8f5200;
+	--pbk-warning-bg: #fff5e5;
+	--pbk-warning-border: #f5d49a;
+	--pbk-danger: #b42318;
+	--pbk-danger-bg: #fdeeec;
+	--pbk-danger-border: #f5c2bd;
+	--pbk-info: #1d5fa8;
+	--pbk-info-bg: #eaf2fc;
+	--pbk-info-border: #bcd5f3;
+
+	--pbk-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+	--pbk-font-mono: ui-monospace, sfmono-regular, menlo, consolas, "Liberation Mono", monospace;
+	--pbk-text-xs: 0.75rem;
+	--pbk-text-sm: 0.8125rem;
+	--pbk-text-md: 0.875rem;
+	--pbk-text-base: 1rem;
+	--pbk-text-lg: 1.125rem;
+	--pbk-text-xl: 1.25rem;
+	--pbk-text-2xl: 1.5rem;
+	--pbk-text-3xl: 1.875rem;
+	--pbk-text-4xl: 2.25rem;
+	--pbk-leading-tight: 1.25;
+	--pbk-leading: 1.5;
+
+	--pbk-space-1: 4px;
+	--pbk-space-2: 8px;
+	--pbk-space-3: 12px;
+	--pbk-space-4: 16px;
+	--pbk-space-5: 20px;
+	--pbk-space-6: 24px;
+	--pbk-space-8: 32px;
+	--pbk-space-10: 40px;
+	--pbk-space-12: 48px;
+	--pbk-space-16: 64px;
+
+	--pbk-radius-sm: 6px;
+	--pbk-radius-md: 10px;
+	--pbk-radius-lg: 16px;
+	--pbk-radius-pill: 999px;
+
+	--pbk-shadow-sm: 0 1px 2px rgb(16 24 40 / 5%), 0 1px 3px rgb(16 24 40 / 6%);
+	--pbk-shadow-md: 0 4px 8px -2px rgb(16 24 40 / 8%), 0 2px 4px -2px rgb(16 24 40 / 5%);
+	--pbk-shadow-lg: 0 20px 32px -8px rgb(16 24 40 / 16%), 0 8px 12px -6px rgb(16 24 40 / 8%);
+
+	--pbk-duration-fast: 150ms;
+	--pbk-duration: 200ms;
+	--pbk-duration-slow: 250ms;
+	--pbk-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+	--pbk-control-h: 44px;
+	--pbk-control-h-sm: 36px;
+	--pbk-control-h-lg: 52px;
+	--pbk-control-font: var(--pbk-text-base);
+	--pbk-focus-ring: 0 0 0 3px var(--pbk-brand-ring);
+
+	--pbk-z-dropdown: 20;
+	--pbk-z-sticky: 30;
+	--pbk-z-drawer: 100000;
+	--pbk-z-modal: 100010;
+	--pbk-z-toast: 100020;
+
+	color-scheme: light;
+}
+
+/* Dark theme (admin toggle, or the booking form's dark mode setting). */
+.pbk-root[data-pbk-theme="dark"] {
+	--pbk-brand-text: var(--pbk-brand-text-dark);
+	--pbk-brand-soft: rgb(129 123 238 / 16%);
+	--pbk-bg: #0f1115;
+	--pbk-surface: #171a21;
+	--pbk-surface-2: #1d212a;
+	--pbk-surface-3: #262b36;
+	--pbk-border: #2e3441;
+	--pbk-border-strong: #3c4352;
+	--pbk-text: #eef0f4;
+	--pbk-text-muted: #b3b9c5;
+	--pbk-text-subtle: #8b93a3;
+	--pbk-overlay: rgb(0 0 0 / 60%);
+	--pbk-success: #5fd39a;
+	--pbk-success-bg: rgb(95 211 154 / 12%);
+	--pbk-success-border: rgb(95 211 154 / 30%);
+	--pbk-warning: #f2b85b;
+	--pbk-warning-bg: rgb(242 184 91 / 12%);
+	--pbk-warning-border: rgb(242 184 91 / 30%);
+	--pbk-danger: #ff8a80;
+	--pbk-danger-bg: rgb(255 138 128 / 12%);
+	--pbk-danger-border: rgb(255 138 128 / 30%);
+	--pbk-info: #7db4f2;
+	--pbk-info-bg: rgb(125 180 242 / 12%);
+	--pbk-info-border: rgb(125 180 242 / 30%);
+	--pbk-shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+	--pbk-shadow-md: 0 6px 16px -4px rgb(0 0 0 / 45%);
+	--pbk-shadow-lg: 0 24px 48px -12px rgb(0 0 0 / 60%);
+	color-scheme: dark;
+}
+
+@supports (color: color-mix(in srgb, red 50%, transparent)) {
+
+	.pbk-root[data-pbk-theme="dark"] {
+		--pbk-brand-soft: color-mix(in srgb, var(--pbk-brand-500) 18%, transparent);
+	}
+}
+
+/* Admin density on fine pointers. */
+.pbk-root.pbk-admin {
+	--pbk-control-h: 36px;
+	--pbk-control-h-sm: 30px;
+	--pbk-control-h-lg: 44px;
+	--pbk-control-font: var(--pbk-text-md);
+}
+
+@media (pointer: coarse) {
+
+	.pbk-root.pbk-admin {
+		--pbk-control-h: 44px;
+		--pbk-control-h-sm: 36px;
+		--pbk-control-font: var(--pbk-text-base);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.pbk-root {
+		--pbk-duration-fast: 0.01ms;
+		--pbk-duration: 0.01ms;
+		--pbk-duration-slow: 0.01ms;
+	}
+}

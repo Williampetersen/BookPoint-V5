@@ -20,7 +20,12 @@
 	},
 	"devDependencies": {
 		"@babel/plugin-transform-react-jsx": "^7.29.7",
+		"@babel/runtime": "^8.0.5",
 		"@wordpress/babel-plugin-import-jsx-pragma": "^5.56.0",
-		"@wordpress/scripts": "^30.0.0"
-	}
+		"@wordpress/scripts": "^30.0.0",
+		"typescript": "^5.9.3"
+	},
+	"sideEffects": [
+		"*.css"
+	]
 }

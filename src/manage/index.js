@@ -9,13 +9,17 @@ function Placeholder() {
 }
 
 function boot() {
-	document.querySelectorAll( '[data-pbk-widget="manage"], [data-pbk-widget="portal"]' ).forEach( ( node ) => {
-		if ( node.dataset.pbkMounted ) {
-			return;
-		}
-		node.dataset.pbkMounted = '1';
-		createRoot( node ).render( <Placeholder /> );
-	} );
+	document
+		.querySelectorAll(
+			'[data-pbk-widget="manage"], [data-pbk-widget="portal"]'
+		)
+		.forEach( ( node ) => {
+			if ( node.dataset.pbkMounted ) {
+				return;
+			}
+			node.dataset.pbkMounted = '1';
+			createRoot( node ).render( <Placeholder /> );
+		} );
 }
 
 if ( document.readyState === 'loading' ) {

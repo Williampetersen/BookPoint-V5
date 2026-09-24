@@ -6,3 +6,6 @@ npm-debug.log*
 Thumbs.db
 .dev/tools/vendor/
 .dev/tools/composer.lock
+.dev/e2e/node_modules/
+.dev/e2e/package-lock.json
+.dev/e2e/shots/

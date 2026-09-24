@@ -104,6 +104,7 @@ final class Assets {
 			'onboarding'        => array(
 				'show' => empty( $onboarding['completed'] ) && empty( $onboarding['dismissed'] ) && current_user_can( 'pointlybooking_manage_settings' ),
 			),
+			'debug'             => defined( 'WP_DEBUG' ) && WP_DEBUG,
 			'wooActive'         => class_exists( 'WooCommerce' ),
 			'shortcode'         => '[pointlybooking_booking_form]',
 			'portalShortcode'   => '[pointlybooking_customer_portal]',

@@ -8,5 +8,10 @@ const mount = document.getElementById( 'pbk-admin' );
 
 if ( mount ) {
 	const config = window.pointlybooking_ADMIN || {};
-	createRoot( mount ).render( <App config={ config } initialRoute={ mount.dataset.route || config.route || 'dashboard' } /> );
+	createRoot( mount ).render(
+		<App
+			config={ config }
+			initialRoute={ mount.dataset.route || config.route || 'dashboard' }
+		/>
+	);
 }

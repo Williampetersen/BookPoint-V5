@@ -1,0 +1,120 @@
+.pbk-root .pbk-popover {
+	position: fixed;
+	z-index: var(--pbk-z-modal);
+	max-width: min(360px, calc(100vw - 16px));
+	max-height: min(480px, calc(100vh - 16px));
+	overflow: auto;
+	padding: var(--pbk-space-2);
+	border: 1px solid var(--pbk-border);
+	border-radius: var(--pbk-radius-md);
+	background: var(--pbk-surface);
+	box-shadow: var(--pbk-shadow-lg);
+	color: var(--pbk-text);
+	font-size: var(--pbk-text-md);
+	opacity: 0;
+}
+
+.pbk-root .pbk-popover.is-positioned {
+	opacity: 1;
+	animation: pbk-scale-in var(--pbk-duration-fast) var(--pbk-ease);
+}
+
+.pbk-root .pbk-popover.is-bottom {
+	transform-origin: top center;
+}
+
+.pbk-root .pbk-popover.is-top {
+	transform-origin: bottom center;
+}
+
+.pbk-root .pbk-menu-popover {
+	padding: var(--pbk-space-1);
+	min-width: 200px;
+}
+
+.pbk-root .pbk-menu {
+	display: flex;
+	flex-direction: column;
+	outline: none;
+}
+
+.pbk-root .pbk-menu__item {
+	display: flex;
+	align-items: center;
+	gap: var(--pbk-space-3);
+	width: 100%;
+	min-height: 36px;
+	margin: 0;
+	padding: var(--pbk-space-2) var(--pbk-space-3);
+	border: 0;
+	border-radius: var(--pbk-radius-sm);
+	background: none;
+	box-shadow: none;
+	color: var(--pbk-text);
+	font-size: var(--pbk-text-md);
+	font-weight: 500;
+	line-height: 1.3;
+	text-align: start;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.pbk-root .pbk-menu__item .pbk-icon {
+	color: var(--pbk-text-subtle);
+}
+
+.pbk-root .pbk-menu__item:hover,
+.pbk-root .pbk-menu__item:focus-visible {
+	background: var(--pbk-surface-3);
+	color: var(--pbk-text);
+	outline: none;
+	box-shadow: none;
+}
+
+.pbk-root .pbk-menu__item.is-danger,
+.pbk-root .pbk-menu__item.is-danger .pbk-icon {
+	color: var(--pbk-danger);
+}
+
+.pbk-root .pbk-menu__item[aria-disabled="true"] {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.pbk-root .pbk-menu__divider {
+	height: 1px;
+	margin: var(--pbk-space-1) 0;
+	background: var(--pbk-border);
+}
+
+@media (pointer: coarse) {
+
+	.pbk-root .pbk-menu__item {
+		min-height: 44px;
+	}
+}
+
+.pbk-root .pbk-tooltip {
+	position: fixed;
+	z-index: calc(var(--pbk-z-toast) + 1);
+	max-width: 260px;
+	padding: 6px 10px;
+	border-radius: var(--pbk-radius-sm);
+	background: #1d212a;
+	color: #fff;
+	font-size: var(--pbk-text-xs);
+	font-weight: 500;
+	line-height: 1.4;
+	pointer-events: none;
+	opacity: 0;
+}
+
+.pbk-root[data-pbk-theme="dark"] .pbk-tooltip {
+	background: #eef0f4;
+	color: #171a21;
+}
+
+.pbk-root .pbk-tooltip.is-positioned {
+	opacity: 1;
+	animation: pbk-fade-in var(--pbk-duration-fast) var(--pbk-ease);
+}

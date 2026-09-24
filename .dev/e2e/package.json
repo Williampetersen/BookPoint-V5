@@ -1,0 +1,8 @@
+{
+  "name": "pointly-booking-e2e",
+  "private": true,
+  "description": "Browser checks and screenshots for BookPoint (dev only, not shipped).",
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}

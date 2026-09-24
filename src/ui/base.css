@@ -1,0 +1,221 @@
+/*
+ * Scoped base layer: neutralises common theme overrides inside .pbk-root only.
+ */
+.pbk-root {
+	font-family: var(--pbk-font);
+	font-size: var(--pbk-text-base);
+	line-height: var(--pbk-leading);
+	color: var(--pbk-text);
+	text-align: start;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-rendering: optimizelegibility;
+	overflow-wrap: anywhere;
+}
+
+.pbk-root *,
+.pbk-root *::before,
+.pbk-root *::after {
+	box-sizing: border-box;
+}
+
+.pbk-root :where(h1, h2, h3, h4, h5, h6, p, ul, ol, li, dl, dd, figure, blockquote) {
+	margin: 0;
+	padding: 0;
+	font-family: inherit;
+	letter-spacing: normal;
+	text-transform: none;
+}
+
+.pbk-root :where(h1, h2, h3, h4, h5, h6) {
+	color: inherit;
+	font-weight: 600;
+	line-height: var(--pbk-leading-tight);
+}
+
+.pbk-root :where(ul, ol) {
+	list-style: none;
+}
+
+.pbk-root :where(img, svg) {
+	display: block;
+	max-width: 100%;
+}
+
+.pbk-root :where(img) {
+	height: auto;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.pbk-root :where(button, input, select, textarea) {
+	font: inherit;
+	color: inherit;
+	letter-spacing: normal;
+	text-transform: none;
+	text-shadow: none;
+	margin: 0;
+}
+
+.pbk-root :where(button) {
+	cursor: pointer;
+}
+
+.pbk-root :where(a) {
+	color: var(--pbk-brand-text);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	box-shadow: none;
+}
+
+.pbk-root :where(a:hover) {
+	color: var(--pbk-brand-700);
+}
+
+.pbk-root :where(table) {
+	border-collapse: collapse;
+	border-spacing: 0;
+	margin: 0;
+	width: 100%;
+}
+
+.pbk-root :where(th, td) {
+	border: 0;
+	padding: 0;
+	text-align: start;
+}
+
+.pbk-root :where([hidden]) {
+	display: none !important;
+}
+
+/* One focus style everywhere (keyboard only). */
+.pbk-root :where(a, button, input, select, textarea, summary, [tabindex]):focus {
+	outline: none;
+}
+
+.pbk-root :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+	outline: 2px solid var(--pbk-brand-600);
+	outline-offset: 2px;
+	box-shadow: var(--pbk-focus-ring);
+}
+
+.pbk-root .pbk-sr-only,
+.pbk-sr-only {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	padding: 0 !important;
+	margin: -1px !important;
+	overflow: hidden !important;
+	clip: rect(0, 0, 0, 0) !important;
+	white-space: nowrap !important;
+	border: 0 !important;
+}
+
+.pbk-root .pbk-tabular {
+	font-variant-numeric: tabular-nums;
+}
+
+.pbk-root .pbk-muted {
+	color: var(--pbk-text-muted);
+}
+
+.pbk-root .pbk-subtle {
+	color: var(--pbk-text-subtle);
+}
+
+.pbk-root .pbk-stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--pbk-space-4);
+}
+
+.pbk-root .pbk-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pbk-space-2);
+}
+
+.pbk-root .pbk-spacer {
+	flex: 1 1 auto;
+}
+
+.pbk-noscript {
+	padding: 12px 16px;
+	border-radius: 10px;
+	background: #fff5e5;
+	color: #8f5200;
+}
+
+/* Loading placeholder rendered by PHP before the app mounts. */
+.pbk-root .pbk-booking__placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 120px;
+}
+
+.pbk-root .pbk-booking__spinner,
+.pbk-root .pbk-spinner {
+	display: inline-block;
+	flex: none;
+	width: 20px;
+	height: 20px;
+	border: 2px solid currentcolor;
+	border-inline-end-color: transparent;
+	border-radius: 50%;
+	opacity: 0.7;
+	animation: pbk-spin 700ms linear infinite;
+}
+
+@keyframes pbk-spin {
+
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes pbk-fade-in {
+
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes pbk-rise-in {
+
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+}
+
+@keyframes pbk-scale-in {
+
+	from {
+		opacity: 0;
+		transform: scale(0.97);
+	}
+}
+
+@keyframes pbk-shimmer {
+
+	from {
+		background-position: 100% 0;
+	}
+
+	to {
+		background-position: -100% 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.pbk-root .pbk-booking__spinner,
+	.pbk-root .pbk-spinner {
+		animation-duration: 1.6s;
+	}
+}

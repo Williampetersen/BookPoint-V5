@@ -32,3 +32,17 @@ Each entry says what was decided and why. Newest phase last.
 | D-023 | Pro-only license helpers moved from `lib/helpers/` to `pro-addon/includes/` (not part of the free WordPress.org build). | `lib/` is removed; the Pro add-on ZIP script copies them from the new place. |
 | D-024 | Stripe.js is loaded from `js.stripe.com` only when a customer pays by card (via `@stripe/stripe-js`). This is the only external script and is listed under "External services" in readme.txt. | PCI rules require Stripe.js to be loaded from Stripe; everything else is bundled locally. |
 | D-025 | `.ics` calendar files are served by the REST API (`/wizard/bookings/{id}/ics?key=`) as `text/calendar`, protected by the booking's manage key. | Works on every host without rewrite rules. |
+
+## Phase 2 — Design system
+
+| # | Decision | Why |
+|---|----------|-----|
+| D-026 | Own component library in `src/ui/` for the wizard, manage page, portal and admin. `@wordpress/components` is used only in the block editor sidebar. | An original, consistent look (brief) and small front-end bundles; WP components are admin-styled and heavy on the front end. |
+| D-027 | Prefixes: CSS classes `pbk-`, custom properties `--pbk-`. Every component selector is scoped as `.pbk-root .pbk-…` (specificity 0,2,0) and resets the properties themes usually override (margins, text-transform, shadows, borders). | Survives aggressive theme and page-builder CSS without `!important`. |
+| D-028 | Overlays (modal, drawer, popover, tooltip, toast) render into a portal container that also carries `.pbk-root`, the theme attribute and the brand variables, created synchronously during render. | Portals would otherwise lose the scoped styles and colours; synchronous creation lets focus traps attach in the same commit. |
+| D-029 | The brand scale 50–900 is generated in JavaScript by mixing in OKLab and applied as inline custom properties on the root; text on the brand colour and brand-coloured text are adjusted until they reach 4.5:1. | Live preview without rebuilding, and any colour a business picks stays readable (WCAG AA). |
+| D-030 | Token and base CSS are imported by `ThemeRoot`, not by the `src/ui` barrel file; `package.json` marks only CSS as side-effectful. | Webpack skips side-effect-free barrel files, which silently dropped the base styles. |
+| D-031 | Front-end dark mode follows the booking form design setting (off / on / follow the visitor's system). Admin dark mode is a per-browser toggle stored in `localStorage["pointlybooking_theme"]` (2.x key). | Matches F-042 and F-150; a dark booking form on a light theme would look broken, so it stays opt-in. |
+| D-032 | Custom calendar, date picker and time slots instead of FullCalendar and `@stripe/react-stripe-js`; only `@stripe/stripe-js` (loader) remains. | Smaller bundles, one visual language, full keyboard support we control. |
+| D-033 | Linting: WordPress ESLint/Stylelint presets, with three JSDoc rules for destructured props, `no-descending-specificity` (state selectors) and the class pattern (BEM `__`/`--` allowed) relaxed in `.eslintrc.js` / `.stylelintrc.json`. | Those rules produced hundreds of false positives without catching bugs. |
+| D-034 | A design-system gallery (`?page=pointlybooking_dashboard&pbk_ui_kit=1`) ships as a lazy admin chunk and only renders when `WP_DEBUG` is on. | Visual QA and screenshots for every component and state without affecting production pages. |
