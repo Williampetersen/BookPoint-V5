@@ -43,14 +43,14 @@ function New-ZipFromDirectory([string]$SourceDir, [string]$ZipPath) {
 $srcMain = Join-Path $repoRoot 'pro-addon/bookpoint-pro-addon.php'
 Copy-Item -Force $srcMain (Join-Path $stagingPluginDir 'bookpoint-pro-addon.php')
 
-# Include Pro-only helper code (kept in the main repo under lib/helpers).
+# Include Pro-only helper code (kept under pro-addon/includes).
 $incDir = Join-Path $stagingPluginDir 'includes'
 New-Item -ItemType Directory -Force $incDir | Out-Null
 
 $includeHelpers = @(
-  'lib/helpers/license_helper.php',
-  'lib/helpers/license_gate_helper.php',
-  'lib/helpers/updates_helper.php'
+  'pro-addon/includes/license_helper.php',
+  'pro-addon/includes/license_gate_helper.php',
+  'pro-addon/includes/updates_helper.php'
 )
 
 foreach ($rel in $includeHelpers) {
