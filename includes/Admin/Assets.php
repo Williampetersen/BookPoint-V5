@@ -9,8 +9,10 @@ namespace PointlyBooking\Admin;
 
 use PointlyBooking\Installer;
 use PointlyBooking\Rest\Controller;
+use PointlyBooking\Settings\Design;
 use PointlyBooking\Settings\Settings;
 use PointlyBooking\Support\Assets as Bundles;
+use PointlyBooking\Support\Dates;
 use PointlyBooking\Support\Money;
 
 defined( 'ABSPATH' ) || exit;
@@ -71,9 +73,11 @@ final class Assets {
 			);
 		}
 		$onboarding = (array) get_option( 'pointlybooking_onboarding', array() );
+		$design     = Design::get();
 
 		return array(
 			'version'           => POINTLYBOOKING_VERSION,
+			'primary'           => (string) ( $design['appearance']['primaryColor'] ?? '#4f46e5' ),
 			'restUrl'           => esc_url_raw( rest_url( Controller::NS . '/' ) ),
 			'restRoot'          => esc_url_raw( rest_url() ),
 			'nonce'             => wp_create_nonce( 'wp_rest' ),
@@ -93,6 +97,7 @@ final class Assets {
 			'timeFormat'        => (string) get_option( 'time_format', 'H:i' ),
 			'weekStartsOn'      => (int) get_option( 'start_of_week', 1 ),
 			'locale'            => str_replace( '_', '-', determine_locale() ),
+			'today'             => Dates::today(),
 			'isRtl'             => is_rtl(),
 			'isAdmin'           => current_user_can( 'manage_options' ),
 			'caps'              => $caps,

@@ -1,0 +1,35 @@
+.pbk-root .pbk-media-picker {
+	display: flex;
+	align-items: center;
+	gap: var(--pbk-space-3);
+}
+
+.pbk-root .pbk-media-picker__preview {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 56px;
+	height: 56px;
+	overflow: hidden;
+	border: 1px solid var(--pbk-border);
+	border-radius: var(--pbk-radius-md);
+	background: var(--pbk-surface-2);
+	color: var(--pbk-text-subtle);
+}
+
+.pbk-root .pbk-media-picker__preview.is-round {
+	border-radius: 50%;
+}
+
+.pbk-root .pbk-media-picker__preview img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.pbk-root .pbk-media-picker__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--pbk-space-2);
+}
