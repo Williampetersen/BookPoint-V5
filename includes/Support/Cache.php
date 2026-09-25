@@ -77,11 +77,15 @@ final class Cache {
 	/**
 	 * Invalidates a group.
 	 *
+	 * `wp_cache_set_last_changed()` is WP 6.3+ only (this plugin supports 6.2+), so this
+	 * writes the same 'last_changed' key by hand, matching what that function and the
+	 * (6.2-compatible) wp_cache_get_last_changed() above both read/write.
+	 *
 	 * @param string $group Logical group.
 	 * @return void
 	 */
 	public static function bump( $group ) {
-		wp_cache_set_last_changed( self::GROUP . '_' . $group );
+		wp_cache_set( 'last_changed', microtime(), self::GROUP . '_' . $group );
 	}
 
 	/**

@@ -83,7 +83,7 @@ final class Ics {
 			'DTEND:' . gmdate( 'Ymd\THis\Z', $end->getTimestamp() ),
 			'SUMMARY:' . self::escape( $summary ),
 			'DESCRIPTION:' . self::escape(
-				/* translators: %d: booking number */
+				/* translators: %d: booking id */
 				sprintf( __( 'Booking #%d', 'pointly-booking' ), (int) $booking['id'] ) . ' — ' . Variables::manage_url( (string) $booking['manage_key'] )
 			),
 		);

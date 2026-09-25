@@ -63,10 +63,15 @@
 
 /* Tone dot/background colors shared by legend, month chips, and time-grid blocks. */
 .pbk-tone-warning { background: var(--pbk-warning); }
+
 .pbk-tone-success { background: var(--pbk-success); }
+
 .pbk-tone-info { background: var(--pbk-info); }
+
 .pbk-tone-neutral { background: var(--pbk-text-subtle); }
+
 .pbk-tone-brand { background: var(--pbk-brand-500); }
+
 .pbk-tone-danger { background: var(--pbk-danger); }
 
 /* Month grid */

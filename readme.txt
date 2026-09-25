@@ -2,34 +2,37 @@
 Contributors: wpbookpoint
 Donate link: https://wpbookpoint.com/
 Tags: booking, appointment booking, scheduling, calendar, service booking
-Requires at least: 6.0
+Requires at least: 6.2
 Tested up to: 7.1
-Stable tag: 2.6.23
+Stable tag: 3.0.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Lightweight appointment booking plugin for WordPress with services, calendar, and booking management.
+Appointment booking for any business: services, staff, locations, online payments and a mobile-friendly booking experience.
 
 == Description ==
 
-BookPoint Booking & Appointments is a lightweight and modern appointment booking plugin for WordPress.
+BookPoint Booking & Appointments is a modern appointment booking plugin for WordPress, rebuilt from the ground up in version 3.0 with a React admin app and a REST API.
 
-It helps you manage services, schedules, availability, customers, bookings, and payments through a clean booking workflow.
+It helps you manage services, staff, locations, schedules, availability, customers, bookings, and payments through a clean booking workflow — and keeps customers informed with automatic email notifications.
 
 This plugin is fully functional without any license key and includes:
 
-* Services and categories management
-* Locations management
-* Service extras
+* Services, categories, and optional extras
+* Staff (agents) with their own working hours, services, and locations
+* Locations and location categories
 * Promo codes
 * Holidays and time-off management
-* Booking widget with block and shortcode support
-* Calendar, schedule, and availability configuration
-* Customers and bookings management
+* A calendar with month/week/day/list views and drag-and-drop rescheduling
+* Booking widget with block and shortcode support, and a step-by-step booking wizard
+* Customer records, GDPR data erasure, and CSV import/export
+* A self-service customer portal for viewing, rescheduling, and cancelling bookings
+* Automatic email notifications with a workflow editor, conditions, and smart-variable merge tags
+* An activity log and admin tools (demo data, cache reset, system report, settings export/import)
 * Online payments configuration for Cash, WooCommerce, Stripe, and PayPal
-* Lightweight and fast performance
-* Mobile responsive booking interface
+* Optional webhooks for booking events
+* Mobile responsive, keyboard-accessible, and RTL-ready
 * No locked or trial-only built-in features in this WordPress.org package
 
 This WordPress.org package does not gate built-in functionality behind licenses, trials, quotas, or time limits. Any paid add-on functionality is distributed separately and is not included in this package.
@@ -40,33 +43,27 @@ Generated asset files shipped in this plugin are built from human-readable sourc
 
 Source directories:
 
-* `src/admin/` - admin React source
-* `src/front/` - front-end React source
-* `blocks/src/book-form/` - Gutenberg block source
+* `src/admin/` - admin React app (dashboard, calendar, bookings, services, staff, locations, customers, notifications, booking form designer, settings)
+* `src/front/` - booking wizard (shortcode / block)
+* `src/manage/` - manage-booking page and customer portal
+* `src/blocks/booking-form/` - Gutenberg block source
+* `src/ui/` - shared component library
+* `src/shared/` - shared API client and formatting helpers
+* `includes/` - PHP source (PSR-4, namespace `PointlyBooking\`)
 
-Generated files:
+Generated files (one bundle per entry point, each with a script, a stylesheet, an RTL stylesheet, and a dependency manifest):
 
-* `build/admin.js`
-* `build/index.jsx.css`
-* `build/index.jsx-rtl.css`
-* `public/build/front.js`
-* `public/build/index.jsx.css`
-* `public/build/index.jsx-rtl.css`
-* `public/front.js`
-* `public/index.jsx.css`
-* `public/index.jsx-rtl.css`
-* `blocks/build/book-form/index.js`
+* `build/admin/index.js`, `build/admin/index.css`, `build/admin/index-rtl.css`, `build/admin/index.asset.php` (plus one lazy-loaded chunk per admin screen, e.g. `build/admin/calendar.js`)
+* `build/front/index.js`, `build/front/index.css`, `build/front/index-rtl.css`, `build/front/index.asset.php` (plus a lazy Stripe payment chunk)
+* `build/manage/index.js`, `build/manage/index.css`, `build/manage/index-rtl.css`, `build/manage/index.asset.php`
+* `build/blocks/booking-form/index.js`, `build/blocks/booking-form/index.css`, `build/blocks/booking-form/index-rtl.css`, `build/blocks/booking-form/index.asset.php`
 
-The files in `public/` listed above include legacy compatibility copies generated from the same `src/front/` sources.
-
-Generated files should not be edited manually. Edit the source files in `src/` or `blocks/src/` and rebuild.
+Generated files should not be edited manually. Edit the source files in `src/` and rebuild.
 
 Build commands:
 
 1. `npm install`
-2. `npm run build:admin`
-3. `npm run build:front`
-4. `npm run build:book-form`
+2. `npm run build`
 
 Build tooling is declared in `package.json` and uses `@wordpress/scripts`.
 
@@ -93,14 +90,14 @@ Yes. The plugin includes payment configuration for Cash, WooCommerce, Stripe, an
 
 == Screenshots ==
 
-1. Booking wizard interface
-2. Services and categories management screen
-3. Calendar and time slot selection
-4. Bookings management dashboard
+1. Admin dashboard: bookings and revenue at a glance
+2. Calendar with month, week, day, and list views
+3. Booking wizard: service, date/time, and payment steps
+4. Notification workflow editor with smart-variable merge tags
 
 == External services ==
 
-Some optional features in this plugin connect to external services for payments, license-related operations, and optional webhook delivery.
+Some optional features in this plugin connect to external services for payments and optional webhook delivery.
 
 Stripe
 
@@ -128,19 +125,6 @@ When data is sent: Data is sent only when a customer starts a PayPal checkout fl
 Terms of service URL: https://www.paypal.com/webapps/mpp/ua/legalhub-full
 Privacy policy URL: https://www.paypal.com/webapps/mpp/ua/privacy-full
 
-BookPoint licensing and activation service
-
-What the service is: This is a vendor-operated licensing service provided through wpbookpoint.com.
-
-What it is used for: The plugin uses this service for license-related operations such as validating, activating, deactivating, and checking the status of a license when those features are used.
-
-What data is sent: This may include the license key, site URL or domain, plugin identifier, plugin version, instance or activation identifier, and related data required to process the licensing request.
-
-When data is sent: Data is sent only when an administrator validates, activates, deactivates, or checks the status of a license, or when a license status check is triggered by the plugin.
-
-Terms of service URL: https://wpbookpoint.com/terms-and-conditions/
-Privacy policy URL: https://wpbookpoint.com/privacy-policy/
-
 Optional administrator-configured webhook destination
 
 What the service is: This is an optional external webhook endpoint configured by the site administrator. The destination is not pre-defined by the plugin.
@@ -155,6 +139,16 @@ Terms of service URL: The terms of service of the external provider chosen by th
 Privacy policy URL: The privacy policy of the external provider chosen by the site administrator.
 
 == Changelog ==
+
+= 3.0.0 =
+* Complete rebuild: a namespaced, object-oriented PHP core (PSR-4, `PointlyBooking\`) behind a documented REST API (`pointly-booking/v1`), replacing the 2.x procedural codebase. Every database write goes through a repository with prepared statements; every REST route has an explicit permission callback.
+* New: a full React admin app — dashboard with KPIs and a bookings/revenue chart, a calendar with month/week/day/list views and drag-and-drop rescheduling, staff working-hours and time-off editors, an activity log, and system tools (demo data, cache reset, system report, settings export/import).
+* New: a redesigned booking wizard and manage-booking page, and a self-service customer portal (email one-time code, no account needed) for viewing, rescheduling, and cancelling bookings.
+* New: an email notification workflow editor — conditions, multiple actions per workflow, smart-variable merge tags, a live preview, and test sending — replacing the fixed set of 2.x emails.
+* New: an original design system (`src/ui/`) shared by every screen: light/dark/system theme, a brand color that regenerates an accessible palette, and full keyboard support, in place of the previous UI.
+* Improvement: server-side double-booking protection (a database lock plus an availability re-check on every create/reschedule), server-authoritative pricing, and consistent capability checks across every admin and public endpoint.
+* Compatibility: every 2.x database table, option, shortcode, and REST/AJAX endpoint keeps working; 2.x admin page links redirect to their 3.0 equivalent. Nothing is deleted on upgrade.
+* Requires WordPress 6.2 or later (was 6.0), for safer database identifier handling and current React support.
 
 = 2.6.23 =
 * Fix: every translatable string in the plugin (44 PHP files plus the booking-form block) used a text domain that didn't match the plugin's actual WordPress.org slug, so none of it could ever be loaded through WordPress.org's translation system. All strings and the plugin header now use the correct text domain.
@@ -190,6 +184,9 @@ Privacy policy URL: The privacy policy of the external provider chosen by the si
 * Tested up to WordPress 7.1.
 
 == Upgrade Notice ==
+
+= 3.0.0 =
+Major rebuild (new admin app, notification workflows, customer portal). All your data, settings, and links carry over automatically. Now requires WordPress 6.2 or later.
 
 = 2.6.19 =
 Includes booking payment security fixes; upgrade recommended for all sites accepting online payments.

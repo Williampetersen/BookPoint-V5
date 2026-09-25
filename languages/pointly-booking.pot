@@ -1,0 +1,5021 @@
+# Copyright (C) 2026 BookPoint Team
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: BookPoint Booking & Appointments 3.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/pointly-booking\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-09-25T20:10:27+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: pointly-booking\n"
+
+#. Plugin Name of the plugin
+#: bookpoint-v5.php
+msgid "BookPoint Booking & Appointments"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: bookpoint-v5.php
+msgid "https://wpbookpoint.com/download-for-free/"
+msgstr ""
+
+#. Description of the plugin
+#: bookpoint-v5.php
+msgid "Appointment booking for any business: services, staff, locations, online payments and a beautiful, mobile-friendly booking experience."
+msgstr ""
+
+#. Author of the plugin
+#: bookpoint-v5.php
+msgid "BookPoint Team"
+msgstr ""
+
+#. Author URI of the plugin
+#: bookpoint-v5.php
+msgid "https://wpbookpoint.com/"
+msgstr ""
+
+#: bookpoint-v5.php:27
+msgid "Two copies of BookPoint are active. Please deactivate one of them."
+msgstr ""
+
+#: includes/Admin/Actions.php:76
+msgid "This link has expired. Please go back and try again."
+msgstr ""
+
+#: includes/Admin/Actions.php:79
+#: includes/Rest/Admin/CustomersController.php:364
+#: includes/Rest/Controller.php:94
+msgid "Sorry, you are not allowed to do that."
+msgstr ""
+
+#: includes/Admin/Actions.php:162
+msgid "Please choose a file."
+msgstr ""
+
+#: includes/Admin/Actions.php:168
+msgid "The file must be smaller than 5 MB."
+msgstr ""
+
+#: includes/Admin/Menu.php:33
+#: includes/Admin/PluginLinks.php:35
+#: src/admin/screens/DashboardScreen.js:87
+msgid "Dashboard"
+msgstr ""
+
+#: includes/Admin/Menu.php:34
+#: src/admin/screens/CalendarScreen.js:531
+msgid "Calendar"
+msgstr ""
+
+#: includes/Admin/Menu.php:35
+#: templates/admin/bookings-print.php:31
+#: src/admin/screens/BookingsScreen.js:171
+#: src/admin/screens/BookingsScreen.js:182
+#: src/admin/screens/BookingsScreen.js:216
+#: src/admin/screens/CustomersScreen.js:76
+#: src/admin/screens/DashboardScreen.js:181
+#: src/manage/PortalApp.js:218
+msgid "Bookings"
+msgstr ""
+
+#: includes/Admin/Menu.php:36
+#: src/admin/screens/CustomersScreen.js:100
+#: src/admin/screens/CustomersScreen.js:109
+#: src/admin/screens/CustomersScreen.js:141
+msgid "Customers"
+msgstr ""
+
+#: includes/Admin/Menu.php:37
+#: src/admin/catalog/CategoriesTab.js:126
+#: src/admin/screens/ServicesScreen.js:13
+#: src/admin/screens/ServicesScreen.js:24
+#: src/front/wizard/steps/SelectSteps.js:163
+msgid "Services"
+msgstr ""
+
+#: includes/Admin/Menu.php:38
+#: includes/Services/Transfer.php:89
+#: templates/admin/bookings-print.php:44
+#: src/admin/bookings/BookingDrawer.js:359
+#: src/admin/bookings/BookingDrawer.js:472
+#: src/admin/screens/BookingFormDesignScreen.js:33
+#: src/admin/screens/BookingsScreen.js:103
+#: src/admin/screens/StaffScreen.js:11
+#: src/front/wizard/steps/SelectSteps.js:318
+#: src/front/wizard/texts.js:46
+msgid "Staff"
+msgstr ""
+
+#: includes/Admin/Menu.php:39
+#: src/admin/screens/LocationsScreen.js:12
+#: src/admin/screens/LocationsScreen.js:22
+#: src/front/wizard/steps/SelectSteps.js:33
+msgid "Locations"
+msgstr ""
+
+#: includes/Admin/Menu.php:40
+#: src/admin/screens/NotificationsScreen.js:56
+#: src/admin/screens/NotificationsScreen.js:65
+msgid "Notifications"
+msgstr ""
+
+#: includes/Admin/Menu.php:41
+#: src/admin/screens/BookingFormDesignScreen.js:383
+#: src/admin/screens/BookingFormDesignScreen.js:392
+#: src/blocks/booking-form/edit.js:274
+#: src/blocks/booking-form/index.js:47
+msgid "Booking form"
+msgstr ""
+
+#: includes/Admin/Menu.php:42
+#: includes/Admin/PluginLinks.php:38
+#: src/admin/screens/DashboardScreen.js:141
+#: src/admin/screens/SettingsScreen.js:35
+msgid "Settings"
+msgstr ""
+
+#: includes/Admin/Menu.php:43
+#: src/admin/screens/HelpScreen.js:67
+msgid "Help"
+msgstr ""
+
+#: includes/Admin/Menu.php:147
+#: includes/Admin/Menu.php:148
+#: includes/Admin/Menu.php:157
+#: includes/Admin/Menu.php:247
+#: src/admin/layout/Shell.js:91
+#: src/admin/layout/Shell.js:96
+msgid "BookPoint"
+msgstr ""
+
+#: includes/Admin/Menu.php:162
+#: includes/Admin/Menu.php:163
+msgid "BookPoint Tools"
+msgstr ""
+
+#: includes/Admin/Menu.php:249
+#: includes/Frontend/Shortcodes.php:98
+#: src/admin/App.js:43
+msgid "Loading…"
+msgstr ""
+
+#: includes/Admin/Menu.php:250
+msgid "BookPoint needs JavaScript. Please enable it in your browser."
+msgstr ""
+
+#: includes/Admin/Menu.php:270
+msgid "BookPoint menu diagnostics"
+msgstr ""
+
+#: includes/Frontend/Block.php:55
+#: includes/Frontend/Shortcodes.php:41
+#: src/blocks/booking-form/edit.js:71
+#: src/blocks/booking-form/edit.js:111
+#: src/front/BookingWidget.js:209
+msgid "Book now"
+msgstr ""
+
+#: includes/Frontend/LegacyAjax.php:45
+msgid "Your session expired. Please reload the page."
+msgstr ""
+
+#: includes/Frontend/LegacyAjax.php:62
+msgid "Please choose a service and a date."
+msgstr ""
+
+#: includes/Frontend/LegacyAjax.php:92
+#: includes/Rest/Front/LegacyController.php:466
+#: includes/Rest/Front/WizardController.php:434
+msgid "Your booking could not be submitted."
+msgstr ""
+
+#: includes/Frontend/LegacyAjax.php:95
+#: includes/Rest/Front/WizardController.php:194
+msgid "Too many requests. Please wait a moment and try again."
+msgstr ""
+
+#: includes/Frontend/LegacyAjax.php:124
+msgid "Thank you! Your booking was received."
+msgstr ""
+
+#: includes/Frontend/ManagePage.php:70
+#: src/front/wizard/Summary.js:149
+#: src/front/wizard/Summary.js:201
+#: src/manage/ManageApp.js:333
+msgid "Your booking"
+msgstr ""
+
+#: includes/Frontend/ManagePage.php:90
+msgid "Loading your booking…"
+msgstr ""
+
+#: includes/Frontend/ManagePage.php:91
+msgid "Please enable JavaScript to manage your booking."
+msgstr ""
+
+#: includes/Frontend/Shortcodes.php:77
+#: src/front/BookingWidget.js:44
+#: src/front/wizard/Wizard.js:176
+msgid "Loading the booking form…"
+msgstr ""
+
+#: includes/Frontend/Shortcodes.php:85
+msgid "Please enable JavaScript to book online."
+msgstr ""
+
+#: includes/Frontend/Shortcodes.php:99
+msgid "Please enable JavaScript to see your bookings."
+msgstr ""
+
+#: includes/Installer.php:61
+msgid "BookPoint could not be activated because another copy of BookPoint is already active. Deactivate the other copy first."
+msgstr ""
+
+#: includes/Installer.php:62
+msgid "Plugin activation"
+msgstr ""
+
+#: includes/Installer.php:122
+msgid "BookPoint Manager"
+msgstr ""
+
+#: includes/Installer.php:123
+msgid "BookPoint Staff"
+msgstr ""
+
+#: includes/Integrations/WooCommerce.php:46
+#: includes/Integrations/WooCommerce.php:56
+msgid "Online checkout is not available right now."
+msgstr ""
+
+#: includes/Integrations/WooCommerce.php:50
+msgid "Online checkout is not configured yet."
+msgstr ""
+
+#: includes/Integrations/WooCommerce.php:115
+#: includes/Services/Notifications/Variables.php:168
+#: includes/Services/Payments/Stripe.php:387
+#: src/admin/layout/Shell.js:133
+#: src/admin/settings/AuditLogTab.js:140
+#: src/admin/settings/FormFieldsTab.js:13
+#: src/front/wizard/steps/FinalSteps.js:427
+#: src/manage/ManageApp.js:29
+msgid "Booking"
+msgstr ""
+
+#. translators: %d: staff member ID
+#: includes/Repositories/AgentRepository.php:35
+#, php-format
+msgid "Staff #%d"
+msgstr ""
+
+#: includes/Repositories/CustomerRepository.php:135
+msgid "Deleted"
+msgstr ""
+
+#: includes/Repositories/CustomerRepository.php:136
+#: includes/Services/Notifications/Variables.php:185
+#: includes/Services/Transfer.php:91
+#: templates/admin/bookings-print.php:45
+#: src/admin/bookings/BookingDrawer.js:388
+#: src/admin/bookings/BookingDrawer.js:448
+#: src/admin/screens/BookingsScreen.js:89
+#: src/admin/screens/CustomersScreen.js:63
+#: src/admin/settings/AuditLogTab.js:150
+#: src/admin/settings/FormFieldsTab.js:12
+msgid "Customer"
+msgstr ""
+
+#: includes/Repositories/FormFieldRepository.php:262
+#: includes/Services/Notifications/Variables.php:188
+#: src/admin/bookings/BookingDrawer.js:113
+#: src/admin/customers/CustomerDrawer.js:128
+#: src/admin/staff/StaffTab.js:121
+msgid "First name"
+msgstr ""
+
+#: includes/Repositories/FormFieldRepository.php:263
+#: src/admin/bookings/BookingDrawer.js:116
+#: src/admin/customers/CustomerDrawer.js:131
+#: src/admin/staff/StaffTab.js:124
+msgid "Last name"
+msgstr ""
+
+#: includes/Repositories/FormFieldRepository.php:264
+#: includes/Services/Notifications/Variables.php:189
+#: includes/Services/Transfer.php:92
+#: src/admin/bookings/BookingDrawer.js:119
+#: src/admin/customers/CustomerDrawer.js:134
+#: src/admin/settings/GeneralTab.js:98
+#: src/admin/settings/ToolsTab.js:164
+#: src/admin/staff/StaffTab.js:127
+#: src/manage/PortalApp.js:303
+msgid "Email"
+msgstr ""
+
+#: includes/Repositories/FormFieldRepository.php:265
+#: includes/Services/Notifications/Variables.php:190
+#: includes/Services/Transfer.php:93
+#: src/admin/bookings/BookingDrawer.js:122
+#: src/admin/customers/CustomerDrawer.js:137
+#: src/admin/onboarding/OnboardingWizard.js:31
+#: src/admin/screens/CustomersScreen.js:75
+#: src/admin/staff/StaffTab.js:130
+msgid "Phone"
+msgstr ""
+
+#: includes/Repositories/FormFieldRepository.php:266
+#: includes/Services/Notifications/Variables.php:180
+#: includes/Services/Transfer.php:100
+#: templates/admin/bookings-print.php:48
+#: src/admin/bookings/BookingDrawer.js:392
+msgid "Notes"
+msgstr ""
+
+#: includes/Rest/Admin/BookingsController.php:194
+#: includes/Rest/Admin/BookingsController.php:237
+#: includes/Rest/Admin/BookingsController.php:296
+#: includes/Services/Booking/BookingService.php:500
+#: includes/Services/Booking/BookingService.php:583
+#: includes/Services/Booking/BookingService.php:673
+#: includes/Services/Booking/BookingService.php:738
+msgid "Booking not found."
+msgstr ""
+
+#: includes/Rest/Admin/BookingsController.php:376
+#: includes/Services/Booking/BookingService.php:588
+msgid "Please choose a valid date and time."
+msgstr ""
+
+#: includes/Rest/Admin/BookingsController.php:431
+msgid "Invalid date."
+msgstr ""
+
+#: includes/Rest/Admin/CalendarController.php:110
+msgid "Invalid date range."
+msgstr ""
+
+#: includes/Rest/Admin/CatalogController.php:150
+#: includes/Rest/Admin/CatalogController.php:173
+msgid "Service not found."
+msgstr ""
+
+#: includes/Rest/Admin/CatalogController.php:180
+#: includes/Rest/Admin/SettingsController.php:467
+msgid "Please enter a service name."
+msgstr ""
+
+#: includes/Rest/Admin/CatalogController.php:218
+msgid "The custom hours are not valid."
+msgstr ""
+
+#: includes/Rest/Admin/CatalogController.php:237
+#: includes/Rest/Admin/SettingsController.php:480
+msgid "The service could not be saved."
+msgstr ""
+
+#: includes/Rest/Admin/CatalogController.php:303
+#: includes/Rest/Admin/CatalogController.php:341
+msgid "Category not found."
+msgstr ""
+
+#: includes/Rest/Admin/CatalogController.php:323
+msgid "Please enter a category name."
+msgstr ""
+
+#: includes/Rest/Admin/CatalogController.php:406
+#: includes/Rest/Admin/CatalogController.php:448
+msgid "Extra not found."
+msgstr ""
+
+#: includes/Rest/Admin/CatalogController.php:424
+#: includes/Rest/Admin/CustomersController.php:207
+#: includes/Rest/Admin/NotificationsController.php:288
+#: includes/Rest/Admin/StaffController.php:254
+#: includes/Rest/Admin/StaffController.php:612
+msgid "Please enter a name."
+msgstr ""
+
+#: includes/Rest/Admin/CatalogController.php:454
+msgid "The extra could not be saved."
+msgstr ""
+
+#: includes/Rest/Admin/CustomersController.php:148
+#: includes/Rest/Admin/CustomersController.php:188
+#: includes/Rest/Admin/CustomersController.php:314
+#: includes/Rest/Admin/CustomersController.php:331
+msgid "Customer not found."
+msgstr ""
+
+#: includes/Rest/Admin/CustomersController.php:203
+#: includes/Rest/Admin/NotificationsController.php:548
+#: includes/Rest/Admin/StaffController.php:260
+#: includes/Rest/Admin/SystemController.php:300
+#: includes/Rest/Front/PortalController.php:88
+#: includes/Services/Booking/BookingService.php:126
+#: includes/Settings/Settings.php:353
+msgid "Please enter a valid email address."
+msgstr ""
+
+#: includes/Rest/Admin/CustomersController.php:220
+msgid "Another customer already uses this email address."
+msgstr ""
+
+#: includes/Rest/Admin/CustomersController.php:242
+msgid "The customer could not be saved."
+msgstr ""
+
+#. translators: %s: field label
+#: includes/Rest/Admin/CustomersController.php:278
+#, php-format
+msgid "%s must be a valid email address."
+msgstr ""
+
+#: includes/Rest/Admin/CustomersController.php:361
+msgid "Invalid record."
+msgstr ""
+
+#: includes/Rest/Admin/FormFieldsController.php:122
+#: includes/Rest/Admin/FormFieldsController.php:151
+#: includes/Rest/Admin/FormFieldsController.php:248
+msgid "Field not found."
+msgstr ""
+
+#: includes/Rest/Admin/FormFieldsController.php:157
+msgid "Please enter a label."
+msgstr ""
+
+#: includes/Rest/Admin/FormFieldsController.php:175
+msgid "Please enter a key using letters, numbers and underscores."
+msgstr ""
+
+#: includes/Rest/Admin/FormFieldsController.php:178
+msgid "Another field already uses this key."
+msgstr ""
+
+#: includes/Rest/Admin/FormFieldsController.php:198
+msgid "Add at least one option."
+msgstr ""
+
+#: includes/Rest/Admin/FormFieldsController.php:233
+msgid "The field could not be saved."
+msgstr ""
+
+#: includes/Rest/Admin/FormFieldsController.php:251
+msgid "The email field is required for confirmations and cannot be deleted."
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:165
+msgid "Booking created"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:166
+msgid "Booking rescheduled or updated"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:167
+msgid "Booking confirmed"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:168
+msgid "Booking cancelled"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:169
+#: src/admin/bookings/BookingDrawer.js:88
+#: src/admin/customers/CustomerDrawer.js:121
+#: src/admin/screens/CustomersScreen.js:120
+msgid "New customer"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:210
+msgid "Send email"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:214
+#: includes/Services/Notifications/DefaultWorkflows.php:28
+#: includes/Services/Notifications/Variables.php:196
+#: includes/Services/Transfer.php:88
+#: templates/admin/bookings-print.php:43
+#: src/admin/bookings/BookingDrawer.js:356
+#: src/admin/screens/BookingFormDesignScreen.js:31
+#: src/admin/screens/BookingsScreen.js:102
+#: src/blocks/booking-form/edit.js:143
+#: src/front/wizard/texts.js:30
+msgid "Service"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:215
+#: includes/Services/Notifications/Variables.php:199
+#: src/blocks/booking-form/edit.js:184
+msgid "Staff member"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:216
+#: includes/Services/Notifications/Variables.php:202
+#: includes/Services/Transfer.php:90
+#: src/admin/bookings/BookingDrawer.js:363
+#: src/admin/screens/BookingFormDesignScreen.js:29
+#: src/blocks/booking-form/edit.js:206
+#: src/front/wizard/texts.js:14
+msgid "Location"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:217
+#: includes/Services/Notifications/Variables.php:171
+#: includes/Services/Transfer.php:87
+#: templates/admin/bookings-print.php:46
+#: src/admin/bookings/BookingDrawer.js:397
+#: src/admin/screens/BookingsScreen.js:116
+msgid "Status"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:218
+#: includes/Services/Notifications/Variables.php:215
+#: includes/Services/Transfer.php:98
+#: src/admin/bookings/BookingDrawer.js:549
+msgid "Payment method"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:219
+#: includes/Services/Notifications/Variables.php:216
+#: includes/Services/Transfer.php:99
+#: src/admin/bookings/BookingDrawer.js:400
+#: src/admin/bookings/BookingDrawer.js:552
+msgid "Payment status"
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:264
+#: includes/Rest/Admin/NotificationsController.php:282
+#: includes/Rest/Admin/NotificationsController.php:421
+#: includes/Rest/Admin/NotificationsController.php:507
+msgid "Notification not found."
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:292
+msgid "Please choose when this notification is sent."
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:324
+msgid "The notification could not be saved."
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:375
+msgid "Please enter a recipient, for example {customer_email}."
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:440
+#: includes/Rest/Admin/NotificationsController.php:531
+msgid "Action not found."
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:516
+msgid "Add an email to this notification first."
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:559
+msgid "The test email could not be sent. Check your site’s email configuration."
+msgstr ""
+
+#: includes/Rest/Admin/NotificationsController.php:598
+msgid "Unknown template."
+msgstr ""
+
+#: includes/Rest/Admin/PromoCodesController.php:91
+#: includes/Rest/Admin/PromoCodesController.php:105
+#: includes/Rest/Admin/PromoCodesController.php:179
+msgid "Promo code not found."
+msgstr ""
+
+#: includes/Rest/Admin/PromoCodesController.php:111
+msgid "Use 2–60 letters, numbers, dashes or underscores."
+msgstr ""
+
+#: includes/Rest/Admin/PromoCodesController.php:115
+msgid "This code already exists."
+msgstr ""
+
+#: includes/Rest/Admin/PromoCodesController.php:121
+msgid "Enter a percentage between 0 and 100."
+msgstr ""
+
+#: includes/Rest/Admin/PromoCodesController.php:121
+msgid "Enter an amount greater than zero."
+msgstr ""
+
+#: includes/Rest/Admin/PromoCodesController.php:131
+msgid "The end date must be after the start date."
+msgstr ""
+
+#: includes/Rest/Admin/PromoCodesController.php:153
+msgid "The promo code could not be saved."
+msgstr ""
+
+#. translators: %s: weekday name
+#: includes/Rest/Admin/ScheduleController.php:164
+#, php-format
+msgid "Check the hours on %s: the end time must be after the start time."
+msgstr ""
+
+#. translators: %s: weekday name
+#: includes/Rest/Admin/ScheduleController.php:182
+#, php-format
+msgid "The working periods on %s overlap."
+msgstr ""
+
+#: includes/Rest/Admin/ScheduleController.php:191
+msgid "The schedule could not be saved. Nothing was changed."
+msgstr ""
+
+#: includes/Rest/Admin/ScheduleController.php:239
+msgid "Holiday not found."
+msgstr ""
+
+#: includes/Rest/Admin/ScheduleController.php:245
+msgid "Please enter a title."
+msgstr ""
+
+#: includes/Rest/Admin/ScheduleController.php:253
+msgid "Please choose a start date."
+msgstr ""
+
+#: includes/Rest/Admin/ScheduleController.php:256
+msgid "The end date must be on or after the start date."
+msgstr ""
+
+#: includes/Rest/Admin/ScheduleController.php:274
+msgid "The holiday could not be saved."
+msgstr ""
+
+#: includes/Rest/Admin/SettingsController.php:134
+msgid "Only site administrators can change payment settings."
+msgstr ""
+
+#: includes/Rest/Admin/SettingsController.php:400
+msgid "Invalid design data."
+msgstr ""
+
+#: includes/Rest/Admin/SettingsController.php:488
+#: includes/Rest/Admin/StaffController.php:426
+msgid "The working hours could not be saved."
+msgstr ""
+
+#: includes/Rest/Admin/SettingsController.php:505
+msgid "Unknown onboarding step."
+msgstr ""
+
+#: includes/Rest/Admin/StaffController.php:228
+#: includes/Rest/Admin/StaffController.php:283
+#: includes/Rest/Admin/StaffController.php:390
+#: includes/Rest/Admin/StaffController.php:417
+msgid "Staff member not found."
+msgstr ""
+
+#: includes/Rest/Admin/StaffController.php:275
+msgid "The working hours are not valid."
+msgstr ""
+
+#: includes/Rest/Admin/StaffController.php:289
+msgid "The staff member could not be saved."
+msgstr ""
+
+#: includes/Rest/Admin/StaffController.php:484
+#: includes/Rest/Admin/StaffController.php:542
+msgid "Location not found."
+msgstr ""
+
+#: includes/Rest/Admin/StaffController.php:504
+msgid "Please enter a location name."
+msgstr ""
+
+#: includes/Rest/Admin/SystemController.php:195
+msgid "The activity log could not be cleared."
+msgstr ""
+
+#: includes/Rest/Admin/SystemController.php:273
+#: src/admin/settings/ToolsTab.js:186
+msgid "Relations synced."
+msgstr ""
+
+#: includes/Rest/Admin/SystemController.php:283
+#: src/admin/settings/ToolsTab.js:193
+msgid "Demo data generated."
+msgstr ""
+
+#: includes/Rest/Admin/SystemController.php:289
+#: src/admin/settings/ToolsTab.js:200
+msgid "Cache cleared."
+msgstr ""
+
+#: includes/Rest/Admin/SystemController.php:295
+#: src/admin/settings/ToolsTab.js:207
+msgid "Database checked and updated."
+msgstr ""
+
+#: includes/Rest/Admin/SystemController.php:304
+msgid "Test email from your booking system"
+msgstr ""
+
+#: includes/Rest/Admin/SystemController.php:305
+msgid "Good news: your site can send booking emails."
+msgstr ""
+
+#: includes/Rest/Admin/SystemController.php:317
+msgid "The email could not be sent. Check your site’s email (SMTP) configuration."
+msgstr ""
+
+#. translators: %s: email address
+#: includes/Rest/Admin/SystemController.php:321
+#: src/admin/notifications/WorkflowDrawer.js:74
+#: src/admin/settings/ToolsTab.js:75
+#, php-format,js-format
+msgid "Test email sent to %s."
+msgstr ""
+
+#. translators: %d: HTTP status code
+#: includes/Rest/Admin/SystemController.php:348
+#, php-format
+msgid "The webhook URL answered with HTTP %d."
+msgstr ""
+
+#. translators: %d: HTTP status code
+#: includes/Rest/Admin/SystemController.php:354
+#: src/admin/settings/ToolsTab.js:79
+#, php-format,js-format
+msgid "Webhook delivered (HTTP %d)."
+msgstr ""
+
+#: includes/Rest/Admin/SystemController.php:361
+msgid "Unknown tool action."
+msgstr ""
+
+#: includes/Rest/Admin/SystemController.php:446
+#: src/admin/settings/ToolsTab.js:119
+msgid "Settings imported."
+msgstr ""
+
+#: includes/Rest/Front/LegacyController.php:348
+msgid "service_id and date are required."
+msgstr ""
+
+#: includes/Rest/Front/LegacyController.php:385
+msgid "service_id is required."
+msgstr ""
+
+#: includes/Rest/Front/LegacyController.php:407
+msgid "service_id and month are required."
+msgstr ""
+
+#: includes/Rest/Front/ManageController.php:109
+msgid "This link is no longer valid. Please use the most recent email we sent you, or contact us."
+msgstr ""
+
+#: includes/Rest/Front/ManageController.php:189
+msgid "This booking can no longer be cancelled online. Please contact us."
+msgstr ""
+
+#: includes/Rest/Front/ManageController.php:222
+msgid "This booking can no longer be changed online. Please contact us."
+msgstr ""
+
+#: includes/Rest/Front/ManageController.php:306
+msgid "Invalid service."
+msgstr ""
+
+#: includes/Rest/Front/PortalController.php:108
+msgid "That code is not valid or has expired. Please try again or request a new code."
+msgstr ""
+
+#: includes/Rest/Front/PortalController.php:131
+msgid "Your session has expired. Please sign in again."
+msgstr ""
+
+#: includes/Rest/Front/WizardController.php:207
+msgid "We could not find this booking. Please use the link from your confirmation email."
+msgstr ""
+
+#: includes/Rest/Front/WizardController.php:354
+#: includes/Services/Pricing/PricingService.php:92
+msgid "This service is no longer available."
+msgstr ""
+
+#: includes/Services/Availability/AvailabilityService.php:465
+msgid "Sorry, that time was just taken. Please choose another time."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:95
+msgid "Please choose a service."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:98
+msgid "Please choose a date and time."
+msgstr ""
+
+#. translators: %s: field label
+#: includes/Services/Booking/BookingService.php:112
+#, php-format
+msgid "%s is required."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:142
+#: includes/Services/Pricing/PricingService.php:46
+#: includes/Services/Pricing/PricingService.php:50
+msgid "This code is not valid."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:160
+msgid "We are processing another booking for this day. Please try again in a moment."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:224
+msgid "The booking could not be saved. Please try again."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:287
+msgid "Please choose one of the available payment options."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:419
+msgid "That customer no longer exists."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:467
+msgid "Your details could not be saved. Please try again."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:503
+msgid "Unknown booking status."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:524
+msgid "This time is no longer free, so the booking cannot be re-activated. Reschedule it instead."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:595
+msgid "The booked service no longer exists."
+msgstr ""
+
+#: includes/Services/Booking/BookingService.php:600
+msgid "Please try again in a moment."
+msgstr ""
+
+#: includes/Services/DemoData.php:42
+msgid "Initial consultation"
+msgstr ""
+
+#: includes/Services/DemoData.php:43
+msgid "Standard appointment"
+msgstr ""
+
+#: includes/Services/DemoData.php:44
+msgid "Extended session"
+msgstr ""
+
+#: includes/Services/DemoData.php:45
+msgid "Quick check-in"
+msgstr ""
+
+#: includes/Services/DemoData.php:46
+msgid "Premium package"
+msgstr ""
+
+#: includes/Services/DemoData.php:47
+msgid "Follow-up visit"
+msgstr ""
+
+#: includes/Services/DemoData.php:54
+msgid "Popular"
+msgstr ""
+
+#. translators: %s: sample service name
+#: includes/Services/DemoData.php:65
+#, php-format
+msgid "%s (copy)"
+msgstr ""
+
+#: includes/Services/DemoData.php:66
+msgid "Sample service created by the demo data tool."
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:29
+#: src/admin/bookings/BookingDrawer.js:158
+msgid "Date"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:30
+#: src/admin/bookings/BookingDrawer.js:162
+msgid "Time"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:31
+msgid "With"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:32
+#: includes/Services/Notifications/Variables.php:210
+#: includes/Services/Transfer.php:96
+#: templates/admin/bookings-print.php:47
+#: src/admin/bookings/BookingDrawer.js:409
+#: src/admin/bookings/BookingDrawer.js:544
+#: src/admin/screens/BookingsScreen.js:117
+#: src/front/wizard/steps/FinalSteps.js:304
+#: src/front/wizard/Summary.js:133
+msgid "Total"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:42
+msgid "Booking received — email the customer"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:47
+msgid "We received your booking (#{{booking_id}})"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:48
+#: includes/Services/Notifications/DefaultWorkflows.php:81
+#: includes/Services/Notifications/DefaultWorkflows.php:97
+#: includes/Services/Notifications/DefaultWorkflows.php:126
+msgid "Hi {{customer_first_name}},"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:49
+msgid "Thanks for booking with us. Here are the details:"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:51
+#: includes/Services/Notifications/DefaultWorkflows.php:129
+msgid "Status: {{booking_status}}"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:52
+msgid "View or change your booking"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:53
+msgid "See you soon!"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:59
+msgid "New booking — notify the team"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:64
+msgid "New booking #{{booking_id}}: {{service_name}} on {{booking_date}}"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:65
+msgid "You have a new booking."
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:67
+msgid "Customer: {{customer_name}} · {{customer_email}} · {{customer_phone}}"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:68
+msgid "Status: {{booking_status}} · Payment: {{payment_method}} ({{payment_status}})"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:69
+msgid "Open in BookPoint"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:75
+msgid "Booking confirmed — email the customer"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:80
+msgid "Your booking is confirmed (#{{booking_id}})"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:82
+msgid "Good news — your booking is confirmed."
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:84
+#: includes/Services/Notifications/DefaultWorkflows.php:130
+msgid "Manage your booking"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:91
+msgid "Booking cancelled — email the customer"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:96
+msgid "Your booking was cancelled (#{{booking_id}})"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:98
+msgid "Your booking for {{service_name}} on {{booking_date}} at {{booking_time}} has been cancelled."
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:99
+msgid "If this is a mistake or you would like a new time, just book again on our website."
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:106
+msgid "Booking cancelled — notify the team"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:111
+msgid "Booking cancelled (#{{booking_id}})"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:112
+msgid "A booking was cancelled."
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:114
+msgid "Customer: {{customer_name}} ({{customer_email}})"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:120
+msgid "Booking changed — email the customer"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:125
+msgid "Your booking was updated (#{{booking_id}})"
+msgstr ""
+
+#: includes/Services/Notifications/DefaultWorkflows.php:127
+msgid "Your booking has been updated. The latest details are below."
+msgstr ""
+
+#: includes/Services/Notifications/Ics.php:66
+#: src/admin/bookings/BookingDrawer.js:462
+#: src/front/wizard/steps/FinalSteps.js:207
+msgid "Appointment"
+msgstr ""
+
+#. translators: %d: booking id
+#: includes/Services/Notifications/Ics.php:87
+#: src/admin/bookings/BookingDrawer.js:345
+#, php-format,js-format
+msgid "Booking #%d"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:150
+#: src/admin/bookings/BookingDrawer.js:38
+#: src/admin/bookings/BookingDrawer.js:52
+#: src/admin/screens/BookingsScreen.js:19
+#: src/admin/screens/DashboardScreen.js:164
+#: src/admin/settings/GeneralTab.js:86
+#: src/ui/components/Display.js:83
+msgid "Pending"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:151
+#: src/admin/bookings/BookingDrawer.js:39
+#: src/admin/screens/BookingsScreen.js:20
+#: src/admin/settings/GeneralTab.js:87
+#: src/ui/components/Display.js:84
+msgid "Confirmed"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:152
+#: src/admin/bookings/BookingDrawer.js:40
+#: src/admin/screens/BookingsScreen.js:21
+#: src/admin/settings/GeneralTab.js:89
+#: src/ui/components/Display.js:85
+msgid "Completed"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:153
+#: src/admin/bookings/BookingDrawer.js:41
+#: src/admin/screens/BookingsScreen.js:22
+#: src/admin/settings/GeneralTab.js:88
+#: src/ui/components/Display.js:86
+msgid "Cancelled"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:154
+#: src/admin/bookings/BookingDrawer.js:42
+#: src/admin/screens/BookingsScreen.js:23
+#: src/ui/components/Display.js:87
+msgid "Awaiting payment"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:155
+#: src/admin/bookings/BookingDrawer.js:43
+#: src/admin/screens/BookingsScreen.js:24
+#: src/ui/components/Display.js:88
+msgid "Payment failed"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:170
+msgid "Booking number"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:172
+msgid "Date (formatted)"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:173
+msgid "Start time (formatted)"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:174
+msgid "End time (formatted)"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:175
+msgid "Start date (YYYY-MM-DD)"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:176
+msgid "Start time (HH:MM)"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:177
+msgid "End date (YYYY-MM-DD)"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:178
+msgid "End time (HH:MM)"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:179
+msgid "Duration in minutes"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:181
+#: src/admin/settings/ScheduleTab.js:147
+msgid "Timezone"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:187
+msgid "Full name"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:194
+msgid "Service & staff"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:197
+msgid "Service duration"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:198
+#: src/admin/bookings/BookingDrawer.js:374
+#: src/admin/screens/BookingFormDesignScreen.js:32
+#: src/admin/screens/ServicesScreen.js:15
+#: src/front/wizard/texts.js:38
+msgid "Extras"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:200
+msgid "Staff email"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:201
+msgid "Staff phone"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:203
+msgid "Location address"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:207
+#: src/admin/bookings/BookingDrawer.js:529
+#: src/admin/screens/BookingFormDesignScreen.js:36
+#: src/admin/settings/FormFieldsTab.js:20
+#: src/front/wizard/steps/FinalSteps.js:271
+#: src/front/wizard/texts.js:67
+#: src/front/wizard/Wizard.js:901
+msgid "Payment"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:209
+msgid "Total (formatted)"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:211
+msgid "Subtotal"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:212
+#: src/admin/bookings/BookingDrawer.js:539
+#: src/front/wizard/Summary.js:128
+msgid "Discount"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:213
+msgid "Tax"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:214
+#: src/front/wizard/steps/FinalSteps.js:104
+#: src/front/wizard/steps/FinalSteps.js:113
+msgid "Promo code"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:220
+msgid "Links"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:222
+msgid "Manage booking (customer)"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:223
+msgid "Add to calendar (.ics)"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:224
+msgid "Open booking in admin"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:228
+#: src/admin/settings/GeneralTab.js:46
+msgid "Business"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:230
+#: src/admin/onboarding/OnboardingWizard.js:25
+#: src/admin/settings/GeneralTab.js:48
+msgid "Business name"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:231
+#: src/admin/settings/GeneralTab.js:54
+msgid "Business phone"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:232
+#: src/admin/onboarding/OnboardingWizard.js:28
+#: src/admin/settings/GeneralTab.js:51
+msgid "Business email"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:233
+#: src/admin/settings/GeneralTab.js:57
+msgid "Business address"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:234
+msgid "Site name"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:235
+msgid "Site URL"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:236
+msgid "Notification email"
+msgstr ""
+
+#: includes/Services/Notifications/Variables.php:250
+msgid "Custom fields"
+msgstr ""
+
+#: includes/Services/Notifications/WorkflowEngine.php:271
+msgid "Booking update"
+msgstr ""
+
+#: includes/Services/Payments/PaymentFlow.php:35
+msgid "This booking was cancelled, so it can no longer be paid."
+msgstr ""
+
+#: includes/Services/Payments/PaymentFlow.php:38
+msgid "Online payment is not available right now. Please contact us to complete your booking."
+msgstr ""
+
+#: includes/Services/Payments/PaymentFlow.php:126
+msgid "This booking is already paid."
+msgstr ""
+
+#: includes/Services/Payments/PaymentMethods.php:104
+msgid "Pay later"
+msgstr ""
+
+#: includes/Services/Payments/PaymentMethods.php:105
+msgid "Pay in person at your appointment."
+msgstr ""
+
+#: includes/Services/Payments/PaymentMethods.php:108
+msgid "No payment needed"
+msgstr ""
+
+#: includes/Services/Payments/PaymentMethods.php:109
+msgid "Confirm your booking without paying now."
+msgstr ""
+
+#: includes/Services/Payments/PaymentMethods.php:112
+msgid "Card"
+msgstr ""
+
+#: includes/Services/Payments/PaymentMethods.php:113
+msgid "Pay securely by card."
+msgstr ""
+
+#: includes/Services/Payments/PaymentMethods.php:116
+#: src/admin/settings/PaymentsTab.js:14
+#: src/admin/settings/PaymentsTab.js:126
+msgid "PayPal"
+msgstr ""
+
+#: includes/Services/Payments/PaymentMethods.php:117
+msgid "You will be redirected to PayPal to pay."
+msgstr ""
+
+#: includes/Services/Payments/PaymentMethods.php:120
+msgid "Online checkout"
+msgstr ""
+
+#: includes/Services/Payments/PaymentMethods.php:121
+msgid "Complete payment in our shop checkout."
+msgstr ""
+
+#: includes/Services/Payments/PayPal.php:60
+msgid "PayPal is not configured yet."
+msgstr ""
+
+#: includes/Services/Payments/PayPal.php:74
+#: includes/Services/Payments/PayPal.php:111
+msgid "Could not reach PayPal. Please try again."
+msgstr ""
+
+#: includes/Services/Payments/PayPal.php:79
+msgid "PayPal rejected the credentials."
+msgstr ""
+
+#: includes/Services/Payments/PayPal.php:116
+msgid "PayPal returned an error."
+msgstr ""
+
+#: includes/Services/Payments/PayPal.php:133
+#: includes/Services/Payments/Stripe.php:154
+#: includes/Services/Payments/Stripe.php:237
+msgid "Nothing to pay for this booking."
+msgstr ""
+
+#: includes/Services/Payments/PayPal.php:199
+#: includes/Services/Payments/Stripe.php:196
+msgid "This payment does not belong to the booking."
+msgstr ""
+
+#: includes/Services/Payments/Stripe.php:97
+msgid "Card payments are not configured yet."
+msgstr ""
+
+#: includes/Services/Payments/Stripe.php:116
+msgid "Could not reach the payment provider. Please try again."
+msgstr ""
+
+#: includes/Services/Payments/Stripe.php:121
+msgid "The payment provider returned an error."
+msgstr ""
+
+#. translators: 1: service name, 2: booking number
+#: includes/Services/Payments/Stripe.php:389
+#, php-format
+msgid "%1$s (booking #%2$d)"
+msgstr ""
+
+#. translators: %s: business name
+#: includes/Services/Portal.php:60
+#, php-format
+msgid "Your sign-in code for %s"
+msgstr ""
+
+#: includes/Services/Portal.php:61
+msgid "Use this code to see your bookings:"
+msgstr ""
+
+#: includes/Services/Portal.php:63
+msgid "The code expires in 10 minutes. If you did not ask for it, you can ignore this email."
+msgstr ""
+
+#: includes/Services/Pricing/PricingService.php:52
+msgid "This code is not active yet."
+msgstr ""
+
+#: includes/Services/Pricing/PricingService.php:54
+msgid "This code has expired."
+msgstr ""
+
+#: includes/Services/Pricing/PricingService.php:56
+msgid "This code has reached its usage limit."
+msgstr ""
+
+#. translators: %s: minimum order amount
+#: includes/Services/Pricing/PricingService.php:62
+#, php-format
+msgid "This code needs an order of at least %s."
+msgstr ""
+
+#: includes/Services/Pricing/PricingService.php:75
+msgid "Code applied."
+msgstr ""
+
+#: includes/Services/Transfer.php:86
+msgid "Booking ID"
+msgstr ""
+
+#: includes/Services/Transfer.php:94
+msgid "Start"
+msgstr ""
+
+#: includes/Services/Transfer.php:95
+msgid "End"
+msgstr ""
+
+#: includes/Services/Transfer.php:97
+#: src/admin/onboarding/OnboardingWizard.js:34
+#: src/admin/settings/GeneralTab.js:62
+#: src/admin/settings/GeneralTab.js:64
+msgid "Currency"
+msgstr ""
+
+#: includes/Services/Transfer.php:101
+msgid "Created"
+msgstr ""
+
+#: includes/Services/Transfer.php:258
+msgid "This file is not a BookPoint settings export."
+msgstr ""
+
+#: includes/Services/Webhooks.php:110
+msgid "No webhook URL is set for this event."
+msgstr ""
+
+#. translators: %s: setting key
+#: includes/Settings/Settings.php:334
+#, php-format
+msgid "Unknown setting: %s"
+msgstr ""
+
+#: includes/Settings/Settings.php:370
+msgid "Use the format HH:MM-HH:MM, for example 09:00-17:00."
+msgstr ""
+
+#: includes/Settings/Settings.php:381
+msgid "Each break must use HH:MM-HH:MM and be separated by commas."
+msgstr ""
+
+#: includes/Settings/Settings.php:440
+msgid "Some settings need your attention."
+msgstr ""
+
+#: templates/admin/bookings-print.php:18
+msgid "Bookings report"
+msgstr ""
+
+#: templates/admin/bookings-print.php:30
+msgid "Tip: use your browser’s Print command (Ctrl+P / Cmd+P) and choose \"Save as PDF\"."
+msgstr ""
+
+#. translators: 1: generated date/time, 2: number of bookings
+#: templates/admin/bookings-print.php:35
+#, php-format
+msgid "Generated %1$s · %2$d bookings"
+msgstr ""
+
+#: templates/admin/bookings-print.php:42
+#: src/admin/notifications/WorkflowDrawer.js:273
+#: src/admin/settings/AuditLogTab.js:125
+msgid "When"
+msgstr ""
+
+#: src/admin/api.js:21
+msgid "Something went wrong. Please try again."
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:50
+msgid "Unpaid"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:51
+#: src/front/wizard/steps/FinalSteps.js:466
+#: src/manage/ManageApp.js:68
+msgid "Paid"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:53
+msgid "Refunded"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:75
+msgid "Change"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:85
+msgid "Existing customer"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:93
+msgid "Search by name or email"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:109
+msgid "No matching customers."
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:163
+msgid "No free times for this staff member on this day."
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:253
+msgid "Booking created."
+msgstr ""
+
+#. translators: %s: status label
+#: src/admin/bookings/BookingDrawer.js:267
+#, js-format
+msgid "Marked as %s."
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:280
+msgid "Payment status updated."
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:291
+msgid "Notes saved."
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:311
+#: src/admin/screens/CalendarScreen.js:503
+msgid "Booking rescheduled."
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:324
+#: src/admin/screens/BookingsScreen.js:155
+msgid "Delete this booking?"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:325
+msgid "This removes the booking permanently. This cannot be undone."
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:326
+#: src/admin/bookings/BookingDrawer.js:592
+msgid "Delete booking"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:334
+#: src/admin/screens/BookingsScreen.js:161
+msgid "Booking deleted."
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:343
+#: src/admin/screens/BookingsScreen.js:186
+#: src/admin/screens/CalendarScreen.js:539
+#: src/admin/screens/DashboardScreen.js:108
+msgid "New booking"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:357
+#: src/front/wizard/texts.js:25
+msgid "Choose a service"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:360
+#: src/admin/bookings/BookingDrawer.js:473
+#: src/front/wizard/steps/SelectSteps.js:297
+msgid "Any available"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:364
+#: src/admin/staff/LocationsTab.js:177
+msgid "None"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:405
+msgid "Notify the customer by email"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:406
+msgid "Book outside availability (force)"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:406
+msgid "Skips the schedule and conflict checks."
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:415
+#: src/admin/bookings/BookingDrawer.js:478
+#: src/admin/catalog/CategoriesTab.js:151
+#: src/admin/catalog/ExtrasTab.js:156
+#: src/admin/catalog/ServicesTab.js:221
+#: src/admin/customers/CustomerDrawer.js:214
+#: src/admin/customers/ImportModal.js:35
+#: src/admin/notifications/WorkflowDrawer.js:339
+#: src/admin/screens/BookingsScreen.js:135
+#: src/admin/screens/BookingsScreen.js:232
+#: src/admin/screens/CalendarScreen.js:358
+#: src/admin/settings/FormFieldsTab.js:149
+#: src/admin/settings/HolidaysTab.js:118
+#: src/admin/settings/PromoCodesTab.js:171
+#: src/admin/staff/LocationCategoriesTab.js:83
+#: src/admin/staff/LocationsTab.js:231
+#: src/admin/staff/ScheduleModal.js:172
+#: src/admin/staff/StaffTab.js:162
+#: src/ui/components/Overlay.js:204
+msgid "Cancel"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:423
+msgid "Create booking"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:437
+#: src/admin/bookings/BookingDrawer.js:440
+msgid "Change status"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:452
+#: src/admin/screens/BookingsScreen.js:96
+#: src/admin/screens/CalendarScreen.js:303
+#: src/admin/screens/CustomersScreen.js:69
+#: src/admin/screens/DashboardScreen.js:57
+msgid "(no name)"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:465
+#: src/manage/ManageApp.js:394
+msgid "Reschedule"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:481
+msgid "Save new time"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:533
+msgid "Extra"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:561
+msgid "Form answers"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:574
+msgid "Admin notes"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:575
+msgid "Private notes, not shown to the customer."
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:578
+msgid "Save notes"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:586
+msgid "Open the customer manage page"
+msgstr ""
+
+#: src/admin/bookings/BookingDrawer.js:595
+#: src/front/wizard/Wizard.js:765
+#: src/ui/components/Overlay.js:110
+msgid "Close"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:71
+#: src/admin/staff/LocationCategoriesTab.js:37
+msgid "Category created."
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:74
+#: src/admin/staff/LocationCategoriesTab.js:40
+msgid "Category updated."
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:87
+#: src/admin/staff/LocationCategoriesTab.js:52
+msgid "Delete this category?"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:88
+msgid "Services keep their other categories; this only removes the relation."
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:89
+#: src/admin/catalog/CategoriesTab.js:147
+#: src/admin/catalog/ExtrasTab.js:91
+#: src/admin/catalog/ExtrasTab.js:152
+#: src/admin/catalog/ServicesTab.js:134
+#: src/admin/catalog/ServicesTab.js:217
+#: src/admin/customers/CustomerDrawer.js:77
+#: src/admin/customers/CustomerDrawer.js:210
+#: src/admin/notifications/WorkflowDrawer.js:229
+#: src/admin/notifications/WorkflowDrawer.js:335
+#: src/admin/screens/BookingsScreen.js:69
+#: src/admin/screens/BookingsScreen.js:137
+#: src/admin/screens/BookingsScreen.js:155
+#: src/admin/screens/BookingsScreen.js:235
+#: src/admin/settings/FormFieldsTab.js:76
+#: src/admin/settings/FormFieldsTab.js:145
+#: src/admin/settings/HolidaysTab.js:74
+#: src/admin/settings/HolidaysTab.js:114
+#: src/admin/settings/PromoCodesTab.js:103
+#: src/admin/settings/PromoCodesTab.js:167
+#: src/admin/staff/LocationCategoriesTab.js:52
+#: src/admin/staff/LocationCategoriesTab.js:79
+#: src/admin/staff/LocationsTab.js:144
+#: src/admin/staff/LocationsTab.js:227
+#: src/admin/staff/StaffTab.js:92
+#: src/admin/staff/StaffTab.js:158
+msgid "Delete"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:98
+#: src/admin/staff/LocationCategoriesTab.js:59
+msgid "Category deleted."
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:110
+#: src/admin/catalog/CategoriesTab.js:202
+#: src/admin/staff/LocationCategoriesTab.js:107
+msgid "New category"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:110
+msgid "Edit category"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:116
+msgid "Select a category image"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:117
+#: src/admin/catalog/ExtrasTab.js:119
+#: src/admin/catalog/ServicesTab.js:34
+#: src/admin/catalog/ServicesTab.js:162
+#: src/admin/notifications/WorkflowDrawer.js:270
+#: src/admin/staff/LocationCategoriesTab.js:73
+#: src/admin/staff/LocationsTab.js:170
+msgid "Name"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:120
+#: src/admin/catalog/ExtrasTab.js:122
+#: src/admin/catalog/ServicesTab.js:165
+msgid "Description"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:123
+#: src/admin/catalog/ExtrasTab.js:128
+#: src/admin/catalog/ServicesTab.js:185
+#: src/admin/catalog/ServicesTab.js:281
+#: src/admin/notifications/WorkflowDrawer.js:98
+#: src/admin/notifications/WorkflowDrawer.js:279
+#: src/admin/screens/NotificationsScreen.js:85
+#: src/admin/settings/PromoCodesTab.js:12
+#: src/admin/settings/PromoCodesTab.js:160
+#: src/admin/staff/LocationsTab.js:179
+#: src/admin/staff/LocationsTab.js:278
+#: src/admin/staff/StaffTab.js:134
+#: src/admin/staff/StaffTab.js:204
+msgid "Active"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:154
+#: src/admin/staff/LocationCategoriesTab.js:86
+msgid "Create category"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:154
+#: src/admin/catalog/ExtrasTab.js:159
+#: src/admin/catalog/ServicesTab.js:224
+#: src/admin/customers/CustomerDrawer.js:217
+#: src/admin/notifications/WorkflowDrawer.js:342
+#: src/admin/screens/BookingFormDesignScreen.js:400
+#: src/admin/settings/FormFieldsTab.js:152
+#: src/admin/settings/GeneralTab.js:145
+#: src/admin/settings/HolidaysTab.js:121
+#: src/admin/settings/PaymentsTab.js:151
+#: src/admin/settings/PromoCodesTab.js:174
+#: src/admin/settings/ScheduleTab.js:154
+#: src/admin/staff/LocationCategoriesTab.js:86
+#: src/admin/staff/LocationsTab.js:234
+#: src/admin/staff/StaffTab.js:165
+msgid "Save changes"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:198
+msgid "Search categories"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:209
+msgid "No categories found."
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:209
+#: src/admin/catalog/ExtrasTab.js:215
+msgid "Try a different search."
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:209
+msgid "Group your services into categories."
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:225
+#: src/admin/catalog/ExtrasTab.js:231
+#: src/admin/catalog/ServicesTab.js:281
+#: src/admin/catalog/ServicesTab.js:312
+#: src/admin/staff/LocationsTab.js:278
+#: src/admin/staff/LocationsTab.js:302
+#: src/admin/staff/StaffTab.js:204
+#: src/admin/staff/StaffTab.js:225
+msgid "Inactive"
+msgstr ""
+
+#. translators: %d: number of services
+#: src/admin/catalog/CategoriesTab.js:227
+#: src/admin/catalog/ExtrasTab.js:234
+#: src/admin/staff/StaffTab.js:229
+#, js-format
+msgid "%d services"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:231
+#: src/admin/catalog/ExtrasTab.js:239
+#: src/admin/catalog/ServicesTab.js:320
+#: src/admin/screens/BookingsScreen.js:124
+#: src/admin/screens/CustomersScreen.js:85
+#: src/admin/settings/FormFieldsTab.js:255
+#: src/admin/settings/HolidaysTab.js:206
+#: src/admin/settings/PromoCodesTab.js:233
+#: src/admin/staff/LocationCategoriesTab.js:125
+#: src/admin/staff/LocationsTab.js:310
+#: src/admin/staff/StaffTab.js:234
+msgid "Row actions"
+msgstr ""
+
+#: src/admin/catalog/CategoriesTab.js:237
+#: src/admin/catalog/ExtrasTab.js:245
+#: src/admin/catalog/ServicesTab.js:326
+#: src/admin/settings/FormFieldsTab.js:261
+#: src/admin/settings/HolidaysTab.js:214
+#: src/admin/settings/PromoCodesTab.js:240
+#: src/admin/staff/LocationCategoriesTab.js:131
+#: src/admin/staff/LocationsTab.js:316
+#: src/admin/staff/StaffTab.js:241
+#: src/front/wizard/steps/FinalSteps.js:68
+#: src/front/wizard/Summary.js:105
+msgid "Edit"
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:74
+msgid "Extra created."
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:77
+msgid "Extra updated."
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:90
+msgid "Delete this extra?"
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:100
+msgid "Extra deleted."
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:112
+#: src/admin/catalog/ExtrasTab.js:208
+msgid "New extra"
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:112
+msgid "Edit extra"
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:118
+msgid "Select an extra image"
+msgstr ""
+
+#. translators: %s: currency code
+#: src/admin/catalog/ExtrasTab.js:125
+#: src/admin/catalog/ServicesTab.js:172
+#, js-format
+msgid "Price (%s)"
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:131
+msgid "Available for"
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:131
+msgid "Which services can offer this extra."
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:159
+msgid "Create extra"
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:204
+msgid "Search extras"
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:215
+msgid "No extras found."
+msgstr ""
+
+#: src/admin/catalog/ExtrasTab.js:215
+msgid "Extras are optional add-ons customers can add to a booking."
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:33
+msgid "Custom order"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:35
+msgid "Duration"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:36
+#: src/admin/onboarding/OnboardingWizard.js:53
+msgid "Price"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:116
+msgid "Service created."
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:119
+msgid "Service updated."
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:132
+msgid "Delete this service?"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:133
+msgid "This also removes its category, staff and extra assignments."
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:143
+msgid "Service deleted."
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:155
+#: src/admin/catalog/ServicesTab.js:285
+msgid "New service"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:155
+msgid "Edit service"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:161
+msgid "Select a service image"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:169
+#: src/admin/onboarding/OnboardingWizard.js:50
+msgid "Duration (minutes)"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:175
+msgid "Buffer before (min)"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:178
+msgid "Buffer after (min)"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:181
+msgid "Capacity"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:181
+msgid "How many customers can book the same slot."
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:188
+#: src/admin/screens/LocationsScreen.js:13
+#: src/admin/screens/ServicesScreen.js:14
+#: src/front/wizard/steps/SelectSteps.js:65
+msgid "Categories"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:207
+msgid "Use the business hours"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:208
+msgid "Turn off to set custom hours just for this service."
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:224
+msgid "Create service"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:279
+#: src/front/wizard/steps/SelectSteps.js:122
+msgid "Search services"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:281
+#: src/admin/screens/CalendarScreen.js:567
+#: src/admin/screens/NotificationsScreen.js:84
+#: src/admin/settings/FormFieldsTab.js:220
+#: src/admin/staff/LocationsTab.js:278
+#: src/admin/staff/StaffTab.js:204
+msgid "All statuses"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:292
+msgid "No services found."
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:292
+#: src/admin/staff/LocationsTab.js:291
+#: src/admin/staff/StaffTab.js:214
+msgid "Try a different search or filter."
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:292
+msgid "Add your first service to start taking bookings."
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:315
+#: src/admin/context.js:20
+#: src/front/wizard/context.js:43
+msgid "min"
+msgstr ""
+
+#: src/admin/catalog/ServicesTab.js:315
+msgid "Uncategorized"
+msgstr ""
+
+#. translators: %d: number of bookings
+#: src/admin/catalog/ServicesTab.js:315
+#: src/admin/customers/CustomerDrawer.js:159
+#, js-format
+msgid "%d bookings"
+msgstr ""
+
+#: src/admin/components/MediaPicker.js:30
+#: src/admin/staff/LocationCategoriesTab.js:72
+msgid "Select an image"
+msgstr ""
+
+#: src/admin/components/MediaPicker.js:31
+msgid "Use this image"
+msgstr ""
+
+#: src/admin/components/MediaPicker.js:56
+msgid "Change image"
+msgstr ""
+
+#: src/admin/components/MediaPicker.js:56
+msgid "Choose image"
+msgstr ""
+
+#: src/admin/components/MediaPicker.js:60
+#: src/admin/notifications/WorkflowDrawer.js:104
+#: src/admin/screens/BookingFormDesignScreen.js:247
+#: src/admin/staff/ScheduleModal.js:161
+#: src/front/wizard/steps/FinalSteps.js:125
+msgid "Remove"
+msgstr ""
+
+#: src/admin/components/WeekdayHours.js:10
+#: src/admin/onboarding/OnboardingWizard.js:20
+#: src/admin/settings/ScheduleTab.js:16
+#: src/admin/staff/ScheduleModal.js:16
+msgid "Sunday"
+msgstr ""
+
+#: src/admin/components/WeekdayHours.js:11
+#: src/admin/onboarding/OnboardingWizard.js:20
+#: src/admin/settings/ScheduleTab.js:10
+#: src/admin/staff/ScheduleModal.js:10
+msgid "Monday"
+msgstr ""
+
+#: src/admin/components/WeekdayHours.js:12
+#: src/admin/onboarding/OnboardingWizard.js:20
+#: src/admin/settings/ScheduleTab.js:11
+#: src/admin/staff/ScheduleModal.js:11
+msgid "Tuesday"
+msgstr ""
+
+#: src/admin/components/WeekdayHours.js:13
+#: src/admin/onboarding/OnboardingWizard.js:20
+#: src/admin/settings/ScheduleTab.js:12
+#: src/admin/staff/ScheduleModal.js:12
+msgid "Wednesday"
+msgstr ""
+
+#: src/admin/components/WeekdayHours.js:14
+#: src/admin/onboarding/OnboardingWizard.js:20
+#: src/admin/settings/ScheduleTab.js:13
+#: src/admin/staff/ScheduleModal.js:13
+msgid "Thursday"
+msgstr ""
+
+#: src/admin/components/WeekdayHours.js:15
+#: src/admin/onboarding/OnboardingWizard.js:20
+#: src/admin/settings/ScheduleTab.js:14
+#: src/admin/staff/ScheduleModal.js:14
+msgid "Friday"
+msgstr ""
+
+#: src/admin/components/WeekdayHours.js:16
+#: src/admin/onboarding/OnboardingWizard.js:20
+#: src/admin/settings/ScheduleTab.js:15
+#: src/admin/staff/ScheduleModal.js:15
+msgid "Saturday"
+msgstr ""
+
+#: src/admin/context.js:20
+#: src/front/wizard/context.js:42
+msgid "h"
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:58
+msgid "Customer created."
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:62
+msgid "Customer updated."
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:75
+msgid "Delete this customer?"
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:76
+msgid "Their booking history is kept, but the customer record is removed."
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:86
+msgid "Customer deleted."
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:97
+msgid "Erase personal data?"
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:98
+msgid "This anonymises the customer’s name, email and phone and removes their custom answers. Their bookings stay, but are no longer linked to identifying details. This cannot be undone."
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:99
+msgid "Erase data"
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:108
+msgid "Customer data erased."
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:121
+msgid "Edit customer"
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:154
+#: src/admin/settings/FormFieldsTab.js:21
+msgid "Summary"
+msgstr ""
+
+#. translators: %s: money amount
+#: src/admin/customers/CustomerDrawer.js:165
+#, js-format
+msgid "%s total spent"
+msgstr ""
+
+#. translators: %s: date
+#: src/admin/customers/CustomerDrawer.js:172
+#, js-format
+msgid "Last booking %s"
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:181
+msgid "Booking history"
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:199
+msgid "Privacy"
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:201
+msgid "Erase personal data (GDPR)"
+msgstr ""
+
+#: src/admin/customers/CustomerDrawer.js:217
+msgid "Create customer"
+msgstr ""
+
+#: src/admin/customers/ImportModal.js:16
+msgid "Import customers"
+msgstr ""
+
+#: src/admin/customers/ImportModal.js:21
+msgid "CSV up to 5 MB, with headers first_name, last_name, email, phone (or a single name column). Existing customers are matched and updated by email."
+msgstr ""
+
+#: src/admin/customers/ImportModal.js:22
+msgid "CSV file"
+msgstr ""
+
+#: src/admin/customers/ImportModal.js:38
+msgid "Import"
+msgstr ""
+
+#: src/admin/layout/Shell.js:111
+msgid "Collapse"
+msgstr ""
+
+#: src/admin/layout/Shell.js:116
+msgid "Open menu"
+msgstr ""
+
+#: src/admin/layout/Shell.js:137
+#: src/admin/layout/Shell.js:139
+msgid "Theme"
+msgstr ""
+
+#: src/admin/layout/Shell.js:141
+msgid "Light"
+msgstr ""
+
+#: src/admin/layout/Shell.js:142
+msgid "Dark"
+msgstr ""
+
+#: src/admin/layout/Shell.js:143
+msgid "Match system"
+msgstr ""
+
+#: src/admin/layout/Shell.js:147
+msgid "Account"
+msgstr ""
+
+#: src/admin/layout/Shell.js:155
+msgid "WordPress dashboard"
+msgstr ""
+
+#: src/admin/layout/Shell.js:156
+msgid "View site"
+msgstr ""
+
+#: src/admin/notifications/TemplatesModal.js:14
+msgid "Notification added."
+msgstr ""
+
+#: src/admin/notifications/TemplatesModal.js:22
+msgid "Add from a template"
+msgstr ""
+
+#: src/admin/notifications/TemplatesModal.js:30
+msgid "To customer"
+msgstr ""
+
+#: src/admin/notifications/TemplatesModal.js:30
+msgid "To team"
+msgstr ""
+
+#: src/admin/notifications/TemplatesModal.js:36
+msgid "Already added"
+msgstr ""
+
+#: src/admin/notifications/TemplatesModal.js:36
+msgid "Add"
+msgstr ""
+
+#: src/admin/notifications/VariablesList.js:28
+msgid "Click a token to add it to the subject or message (wherever you last clicked)."
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:12
+msgid "is"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:13
+msgid "is not"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:14
+msgid "is one of"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:15
+msgid "is not one of"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:45
+#: src/front/wizard/steps/DetailsStep.js:47
+msgid "Choose…"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:51
+msgid "Value(s), comma separated"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:55
+msgid "Remove condition"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:98
+#: src/admin/screens/NotificationsScreen.js:85
+#: src/admin/screens/NotificationsScreen.js:114
+#: src/admin/settings/FormFieldsTab.js:220
+#: src/admin/settings/FormFieldsTab.js:246
+#: src/admin/settings/HolidaysTab.js:198
+#: src/admin/settings/PromoCodesTab.js:15
+#: src/admin/settings/ToolsTab.js:166
+msgid "Disabled"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:101
+#: src/admin/screens/CalendarScreen.js:387
+#: src/admin/settings/FormFieldsTab.js:135
+#: src/admin/settings/FormFieldsTab.js:220
+#: src/admin/settings/HolidaysTab.js:109
+#: src/admin/settings/ToolsTab.js:166
+msgid "Enabled"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:108
+msgid "Send to"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:108
+msgid "e.g. {{customer_email}} or a fixed address."
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:111
+msgid "Subject"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:114
+msgid "Message (HTML)"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:123
+#: src/admin/settings/GeneralTab.js:104
+msgid "From name"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:126
+#: src/admin/settings/GeneralTab.js:107
+msgid "From email"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:129
+msgid "Reply-to"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:133
+msgid "Attach a calendar (.ics) file"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:137
+#: src/admin/settings/FormFieldsTab.js:138
+msgid "Preview"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:139
+msgid "Test recipient"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:141
+msgid "Send test"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:147
+msgid "Email preview"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:214
+msgid "Notification created."
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:217
+msgid "Notification updated."
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:229
+msgid "Delete this notification?"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:236
+msgid "Notification deleted."
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:250
+#: src/admin/screens/NotificationsScreen.js:73
+msgid "New notification"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:250
+msgid "Edit notification"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:260
+#: src/admin/screens/BookingFormDesignScreen.js:423
+#: src/admin/screens/LocationsScreen.js:24
+#: src/admin/screens/ServicesScreen.js:26
+#: src/admin/screens/SettingsScreen.js:37
+msgid "Section"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:262
+msgid "Setup"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:263
+msgid "Emails"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:264
+msgid "Smart variables"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:274
+msgid "Choose an event"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:276
+msgid "Delay (minutes)"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:276
+msgid "Negative sends before the appointment, positive sends after. 0 sends immediately."
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:281
+msgid "Only send when"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:281
+msgid "Leave empty to always send."
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:299
+msgid "Add condition"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:325
+msgid "Add another email"
+msgstr ""
+
+#: src/admin/notifications/WorkflowDrawer.js:342
+msgid "Create notification"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:12
+msgid "Your business"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:13
+msgid "First service"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:14
+#: src/admin/staff/ScheduleModal.js:99
+#: src/admin/staff/StaffTab.js:242
+msgid "Working hours"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:15
+#: src/front/wizard/texts.js:83
+msgid "Done"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:37
+#: src/admin/staff/LocationsTab.js:173
+msgid "Address"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:47
+msgid "Service name"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:48
+msgid "e.g. Consultation"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:77
+msgid "Slot length (minutes)"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:94
+msgid "to"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:98
+#: src/admin/settings/ScheduleTab.js:31
+msgid "Closed"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:171
+msgid "Set up BookPoint"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:183
+msgid "You’re all set!"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:184
+msgid "Add the booking form to any page with the “Booking form” block, or the [pointlybooking_booking_form] shortcode."
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:190
+msgid "Skip for now"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:197
+msgid "Setup complete."
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:200
+msgid "Go to dashboard"
+msgstr ""
+
+#: src/admin/onboarding/OnboardingWizard.js:200
+#: src/front/wizard/texts.js:111
+msgid "Continue"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:30
+#: src/admin/staff/LocationsTab.js:176
+#: src/front/wizard/texts.js:22
+msgid "Category"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:34
+#: src/admin/screens/BookingsScreen.js:106
+#: src/front/wizard/texts.js:54
+msgid "Date & time"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:35
+#: src/front/wizard/steps/FinalSteps.js:256
+#: src/front/wizard/texts.js:57
+msgid "Your details"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:37
+#: src/front/wizard/texts.js:75
+msgid "Review"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:38
+msgid "Confirmation"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:56
+msgid "Steps"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:57
+msgid "Appearance"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:58
+msgid "Texts"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:59
+msgid "Fields layout"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:60
+msgid "Behavior"
+msgstr ""
+
+#. translators: %s: step name
+#: src/admin/screens/BookingFormDesignScreen.js:98
+#, js-format
+msgid "Enable %s step"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:113
+msgid "This step is required and always shown."
+msgstr ""
+
+#. translators: %s: step name
+#: src/admin/screens/BookingFormDesignScreen.js:118
+#, js-format
+msgid "Select an image for %s"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:123
+#: src/admin/screens/CalendarScreen.js:367
+#: src/admin/settings/HolidaysTab.js:94
+msgid "Title"
+msgstr ""
+
+#. translators: %s: default label
+#: src/admin/screens/BookingFormDesignScreen.js:123
+#, js-format
+msgid "Default: %s"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:126
+msgid "Subtitle"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:129
+msgid "Back button label"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:132
+msgid "Next button label"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:136
+msgid "Accent color override"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:139
+msgid "Use the brand color"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:142
+#: src/admin/settings/ScheduleTab.js:133
+msgid "Clear"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:147
+msgid "Show the left illustration panel"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:148
+msgid "Show the help box"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:158
+msgid "Primary color"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:164
+msgid "Border style"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:169
+msgid "Rounded"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:170
+msgid "Flat"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:171
+msgid "Square"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:172
+msgid "Pill"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:176
+msgid "Font"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:181
+msgid "System font"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:182
+msgid "Match my theme"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:186
+msgid "Dark mode by default"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:196
+msgid "Help box title"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:199
+msgid "Help box phone"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:202
+msgid "Global back label"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:205
+msgid "Global next label"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:208
+msgid "Success title"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:212
+msgid "Success message"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:240
+msgid "Half width"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:240
+msgid "Full width"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:243
+#: src/admin/settings/FormFieldsTab.js:134
+#: src/admin/settings/FormFieldsTab.js:247
+msgid "Required"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:259
+msgid "Add a field…"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:270
+msgid "Customer fields"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:271
+msgid "Booking fields"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:280
+msgid "Show the live summary sidebar"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:281
+msgid "Auto-select the first available date"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:282
+msgid "Show the visitor’s timezone"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:283
+msgid "Confirm before closing an in-progress booking"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:284
+msgid "Show the promo code field"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:285
+msgid "Show a search box once there are at least this many services"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:354
+msgid "Booking form design saved."
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:363
+msgid "Reset to the default design?"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:363
+msgid "This replaces every customization on this page."
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:363
+msgid "Reset"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:372
+msgid "Design reset to defaults."
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:393
+msgid "Customize the steps, look and text of the public booking wizard."
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:397
+msgid "Reset to defaults"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:408
+msgid "You have unsaved changes from a previous session."
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:410
+#: src/admin/settings/FormFieldsTab.js:194
+msgid "Restore"
+msgstr ""
+
+#: src/admin/screens/BookingFormDesignScreen.js:413
+msgid "Discard"
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:18
+#: src/front/wizard/steps/SelectSteps.js:140
+msgid "All"
+msgstr ""
+
+#. translators: %d: number of bookings
+#: src/admin/screens/BookingsScreen.js:67
+#, js-format
+msgid "Delete %d bookings?"
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:68
+msgid "This cannot be undone."
+msgstr ""
+
+#. translators: %d: number updated
+#: src/admin/screens/BookingsScreen.js:78
+#, js-format
+msgid "Updated %d bookings."
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:131
+#: src/admin/screens/CustomersScreen.js:91
+msgid "View / edit"
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:133
+msgid "Mark confirmed"
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:134
+msgid "Mark completed"
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:147
+msgid "Booking updated."
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:183
+msgid "Every appointment booked through BookPoint."
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:202
+msgid "Search bookings"
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:205
+#: src/admin/settings/AuditLogTab.js:85
+msgid "From date"
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:206
+#: src/admin/settings/AuditLogTab.js:86
+msgid "To date"
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:209
+msgid "Clear dates"
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:229
+#: src/ui/components/Overlay.js:216
+msgid "Confirm"
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:241
+msgid "No bookings match your filters."
+msgstr ""
+
+#: src/admin/screens/BookingsScreen.js:241
+msgid "No bookings yet."
+msgstr ""
+
+#. translators: %d: total bookings
+#: src/admin/screens/BookingsScreen.js:257
+#, js-format
+msgid "%d booking total"
+msgid_plural "%d bookings total"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/admin/screens/CalendarScreen.js:34
+msgid "Month"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:35
+msgid "Week"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:36
+msgid "Day"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:37
+msgid "List"
+msgstr ""
+
+#. translators: %s: date
+#: src/admin/screens/CalendarScreen.js:157
+#, js-format
+msgid "Add a booking on %s"
+msgstr ""
+
+#. translators: %d: number of additional bookings
+#: src/admin/screens/CalendarScreen.js:181
+#, js-format
+msgid "+%d more"
+msgid_plural "+%d more"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/admin/screens/CalendarScreen.js:290
+msgid "No bookings in this period."
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:338
+#: src/admin/settings/HolidaysTab.js:59
+msgid "Holiday added."
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:353
+msgid "Add a holiday"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:361
+#: src/admin/screens/CalendarScreen.js:536
+#: src/admin/settings/HolidaysTab.js:121
+msgid "Add holiday"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:368
+msgid "e.g. Christmas"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:371
+#: src/admin/settings/HolidaysTab.js:98
+msgid "Start date"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:374
+#: src/admin/settings/HolidaysTab.js:101
+msgid "End date"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:378
+#: src/admin/settings/HolidaysTab.js:105
+msgid "Applies to"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:382
+#: src/admin/settings/HolidaysTab.js:106
+#: src/admin/settings/HolidaysTab.js:201
+msgid "Whole business"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:386
+#: src/admin/settings/HolidaysTab.js:108
+msgid "Repeat every year"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:532
+msgid "Drag a booking to reschedule it, or click one to see details."
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:548
+#: src/admin/screens/DashboardScreen.js:162
+#: src/ui/components/Calendar.js:306
+msgid "Today"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:550
+msgid "Previous"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:551
+msgid "Next"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:561
+msgid "All staff"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:571
+#: src/admin/settings/AuditLogTab.js:76
+msgid "Search"
+msgstr ""
+
+#: src/admin/screens/CalendarScreen.js:577
+msgid "View"
+msgstr ""
+
+#. translators: 1: created, 2: updated, 3: skipped
+#: src/admin/screens/CustomersScreen.js:45
+#, js-format
+msgid "Import finished: %1$d created, %2$d updated, %3$d skipped."
+msgstr ""
+
+#: src/admin/screens/CustomersScreen.js:52
+msgid "The CSV file could not be imported."
+msgstr ""
+
+#: src/admin/screens/CustomersScreen.js:77
+msgid "Total spent"
+msgstr ""
+
+#: src/admin/screens/CustomersScreen.js:78
+msgid "Last booking"
+msgstr ""
+
+#: src/admin/screens/CustomersScreen.js:110
+msgid "Everyone who has booked with you."
+msgstr ""
+
+#: src/admin/screens/CustomersScreen.js:114
+#: src/admin/settings/AuditLogTab.js:89
+msgid "Export CSV"
+msgstr ""
+
+#: src/admin/screens/CustomersScreen.js:117
+msgid "Import CSV"
+msgstr ""
+
+#: src/admin/screens/CustomersScreen.js:128
+msgid "Search customers"
+msgstr ""
+
+#: src/admin/screens/CustomersScreen.js:134
+msgid "Newest first"
+msgstr ""
+
+#: src/admin/screens/CustomersScreen.js:135
+msgid "Oldest first"
+msgstr ""
+
+#: src/admin/screens/CustomersScreen.js:146
+msgid "No customers match your search."
+msgstr ""
+
+#: src/admin/screens/CustomersScreen.js:146
+msgid "No customers yet."
+msgstr ""
+
+#. translators: %d: total customers
+#: src/admin/screens/CustomersScreen.js:153
+#, js-format
+msgid "%d customers total"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:16
+msgid "7 days"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:17
+msgid "30 days"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:18
+msgid "90 days"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:19
+msgid "Year to date"
+msgstr ""
+
+#. translators: %s: business name
+#: src/admin/screens/DashboardScreen.js:98
+#, js-format
+msgid "Welcome back%s"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:101
+msgid "Here is what is happening with your bookings."
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:105
+#: src/admin/screens/SettingsScreen.js:24
+#: src/blocks/booking-form/edit.js:243
+msgid "Form fields"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:120
+msgid "Finish setting up BookPoint"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:121
+msgid "Add your business details, first service and working hours — it takes about two minutes."
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:125
+#: src/ui/components/Feedback.js:197
+#: src/ui/components/Toast.js:95
+msgid "Dismiss"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:128
+msgid "Continue setup"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:136
+msgid "Add service"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:137
+msgid "Add staff"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:138
+msgid "Manage bookings"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:139
+msgid "Open calendar"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:140
+msgid "Edit form fields"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:163
+msgid "Next 7 days"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:165
+#: src/admin/screens/DashboardScreen.js:182
+msgid "Revenue"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:166
+msgid "New customers"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:172
+msgid "Bookings over time"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:179
+msgid "Metric"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:185
+msgid "Range"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:193
+msgid "Bookings by day"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:197
+msgid "Top services"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:210
+msgid "This month"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:221
+msgid "Bookings this month"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:225
+#: src/manage/PortalApp.js:222
+msgid "Upcoming"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:225
+msgid "View all"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:233
+msgid "Nothing coming up"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:237
+msgid "Recent activity"
+msgstr ""
+
+#: src/admin/screens/DashboardScreen.js:245
+msgid "No bookings yet"
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:13
+msgid "Set up your business"
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:14
+msgid "Add your business name, currency and contact details in Settings → General."
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:20
+msgid "Add your services"
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:21
+msgid "Create the services customers can book, with a price, duration and description."
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:26
+msgid "Add your staff"
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:27
+msgid "Add the people who perform each service, and their working hours."
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:32
+msgid "Set your hours"
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:33
+msgid "Set business hours, breaks and holidays in Settings → Schedule."
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:39
+msgid "Design your booking form"
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:40
+msgid "Choose your brand colour, which steps to show, and the wording customers see."
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:45
+msgid "Add the booking form to your site"
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:46
+msgid "Use the shortcode [pointlybooking_booking_form], the Booking form block, or embed it inline."
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:50
+msgid "Turn on payments (optional)"
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:51
+msgid "Accept cards with Stripe, PayPal, or connect to WooCommerce, in Settings → Payments."
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:57
+msgid "Check your notifications"
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:58
+msgid "BookPoint emails customers automatically. Review or customise the wording in Notifications."
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:67
+msgid "A quick tour of BookPoint, and where to find everything."
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:79
+msgid "Go there"
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:85
+msgid "Good to know"
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:87
+msgid "Every screen with a list supports search, filters and bulk actions where useful."
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:88
+msgid "Deleting a service, staff member or location never deletes past bookings."
+msgstr ""
+
+#: src/admin/screens/HelpScreen.js:89
+msgid "Use Settings → Tools to check your setup, resend a test email, or export your data."
+msgstr ""
+
+#: src/admin/screens/LocationsScreen.js:22
+msgid "Where you take bookings, and who works where."
+msgstr ""
+
+#: src/admin/screens/NotificationsScreen.js:66
+msgid "Automatic emails sent to customers and your team."
+msgstr ""
+
+#: src/admin/screens/NotificationsScreen.js:70
+#: src/admin/screens/NotificationsScreen.js:98
+msgid "Add from template"
+msgstr ""
+
+#: src/admin/screens/NotificationsScreen.js:80
+#: src/admin/settings/AuditLogTab.js:78
+msgid "All events"
+msgstr ""
+
+#: src/admin/screens/NotificationsScreen.js:94
+msgid "No notifications yet."
+msgstr ""
+
+#: src/admin/screens/NotificationsScreen.js:95
+msgid "Add one from a template, or build your own."
+msgstr ""
+
+#: src/admin/screens/NotificationsScreen.js:115
+msgid "Conditional"
+msgstr ""
+
+#. translators: %d: number of email actions
+#: src/admin/screens/NotificationsScreen.js:118
+#, js-format
+msgid "%d email(s)"
+msgstr ""
+
+#. translators: %s: date
+#: src/admin/screens/NotificationsScreen.js:119
+#, js-format
+msgid "Last sent %s"
+msgstr ""
+
+#: src/admin/screens/ServicesScreen.js:24
+msgid "What you offer: services, categories and optional extras."
+msgstr ""
+
+#: src/admin/screens/SettingsScreen.js:19
+msgid "General"
+msgstr ""
+
+#: src/admin/screens/SettingsScreen.js:20
+msgid "Payments"
+msgstr ""
+
+#: src/admin/screens/SettingsScreen.js:21
+msgid "Schedule"
+msgstr ""
+
+#: src/admin/screens/SettingsScreen.js:22
+msgid "Holidays"
+msgstr ""
+
+#: src/admin/screens/SettingsScreen.js:23
+msgid "Promo codes"
+msgstr ""
+
+#: src/admin/screens/SettingsScreen.js:25
+msgid "Activity log"
+msgstr ""
+
+#: src/admin/screens/SettingsScreen.js:26
+msgid "Tools"
+msgstr ""
+
+#: src/admin/screens/SettingsScreen.js:35
+msgid "Business details, payments, schedule and system tools."
+msgstr ""
+
+#: src/admin/screens/StaffScreen.js:11
+msgid "Your team, the services they perform, and their working hours."
+msgstr ""
+
+#: src/admin/settings/AuditLogTab.js:52
+msgid "Clear the entire activity log?"
+msgstr ""
+
+#: src/admin/settings/AuditLogTab.js:52
+msgid "This permanently deletes every logged event."
+msgstr ""
+
+#: src/admin/settings/AuditLogTab.js:52
+#: src/admin/settings/AuditLogTab.js:92
+msgid "Clear log"
+msgstr ""
+
+#: src/admin/settings/AuditLogTab.js:59
+msgid "Activity log cleared."
+msgstr ""
+
+#: src/admin/settings/AuditLogTab.js:82
+msgid "All actors"
+msgstr ""
+
+#: src/admin/settings/AuditLogTab.js:97
+msgid "No activity recorded."
+msgstr ""
+
+#. translators: %d: total events
+#: src/admin/settings/AuditLogTab.js:115
+#, js-format
+msgid "%d events total"
+msgstr ""
+
+#: src/admin/settings/AuditLogTab.js:131
+msgid "Actor"
+msgstr ""
+
+#: src/admin/settings/AuditLogTab.js:160
+#: src/admin/settings/FormFieldsTab.js:19
+#: src/front/wizard/Summary.js:194
+#: src/front/wizard/texts.js:62
+msgid "Details"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:14
+msgid "Other"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:61
+msgid "Field created."
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:64
+msgid "Field updated."
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:76
+msgid "Delete this field?"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:83
+msgid "Field deleted."
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:96
+#: src/admin/settings/FormFieldsTab.js:226
+msgid "New field"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:96
+msgid "Edit field"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:102
+msgid "This is a built-in field. Its key and type are fixed."
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:103
+#: src/admin/settings/FormFieldsTab.js:123
+msgid "Label"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:107
+#: src/admin/settings/PromoCodesTab.js:137
+msgid "Type"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:110
+msgid "Step"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:113
+msgid "Placeholder"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:119
+msgid "Options"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:124
+msgid "Remove option"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:128
+msgid "Add option"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:136
+msgid "Show in the booking wizard"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:152
+msgid "Create field"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:194
+msgid "Restore the default fields?"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:194
+msgid "Adds back any missing built-in fields. Existing fields are not changed."
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:200
+msgid "Default fields restored."
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:200
+msgid "Nothing to restore — all default fields are present."
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:214
+msgid "Scope"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:218
+msgid "Search fields"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:223
+msgid "Restore defaults"
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:231
+msgid "No fields found."
+msgstr ""
+
+#: src/admin/settings/FormFieldsTab.js:245
+msgid "Built-in"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:29
+msgid "Settings saved."
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:67
+msgid "Symbol position"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:71
+msgid "Before the amount ($10)"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:71
+msgid "After the amount (10€)"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:76
+msgid "Booking rules"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:78
+msgid "How far ahead customers can book (days)"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:81
+msgid "Default booking status"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:93
+msgid "Unpaid booking timeout (minutes)"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:93
+msgid "How long a pending-payment booking holds its slot."
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:99
+msgid "Send booking emails"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:101
+msgid "Admin notification email"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:112
+msgid "Webhooks"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:113
+msgid "Enable webhooks"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:116
+#: src/admin/settings/PaymentsTab.js:134
+msgid "Secret"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:116
+msgid "Used to sign the X-BP-Signature header."
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:119
+msgid "Booking created URL"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:122
+msgid "Status changed URL"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:125
+msgid "Booking updated URL"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:128
+msgid "Booking cancelled URL"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:134
+msgid "Uninstall"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:136
+msgid "Delete all plugin data when uninstalled"
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:137
+msgid "Removes every table and setting. There is no undo."
+msgstr ""
+
+#: src/admin/settings/GeneralTab.js:141
+msgid "This cannot be undone once the plugin is deleted."
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:11
+msgid "New Year"
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:12
+#: src/admin/settings/HolidaysTab.js:14
+msgid "Christmas"
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:13
+msgid "Boxing Day"
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:14
+msgid "Christmas (2 days)"
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:15
+msgid "Independence Day"
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:62
+msgid "Holiday updated."
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:74
+msgid "Delete this holiday?"
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:81
+msgid "Holiday deleted."
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:91
+#: src/admin/settings/HolidaysTab.js:179
+msgid "New holiday"
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:91
+msgid "Edit holiday"
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:159
+msgid "Quick templates:"
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:169
+msgid "Whole business + all staff"
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:185
+msgid "No holidays for this year."
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:197
+msgid "Yearly"
+msgstr ""
+
+#: src/admin/settings/HolidaysTab.js:201
+msgid "One staff member"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:10
+#: src/front/wizard/steps/SelectSteps.js:208
+#: src/front/wizard/steps/SelectSteps.js:264
+#: src/front/wizard/Summary.js:137
+#: src/front/wizard/Summary.js:190
+msgid "Free"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:11
+msgid "Cash / pay at location"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:12
+#: src/admin/settings/PaymentsTab.js:79
+msgid "WooCommerce"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:13
+#: src/admin/settings/PaymentsTab.js:90
+msgid "Stripe"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:41
+msgid "Payment settings saved."
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:58
+msgid "Accept payments"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:62
+msgid "Enabled methods"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:70
+msgid "Default method"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:74
+msgid "Require payment before a booking is confirmed"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:80
+msgid "Not installed"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:82
+msgid "Product ID"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:82
+msgid "The WooCommerce product used to represent a booking in the cart."
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:92
+#: src/admin/settings/PaymentsTab.js:128
+msgid "Mode"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:93
+msgid "Test"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:93
+#: src/admin/settings/PaymentsTab.js:129
+msgid "Live"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:95
+msgid "Checkout flow"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:96
+msgid "Checkout Session (redirect)"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:96
+msgid "Elements (inline)"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:98
+msgid "Test secret key"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:101
+msgid "Test publishable key"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:104
+msgid "Live secret key"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:107
+msgid "Live publishable key"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:110
+msgid "Webhook secret"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:113
+msgid "Success URL"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:116
+#: src/admin/settings/PaymentsTab.js:140
+msgid "Cancel URL"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:120
+msgid "Webhook URL:"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:129
+msgid "Sandbox"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:131
+msgid "Client ID"
+msgstr ""
+
+#: src/admin/settings/PaymentsTab.js:137
+msgid "Return URL"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:13
+msgid "Scheduled"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:14
+msgid "Expired"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:37
+msgid "Test this code"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:37
+msgid "Not saved — just a preview."
+msgstr ""
+
+#. translators: 1: discount amount, 2: resulting total
+#: src/admin/settings/PromoCodesTab.js:41
+#, js-format
+msgid "−%1$s → %2$s"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:88
+msgid "Promo code created."
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:91
+msgid "Promo code updated."
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:103
+msgid "Delete this promo code?"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:110
+msgid "Promo code deleted."
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:122
+#: src/admin/settings/PromoCodesTab.js:208
+msgid "New promo code"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:122
+msgid "Edit promo code"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:128
+msgid "Code"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:132
+msgid "Generate"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:141
+msgid "Percent off"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:141
+msgid "Fixed amount off"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:144
+msgid "Amount"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:147
+msgid "Starts"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:150
+msgid "Ends"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:153
+msgid "Max uses"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:153
+msgid "Leave empty for unlimited."
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:156
+msgid "Minimum order total"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:174
+msgid "Create code"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:192
+msgid "Promo code duplicated."
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:213
+msgid "No promo codes yet."
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:228
+msgid "off"
+msgstr ""
+
+#. translators: %d: number of uses
+#: src/admin/settings/PromoCodesTab.js:228
+#, js-format
+msgid "%d uses"
+msgstr ""
+
+#: src/admin/settings/PromoCodesTab.js:241
+msgid "Duplicate"
+msgstr ""
+
+#: src/admin/settings/ScheduleTab.js:38
+msgid "Remove interval"
+msgstr ""
+
+#: src/admin/settings/ScheduleTab.js:42
+#: src/admin/staff/ScheduleModal.js:138
+msgid "break"
+msgstr ""
+
+#: src/admin/settings/ScheduleTab.js:46
+msgid "Remove break"
+msgstr ""
+
+#: src/admin/settings/ScheduleTab.js:50
+msgid "Add break"
+msgstr ""
+
+#: src/admin/settings/ScheduleTab.js:55
+msgid "Add hours"
+msgstr ""
+
+#: src/admin/settings/ScheduleTab.js:103
+msgid "Schedule saved."
+msgstr ""
+
+#: src/admin/settings/ScheduleTab.js:121
+msgid "Showing hours migrated from the legacy settings. Save to switch to the new schedule."
+msgstr ""
+
+#: src/admin/settings/ScheduleTab.js:124
+msgid "Mon–Fri 9–5"
+msgstr ""
+
+#: src/admin/settings/ScheduleTab.js:127
+msgid "Mon–Fri 8–4"
+msgstr ""
+
+#: src/admin/settings/ScheduleTab.js:130
+msgid "Every day 9–5"
+msgstr ""
+
+#: src/admin/settings/ScheduleTab.js:144
+msgid "Slot interval (minutes)"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:74
+#: src/admin/settings/ToolsTab.js:212
+msgid "Send test email"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:78
+#: src/admin/settings/ToolsTab.js:219
+msgid "Fire test webhook"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:87
+msgid "Download report"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:100
+#: src/admin/settings/ToolsTab.js:244
+msgid "Export settings"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:120
+#: src/admin/settings/ToolsTab.js:123
+#: src/admin/settings/ToolsTab.js:247
+msgid "Import settings"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:122
+msgid "That file could not be imported."
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:144
+msgid "System status"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:147
+msgid "Plugin version"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:151
+msgid "Database"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:155
+#: src/admin/settings/ToolsTab.js:261
+msgid "OK"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:155
+msgid "Missing tables"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:160
+msgid "WordPress / PHP"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:170
+msgid "Services / Staff"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:174
+msgid "Bookings / Customers"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:181
+msgid "Maintenance"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:184
+#: src/admin/settings/ToolsTab.js:186
+msgid "Sync relations"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:185
+msgid "Rebuilds legacy columns from the relation tables."
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:187
+#: src/admin/settings/ToolsTab.js:194
+#: src/admin/settings/ToolsTab.js:201
+#: src/admin/settings/ToolsTab.js:208
+msgid "Run"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:191
+#: src/admin/settings/ToolsTab.js:193
+msgid "Generate demo data"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:192
+msgid "Adds sample services, staff, customers and bookings."
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:198
+#: src/admin/settings/ToolsTab.js:200
+msgid "Reset cache"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:199
+msgid "Clears cached catalog, availability and settings data."
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:205
+#: src/admin/settings/ToolsTab.js:207
+msgid "Run migrations"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:206
+msgid "Checks and updates the database schema."
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:213
+msgid "Recipient"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:215
+msgid "Send"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:231
+msgid "Fire"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:238
+msgid "Reports & settings"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:241
+msgid "Download system report"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:255
+msgid "Recent runs (this browser)"
+msgstr ""
+
+#: src/admin/settings/ToolsTab.js:261
+msgid "Failed"
+msgstr ""
+
+#: src/admin/staff/LocationCategoriesTab.js:69
+msgid "New location category"
+msgstr ""
+
+#: src/admin/staff/LocationCategoriesTab.js:69
+msgid "Edit location category"
+msgstr ""
+
+#: src/admin/staff/LocationCategoriesTab.js:113
+msgid "No location categories yet."
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:129
+msgid "Location created."
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:132
+msgid "Location updated."
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:144
+msgid "Delete this location?"
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:151
+msgid "Location deleted."
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:163
+#: src/admin/staff/LocationsTab.js:284
+msgid "New location"
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:163
+msgid "Edit location"
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:169
+msgid "Select a location image"
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:182
+msgid "Staff at this location"
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:182
+msgid "Leave a staff member’s services unchecked to allow all of their services here."
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:193
+msgid "Hide services"
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:193
+msgid "Limit services"
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:217
+msgid "Use custom hours"
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:218
+msgid "Turn off to follow the business hours."
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:234
+msgid "Create location"
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:276
+msgid "Search locations"
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:280
+#: src/blocks/booking-form/edit.js:169
+msgid "All categories"
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:291
+msgid "No locations found."
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:291
+msgid "Add a location if you book across multiple places."
+msgstr ""
+
+#: src/admin/staff/LocationsTab.js:305
+msgid "No address"
+msgstr ""
+
+#. translators: %d: number of staff
+#: src/admin/staff/LocationsTab.js:305
+#, js-format
+msgid "%d staff"
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:72
+msgid "Business hours copied."
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:89
+msgid "Working hours saved."
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:108
+msgid "Hours mode"
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:110
+msgid "Business hours"
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:111
+#: src/admin/staff/StaffTab.js:226
+msgid "Custom hours"
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:115
+msgid "This staff member follows the shared business hours set in Settings → Schedule."
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:121
+msgid "Copy business hours"
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:152
+msgid "Time off"
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:152
+msgid "Specific dates this staff member is unavailable."
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:160
+msgid "Note (optional)"
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:165
+msgid "Add time off"
+msgstr ""
+
+#: src/admin/staff/ScheduleModal.js:175
+msgid "Save hours"
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:74
+msgid "Staff member added."
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:77
+msgid "Staff member updated."
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:90
+msgid "Delete this staff member?"
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:91
+msgid "This also removes their service assignments."
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:101
+msgid "Staff member deleted."
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:113
+#: src/admin/staff/StaffTab.js:207
+msgid "New staff member"
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:113
+msgid "Edit staff member"
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:119
+msgid "Select a photo"
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:134
+msgid "Inactive staff are hidden from the booking wizard."
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:137
+msgid "Services they perform"
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:165
+msgid "Add staff member"
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:202
+msgid "Search staff"
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:214
+msgid "No staff found."
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:214
+msgid "Add your first staff member."
+msgstr ""
+
+#: src/admin/staff/StaffTab.js:229
+msgid "No email"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:79
+msgid "Display"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:81
+msgid "How the form appears"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:89
+msgid "Button that opens the booking window"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:96
+msgid "Form embedded in the page"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:109
+msgid "Button text"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:119
+msgid "Compact layout"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:128
+msgid "Preselect"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:134
+msgid "Could not load services."
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:147
+#: src/blocks/booking-form/edit.js:191
+#: src/blocks/booking-form/edit.js:213
+msgid "Let the customer choose"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:162
+msgid "Only this category"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:230
+msgid "Open on date"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:231
+msgid "Optional. The calendar opens on this date."
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:247
+msgid "Hide the notes field"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:258
+msgid "Require a phone number"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:278
+msgid "Embedded in the page"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:282
+msgid "Opens in a window"
+msgstr ""
+
+#: src/blocks/booking-form/edit.js:301
+msgid "Service:"
+msgstr ""
+
+#: src/blocks/booking-form/index.js:48
+msgid "Let visitors book an appointment: a button that opens the booking window, or the form embedded in the page."
+msgstr ""
+
+#: src/front/BookingWidget.js:70
+msgid "Leave this booking?"
+msgstr ""
+
+#: src/front/BookingWidget.js:71
+msgid "Your choices will not be saved."
+msgstr ""
+
+#: src/front/BookingWidget.js:75
+msgid "Leave"
+msgstr ""
+
+#: src/front/BookingWidget.js:76
+#: src/manage/ManageApp.js:285
+msgid "Keep booking"
+msgstr ""
+
+#: src/front/BookingWidget.js:95
+msgid "Book an appointment"
+msgstr ""
+
+#: src/front/wizard/api.js:17
+#: src/manage/api.js:15
+msgid "We could not reach the booking service. Please check your connection and try again."
+msgstr ""
+
+#: src/front/wizard/flow.js:360
+msgid "This field is required."
+msgstr ""
+
+#: src/front/wizard/flow.js:364
+msgid "Please enter a valid email address, like name@example.com."
+msgstr ""
+
+#: src/front/wizard/flow.js:370
+msgid "Please enter a valid phone number."
+msgstr ""
+
+#: src/front/wizard/flow.js:373
+msgid "Please enter a number."
+msgstr ""
+
+#: src/front/wizard/steps/DateTimeStep.js:180
+#: src/ui/components/Calendar.js:417
+#: src/ui/components/Calendar.js:424
+msgid "Choose a date"
+msgstr ""
+
+#: src/front/wizard/steps/DateTimeStep.js:190
+#: src/front/wizard/steps/DateTimeStep.js:263
+#: src/ui/components/Feedback.js:148
+msgid "Try again"
+msgstr ""
+
+#: src/front/wizard/steps/DateTimeStep.js:199
+msgid "No free times this month."
+msgstr ""
+
+#. translators: %s: date
+#: src/front/wizard/steps/DateTimeStep.js:216
+#, js-format
+msgid "Jump to the next free day (%s)"
+msgstr ""
+
+#: src/front/wizard/steps/DateTimeStep.js:227
+msgid "Try the next month."
+msgstr ""
+
+#: src/front/wizard/steps/DateTimeStep.js:236
+#: src/manage/ManageApp.js:190
+msgid "Choose a date to see free times"
+msgstr ""
+
+#: src/front/wizard/steps/DateTimeStep.js:252
+#: src/ui/components/TimeSlots.js:96
+msgid "Available times"
+msgstr ""
+
+#. translators: %s: time zone name
+#: src/front/wizard/steps/DateTimeStep.js:276
+#, js-format
+msgid "Times are shown in %s."
+msgstr ""
+
+#: src/front/wizard/steps/DateTimeStep.js:283
+msgid "Your device uses a different time zone."
+msgstr ""
+
+#: src/front/wizard/steps/DetailsStep.js:190
+msgid "Leave this field empty"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:29
+msgid "Payment options"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:48
+msgid "Online"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:89
+msgid "Have a promo code?"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:129
+msgid "Apply"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:189
+msgid "Yes"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:229
+#: src/front/wizard/Summary.js:57
+msgid "Any available staff member"
+msgstr ""
+
+#. translators: %s: promo code
+#: src/front/wizard/steps/FinalSteps.js:293
+#, js-format
+msgid "Promo code %s"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:372
+#: src/front/wizard/texts.js:78
+msgid "You are booked!"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:375
+msgid "We have emailed you a confirmation with all the details."
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:380
+msgid "Payment cancelled"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:381
+msgid "Your booking was not completed and the time has been released. You can start again whenever you like."
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:386
+msgid "Almost done"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:387
+msgid "Your time is reserved. Complete the payment to confirm your booking."
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:393
+msgid "Booking received"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:396
+msgid "Thanks! We will confirm your appointment soon. A summary is on its way to your inbox."
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:477
+msgid "The payment could not be started"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:494
+msgid "Pay now"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:504
+#: src/manage/ManageApp.js:386
+msgid "Add to calendar"
+msgstr ""
+
+#: src/front/wizard/steps/FinalSteps.js:514
+msgid "Manage booking"
+msgstr ""
+
+#. translators: %d: number of services
+#: src/front/wizard/steps/SelectSteps.js:77
+#, js-format
+msgid "%d service"
+msgid_plural "%d services"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/front/wizard/steps/SelectSteps.js:134
+msgid "Filter by category"
+msgstr ""
+
+#. translators: %d: places per time slot
+#: src/front/wizard/steps/SelectSteps.js:191
+#, js-format
+msgid "Up to %d person"
+msgid_plural "Up to %d people"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/front/wizard/steps/SelectSteps.js:217
+msgid "No services found"
+msgstr ""
+
+#: src/front/wizard/steps/SelectSteps.js:220
+msgid "Try another search word."
+msgstr ""
+
+#: src/front/wizard/steps/SelectSteps.js:224
+msgid "There is nothing to book here right now."
+msgstr ""
+
+#: src/front/wizard/steps/SelectSteps.js:279
+msgid "Extras are optional. Continue without any if you like."
+msgstr ""
+
+#: src/front/wizard/steps/SelectSteps.js:298
+msgid "See every free time. We will assign someone who is available."
+msgstr ""
+
+#: src/front/wizard/StripePayment.js:56
+msgid "The card form could not be loaded. Please check your connection and try again."
+msgstr ""
+
+#: src/front/wizard/StripePayment.js:85
+msgid "Your payment was not completed."
+msgstr ""
+
+#: src/front/wizard/StripePayment.js:106
+msgid "Payments are processed securely by Stripe. We never see your card number."
+msgstr ""
+
+#. translators: %s: amount
+#: src/front/wizard/StripePayment.js:127
+#, js-format
+msgid "Pay %s"
+msgstr ""
+
+#: src/front/wizard/Summary.js:26
+msgid "Choose a service to see your booking summary here."
+msgstr ""
+
+#: src/front/wizard/Summary.js:72
+msgid "Choose a time"
+msgstr ""
+
+#. translators: %s: price
+#: src/front/wizard/Summary.js:187
+#, js-format
+msgid "Total %s"
+msgstr ""
+
+#: src/front/wizard/texts.js:9
+msgid "Choose a location"
+msgstr ""
+
+#: src/front/wizard/texts.js:10
+msgid "Where would you like your appointment?"
+msgstr ""
+
+#: src/front/wizard/texts.js:17
+msgid "What are you looking for?"
+msgstr ""
+
+#: src/front/wizard/texts.js:18
+msgid "Pick a category to see its services."
+msgstr ""
+
+#: src/front/wizard/texts.js:26
+msgid "Select what you would like to book."
+msgstr ""
+
+#: src/front/wizard/texts.js:33
+msgid "Add extras"
+msgstr ""
+
+#: src/front/wizard/texts.js:34
+msgid "Optional add-ons for your appointment."
+msgstr ""
+
+#: src/front/wizard/texts.js:41
+msgid "Who would you like to see?"
+msgstr ""
+
+#: src/front/wizard/texts.js:42
+msgid "Pick a team member or let us choose for you."
+msgstr ""
+
+#: src/front/wizard/texts.js:49
+msgid "Pick a date and time"
+msgstr ""
+
+#: src/front/wizard/texts.js:50
+msgid "Only times that are still free are shown."
+msgstr ""
+
+#: src/front/wizard/texts.js:58
+msgid "We use these to confirm your booking."
+msgstr ""
+
+#: src/front/wizard/texts.js:65
+msgid "How would you like to pay?"
+msgstr ""
+
+#: src/front/wizard/texts.js:66
+msgid "Choose a payment option."
+msgstr ""
+
+#: src/front/wizard/texts.js:70
+msgid "Review and confirm"
+msgstr ""
+
+#: src/front/wizard/texts.js:71
+msgid "Check everything before you book."
+msgstr ""
+
+#: src/front/wizard/texts.js:79
+msgid "We have sent a confirmation to your email."
+msgstr ""
+
+#: src/front/wizard/texts.js:115
+msgid "Back"
+msgstr ""
+
+#: src/front/wizard/Wizard.js:162
+msgid "The booking form could not be loaded"
+msgstr ""
+
+#. translators: %s: discount amount
+#: src/front/wizard/Wizard.js:397
+#, js-format
+msgid "Promo code applied. You save %s."
+msgstr ""
+
+#: src/front/wizard/Wizard.js:404
+msgid "This promo code is not valid."
+msgstr ""
+
+#: src/front/wizard/Wizard.js:467
+msgid "Please choose a location to continue."
+msgstr ""
+
+#: src/front/wizard/Wizard.js:471
+msgid "Please choose a service to continue."
+msgstr ""
+
+#: src/front/wizard/Wizard.js:475
+msgid "Please choose a staff member, or “Any available”."
+msgstr ""
+
+#: src/front/wizard/Wizard.js:479
+msgid "Please choose a date and a time to continue."
+msgstr ""
+
+#: src/front/wizard/Wizard.js:483
+msgid "Please choose how you would like to pay."
+msgstr ""
+
+#: src/front/wizard/Wizard.js:506
+msgid "Online payment is not available right now."
+msgstr ""
+
+#: src/front/wizard/Wizard.js:715
+msgid "Continue to payment"
+msgstr ""
+
+#: src/front/wizard/Wizard.js:716
+msgid "Confirm booking"
+msgstr ""
+
+#: src/front/wizard/Wizard.js:737
+msgid "Taking you to the secure payment page…"
+msgstr ""
+
+#: src/front/wizard/Wizard.js:741
+msgid "Checking your payment…"
+msgstr ""
+
+#: src/front/wizard/Wizard.js:766
+msgid "Book another appointment"
+msgstr ""
+
+#: src/front/wizard/Wizard.js:904
+msgid "Enter your card details to complete the booking."
+msgstr ""
+
+#: src/front/wizard/Wizard.js:949
+msgid "Need help?"
+msgstr ""
+
+#: src/manage/ManageApp.js:72
+msgid "Not paid yet"
+msgstr ""
+
+#: src/manage/ManageApp.js:160
+msgid "Choose a new time"
+msgstr ""
+
+#: src/manage/ManageApp.js:213
+msgid "Keep the current time"
+msgstr ""
+
+#. translators: 1: date, 2: time
+#: src/manage/ManageApp.js:224
+#, js-format
+msgid "Move to %1$s, %2$s"
+msgstr ""
+
+#: src/manage/ManageApp.js:228
+msgid "Choose a date and time"
+msgstr ""
+
+#: src/manage/ManageApp.js:244
+msgid "This link is not complete. Please use the link from your confirmation email."
+msgstr ""
+
+#: src/manage/ManageApp.js:279
+msgid "Cancel this booking?"
+msgstr ""
+
+#: src/manage/ManageApp.js:280
+msgid "Your time will be released for other customers. This cannot be undone online."
+msgstr ""
+
+#: src/manage/ManageApp.js:284
+#: src/manage/ManageApp.js:405
+msgid "Cancel booking"
+msgstr ""
+
+#: src/manage/ManageApp.js:297
+msgid "Your booking was cancelled."
+msgstr ""
+
+#: src/manage/ManageApp.js:307
+msgid "We could not open this booking"
+msgstr ""
+
+#: src/manage/ManageApp.js:346
+msgid "This booking has been cancelled."
+msgstr ""
+
+#: src/manage/ManageApp.js:354
+msgid "This appointment is in the past."
+msgstr ""
+
+#: src/manage/ManageApp.js:370
+msgid "Your booking was moved to the new time."
+msgstr ""
+
+#: src/manage/PortalApp.js:76
+msgid "Manage"
+msgstr ""
+
+#: src/manage/PortalApp.js:133
+msgid "Your session has ended. Please sign in again."
+msgstr ""
+
+#. translators: %s: email address
+#: src/manage/PortalApp.js:160
+#, js-format
+msgid "If %s has bookings with us, a 6-digit code is on its way. It expires in 10 minutes."
+msgstr ""
+
+#: src/manage/PortalApp.js:200
+msgid "Your bookings"
+msgstr ""
+
+#: src/manage/PortalApp.js:211
+msgid "Sign out"
+msgstr ""
+
+#: src/manage/PortalApp.js:229
+msgid "Past and cancelled"
+msgstr ""
+
+#: src/manage/PortalApp.js:260
+msgid "No upcoming bookings"
+msgstr ""
+
+#: src/manage/PortalApp.js:264
+msgid "Nothing here yet"
+msgstr ""
+
+#: src/manage/PortalApp.js:268
+msgid "When you book an appointment it will show up here."
+msgstr ""
+
+#: src/manage/PortalApp.js:286
+msgid "View your bookings"
+msgstr ""
+
+#: src/manage/PortalApp.js:290
+msgid "Enter the email address you booked with. We will send you a one-time sign-in code."
+msgstr ""
+
+#: src/manage/PortalApp.js:294
+msgid "Enter the 6-digit code from the email we just sent."
+msgstr ""
+
+#: src/manage/PortalApp.js:319
+msgid "Send me a code"
+msgstr ""
+
+#: src/manage/PortalApp.js:325
+msgid "Sign-in code"
+msgstr ""
+
+#: src/manage/PortalApp.js:349
+msgid "Sign in"
+msgstr ""
+
+#: src/manage/PortalApp.js:357
+msgid "Send a new code"
+msgstr ""
+
+#: src/manage/PortalApp.js:368
+msgid "Use another email"
+msgstr ""
+
+#: src/ui/components/Calendar.js:202
+msgid "Previous month"
+msgstr ""
+
+#: src/ui/components/Calendar.js:217
+msgid "Next month"
+msgstr ""
+
+#: src/ui/components/Calendar.js:314
+msgid "Not available"
+msgstr ""
+
+#. translators: %d: number of available times
+#: src/ui/components/Calendar.js:465
+#, js-format
+msgid "%d times available"
+msgstr ""
+
+#: src/ui/components/Feedback.js:138
+msgid "Something went wrong"
+msgstr ""
+
+#: src/ui/components/Form.js:83
+msgid "(optional)"
+msgstr ""
+
+#: src/ui/components/Form.js:171
+msgid "Clear search"
+msgstr ""
+
+#. translators: 1: current step number, 2: total steps
+#: src/ui/components/Stepper.js:43
+#, js-format
+msgid "Step %1$d of %2$d"
+msgstr ""
+
+#: src/ui/components/Stepper.js:59
+msgid "Booking progress"
+msgstr ""
+
+#: src/ui/components/Stepper.js:71
+msgid "Booking steps"
+msgstr ""
+
+#: src/ui/components/Stepper.js:105
+msgid "(completed)"
+msgstr ""
+
+#: src/ui/components/Table.js:79
+msgid "Bulk actions"
+msgstr ""
+
+#. translators: %d: number of selected rows
+#: src/ui/components/Table.js:84
+#, js-format
+msgid "%d selected"
+msgid_plural "%d selected"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/ui/components/Table.js:101
+msgid "Clear selection"
+msgstr ""
+
+#: src/ui/components/Table.js:117
+msgid "Select all"
+msgstr ""
+
+#: src/ui/components/Table.js:225
+msgid "Nothing to show yet."
+msgstr ""
+
+#: src/ui/components/Table.js:272
+msgid "Select row"
+msgstr ""
+
+#: src/ui/components/Table.js:351
+msgid "Pagination"
+msgstr ""
+
+#. translators: 1: first row number, 2: last row number, 3: total rows
+#: src/ui/components/Table.js:356
+#, js-format
+msgid "%1$d–%2$d of %3$d"
+msgstr ""
+
+#: src/ui/components/Table.js:369
+msgid "Previous page"
+msgstr ""
+
+#: src/ui/components/Table.js:396
+msgid "Page"
+msgstr ""
+
+#: src/ui/components/Table.js:407
+msgid "Next page"
+msgstr ""
+
+#: src/ui/components/TimeSlots.js:17
+msgid "Morning"
+msgstr ""
+
+#: src/ui/components/TimeSlots.js:20
+msgid "Afternoon"
+msgstr ""
+
+#: src/ui/components/TimeSlots.js:22
+msgid "Evening"
+msgstr ""
+
+#: src/ui/components/TimeSlots.js:60
+msgid "Loading available times…"
+msgstr ""
+
+#: src/ui/components/TimeSlots.js:78
+msgid "No free times on this day. Please choose another date."
+msgstr ""
+
+#. translators: %d: number of places left
+#: src/ui/components/TimeSlots.js:165
+#, js-format
+msgid "%d spot left"
+msgid_plural "%d spots left"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/blocks/booking-form/block.json
+msgctxt "block title"
+msgid "Booking form"
+msgstr ""
+
+#: src/blocks/booking-form/block.json
+msgctxt "block description"
+msgid "Let visitors book an appointment: a button that opens the booking window, or the form embedded in the page."
+msgstr ""
+
+#: src/blocks/booking-form/block.json
+msgctxt "block keyword"
+msgid "booking"
+msgstr ""
+
+#: src/blocks/booking-form/block.json
+msgctxt "block keyword"
+msgid "appointment"
+msgstr ""
+
+#: src/blocks/booking-form/block.json
+msgctxt "block keyword"
+msgid "calendar"
+msgstr ""
+
+#: src/blocks/booking-form/block.json
+msgctxt "block keyword"
+msgid "schedule"
+msgstr ""
