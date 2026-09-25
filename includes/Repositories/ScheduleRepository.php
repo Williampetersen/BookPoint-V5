@@ -204,6 +204,17 @@ final class ScheduleRepository extends Repository {
 	}
 
 	/**
+	 * IDs of every agent that has their own weekly schedule rows, in one query.
+	 *
+	 * @return int[]
+	 */
+	public static function agents_with_schedule() {
+		$db  = self::db();
+		$ids = $db->get_col( $db->prepare( 'SELECT DISTINCT agent_id FROM %i WHERE agent_id > 0', self::table() ) );
+		return array_map( 'intval', $ids );
+	}
+
+	/**
 	 * Deletes an agent's weekly schedule, legacy hours and dated breaks.
 	 *
 	 * @param int $agent_id Agent ID.
