@@ -1,0 +1,47 @@
+/* Booking widget shell (entry bundle: kept small). */
+.pbk-root.pbk-booking {
+	display: block;
+	max-width: 100%;
+	margin-block: var(--pbk-space-4);
+	background: none;
+}
+
+.pbk-root.pbk-booking--return {
+	margin: 0;
+}
+
+.pbk-root .pbk-booking__root {
+	background: none;
+}
+
+.pbk-root .pbk-launch {
+	min-width: 180px;
+}
+
+.pbk-root .pbk-inline {
+	width: 100%;
+}
+
+/* Corner style from Booking form → Appearance. */
+.pbk-root.pbk-radius--flat {
+	--pbk-radius-sm: 3px;
+	--pbk-radius-md: 5px;
+	--pbk-radius-lg: 8px;
+}
+
+.pbk-root.pbk-radius--square {
+	--pbk-radius-sm: 0;
+	--pbk-radius-md: 0;
+	--pbk-radius-lg: 0;
+}
+
+.pbk-root.pbk-radius--pill {
+	--pbk-radius-sm: 12px;
+	--pbk-radius-md: 22px;
+	--pbk-radius-lg: 24px;
+}
+
+/* Use the theme's font instead of the system stack. */
+.pbk-root.pbk-font--inherit {
+	--pbk-font: inherit;
+}

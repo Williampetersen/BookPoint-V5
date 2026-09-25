@@ -2,13 +2,45 @@
  * Manage-booking page and customer portal entry.
  */
 import { createRoot } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { ThemeRoot, ConfirmProvider, ToastProvider } from '../ui';
+import ManageApp from './ManageApp';
+import PortalApp from './PortalApp';
+import '../front/front.css';
+import './manage.css';
 
-function Placeholder() {
-	return <p>{ __( 'Loading…', 'pointly-booking' ) }</p>;
+function Root( { config, kind, bookingKey } ) {
+	const appearance = config.appearance || {};
+	const variant = [
+		`pbk-radius--${ appearance.radius || 'rounded' }`,
+		appearance.font === 'inherit' ? 'pbk-font--inherit' : '',
+	]
+		.filter( Boolean )
+		.join( ' ' );
+	return (
+		<ThemeRoot
+			brand={ config.primary }
+			mode={ appearance.dark || 'light' }
+			className={ `pbk-mb-root ${ variant }` }
+			portalClassName={ variant }
+		>
+			<ToastProvider>
+				<ConfirmProvider>
+					{ kind === 'portal' ? (
+						<PortalApp config={ config } />
+					) : (
+						<ManageApp
+							config={ config }
+							bookingKey={ bookingKey }
+						/>
+					) }
+				</ConfirmProvider>
+			</ToastProvider>
+		</ThemeRoot>
+	);
 }
 
 function boot() {
+	const config = window.pointlybooking_MANAGE || {};
 	document
 		.querySelectorAll(
 			'[data-pbk-widget="manage"], [data-pbk-widget="portal"]'
@@ -18,7 +50,14 @@ function boot() {
 				return;
 			}
 			node.dataset.pbkMounted = '1';
-			createRoot( node ).render( <Placeholder /> );
+			node.innerHTML = '';
+			createRoot( node ).render(
+				<Root
+					config={ config }
+					kind={ node.dataset.pbkWidget }
+					bookingKey={ node.dataset.pbkKey || '' }
+				/>
+			);
 		} );
 }
 

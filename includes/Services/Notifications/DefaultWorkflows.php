@@ -119,7 +119,7 @@ final class DefaultWorkflows {
 				'id'      => 'booking_updated_customer',
 				'name'    => __( 'Booking changed — email the customer', 'pointly-booking' ),
 				'event'   => 'booking_updated',
-				'default' => false,
+				'default' => true,
 				'action'  => array(
 					'to'         => '{{customer_email}}',
 					'subject'    => __( 'Your booking was updated (#{{booking_id}})', 'pointly-booking' ),

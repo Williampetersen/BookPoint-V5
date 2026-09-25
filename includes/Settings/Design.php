@@ -82,7 +82,7 @@ final class Design {
 			'appearance'   => array(
 				'primaryColor'    => '#4f46e5',
 				'borderStyle'     => 'rounded',
-				'darkModeDefault' => null,
+				'darkModeDefault' => false,
 				'font'            => 'system',
 			),
 			'steps'        => $steps,
@@ -238,7 +238,8 @@ final class Design {
 	 * @return string
 	 */
 	private static function text( $value, $max = 200 ) {
-		$text = Sanitize::text( $value, $max );
+		// Plain text (escaped on output); sanitize_text_field() turns a lone "<" into "&lt;".
+		$text = wp_specialchars_decode( Sanitize::text( $value, $max ), ENT_QUOTES );
 		return in_array( $text, self::LEGACY_DEFAULT_TEXTS, true ) ? '' : $text;
 	}
 

@@ -1,0 +1,218 @@
+/* Manage booking page and customer portal. */
+.pbk-root .pbk-mb,
+.pbk-root .pbk-portal {
+	display: flex;
+	flex-direction: column;
+	gap: var(--pbk-space-4);
+	width: 100%;
+	max-width: 760px;
+	margin: 0 auto;
+	padding: var(--pbk-space-6);
+	border: 1px solid var(--pbk-border);
+	border-radius: var(--pbk-radius-lg);
+	background: var(--pbk-surface);
+	box-shadow: var(--pbk-shadow-sm);
+}
+
+.pbk-root .pbk-mb__title,
+.pbk-root .pbk-portal__title {
+	margin: 0;
+	font-size: var(--pbk-text-2xl);
+	font-weight: 700;
+}
+
+.pbk-root .pbk-mb__header p,
+.pbk-root .pbk-portal__header p {
+	margin: 2px 0 0;
+}
+
+.pbk-root .pbk-mb__heading {
+	margin: var(--pbk-space-2) 0 0;
+	font-size: var(--pbk-text-lg);
+	font-weight: 600;
+}
+
+.pbk-root .pbk-mb__card {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: var(--pbk-space-5);
+	border: 1px solid var(--pbk-border);
+	border-radius: var(--pbk-radius-md);
+	background: var(--pbk-surface-2);
+}
+
+.pbk-root .pbk-mb__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pbk-space-2);
+	margin-block-end: 4px;
+}
+
+.pbk-root .pbk-mb__service {
+	margin: 0;
+	font-size: var(--pbk-text-lg);
+	font-weight: 600;
+}
+
+.pbk-root .pbk-mb__line {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	color: var(--pbk-text-muted);
+	font-size: var(--pbk-text-md);
+}
+
+.pbk-root .pbk-mb__line .pbk-icon {
+	flex: none;
+	color: var(--pbk-text-subtle);
+}
+
+.pbk-root .pbk-mb__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--pbk-space-2);
+}
+
+.pbk-root .pbk-mb__cancel {
+	color: var(--pbk-danger);
+}
+
+.pbk-root .pbk-mb__reschedule {
+	display: flex;
+	flex-direction: column;
+	gap: var(--pbk-space-4);
+	padding-block-start: var(--pbk-space-2);
+	border-block-start: 1px solid var(--pbk-border);
+}
+
+.pbk-root .pbk-dt {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: var(--pbk-space-6);
+}
+
+@media (min-width: 700px) {
+
+	.pbk-root .pbk-mb .pbk-dt {
+		grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+		align-items: start;
+	}
+}
+
+.pbk-root .pbk-dt__slots {
+	display: flex;
+	flex-direction: column;
+	gap: var(--pbk-space-3);
+	min-width: 0;
+}
+
+.pbk-root .pbk-dt__day {
+	margin: 0;
+	font-size: var(--pbk-text-base);
+	font-weight: 600;
+}
+
+/* Portal */
+.pbk-root .pbk-portal--signin {
+	align-items: stretch;
+	max-width: 440px;
+	text-align: center;
+}
+
+.pbk-root .pbk-portal--signin form {
+	text-align: start;
+}
+
+.pbk-root .pbk-portal__badge {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 52px;
+	height: 52px;
+	margin: 0 auto;
+	border-radius: 50%;
+	background: var(--pbk-brand-soft);
+	color: var(--pbk-brand-text);
+}
+
+.pbk-root .pbk-portal__code {
+	font-size: var(--pbk-text-xl);
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.4em;
+	text-align: center;
+}
+
+.pbk-root .pbk-portal__header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--pbk-space-3);
+}
+
+.pbk-root .pbk-portal__list {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--pbk-border);
+	border-radius: var(--pbk-radius-md);
+}
+
+.pbk-root .pbk-portal__item {
+	display: grid;
+	grid-template-columns: 88px minmax(0, 1fr) auto auto;
+	align-items: center;
+	gap: var(--pbk-space-3);
+	padding: var(--pbk-space-3) var(--pbk-space-4);
+	border-block-end: 1px solid var(--pbk-border);
+}
+
+.pbk-root .pbk-portal__item:last-child {
+	border-block-end: 0;
+}
+
+.pbk-root .pbk-portal__when,
+.pbk-root .pbk-portal__what {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.pbk-root .pbk-portal__day {
+	font-weight: 600;
+}
+
+.pbk-root .pbk-portal__time,
+.pbk-root .pbk-portal__what .pbk-subtle {
+	color: var(--pbk-text-muted);
+	font-size: var(--pbk-text-sm);
+}
+
+.pbk-root .pbk-portal__service {
+	overflow: hidden;
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+@media (max-width: 599px) {
+
+	.pbk-root .pbk-mb,
+	.pbk-root .pbk-portal {
+		padding: var(--pbk-space-4);
+	}
+
+	.pbk-root .pbk-portal__item {
+		grid-template-columns: minmax(0, 1fr) auto;
+	}
+
+	.pbk-root .pbk-portal__what {
+		grid-column: 1 / -1;
+		grid-row: 2;
+	}
+}

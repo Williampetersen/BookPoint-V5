@@ -166,16 +166,35 @@ final class Assets {
 	 * @return array
 	 */
 	public static function front_data() {
-		$design = Design::get();
+		$design     = Design::get();
+		$appearance = $design['appearance'] ?? array();
+		$dark       = $appearance['darkModeDefault'] ?? false;
+		$user       = array();
+		if ( is_user_logged_in() ) {
+			$current = wp_get_current_user();
+			$user    = array(
+				'first_name' => (string) $current->first_name,
+				'last_name'  => (string) $current->last_name,
+				'email'      => (string) $current->user_email,
+			);
+		}
 		return array_merge(
 			self::rest(),
 			array(
-				'rest'      => esc_url_raw( rest_url( Controller::NS ) ),
-				'ajaxUrl'   => esc_url_raw( admin_url( 'admin-ajax.php' ) ),
-				'stripe_pk' => PaymentMethods::public_config()['stripe']['publishableKey'],
-				'currency'  => Money::currency(),
-				'primary'   => (string) ( $design['appearance']['primaryColor'] ?? '#4f46e5' ),
-				'settings'  => array(
+				'businessName'   => (string) Settings::get( 'business_name', get_bloginfo( 'name' ) ),
+				'appearance'     => array(
+					'dark'   => null === $dark ? 'auto' : ( $dark ? 'dark' : 'light' ),
+					'radius' => (string) ( $appearance['borderStyle'] ?? 'rounded' ),
+					'font'   => (string) ( $appearance['font'] ?? 'system' ),
+				),
+				'confirmOnClose' => ! isset( $design['behavior']['confirmOnClose'] ) || (bool) $design['behavior']['confirmOnClose'],
+				'user'           => $user,
+				'rest'           => esc_url_raw( rest_url( Controller::NS ) ),
+				'ajaxUrl'        => esc_url_raw( admin_url( 'admin-ajax.php' ) ),
+				'stripe_pk'      => PaymentMethods::public_config()['stripe']['publishableKey'],
+				'currency'       => Money::currency(),
+				'primary'        => (string) ( $design['appearance']['primaryColor'] ?? '#4f46e5' ),
+				'settings'       => array(
 					'currency'          => Money::currency(),
 					'currency_symbol'   => Money::symbol(),
 					'currency_position' => (string) Settings::get( 'currency_position', 'before' ),
@@ -190,12 +209,26 @@ final class Assets {
 	 * @return array
 	 */
 	public static function manage_data() {
-		$design = Design::get();
+		$front = self::front_data();
 		return array_merge(
 			self::rest(),
 			array(
-				'primary'  => (string) ( $design['appearance']['primaryColor'] ?? '#4f46e5' ),
-				'currency' => array(
+				'primary'      => $front['primary'],
+				'appearance'   => $front['appearance'],
+				'businessName' => $front['businessName'],
+				'settings'     => array(
+					'currency'        => Money::currency(),
+					'currency_symbol' => Money::symbol(),
+					'currency_pos'    => (string) Settings::get( 'currency_position', 'before' ),
+					'timezone'        => wp_timezone_string(),
+					'timezone_label'  => \PointlyBooking\Rest\Front\WizardController::timezone_label(),
+					'today'           => current_time( 'Y-m-d' ),
+					'week_starts'     => (int) get_option( 'start_of_week', 1 ),
+					'time_format'     => (string) get_option( 'time_format', 'H:i' ),
+					'locale'          => str_replace( '_', '-', determine_locale() ),
+				),
+				// 2.x key.
+				'currency'     => array(
 					'code'     => Money::currency(),
 					'symbol'   => Money::symbol(),
 					'position' => (string) Settings::get( 'currency_position', 'before' ),

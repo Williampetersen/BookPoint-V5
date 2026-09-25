@@ -47,6 +47,7 @@ export function ThemeRoot( {
 	mode = 'light',
 	admin = false,
 	className = '',
+	portalClassName = '',
 	style,
 	children,
 	...rest
@@ -65,7 +66,12 @@ export function ThemeRoot( {
 		if ( ! node ) {
 			return;
 		}
-		node.className = [ 'pbk-root', 'pbk-portal', admin ? 'pbk-admin' : '' ]
+		node.className = [
+			'pbk-root',
+			'pbk-portal',
+			admin ? 'pbk-admin' : '',
+			portalClassName,
+		]
 			.filter( Boolean )
 			.join( ' ' );
 		node.setAttribute( 'data-pbk-theme', theme );
@@ -96,6 +102,7 @@ export function ThemeRoot( {
 						'pbk-root',
 						'pbk-portal',
 						admin ? 'pbk-admin' : '',
+						portalClassName,
 					]
 						.filter( Boolean )
 						.join( ' ' );
@@ -109,7 +116,7 @@ export function ThemeRoot( {
 				return portalRef.current;
 			},
 		} ),
-		[ theme, brand, admin, tokens ]
+		[ theme, brand, admin, tokens, portalClassName ]
 	);
 
 	return (
