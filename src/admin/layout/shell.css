@@ -1,15 +1,20 @@
 /*
  * Reclaims the WP "wrap" padding so the app frame runs edge to edge inside #wpbody-content,
- * while WordPress's own admin bar and left-hand menu stay untouched.
+ * while WordPress's own admin bar and left-hand menu stay untouched. #wpcontent only pads its
+ * left side (the gutter from the admin menu) — its right edge already sits flush with the
+ * viewport, so reclaiming the right side too pushes the app 20px past the edge and creates a
+ * horizontal scrollbar.
  */
 .pbk-admin-wrap {
-	margin: 0 -20px -65px -20px;
+	margin: 0 0 -65px -20px;
 }
 
 @media (max-width: 782px) {
 
 	.pbk-admin-wrap {
-		margin-inline: -10px;
+
+		/* Same left-only asymmetry as the desktop rule above, just WP's narrower 10px gutter. */
+		margin-left: -10px;
 	}
 }
 
