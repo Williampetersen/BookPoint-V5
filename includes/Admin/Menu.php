@@ -221,7 +221,8 @@ final class Menu {
 	 * @return string
 	 */
 	public static function body_class( $classes ) {
-		return self::is_plugin_screen() ? $classes . ' pbk-admin-page' : $classes;
+		// `bp-app-mode` is the 2.x class name, kept for site CSS/JS that still targets it.
+		return self::is_plugin_screen() ? $classes . ' pbk-admin-page bp-app-mode' : $classes;
 	}
 
 	/**

@@ -22,12 +22,13 @@ export default function AuditLogTab() {
 	const [ dateFrom, setDateFrom ] = useState( '' );
 	const [ dateTo, setDateTo ] = useState( '' );
 	const [ page, setPage ] = useState( 1 );
+	const [ perPage, setPerPage ] = useState( 20 );
 	const [ selected, setSelected ] = useState( null );
 	const [ clearing, setClearing ] = useState( false );
 	const [ exporting, setExporting ] = useState( false );
 
 	const { data: meta } = useResource( 'admin/audit-logs/meta' );
-	const params = { search: debouncedSearch, event, actor_type: actorType, date_from: dateFrom, date_to: dateTo, page, per_page: 20 };
+	const params = { search: debouncedSearch, event, actor_type: actorType, date_from: dateFrom, date_to: dateTo, page, per_page: perPage };
 	const { data, loading, error, reload } = useResource( 'admin/audit-logs', params );
 
 	const exportCsv = async () => {
@@ -84,6 +85,16 @@ export default function AuditLogTab() {
 				/>
 				<input type="date" className="pbk-input" aria-label={ __( 'From date', 'pointly-booking' ) } value={ dateFrom } onChange={ ( e ) => { setDateFrom( e.target.value ); setPage( 1 ); } } />
 				<input type="date" className="pbk-input" aria-label={ __( 'To date', 'pointly-booking' ) } value={ dateTo } onChange={ ( e ) => { setDateTo( e.target.value ); setPage( 1 ); } } />
+				<Select
+					aria-label={ __( 'Rows per page', 'pointly-booking' ) }
+					value={ String( perPage ) }
+					onChange={ ( e ) => { setPerPage( Number( e.target.value ) ); setPage( 1 ); } }
+					options={ [
+						{ value: '20', label: sprintf( /* translators: %d: number of rows */ __( '%d / page', 'pointly-booking' ), 20 ) },
+						{ value: '50', label: sprintf( /* translators: %d: number of rows */ __( '%d / page', 'pointly-booking' ), 50 ) },
+						{ value: '100', label: sprintf( /* translators: %d: number of rows */ __( '%d / page', 'pointly-booking' ), 100 ) },
+					] }
+				/>
 				<span className="pbk-spacer" />
 				<Button size="sm" variant="secondary" icon="download" loading={ exporting } onClick={ exportCsv }>
 					{ __( 'Export CSV', 'pointly-booking' ) }
@@ -109,7 +120,7 @@ export default function AuditLogTab() {
 				</div>
 			) }
 
-			{ data && <Pagination page={ page } perPage={ 20 } total={ data.total } onChange={ setPage } /> }
+			{ data && <Pagination page={ page } perPage={ perPage } total={ data.total } onChange={ setPage } /> }
 			{ data && data.total > 0 && (
 				<p className="pbk-subtle pbk-table-summary">
 					{ sprintf( /* translators: %d: total events */ __( '%d events total', 'pointly-booking' ), data.total ) }

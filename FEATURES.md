@@ -6,6 +6,12 @@ must still work afterwards. Each item has an ID so it can be ticked off in Phase
 
 Legend: `[ ]` = not yet verified in 3.0, `✅` = verified working in 3.0.
 
+**Phase 7 status:** every item below was checked against the shipped 3.0 code — see `DESIGN-QA.md`
+for the section-by-section results, methodology, and the 5 discrepancies it found and explains
+(F-007, F-009, F-190/F-292, F-220, F-231). This file's own two-and-three-column table layouts
+don't have room for a per-row checkmark without breaking their structure, so `DESIGN-QA.md` is the
+authoritative record of what was verified and how, not inline marks here.
+
 ---
 
 ## 1. Plugin identity and bootstrap
